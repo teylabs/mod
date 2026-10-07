@@ -89,6 +89,7 @@ final readonly class BuiltInLayouts
                 ->kind('migration', in: 'Features/{feature}/Database/Migrations', timestamped: true)
                 ->kind('command', in: 'Console/Commands'))
             ->relation('factory', from: 'model', to: 'factory')
+            ->relation('migration', from: 'model', to: 'migration', name: 'explicit')
             ->relation('policy', from: 'model', to: 'policy', policy: 'reference')
             ->relation('store-request', from: 'controller', to: 'request', name: ['prefix' => 'Store'])
             ->exclude('App\\Support\\');
@@ -117,6 +118,7 @@ final readonly class BuiltInLayouts
             ->relation('request', from: 'handler', to: 'request')
             ->relation('model', from: 'request', to: 'model', scope: ['feature'], name: 'explicit', policy: 'reference')
             ->relation('factory', from: 'model', to: 'factory')
+            ->relation('migration', from: 'model', to: 'migration', name: 'explicit')
             ->exclude('App\\Http\\', 'App\\Providers\\', 'App\\Support\\');
     }
 
@@ -138,6 +140,7 @@ final readonly class BuiltInLayouts
             ->root('migrations', null, 'database/migrations', fn (Root $root) => $root
                 ->kind('migration', in: '{feature?}', timestamped: true))
             ->relation('factory', from: 'model', to: 'factory')
+            ->relation('migration', from: 'model', to: 'migration', name: 'explicit')
             ->relation('policy', from: 'model', to: 'policy', policy: 'reference')
             ->relation('store-request', from: 'controller', to: 'request', name: ['prefix' => 'Store'])
             ->exclude('App\\Models\\Concerns\\');
@@ -165,6 +168,7 @@ final readonly class BuiltInLayouts
                 ->kind('migration', in: 'Modules/{module}/Database/Migrations', timestamped: true)
                 ->kind('routes', in: 'Modules/{module}/routes', using: fn (Kind $kind) => $kind->file()))
             ->relation('factory', from: 'model', to: 'factory')
+            ->relation('migration', from: 'model', to: 'migration', name: 'explicit')
             ->relation('policy', from: 'model', to: 'policy', policy: 'reference')
             ->relation('store-request', from: 'controller', to: 'request', name: ['prefix' => 'Store'])
             ->relation('update-request', from: 'controller', to: 'request', name: ['prefix' => 'Update'])

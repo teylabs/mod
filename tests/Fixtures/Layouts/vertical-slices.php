@@ -33,5 +33,6 @@ return [
         'request' => ['from' => 'handler', 'to' => 'request', 'scope' => 'same', 'policy' => 'generate'],
         'model' => ['from' => 'request', 'to' => 'model', 'scope' => ['keep' => ['feature']], 'name' => 'explicit', 'policy' => 'reference'],
         'factory' => ['from' => 'model', 'to' => 'factory', 'scope' => 'same', 'policy' => 'generate'],
+        'migration' => ['from' => 'model', 'to' => 'migration', 'scope' => 'same', 'name' => 'explicit', 'policy' => 'generate'],
     ],
 ];
