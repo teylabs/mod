@@ -1,10 +1,14 @@
 <?php
 
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\ServiceProvider;
+use Pest\TestSuite;
 use Tey\Mod\Commands\RequestCommand;
 use Tey\Mod\Generation\InvalidGeneratorSetup;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Fixtures\Layouts;
+use Tey\Mod\Tests\TestCase;
 
 /*
  * Which mod:* commands exist is decided once, when Artisan starts, from the
@@ -94,3 +98,26 @@ it('describes --in with the preset dimensions', function () {
         expect($option->getDescription())->toContain('feature/slice');
     });
 });
+
+it('registers the discovery cache commands only with mod:* commands and discovery both on', function (bool $commands, bool $discovery, array $expected) {
+    $case = TestSuite::getInstance()->test;
+    assert($case instanceof TestCase);
+
+    Workspace::run('ordinary', function (Workspace $workspace) use ($case, $commands, $discovery, $expected) {
+        $case->bootApplicationUsing(function (Application $app) use ($workspace, $commands, $discovery): void {
+            $app->setBasePath($workspace->root->path);
+            $app->make('config')->set('mod.preset', Layouts::definition('ordinary'));
+            $app->make('config')->set('mod.commands', $commands);
+            $app->make('config')->set('mod.discovery.enabled', $discovery);
+        });
+
+        expect(array_values(array_filter(modCommands(), static fn (string $name): bool => str_starts_with($name, 'mod:discovery-'))))
+            ->toBe($expected)
+            ->and(ServiceProvider::$optimizeCommands['mod'] ?? null)
+            ->toBe($expected === [] ? null : 'mod:discovery-cache');
+    });
+})->with([
+    'both on' => [true, true, ['mod:discovery-cache', 'mod:discovery-clear']],
+    'commands off' => [false, true, []],
+    'discovery off' => [true, false, []],
+]);

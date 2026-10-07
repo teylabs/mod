@@ -5,8 +5,11 @@ namespace Tey\Mod;
 use Illuminate\Console\Application as Artisan;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
-use Symfony\Component\Console\Command\Command;
-use Tey\Mod\Generation\GeneratorAdapter;
+use Tey\Mod\Discovery\Console\DiscoveryCacheCommand;
+use Tey\Mod\Discovery\Console\DiscoveryClearCommand;
+use Tey\Mod\Discovery\Discovery;
+use Tey\Mod\Discovery\DiscoveryOptions;
+use Tey\Mod\Discovery\DiscoveryRegistrar;
 use Tey\Mod\Generation\GeneratorRegistry;
 use Tey\Mod\Generation\ModMigrationCreator;
 use Tey\Mod\Generation\PresetFactory;
@@ -23,15 +26,22 @@ class ModServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(GeneratorRegistry::class, function (Application $app): GeneratorRegistry {
-            /** @var array<string, class-string<GeneratorAdapter&Command>> $overrides */
-            $overrides = (array) $app->make('config')->get('mod.generators', []);
-
-            return new GeneratorRegistry($overrides);
+            return new GeneratorRegistry((array) $app->make('config')->get('mod.generators', []));
         });
 
         $this->app->bind(ModMigrationCreator::class, function (Application $app): ModMigrationCreator {
             return new ModMigrationCreator($app->make('files'), $app->basePath('stubs'));
         });
+
+        // Discovery: providers register now, commands when Artisan starts, listeners on the
+        // dispatcher. Disabled discovery binds and scans nothing.
+        if ($this->discoveryEnabled()) {
+            DiscoveryRegistrar::register(
+                $this->app,
+                $this->app->make(Preset::class),
+                DiscoveryOptions::fromConfig((array) $this->app->make('config')->get('mod.discovery', [])),
+            );
+        }
     }
 
     public function boot(): void
@@ -42,12 +52,43 @@ class ModServiceProvider extends ServiceProvider
 
         $this->publishes([__DIR__.'/../config/mod.php' => $this->app->configPath('mod.php')], 'mod-config');
 
-        // Generation: mod:* commands, read once when Artisan starts.
+        // mod:* commands, decided once when Artisan starts. Artisan's bootstrappers are
+        // process-wide: act only for this provider's own application.
         Artisan::starting(function (Artisan $artisan): void {
-            $this->registerGeneratorCommands($artisan);
-        });
+            if ($artisan->getLaravel() !== $this->app) {
+                return;
+            }
 
-        // DISCOVERY: the lead wires M2.3 discovery registration here.
+            $this->registerGeneratorCommands($artisan);
+            $this->registerDiscoveryCommands($artisan);
+        });
+    }
+
+    private function discoveryEnabled(): bool
+    {
+        return (bool) $this->app->make('config')->get('mod.discovery.enabled', true);
+    }
+
+    /**
+     * mod:discovery-cache / mod:discovery-clear, hooked into optimize and
+     * optimize:clear, only while mod:* commands and discovery are both on.
+     * Laravel keeps the optimize hooks in a process-wide map keyed by
+     * provider, so they are set or removed to match this application.
+     */
+    private function registerDiscoveryCommands(Artisan $artisan): void
+    {
+        $enabled = (bool) $this->app->make('config')->get('mod.commands', true)
+            && $this->discoveryEnabled()
+            && $this->app->bound(Discovery::class);
+
+        if (! $enabled) {
+            unset(static::$optimizeCommands['mod'], static::$optimizeClearCommands['mod']);
+
+            return;
+        }
+
+        $artisan->resolveCommands([DiscoveryCacheCommand::class, DiscoveryClearCommand::class]);
+        $this->optimizes(optimize: 'mod:discovery-cache', clear: 'mod:discovery-clear', key: 'mod');
     }
 
     /**

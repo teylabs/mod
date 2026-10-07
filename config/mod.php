@@ -58,4 +58,18 @@ return [
      */
     'generators' => [],
 
+    /*
+     * Runtime discovery of the providers, Artisan commands and listeners the
+     * preset places. Kinds with id provider/command/listener are discovered
+     * by default; map other kind ids to a type, or false to skip one.
+     * Production: `php artisan optimize` writes the cache (mod:discovery-cache).
+     */
+    'discovery' => [
+        'enabled' => true,
+        'kinds' => [],
+        'cache' => 'bootstrap/cache/mod-discovery.php',
+        // 'fail' refuses a stale or foreign cache; 'scan' scans instead (never rewrites the file).
+        'on_stale_cache' => 'fail',
+    ],
+
 ];

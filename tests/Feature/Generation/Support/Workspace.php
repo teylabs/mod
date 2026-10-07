@@ -8,6 +8,7 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
 use Symfony\Component\Console\Output\BufferedOutput;
+use Tey\Mod\Preset\Preset;
 use Tey\Mod\Tests\Fixtures\Layouts;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
 
@@ -31,18 +32,22 @@ final class Workspace
         return OwnedAppRoot::using(function (OwnedAppRoot $root) use ($layout, $callback) {
             app()->setBasePath($root->path);
             config()->set('mod.preset', is_string($layout) ? Layouts::definition($layout) : $layout);
+            // The provider resolved the default preset at boot; mod:* reads this one when Artisan starts.
+            app()->forgetInstance(Preset::class);
 
             return $callback(new self($root));
         });
     }
 
     /**
+     * Run a command non-interactively: prompts take their defaults, never read STDIN.
+     *
      * @param  array<string, mixed>  $parameters
      */
     public function artisan(string $command, array $parameters = []): CommandResult
     {
         $output = new BufferedOutput;
-        $exitCode = Artisan::call($command, $parameters, $output);
+        $exitCode = Artisan::call($command, [...$parameters, '--no-interaction' => true], $output);
 
         return new CommandResult($exitCode, $output->fetch());
     }
@@ -56,6 +61,17 @@ final class Workspace
         }
 
         return (string) file_get_contents($path);
+    }
+
+    /**
+     * Whether a generated file refers to a class: imported, or fully qualified
+     * (native factory stubs import the model on newer Laravel, qualify it on 11.x).
+     */
+    public function references(string $relative, string $fqcn): bool
+    {
+        $source = $this->read($relative);
+
+        return str_contains($source, "use {$fqcn};") || str_contains($source, "\\{$fqcn}");
     }
 
     public function exists(string $relative): bool
