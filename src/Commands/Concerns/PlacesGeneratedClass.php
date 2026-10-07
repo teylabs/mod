@@ -102,7 +102,9 @@ trait PlacesGeneratedClass
         }
 
         $plan = $this->plan();
-        $this->refuseCollisions($plan, $this->hasOption('force') && (bool) $this->option('force'));
+        // Read through the input itself: not every adapter's native command declares --force.
+        $force = $this->input->hasOption('force') && (bool) $this->input->getOption('force');
+        $this->refuseCollisions($plan, $force);
         $this->plan = $plan;
         $this->beforeGeneration($plan);
 
