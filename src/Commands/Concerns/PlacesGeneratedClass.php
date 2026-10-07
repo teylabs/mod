@@ -16,6 +16,16 @@ use Tey\Mod\Relation\RelationResolution;
  * The native command keeps its stubs, options, prompts and buildClass(); only
  * qualifyClass() and getPath() answer from the preset, and the whole plan is
  * checked for collisions before the native handle() writes anything.
+ *
+ * Hooks for packages building their own generators on an adapter:
+ *
+ *  - plansEagerly(): plan in execute() before the native handle() (default),
+ *    or let the host call resolvePlan() itself from inside handle(), after
+ *    its own preparation (prompts, callbacks) and in its own order.
+ *  - beforeGeneration(GenerationPlan) / afterGeneration(GenerationPlan, int):
+ *    run around the native generation with the resolved plan.
+ *  - getNameInput(): the name without the shorthand prefix; a host may
+ *    normalise it further (studly case, say) by overriding it.
  */
 trait PlacesGeneratedClass
 {
@@ -28,24 +38,86 @@ trait PlacesGeneratedClass
         return $kind->isClass();
     }
 
+    protected function configure(): void
+    {
+        parent::configure();
+
+        $this->addPlacementOption();
+    }
+
     /**
      * Resolve and check the plan, then let the native command run with it.
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $previous = $this->plan;
+        $this->plan = null;
+        $exitCode = self::FAILURE;
 
         try {
-            $this->plan = $this->plan();
-            $this->refuseCollisions($this->plan, $this->hasOption('force') && (bool) $this->option('force'));
+            if ($this->plansEagerly()) {
+                $this->resolvePlan();
+            }
 
-            return parent::execute($input, $output);
+            return $exitCode = parent::execute($input, $output);
         } catch (ModException $exception) {
-            return $this->refused($exception);
+            return $exitCode = $this->reportRefusal($exception);
         } finally {
+            $plan = $this->currentPlan();
+
+            if ($plan !== null) {
+                $this->afterGeneration($plan, $exitCode);
+            }
+
             $this->plan = $previous;
         }
     }
+
+    /**
+     * The plan of the running invocation, once resolved.
+     */
+    protected function currentPlan(): ?GenerationPlan
+    {
+        return $this->plan;
+    }
+
+    /**
+     * Hook: whether the plan is resolved before the native handle() runs.
+     */
+    protected function plansEagerly(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Resolve the plan, refuse collisions per the collision policy and run
+     * beforeGeneration(). Idempotent within one invocation.
+     *
+     * @throws ModException
+     */
+    protected function resolvePlan(): GenerationPlan
+    {
+        if ($this->plan !== null) {
+            return $this->plan;
+        }
+
+        $plan = $this->plan();
+        $this->refuseCollisions($plan, $this->hasOption('force') && (bool) $this->option('force'));
+        $this->plan = $plan;
+        $this->beforeGeneration($plan);
+
+        return $plan;
+    }
+
+    /**
+     * Hook: before the native generator writes, with the resolved plan.
+     */
+    protected function beforeGeneration(GenerationPlan $plan): void {}
+
+    /**
+     * Hook: after the native generator ran (or was refused), with the plan and the exit code.
+     */
+    protected function afterGeneration(GenerationPlan $plan, int $exitCode): void {}
 
     protected function plan(): GenerationPlan
     {
@@ -95,6 +167,16 @@ trait PlacesGeneratedClass
             $this->plan !== null ? $this->plan->relations : [],
             static fn (RelationResolution $resolution): bool => $resolution->relation->toKind === $kindId,
         ));
+    }
+
+    /**
+     * The name argument without its placement shorthand prefix.
+     *
+     * @return string
+     */
+    protected function getNameInput()
+    {
+        return $this->shorthand()[1];
     }
 
     /**
