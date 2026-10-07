@@ -56,7 +56,10 @@
         "laravel": {
             "providers": [
                 "Tey\\Mod\\ModServiceProvider"
-            ]
+            ],
+            "aliases": {
+                "Mod": "Tey\\Mod\\Facades\\Mod"
+            }
         }
     },
     "minimum-stability": "dev",

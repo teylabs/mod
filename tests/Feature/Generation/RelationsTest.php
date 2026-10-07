@@ -148,8 +148,8 @@ it('places a bare policy --model and listener --event', function () {
     });
 });
 
-it('generates every model companion through the default preset relations', function () {
-    Workspace::run(config('mod.preset'), function (Workspace $workspace) {
+it('generates every model companion through the default layout relations', function () {
+    Workspace::run(null, function (Workspace $workspace) {
         $workspace->artisan('mod:model', ['name' => 'Invoice', '--all' => true])->assertSuccessful();
 
         $migration = $workspace->migration('database/migrations', 'create_invoices_table');

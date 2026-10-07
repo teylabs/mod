@@ -11,8 +11,9 @@ use Tey\Mod\Discovery\Discovery;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryRegistrar;
 use Tey\Mod\Generation\GeneratorRegistry;
+use Tey\Mod\Generation\InvalidGeneratorSetup;
 use Tey\Mod\Generation\ModMigrationCreator;
-use Tey\Mod\Generation\PresetFactory;
+use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Preset\Preset;
 
 class ModServiceProvider extends ServiceProvider
@@ -21,8 +22,13 @@ class ModServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__.'/../config/mod.php', 'mod');
 
+        $this->app->singleton(LayoutRegistry::class);
+
+        // The active layout compiles on first use, after every provider has booted
+        // (Artisan::starting, the booted callback below), so Mod::layout() calls in
+        // any provider's register() or boot() apply.
         $this->app->singleton(Preset::class, function (Application $app): Preset {
-            return (new PresetFactory($app))->make($app->make('config')->get('mod.preset'));
+            return $this->activeLayout($app);
         });
 
         $this->app->singleton(GeneratorRegistry::class, function (Application $app): GeneratorRegistry {
@@ -33,15 +39,20 @@ class ModServiceProvider extends ServiceProvider
             return new ModMigrationCreator($app->make('files'), $app->basePath('stubs'));
         });
 
-        // Discovery: providers register now, commands when Artisan starts, listeners on the
-        // dispatcher. Disabled discovery binds and scans nothing.
-        if ($this->discoveryEnabled()) {
+        // Discovery, once every provider has booted: discovered providers register (and
+        // boot) then, commands when Artisan starts, listeners on the dispatcher.
+        // Disabled discovery binds and scans nothing.
+        $this->app->booted(function (Application $app): void {
+            if (! $this->discoveryEnabled()) {
+                return;
+            }
+
             DiscoveryRegistrar::register(
-                $this->app,
-                $this->app->make(Preset::class),
-                DiscoveryOptions::fromConfig((array) $this->app->make('config')->get('mod.discovery', [])),
+                $app,
+                $app->make(Preset::class),
+                DiscoveryOptions::fromConfig((array) $app->make('config')->get('mod.discovery', [])),
             );
-        }
+        });
     }
 
     public function boot(): void
@@ -62,6 +73,29 @@ class ModServiceProvider extends ServiceProvider
             $this->registerGeneratorCommands($artisan);
             $this->registerDiscoveryCommands($artisan);
         });
+    }
+
+    /**
+     * The layout `mod.layout` names. `mod.preset`, a raw internal preset
+     * definition, is an undocumented test hook that wins when set.
+     */
+    private function activeLayout(Application $app): Preset
+    {
+        $config = $app->make('config');
+        $definition = $config->get('mod.preset');
+
+        if (is_array($definition)) {
+            /** @var array<string, mixed> $definition */
+            return Preset::fromArray($definition);
+        }
+
+        $name = $config->get('mod.layout', 'laravel');
+
+        if (! is_string($name) || $name === '') {
+            throw new InvalidGeneratorSetup('Config [mod.layout] must be a layout name such as "laravel".');
+        }
+
+        return $app->make(LayoutRegistry::class)->compile($name);
     }
 
     private function discoveryEnabled(): bool
@@ -92,8 +126,8 @@ class ModServiceProvider extends ServiceProvider
     }
 
     /**
-     * One mod:* command per preset kind, unless the host turned them off
-     * (`mod.commands` false, or a preset that disables commands).
+     * One mod:* command per layout kind, unless the host turned them off
+     * (`mod.commands` false, or a layout defined ->withoutCommands()).
      */
     private function registerGeneratorCommands(Artisan $artisan): void
     {

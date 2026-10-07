@@ -23,16 +23,17 @@ final class Workspace
     /**
      * @template TReturn
      *
-     * @param  string|array<string, mixed>  $layout  a fixture layout name or a raw preset definition
+     * @param  string|array<string, mixed>|null  $layout  a fixture layout name, a raw preset definition, or null for the configured layout
      * @param  callable(self): TReturn  $callback
      * @return TReturn
      */
-    public static function run(string|array $layout, callable $callback): mixed
+    public static function run(string|array|null $layout, callable $callback): mixed
     {
         return OwnedAppRoot::using(function (OwnedAppRoot $root) use ($layout, $callback) {
             app()->setBasePath($root->path);
+            // mod.preset is the provider's internal test hook for raw definitions.
             config()->set('mod.preset', is_string($layout) ? Layouts::definition($layout) : $layout);
-            // The provider resolved the default preset at boot; mod:* reads this one when Artisan starts.
+            // Forget any preset resolved earlier; mod:* reads this one when Artisan starts.
             app()->forgetInstance(Preset::class);
 
             return $callback(new self($root));
