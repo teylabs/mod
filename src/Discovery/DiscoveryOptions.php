@@ -23,8 +23,9 @@ use Tey\Mod\Preset\Preset;
  *
  * A host may supply its own candidate-file source: a closure returning the
  * relative, '/'-separated .php paths below a root that discovery should
- * consider (to skip generated or vendored subtrees, or to reuse an existing
- * finder). Ownership, eligibility and registration stay with mod.
+ * consider for one discovered kind (to skip generated or vendored subtrees,
+ * to reuse an existing finder, or to scope candidates per kind). Ownership,
+ * eligibility and registration stay with mod.
  */
 final readonly class DiscoveryOptions
 {
@@ -32,7 +33,7 @@ final readonly class DiscoveryOptions
 
     /**
      * @param  array<string, DiscoveryType|false>  $kinds  overrides keyed by kind id
-     * @param  (Closure(Root, string): iterable<string>)|null  $candidates  candidate-file source: (root, basePath) → relative .php paths
+     * @param  (Closure(Root, string, DiscoveryDefinition): iterable<string>)|null  $candidates  candidate-file source: (root, basePath, definition) → relative .php paths
      */
     public function __construct(
         public bool $enabled = true,
@@ -102,7 +103,7 @@ final readonly class DiscoveryOptions
     /**
      * The same options with a candidate-file source.
      *
-     * @param  Closure(Root, string): iterable<string>  $candidates
+     * @param  Closure(Root, string, DiscoveryDefinition): iterable<string>  $candidates
      */
     public function withCandidates(Closure $candidates): self
     {

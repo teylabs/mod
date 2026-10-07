@@ -35,7 +35,7 @@ final readonly class DiscoveryScanner
     private ReverseMapper $mapper;
 
     /**
-     * @param  (Closure(Root, string): iterable<string>)|null  $candidates
+     * @param  (Closure(Root, string, DiscoveryDefinition): iterable<string>)|null  $candidates
      */
     public function __construct(
         private Preset $preset,
@@ -86,9 +86,11 @@ final readonly class DiscoveryScanner
             }
 
             $anywhere = $rule instanceof TemplateRule && $rule->anywhere() ? $rule : null;
-            $files[$rule->root()->path] ??= $this->files($rule->root());
+            // A host source may scope candidates per discovered kind, so the walk is cached per root and definition.
+            $filesKey = $rule->root()->path.'|'.($this->candidates === null ? '' : $definition->identity());
+            $files[$filesKey] ??= $this->files($rule->root(), $definition);
 
-            foreach ($files[$rule->root()->path] as $path) {
+            foreach ($files[$filesKey] as $path) {
                 $match = $matches[$path] ??= $this->mapper->fromPath($path);
 
                 if ($match->outcome === ReverseOutcome::Matched && $match->artifact !== null) {
@@ -213,13 +215,13 @@ final readonly class DiscoveryScanner
      *
      * @return list<string>
      */
-    private function files(Root $root): array
+    private function files(Root $root, DiscoveryDefinition $definition): array
     {
         if ($this->candidates !== null) {
             $prefix = $root->path === '' ? '' : Root::normalisePath($root->path).'/';
             $files = [];
 
-            foreach (($this->candidates)($root, $this->basePath) as $path) {
+            foreach (($this->candidates)($root, $this->basePath, $definition) as $path) {
                 $path = Root::normalisePath($path);
 
                 if ($path !== '' && str_ends_with($path, '.php') && ($prefix === '' || str_starts_with($path, $prefix))) {

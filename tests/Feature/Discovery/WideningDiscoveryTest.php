@@ -1,6 +1,7 @@
 <?php
 
 use Tey\Mod\Discovery\Discovery;
+use Tey\Mod\Discovery\DiscoveryDefinition;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\RejectionReason;
@@ -132,13 +133,17 @@ it('replays widened inventories from the cache byte for byte', DiscoveryFixture:
 it('takes candidate files from a host source and keeps ownership, eligibility and order', DiscoveryFixture::around(function (DiscoveryFixture $fx) {
     $preset = groupedTree($fx);
     $seen = [];
-    $options = groupedOptions()->withCandidates(function (Root $root, string $basePath) use (&$seen): iterable {
-        $seen[] = $root->path;
+    $options = groupedOptions()->withCandidates(function (Root $root, string $basePath, DiscoveryDefinition $definition) use (&$seen): iterable {
+        $seen[] = $root->path.'|'.$definition->kindId;
         $base = rtrim($basePath, '/').'/'.$root->path;
 
         foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($base, FilesystemIterator::SKIP_DOTS)) as $file) {
             if (! $file->isFile() || str_contains($file->getPathname(), '/Support/')) {
                 continue; // the host skips its Support subtrees
+            }
+
+            if ($definition->kindId === 'command' && str_contains($file->getPathname(), '/Console/')) {
+                continue; // and scopes candidates per discovered kind: no console files for the command kind
             }
 
             yield $root->path.'/'.substr($file->getPathname(), strlen($base) + 1);
@@ -156,7 +161,8 @@ it('takes candidate files from a host source and keeps ownership, eligibility an
         'src/Billing/Models/ModelProvider.php',
         'src/Billing/Providers/BillingProvider.php',
     ])
-        ->and(array_unique($seen))->toBe(['src'])
+        ->and(array_map(fn ($e) => $e->path, $inventory->ofType(DiscoveryType::Command)))->toBe([])
+        ->and(array_values(array_unique($seen)))->toBe(['src|command', 'src|listener', 'src|provider', 'src|subscriber'])
         ->and($discovery->definitionsFingerprint())->not->toBe((new Discovery($preset, groupedOptions(), $fx->path()))->definitionsFingerprint());
 
     // Directories are mod's own walk, not the candidate source.
