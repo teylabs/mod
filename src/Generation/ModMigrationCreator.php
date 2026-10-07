@@ -48,13 +48,22 @@ class ModMigrationCreator extends MigrationCreator
      */
     public function pinned(string $prefix, callable $callback): mixed
     {
-        $this->pinnedPrefix = $prefix;
+        $this->pin($prefix);
 
         try {
             return $callback();
         } finally {
-            $this->pinnedPrefix = null;
+            $this->pin(null);
         }
+    }
+
+    /**
+     * Fix the date prefix until released with null (a command that plans
+     * after the native handle() started pins here and releases in its finally).
+     */
+    public function pin(?string $prefix): void
+    {
+        $this->pinnedPrefix = $prefix;
     }
 
     protected function getDatePrefix()

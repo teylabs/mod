@@ -1,12 +1,15 @@
 <?php
 
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Composer;
 use Symfony\Component\Console\Input\InputOption;
 use Tey\Mod\Artifact\ArtifactKind;
+use Tey\Mod\Commands\MigrationCommand;
 use Tey\Mod\Commands\ModelCommand;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\CollisionPolicy;
 use Tey\Mod\Generation\GenerationPlan;
+use Tey\Mod\Generation\ModMigrationCreator;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Preset\Preset;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
@@ -249,6 +252,69 @@ it('passes placement to child commands through the host shorthand when there is 
             'app/Modules/Billing/Database/Factories/InvoiceFactory.php',
             'app/Modules/Billing/Models/Invoice.php',
         ]);
+    });
+});
+
+/**
+ * A host migration command that plans from inside its own handle(), after its own preparation.
+ */
+final class HostMigrationCommand extends MigrationCommand
+{
+    /** @var list<string> */
+    public array $trace = [];
+
+    protected function configure(): void
+    {
+        parent::configure();
+
+        $this->setName('host:migration');
+    }
+
+    protected function resolvePreset(): Preset
+    {
+        return Preset::fromArray(Layouts::definition('modules'));
+    }
+
+    protected function kindId(): string
+    {
+        return 'migration';
+    }
+
+    protected function plansEagerly(): bool
+    {
+        return false;
+    }
+
+    public function handle(): void
+    {
+        $this->trace[] = 'handle';
+        $this->resolvePlan();
+        parent::handle();
+    }
+
+    protected function beforeGeneration(GenerationPlan $plan): void
+    {
+        $this->trace[] = 'before:'.basename($plan->primary->path());
+    }
+
+    protected function afterGeneration(GenerationPlan $plan, int $exitCode): void
+    {
+        $this->trace[] = 'after:'.$exitCode;
+    }
+}
+
+it('lets a host migration command plan from inside its own handle()', function () {
+    Workspace::run('modules', function (Workspace $workspace) {
+        $command = new HostMigrationCommand(app(ModMigrationCreator::class), app(Composer::class));
+        $command->setLaravel(app());
+        app(Kernel::class)->registerCommand($command);
+
+        $workspace->artisan('host:migration', ['name' => 'create_invoices_table', '--in' => 'Billing', '--create' => 'invoices'])->assertSuccessful();
+
+        expect($workspace->files())->toHaveCount(1)
+            ->and($workspace->files()[0])->toStartWith('app/Modules/Billing/Database/Migrations/')
+            ->and($workspace->files()[0])->toEndWith('_create_invoices_table.php')
+            ->and($command->trace)->toBe(['handle', 'before:'.basename($workspace->files()[0]), 'after:0']);
     });
 });
 

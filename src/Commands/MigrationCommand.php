@@ -9,7 +9,6 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\NamePolicyKind;
-use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Commands\Concerns\InteractsWithPreset;
 use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Exceptions\ModException;
@@ -25,15 +24,21 @@ use Tey\Mod\Generation\ModMigrationCreator;
  * creator writes exactly the resolved file. The name argument accepts the
  * "Group:create_x_table" shorthand like every adapter.
  *
- * Hooks: nativePathAllowed() lets a host honour --path/--realpath natively
- * instead of refusing them; beforeGeneration()/afterGeneration() run around
- * the native write.
+ * Hooks: plansEagerly()/resolvePlan() plan before the native handle() or from
+ * inside a host's own handle(); nativePathAllowed() lets a host honour
+ * --path/--realpath natively instead of refusing them; beforeGeneration()/
+ * afterGeneration() run around the native write.
  */
 class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
 {
-    use InteractsWithPreset;
+    use InteractsWithPreset {
+        rawNameInput as traitRawNameInput;
+    }
 
-    private ?ResolvedArtifact $migration = null;
+    private ?GenerationPlan $plan = null;
+
+    /** The name argument as given, kept while the native handle() sees it without the shorthand prefix. */
+    private ?string $rawName = null;
 
     public function __construct(private readonly ModMigrationCreator $modCreator, Composer $composer)
     {
@@ -57,8 +62,8 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $previous = $this->migration;
-        $this->migration = null;
+        $previous = $this->plan;
+        $this->plan = null;
         $exitCode = self::FAILURE;
 
         try {
@@ -72,30 +77,82 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
                 return $exitCode = parent::execute($input, $output);
             }
 
-            $name = Str::snake($this->getNameInput());
-            $context = $this->placementContext();
-            // The native handle() reads the raw argument; hand it the name without the shorthand prefix.
+            // The native handle() reads the raw argument; hand it the name without the shorthand prefix
+            // and keep the original for the placement shorthand.
+            $this->rawName = $this->traitRawNameInput();
             $this->input->setArgument('name', $this->getNameInput());
 
-            // The directory never depends on the timestamp; resolve it first to read the native clock there.
-            $directory = dirname($this->resolveArtifact($this->kind()->id, $name, $context, ['timestamp' => '0000_00_00_000000'])->path());
-            $timestamp = $this->modCreator->datePrefixFor($this->existingArtifacts()->absolute($directory));
+            if ($this->plansEagerly()) {
+                $this->resolvePlan();
+            }
 
-            $this->migration = $this->resolveArtifact($this->kind()->id, $name, $context, ['timestamp' => $timestamp]);
-            $plan = new GenerationPlan($this->migration);
-            $this->refuseCollisions($plan, false);
-            $this->beforeGeneration($plan);
-
-            return $exitCode = $this->modCreator->pinned($timestamp, fn (): int => parent::execute($input, $output));
+            return $exitCode = parent::execute($input, $output);
         } catch (ModException $exception) {
             return $exitCode = $this->reportRefusal($exception);
         } finally {
-            if ($this->migration !== null) {
-                $this->afterGeneration(new GenerationPlan($this->migration), $exitCode);
+            $this->modCreator->pin(null);
+            $plan = $this->currentPlan();
+
+            if ($plan !== null) {
+                $this->afterGeneration($plan, $exitCode);
             }
 
-            $this->migration = $previous;
+            $this->plan = $previous;
+            $this->rawName = null;
         }
+    }
+
+    protected function rawNameInput(): string
+    {
+        return $this->rawName ?? $this->traitRawNameInput();
+    }
+
+    /**
+     * Hook: whether the migration is planned before the native handle() runs.
+     * Return false and call resolvePlan() from your own handle() to plan after
+     * your own preparation (a prompt, say).
+     */
+    protected function plansEagerly(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Resolve the migration (directory from the layout, timestamp from the
+     * native clock for that directory), refuse collisions per the collision
+     * policy, pin the timestamp and run beforeGeneration(). Idempotent within
+     * one invocation.
+     *
+     * @throws ModException
+     */
+    protected function resolvePlan(): GenerationPlan
+    {
+        if ($this->plan !== null) {
+            return $this->plan;
+        }
+
+        $name = Str::snake($this->getNameInput());
+        $context = $this->placementContext();
+
+        // The directory never depends on the timestamp; resolve it first to read the native clock there.
+        $directory = dirname($this->resolveArtifact($this->kind()->id, $name, $context, ['timestamp' => '0000_00_00_000000'])->path());
+        $timestamp = $this->modCreator->datePrefixFor($this->existingArtifacts()->absolute($directory));
+
+        $plan = new GenerationPlan($this->resolveArtifact($this->kind()->id, $name, $context, ['timestamp' => $timestamp]));
+        $this->refuseCollisions($plan, false);
+        $this->plan = $plan;
+        $this->modCreator->pin($timestamp);
+        $this->beforeGeneration($plan);
+
+        return $plan;
+    }
+
+    /**
+     * The plan of the running invocation, once resolved.
+     */
+    protected function currentPlan(): ?GenerationPlan
+    {
+        return $this->plan;
     }
 
     /**
@@ -131,11 +188,11 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
      */
     protected function getMigrationPath()
     {
-        if ($this->migration === null) {
+        if ($this->plan === null) {
             return parent::getMigrationPath();
         }
 
-        return dirname($this->existingArtifacts()->absolute($this->migration->path()));
+        return dirname($this->existingArtifacts()->absolute($this->plan->primary->path()));
     }
 
     /**
@@ -148,8 +205,8 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
     {
         $file = $this->creator->create($name, $this->getMigrationPath(), $table, $create);
 
-        if ($this->migration !== null && $file !== $this->existingArtifacts()->absolute($this->migration->path())) {
-            throw GenerationRefused::because("The native creator wrote [{$file}], not the resolved [{$this->migration->path()}].");
+        if ($this->plan !== null && $file !== $this->existingArtifacts()->absolute($this->plan->primary->path())) {
+            throw GenerationRefused::because("The native creator wrote [{$file}], not the resolved [{$this->plan->primary->path()}].");
         }
 
         $this->components->info(sprintf('Migration [%s] created successfully.', windows_os() ? str_replace('/', '\\', $file) : $file));
