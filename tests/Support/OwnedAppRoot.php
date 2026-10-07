@@ -135,6 +135,8 @@ final class OwnedAppRoot
 
             if ($item->isDir() && ! $item->isLink()) {
                 rmdir($pathname);
+            } elseif ($item->isLink() && PHP_OS_FAMILY === 'Windows' && is_dir($pathname)) {
+                rmdir($pathname); // a directory link is removed with rmdir on Windows, never followed
             } else {
                 unlink($pathname);
             }

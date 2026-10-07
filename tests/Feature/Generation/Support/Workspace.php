@@ -103,7 +103,7 @@ final class Workspace
 
         /** @var SplFileInfo $item */
         foreach ($items as $item) {
-            $relative = substr($item->getPathname(), strlen($this->root->path) + 1);
+            $relative = str_replace('\\', '/', substr($item->getPathname(), strlen($this->root->path) + 1));
 
             if ($item->isFile() && ! in_array($relative, ['composer.json', '.tey-mod-owned'], true)) {
                 $files[] = $relative;

@@ -27,7 +27,7 @@ function engineCodeTokens(bool $withBuiltInLayouts = false): array
             continue;
         }
 
-        if (! $withBuiltInLayouts && str_starts_with(substr($file->getPathname(), strlen($root) + 1), 'Layout/BuiltIn/')) {
+        if (! $withBuiltInLayouts && str_starts_with(str_replace('\\', '/', substr($file->getPathname(), strlen($root) + 1)), 'Layout/BuiltIn/')) {
             continue;
         }
 
@@ -36,7 +36,7 @@ function engineCodeTokens(bool $withBuiltInLayouts = false): array
                 continue;
             }
 
-            $tokens[] = ['file' => substr($file->getPathname(), strlen($root) + 1), 'line' => $token->line, 'text' => $token->text];
+            $tokens[] = ['file' => str_replace('\\', '/', substr($file->getPathname(), strlen($root) + 1)), 'line' => $token->line, 'text' => $token->text];
         }
     }
 
