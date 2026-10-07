@@ -158,13 +158,13 @@ final class Layout
 
         $relation = $this->relations[$id] ?? ['from' => null, 'to' => null, 'scope' => null, 'name' => null, 'policy' => null];
 
-        foreach (['from' => $from, 'to' => $to, 'scope' => $scope, 'name' => $name, 'policy' => $policy] as $key => $value) {
-            if ($value !== null) {
-                $relation[$key] = $value;
-            }
-        }
-
-        $this->relations[$id] = $relation;
+        $this->relations[$id] = [
+            'from' => $from ?? $relation['from'],
+            'to' => $to ?? $relation['to'],
+            'scope' => $scope ?? $relation['scope'],
+            'name' => $name ?? $relation['name'],
+            'policy' => $policy ?? $relation['policy'],
+        ];
 
         return $this;
     }

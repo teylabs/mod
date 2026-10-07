@@ -147,13 +147,18 @@ final class Discovery
     }
 
     /**
-     * Register the discovered listeners and subscribers on a dispatcher once.
-     * Repeated calls, and fakes wrapping a dispatcher that already has them,
-     * add nothing.
+     * Register the discovered listeners and subscribers on a dispatcher: once
+     * per dispatcher, and never twice for the same binding. A binding the
+     * dispatcher already holds (the application's own event discovery, its
+     * events cache, a manual listen()) is left alone; a subscriber whose
+     * listeners are already present is not subscribed again. Classes whose
+     * files lie below $skipBelow (the application's event-discovery paths)
+     * are skipped entirely, so it does not matter which side registers first.
      *
-     * @return int the number of listeners and subscribers added
+     * @param  list<string>  $skipBelow  absolute directories the application discovers listeners in itself
+     * @return int bindings and subscriptions added
      */
-    public function registerListeners(Dispatcher $events): int
+    public function registerListeners(Dispatcher $events, array $skipBelow = []): int
     {
         // A fake forwards listen() to the dispatcher it wraps, which is what really holds listeners.
         $target = $events;
@@ -168,19 +173,98 @@ final class Discovery
 
         $this->dispatchers[$target] = true;
         $added = 0;
+        $raw = $target instanceof \Illuminate\Events\Dispatcher ? $target->getRawListeners() : [];
 
         foreach ($this->inventory()->ofType(DiscoveryType::Listener) as $listener) {
+            if ($this->isBelow($listener->path, $skipBelow)) {
+                continue;
+            }
+
             foreach ($listener->events as $binding) {
+                if ($this->holds($raw, $binding['event'], $listener->class, $binding['method'])) {
+                    continue;
+                }
+
                 $events->listen($binding['event'], $listener->class.'@'.$binding['method']);
                 $added++;
             }
         }
 
         foreach ($this->inventory()->ofType(DiscoveryType::Subscriber) as $subscriber) {
+            if ($this->isBelow($subscriber->path, $skipBelow) || $this->refersTo($raw, $subscriber->class)) {
+                continue;
+            }
+
             $events->subscribe($subscriber->class);
             $added++;
         }
 
         return $added;
+    }
+
+    /**
+     * Whether the dispatcher already holds this listener binding, however it was registered.
+     *
+     * @param  array<string, mixed>  $raw
+     */
+    private function holds(array $raw, string $event, string $class, string $method): bool
+    {
+        foreach ((array) ($raw[$event] ?? []) as $registered) {
+            if ($registered === $class.'@'.$method || $registered === [$class, $method]) {
+                return true;
+            }
+
+            if ($registered === $class && in_array($method, ['handle', '__invoke'], true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Whether any registered listener belongs to the class (a subscriber already subscribed).
+     *
+     * @param  array<string, mixed>  $raw
+     */
+    private function refersTo(array $raw, string $class): bool
+    {
+        foreach ($raw as $listeners) {
+            foreach ((array) $listeners as $registered) {
+                if ($registered === $class
+                    || (is_string($registered) && str_starts_with($registered, $class.'@'))
+                    || (is_array($registered) && ($registered[0] ?? null) === $class)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  list<string>  $directories  absolute
+     */
+    private function isBelow(string $relativePath, array $directories): bool
+    {
+        if ($directories === []) {
+            return false;
+        }
+
+        $file = realpath(rtrim($this->basePath, '/\\').DIRECTORY_SEPARATOR.$relativePath);
+
+        if ($file === false) {
+            return false;
+        }
+
+        foreach ($directories as $directory) {
+            $real = realpath($directory);
+
+            if ($real !== false && str_starts_with($file, rtrim($real, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -4,6 +4,7 @@ namespace Tey\Mod\Generation;
 
 use Illuminate\Database\Migrations\MigrationCreator;
 use ReflectionClass;
+use ReflectionProperty;
 
 /**
  * The native migration creator, with its date-prefix clock exposed and pinnable.
@@ -28,13 +29,15 @@ class ModMigrationCreator extends MigrationCreator
             return parent::getDatePrefix();
         }
 
-        $previous = $this->currentMigrationPath;
-        $this->currentMigrationPath = $directory;
+        // Laravel 12+ keeps the directory on a property Laravel 11 does not declare; reach it by name.
+        $property = new ReflectionProperty(MigrationCreator::class, 'currentMigrationPath');
+        $previous = $property->getValue($this);
+        $property->setValue($this, $directory);
 
         try {
             return parent::getDatePrefix();
         } finally {
-            $this->currentMigrationPath = $previous;
+            $property->setValue($this, $previous);
         }
     }
 

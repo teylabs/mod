@@ -5,6 +5,8 @@ namespace Tey\Mod\Discovery;
 use Illuminate\Console\Application as Artisan;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Foundation\Support\Providers\EventServiceProvider;
+use ReflectionClass;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Preset\Preset;
 use WeakReference;
@@ -51,15 +53,15 @@ final class DiscoveryRegistrar
             });
         }
 
-        if ($inventory->ofType(DiscoveryType::Listener) !== []) {
-            if ($app->bound('events')) {
-                /** @var Dispatcher $events */
-                $events = $app->make('events');
-                $discovery->registerListeners($events);
-            }
+        if ($inventory->ofType(DiscoveryType::Listener) !== [] || $inventory->ofType(DiscoveryType::Subscriber) !== []) {
+            $skip = self::applicationListenerPaths($app);
 
-            $app->rebinding('events', static function (Application $app, Dispatcher $events) use ($discovery): void {
-                $discovery->registerListeners($events);
+            if ($app->bound('events')) {
+                $events = $app->make('events');
+                $discovery->registerListeners($events, $skip);
+            }
+            $app->rebinding('events', static function (Application $app, Dispatcher $events) use ($discovery, $skip): void {
+                $discovery->registerListeners($events, $skip);
             });
         }
 
@@ -94,6 +96,39 @@ final class DiscoveryRegistrar
         if ($app->runningInConsole() && ! $app->runningUnitTests()) {
             fwrite(STDERR, $message.PHP_EOL);
         }
+    }
+
+    /**
+     * The directories the application's own event discovery covers, so mod
+     * leaves the listeners there to Laravel whichever side registers first:
+     * the registered EventServiceProvider's paths (`withEvents()` or
+     * app/Listeners by default) when it discovers events, or the paths given
+     * to `withEvents()` before that provider has registered. None when the
+     * application has no event discovery.
+     *
+     * @return list<string>
+     */
+    public static function applicationListenerPaths(Application $app): array
+    {
+        $class = new ReflectionClass(EventServiceProvider::class);
+
+        if ($class->hasProperty('shouldDiscoverEvents') && $class->getStaticPropertyValue('shouldDiscoverEvents') === false) {
+            return [];
+        }
+
+        $provider = $app->getProvider(EventServiceProvider::class);
+
+        if ($provider instanceof EventServiceProvider) {
+            if (! $provider->shouldDiscoverEvents()) {
+                return [];
+            }
+
+            $paths = (fn (): mixed => $this->discoverEventsWithin())->call($provider);
+        } else {
+            $paths = $class->hasProperty('eventDiscoveryPaths') ? $class->getStaticPropertyValue('eventDiscoveryPaths') : [];
+        }
+
+        return array_values(array_filter(is_iterable($paths) ? [...$paths] : [], 'is_string'));
     }
 
     private static function existing(Application $app, Discovery $requested): Discovery
