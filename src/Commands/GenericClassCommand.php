@@ -1,0 +1,56 @@
+<?php
+
+namespace Tey\Mod\Commands;
+
+use Illuminate\Console\GeneratorCommand;
+use Illuminate\Support\Str;
+use Symfony\Component\Console\Input\InputOption;
+use Tey\Mod\Artifact\ArtifactKind;
+use Tey\Mod\Commands\Concerns\PlacesGeneratedClass;
+use Tey\Mod\Generation\GeneratorAdapter;
+use Tey\Mod\Preset\Preset;
+
+/**
+ * The declarative generator for class kinds Laravel has no make:* for
+ * (queries, actions, data objects...). Declaring the kind in the preset is
+ * enough; stubs/mod.<kind>.stub in the application replaces the plain class.
+ */
+class GenericClassCommand extends GeneratorCommand implements GeneratorAdapter
+{
+    use PlacesGeneratedClass {
+        forKind as bindKind;
+    }
+
+    protected $name = 'mod:class';
+
+    protected $description = 'Create a new class of a preset-declared kind';
+
+    protected $type = 'Class';
+
+    public function forKind(Preset $preset, ArtifactKind $kind): static
+    {
+        $this->bindKind($preset, $kind);
+
+        $this->type = Str::headline($kind->id);
+        $this->setDescription("Create a new {$kind->id} class");
+
+        return $this;
+    }
+
+    protected function getStub()
+    {
+        $custom = $this->laravel->basePath('stubs/mod.'.$this->kind()->id.'.stub');
+
+        return is_file($custom) ? $custom : __DIR__.'/stubs/class.stub';
+    }
+
+    /**
+     * @return list<array{0: string, 1: string, 2: int, 3: string}>
+     */
+    protected function getOptions()
+    {
+        return [
+            ['force', 'f', InputOption::VALUE_NONE, 'Create the class even if it already exists'],
+        ];
+    }
+}

@@ -1,0 +1,147 @@
+<?php
+
+namespace Tey\Mod\Commands;
+
+use Illuminate\Foundation\Console\ModelMakeCommand;
+use Illuminate\Support\Str;
+use Tey\Mod\Artifact\ResolvedArtifact;
+use Tey\Mod\Commands\Concerns\PlacesGeneratedClass;
+use Tey\Mod\Generation\FactoryConvention;
+use Tey\Mod\Generation\GeneratorAdapter;
+use Tey\Mod\Relation\RelationResolution;
+
+/**
+ * Native make:model, placed by the preset.
+ *
+ * Every companion option (--factory, --seed, --migration, --controller,
+ * --requests, --policy, --all) follows a declared relation from the model
+ * and runs the target kind's mod:* command; an option without a declared
+ * relation is refused before anything is written.
+ */
+class ModelCommand extends ModelMakeCommand implements GeneratorAdapter
+{
+    use PlacesGeneratedClass;
+
+    /**
+     * @return list<RelationResolution>
+     */
+    protected function plannedRelations(ResolvedArtifact $primary): array
+    {
+        $all = (bool) $this->option('all');
+        $relations = [];
+
+        if ($all || $this->option('factory')) {
+            array_push($relations, ...$this->relationsTo($primary, 'factory'));
+        }
+
+        if ($all || $this->option('seed')) {
+            array_push($relations, ...$this->relationsTo($primary, 'seeder'));
+        }
+
+        if ($all || $this->option('migration')) {
+            // Placement only: mod:migration reads the real timestamp from the native clock.
+            array_push($relations, ...$this->relationsTo($primary, 'migration', $this->migrationName(), ['timestamp' => date('Y_m_d_His')]));
+        }
+
+        if ($all || $this->option('controller') || $this->option('resource') || $this->option('api')) {
+            array_push($relations, ...$this->relationsTo($primary, 'controller'));
+        } elseif ($this->option('requests')) {
+            array_push($relations, ...$this->relationsTo($primary, 'request'));
+        }
+
+        if ($all || $this->option('policy')) {
+            array_push($relations, ...$this->relationsTo($primary, 'policy'));
+        }
+
+        return $relations;
+    }
+
+    protected function createFactory()
+    {
+        foreach ($this->plannedRelationsTo('factory') as $relation) {
+            $this->followRelation($relation, ['--model' => $this->primary()->fqcn()]);
+        }
+    }
+
+    protected function createMigration()
+    {
+        foreach ($this->plannedRelationsTo('migration') as $relation) {
+            $this->followRelation($relation, ['--create' => $this->tableName()]);
+        }
+    }
+
+    protected function createSeeder()
+    {
+        foreach ($this->plannedRelationsTo('seeder') as $relation) {
+            $this->followRelation($relation);
+        }
+    }
+
+    protected function createController()
+    {
+        $resourceful = $this->option('resource') || $this->option('api');
+
+        foreach ($this->plannedRelationsTo('controller') as $relation) {
+            $this->followRelation($relation, [
+                '--model' => $resourceful ? $this->primary()->fqcn() : null,
+                '--api' => $this->option('api'),
+                '--requests' => $this->option('requests') || $this->option('all'),
+                '--test' => $this->option('test'),
+                '--pest' => $this->option('pest'),
+            ]);
+        }
+    }
+
+    protected function createFormRequests()
+    {
+        foreach ($this->plannedRelationsTo('request') as $relation) {
+            $this->followRelation($relation);
+        }
+    }
+
+    protected function createPolicy()
+    {
+        foreach ($this->plannedRelationsTo('policy') as $relation) {
+            $this->followRelation($relation, ['--model' => $this->primary()->fqcn()]);
+        }
+    }
+
+    /**
+     * HasFactory names the resolved factory; when Laravel's convention would
+     * not find it (a factory outside Database\Factories) the model links it
+     * explicitly with newFactory().
+     *
+     * @return array<string, string>
+     */
+    protected function buildFactoryReplacements()
+    {
+        $factory = ($this->plannedRelationsTo('factory')[0] ?? null)?->target?->fqcn();
+
+        if ($factory === null) {
+            return parent::buildFactoryReplacements();
+        }
+
+        $code = "/** @use HasFactory<\\{$factory}> */\n    use HasFactory;";
+
+        if (! (new FactoryConvention($this->laravel->getNamespace()))->links((string) $this->primary()->fqcn(), $factory)) {
+            $code .= "\n\n    protected static function newFactory(): \\{$factory}\n    {\n        return \\{$factory}::new();\n    }";
+        }
+
+        return [
+            '{{ factory }}' => $code,
+            '{{ factoryImport }}' => 'use Illuminate\Database\Eloquent\Factories\HasFactory;',
+        ];
+    }
+
+    private function tableName(): string
+    {
+        $table = Str::snake(Str::pluralStudly($this->primary()->name));
+
+        return $this->option('pivot') ? Str::singular($table) : $table;
+    }
+
+    private function migrationName(): string
+    {
+        return "create_{$this->tableName()}_table";
+    }
+}
