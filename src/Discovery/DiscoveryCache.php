@@ -81,7 +81,7 @@ final readonly class DiscoveryCache
         }
 
         if (($payload['preset'] ?? null) !== $preset) {
-            throw InvalidDiscoveryCache::because($this->path, 'it was built for a different preset');
+            throw InvalidDiscoveryCache::because($this->path, 'it was built for a different layout');
         }
 
         if (($payload['definitions'] ?? null) !== $definitions) {

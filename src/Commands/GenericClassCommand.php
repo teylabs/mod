@@ -23,7 +23,7 @@ class GenericClassCommand extends GeneratorCommand implements GeneratorAdapter
 
     protected $name = 'mod:class';
 
-    protected $description = 'Create a new class of a preset-declared kind';
+    protected $description = 'Create a new class of a layout-declared kind';
 
     protected $type = 'Class';
 

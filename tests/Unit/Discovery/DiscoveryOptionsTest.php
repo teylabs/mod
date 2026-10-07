@@ -64,6 +64,6 @@ it('rejects kinds the preset cannot discover', function (array $kinds, string $m
     expect(fn () => DiscoveryOptions::fromConfig(['kinds' => $kinds])->definitionsFor(Layouts::ordinary()))
         ->toThrow(InvalidDiscoveryConfig::class, $message);
 })->with([
-    [['handler' => 'command'], '[mod.discovery.kinds.handler]: the active preset does not declare this kind'],
+    [['handler' => 'command'], '[mod.discovery.kinds.handler]: the active layout does not declare this kind'],
     [['migration' => 'listener'], 'only class kinds can be discovered'],
 ]);

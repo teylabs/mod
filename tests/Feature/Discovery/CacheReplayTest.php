@@ -76,7 +76,7 @@ it('refuses a cache built for another preset, naming the fix', DiscoveryFixture:
     $other = $fx->preset($definition);
 
     expect(fn () => discoveryFor($fx, $other)->inventory())
-        ->toThrow(InvalidDiscoveryCache::class, 'it was built for a different preset. Rebuild it with `php artisan mod:discovery-cache`');
+        ->toThrow(InvalidDiscoveryCache::class, 'it was built for a different layout. Rebuild it with `php artisan mod:discovery-cache`');
 }));
 
 it('refuses a cache built with other discovery settings', DiscoveryFixture::around(function (DiscoveryFixture $fx) {

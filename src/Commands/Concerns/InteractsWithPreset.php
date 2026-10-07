@@ -58,12 +58,12 @@ trait InteractsWithPreset
 
     protected function preset(): Preset
     {
-        return $this->modPreset ?? throw new LogicException(static::class.' is not bound to a preset kind.');
+        return $this->modPreset ?? throw new LogicException(static::class.' is not bound to a layout kind.');
     }
 
     protected function kind(): ArtifactKind
     {
-        return $this->modKind ?? throw new LogicException(static::class.' is not bound to a preset kind.');
+        return $this->modKind ?? throw new LogicException(static::class.' is not bound to a layout kind.');
     }
 
     protected function placementContext(): PlacementContext
@@ -98,7 +98,7 @@ trait InteractsWithPreset
         }
 
         if (! $this->preset()->hasKind($kindId)) {
-            throw GenerationRefused::because("The preset declares no [{$kindId}] kind to place [{$name}]; pass its fully qualified class name.");
+            throw GenerationRefused::because("The layout declares no [{$kindId}] kind to place [{$name}]; pass its fully qualified class name.");
         }
 
         $context = $this->placementContext()->only($this->preset()->rule($kindId)->dimensions());
@@ -140,7 +140,7 @@ trait InteractsWithPreset
         $artifact = $match->isMatched() ? $match->artifact : null;
 
         if ($artifact === null || $artifact->kind->id !== $kindId || $artifact->kind->command === null) {
-            throw GenerationRefused::because("Cannot generate [{$fqcn}]: no {$kindId} rule of the preset places it ({$match->reason}).");
+            throw GenerationRefused::because("Cannot generate [{$fqcn}]: no {$kindId} rule of the layout places it ({$match->reason}).");
         }
 
         $exitCode = $this->call($artifact->kind->command, array_filter([
@@ -182,7 +182,7 @@ trait InteractsWithPreset
         }
 
         if ($resolutions === [] && $required) {
-            throw GenerationRefused::because("The preset declares no relation from [{$source->kind->id}] to [{$toKind}].");
+            throw GenerationRefused::because("The layout declares no relation from [{$source->kind->id}] to [{$toKind}].");
         }
 
         return $resolutions;

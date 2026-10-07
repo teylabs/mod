@@ -129,7 +129,7 @@ it('does not generate a reference relation', function () {
 it('refuses a companion option without a declared relation, writing nothing', function () {
     Workspace::run('modules', function (Workspace $workspace) {
         $workspace->artisan('mod:model', ['name' => 'Invoice', '--in' => 'Billing', '--controller' => true])
-            ->expectsOutputToContain('The preset declares no relation from [model] to [controller].')
+            ->expectsOutputToContain('The layout declares no relation from [model] to [controller].')
             ->assertFailed();
 
         expect($workspace->files())->toBe([]);

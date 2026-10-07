@@ -109,7 +109,7 @@ final readonly class DiscoveryOptions
 
         foreach ($this->kinds as $kindId => $type) {
             if (! $preset->hasKind($kindId)) {
-                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", 'the active preset does not declare this kind');
+                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", 'the active layout does not declare this kind');
             }
 
             if ($type === false) {

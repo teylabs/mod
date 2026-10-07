@@ -75,7 +75,7 @@ final class DiscoveryRegistrar
         if ($existing->presetFingerprint() !== $requested->presetFingerprint()
             || $existing->definitionsFingerprint() !== $requested->definitionsFingerprint()
         ) {
-            throw new ModException('Discovery is already registered for this application with a different preset or discovery settings.');
+            throw new ModException('Discovery is already registered for this application with a different layout or discovery settings.');
         }
 
         return $existing;

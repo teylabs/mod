@@ -49,7 +49,7 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
 
         try {
             if ($this->input->getOption('path') !== null || $this->input->getOption('realpath')) {
-                throw GenerationRefused::because('mod:* places migrations from the preset; use --in instead of --path/--realpath.');
+                throw GenerationRefused::because('mod:* places migrations from the layout; use --in instead of --path/--realpath.');
             }
 
             $argument = $this->input->getArgument('name');

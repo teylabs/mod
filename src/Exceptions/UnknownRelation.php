@@ -6,6 +6,6 @@ final class UnknownRelation extends ModException
 {
     public static function id(string $relationId): self
     {
-        return new self("Unknown relation [{$relationId}]: the active preset does not declare it.");
+        return new self("Unknown relation [{$relationId}]: the active layout does not declare it.");
     }
 }
