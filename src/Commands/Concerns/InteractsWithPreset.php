@@ -41,6 +41,11 @@ use Tey\Mod\Reverse\ReverseMapper;
  *    generator.
  *  - reportRefusal() / reportReference(): the console output of refusals
  *    and reference-only relations.
+ *
+ * Those hooks (together with the ones PlacesGeneratedClass and
+ * MigrationCommand document) are the contract. The other protected methods
+ * here are helpers the adapters share; a subclass may call them, but their
+ * signatures may change between minor releases.
  */
 trait InteractsWithPreset
 {
@@ -470,13 +475,5 @@ trait InteractsWithPreset
             $target->kind->id,
             $target->fqcn() ?? $target->path(),
         ));
-    }
-
-    /**
-     * @deprecated use reportRefusal()
-     */
-    protected function refused(ModException $exception): int
-    {
-        return $this->reportRefusal($exception);
     }
 }

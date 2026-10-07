@@ -13,6 +13,8 @@ use UnexpectedValueException;
  *     return ['schema' => 1, 'preset' => sha256, 'definitions' => sha256, 'inventory' => [...]];
  *
  * Replay never scans or reflects. A file that does not match is never used.
+ *
+ * @internal used by Discovery; read, write and clear the cache through Discovery.
  */
 final readonly class DiscoveryCache
 {

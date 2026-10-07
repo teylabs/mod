@@ -39,6 +39,8 @@ final readonly class Preset
     ) {}
 
     /**
+     * @internal the array definition is the layout compiler's output format and may change; define layouts with Mod::layout() and compile() them.
+     *
      * @param  array<string, mixed>  $definition
      *
      * @throws InvalidPreset

@@ -2,6 +2,9 @@
 
 namespace Tey\Mod\Preset;
 
+/**
+ * @internal a problem the validator found; surfaces through InvalidLayout / InvalidPreset messages.
+ */
 final readonly class PresetIssue
 {
     public function __construct(

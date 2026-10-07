@@ -11,6 +11,8 @@ use ReflectionClass;
  * mod:migration reads the timestamp from the native clock, resolves the
  * placement with it, then pins it so the native create() writes exactly the
  * resolved file.
+ *
+ * @internal the creator mod:migration binds; hosts subclass MigrationCommand, not this.
  */
 class ModMigrationCreator extends MigrationCreator
 {

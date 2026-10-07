@@ -9,6 +9,7 @@ use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Layout\Root;
 use Tey\Mod\Placement\PlacementContext;
+use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Preset\Preset;
 use Tey\Mod\Relation\RelationPolicy;
 
@@ -278,4 +279,17 @@ it('compiles a fresh preset each time', function () {
 
     expect($layout->compile())->toBeInstanceOf(Preset::class)
         ->and($layout->compile())->not->toBe($layout->compile());
+});
+
+it('takes discoverAnywhere as a boolean and refuses false', function () {
+    $preset = (new Layout('anywhere'))->root('app', 'App\\', 'app')
+        ->kind('provider', in: 'Providers', discoverAnywhere: true, except: ['Tests'])
+        ->compile();
+    $rule = $preset->rule('provider');
+    assert($rule instanceof TemplateRule);
+
+    expect($rule->anywhere())->toBeTrue()
+        ->and($rule->except())->toBe(['Tests'])
+        ->and(fn () => (new Layout('no'))->root('app', 'App\\', 'app')->kind('provider', in: 'Providers', discoverAnywhere: false))
+        ->toThrow(ModException::class, 'discoverAnywhere cannot be false');
 });

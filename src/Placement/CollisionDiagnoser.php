@@ -9,6 +9,8 @@ use Tey\Mod\Artifact\ResolvedArtifact;
  *
  * The caller supplies what exists (paths and fully qualified class names);
  * the diagnoser never reads the filesystem or the autoloader.
+ *
+ * @internal used by GenerationPlan::collisions().
  */
 final readonly class CollisionDiagnoser
 {

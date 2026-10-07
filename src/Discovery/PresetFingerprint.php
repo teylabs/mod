@@ -13,6 +13,8 @@ use Tey\Mod\Preset\Preset;
  * Callback (opaque) rules are recorded by kind and root only; a closure's
  * behaviour cannot be hashed, so rebuild the discovery cache on deploy
  * rather than trusting automatic invalidation.
+ *
+ * @internal used by Discovery for cache validation.
  */
 final readonly class PresetFingerprint
 {

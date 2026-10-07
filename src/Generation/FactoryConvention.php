@@ -6,6 +6,8 @@ namespace Tey\Mod\Generation;
  * Laravel's own factory <-> model naming convention, to tell when a resolved
  * pair needs an explicit link (newFactory() / $model) because the framework's
  * guess would miss it, e.g. a factory placed in a module.
+ *
+ * @internal used by the factory and model adapters.
  */
 final readonly class FactoryConvention
 {

@@ -39,7 +39,8 @@ final readonly class ResolvedArtifact
     }
 
     /**
-     * The name as it was requested: the nested folders and the stem, '/'-joined.
+     * The name as it was requested: the nested folders and the stem, '/'-joined
+     * ("Archived/Invoice"); for the namespace form replace '/' with '\\'.
      */
     public function nestedName(): string
     {

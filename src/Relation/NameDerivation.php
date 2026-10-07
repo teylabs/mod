@@ -8,6 +8,8 @@ namespace Tey\Mod\Relation;
  * Derivation works on requested names (stems), never on basenames: kind
  * suffixes such as Controller or Factory are added and removed by each kind's
  * name policy, so a controller "Invoice" relates to the request "StoreInvoice".
+ *
+ * @internal relation machinery behind RelationResolver.
  */
 final readonly class NameDerivation
 {

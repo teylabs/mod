@@ -39,6 +39,8 @@ use Tey\Mod\Relation\ScopeMap;
  *        'name' => 'explicit'|['strip-suffix' => 'Controller', 'prefix' => 'Store', 'suffix' => 'Request'], 'policy' => 'generate',
  *    ]],
  *  ]
+ *
+ * @internal validates the compiled array definition; define layouts with Mod::layout().
  */
 final class PresetValidator
 {

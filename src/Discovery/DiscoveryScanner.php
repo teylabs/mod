@@ -29,6 +29,8 @@ use Tey\Mod\Reverse\ReverseOutcome;
  * Symlinks are not followed. Files are visited in sorted order, so the
  * inventory is deterministic. The host may replace the file walker with its
  * own candidate-file source; what it yields is still sorted and owned here.
+ *
+ * @internal used by Discovery::scan(); hosts replace the candidate-file source through DiscoveryOptions::withCandidates().
  */
 final readonly class DiscoveryScanner
 {

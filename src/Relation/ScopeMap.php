@@ -8,6 +8,8 @@ use Tey\Mod\Placement\PlacementContext;
  * How the target's placement derives from the source's placement, and
  * whether the source's nested folders carry over to the target (they do by
  * default: Models/Archived/Invoice → Policies/Archived/InvoicePolicy).
+ *
+ * @internal relation machinery behind RelationResolver.
  */
 final readonly class ScopeMap
 {

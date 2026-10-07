@@ -13,6 +13,8 @@ use ReflectionUnionType;
  * Semantic eligibility: a class registers only when it really is what its
  * discovery type needs. Names never decide; an application message class
  * called Command is not an Artisan command.
+ *
+ * @internal used by DiscoveryScanner.
  */
 final readonly class Eligibility
 {

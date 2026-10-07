@@ -25,6 +25,8 @@ use Tey\Mod\Exceptions\MissingDimension;
  * An "anywhere" rule (`discover: 'anywhere'`) additionally offers discovery
  * every file below its bound dimension folders, minus the `except` folders;
  * that widening is for discovery only and never reaches reverse mapping.
+ *
+ * @internal placement machinery behind Preset::rule(); build layouts with Mod::layout().
  */
 final readonly class TemplateRule implements PlacementRule
 {

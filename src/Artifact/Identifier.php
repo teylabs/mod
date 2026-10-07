@@ -4,6 +4,8 @@ namespace Tey\Mod\Artifact;
 
 /**
  * Identifier rules shared by names, namespace segments and placement values.
+ *
+ * @internal shared validation rules.
  */
 final class Identifier
 {

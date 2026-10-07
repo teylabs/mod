@@ -8,6 +8,8 @@ namespace Tey\Mod\Placement;
  * A dimension slot is `{name}` (required) or `{name?}` (optional). With a
  * plus, `{name+}` / `{name+?}`, the slot spans one or more folders, so a
  * value such as "Billing/Invoicing" places a nested group.
+ *
+ * @internal placement machinery.
  */
 final readonly class Segment
 {

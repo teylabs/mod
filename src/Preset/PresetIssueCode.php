@@ -2,6 +2,9 @@
 
 namespace Tey\Mod\Preset;
 
+/**
+ * @internal issue codes of the validator; surfaces through InvalidLayout / InvalidPreset messages.
+ */
 enum PresetIssueCode: string
 {
     case InvalidShape = 'invalid-shape';

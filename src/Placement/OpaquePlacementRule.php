@@ -18,6 +18,8 @@ use Tey\Mod\Exceptions\InvalidArtifactName;
  *
  * A nested rule accepts nested names and places their folders after the
  * callback's sub-namespace.
+ *
+ * @internal placement machinery behind Kind::place(); build layouts with Mod::layout().
  */
 final readonly class OpaquePlacementRule implements PlacementRule
 {

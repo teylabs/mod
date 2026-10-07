@@ -23,8 +23,8 @@ function anywhereLayout(): Preset
 {
     return (new Layout('anywhere'))
         ->root('src', 'Src\\', 'src', fn (Root $r) => $r
-            ->kind('provider', in: '{group+}/Providers', suffix: 'Provider', discover: 'anywhere', except: ['Tests', 'Database/Migrations'])
-            ->kind('subscriber', in: '{group+}/Listeners', discover: 'anywhere')
+            ->kind('provider', in: '{group+}/Providers', suffix: 'Provider', discoverAnywhere: true, except: ['Tests', 'Database/Migrations'])
+            ->kind('subscriber', in: '{group+}/Listeners', discoverAnywhere: true)
             ->kind('model', in: '{group+}/Models')
             ->kind('migration', in: '{group+}/Database/Migrations', timestamped: true))
         ->compile();
@@ -95,7 +95,7 @@ it('refuses directory discovery of a class kind and class discovery of a file ki
 it('fingerprints nested, anywhere and multi-segment rules distinctly', function () {
     $plain = (new Layout('a'))->root('src', 'Src\\', 'src')->kind('provider', in: '{group}/Providers')->compile();
     $nested = (new Layout('b'))->root('src', 'Src\\', 'src')->kind('provider', in: '{group}/Providers', nested: true)->compile();
-    $anywhere = (new Layout('c'))->root('src', 'Src\\', 'src')->kind('provider', in: '{group}/Providers', discover: 'anywhere', except: ['Tests'])->compile();
+    $anywhere = (new Layout('c'))->root('src', 'Src\\', 'src')->kind('provider', in: '{group}/Providers', discoverAnywhere: true, except: ['Tests'])->compile();
     $multi = (new Layout('d'))->root('src', 'Src\\', 'src')->kind('provider', in: '{group+}/Providers')->compile();
 
     $prints = array_map(PresetFingerprint::of(...), [$plain, $nested, $anywhere, $multi]);

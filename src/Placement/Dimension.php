@@ -8,6 +8,8 @@ namespace Tey\Mod\Placement;
  * Dimensions are data: the engine has none of its own and none is mandatory.
  * A multi-segment dimension (`{name+}` in every rule that reads it) holds a
  * '/'-joined chain of folders, e.g. "Billing/Invoicing".
+ *
+ * @internal placement machinery; read dimensions through Preset::dimensions().
  */
 final readonly class Dimension
 {

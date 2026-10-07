@@ -70,7 +70,7 @@ final class Layout
     /**
      * An artifact kind. `in:` is its path below the root ("Http/Controllers/{area?}",
      * or "root:Path" for another root); the generating command defaults to mod:<id>.
-     * `nested: true` accepts nested names ("Billing/Invoice"); `discover: 'anywhere'`
+     * `nested: true` accepts nested names ("Billing/Invoice"); `discoverAnywhere: true`
      * (with `except: [...]`) widens discovery to every file below the kind's
      * dimension folders. A `{name+}` placeholder spans one or more folders.
      *
@@ -86,7 +86,7 @@ final class Layout
         string|false|null $command = null,
         ?int $priority = null,
         ?bool $nested = null,
-        ?string $discover = null,
+        ?bool $discoverAnywhere = null,
         ?array $except = null,
         ?Closure $using = null,
     ): self {
@@ -124,9 +124,9 @@ final class Layout
             $kind->nested($nested);
         }
 
-        if ($discover !== null || $except !== null) {
-            if ($discover !== null && $discover !== 'anywhere') {
-                throw new ModException("Kind [{$id}]: discover must be 'anywhere' when given.");
+        if ($discoverAnywhere !== null || $except !== null) {
+            if ($discoverAnywhere === false) {
+                throw new ModException("Kind [{$id}]: discoverAnywhere cannot be false; leave it out to discover the kind in its own folder only.");
             }
 
             $kind->discoverAnywhere($except ?? []);
@@ -143,7 +143,7 @@ final class Layout
      * A relation from one kind to another (mod:model --factory follows `from: 'model', to: 'factory'`).
      *
      * @param  string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop'}|null  $scope  'same' (default), the placeholders the target keeps, e.g. ['area'], or ['keep' => [...], 'nested' => 'drop'] to drop the source's nested folders
-     * @param  string|array<string, string>|null  $name  'explicit', or ['prefix' => 'Store', 'suffix' => ..., 'strip-suffix' => ...]
+     * @param  string|array<string, string>|null  $name  how the target's name derives from the source's: 'explicit' (the caller always names it), or a map of 'strip-suffix' (removed from the source name first), 'prefix' and 'suffix' (added around it); the target kind's own name policy (suffix()/fixed()) still applies afterwards, so a controller→request relation needs no 'Request' suffix when the request kind declares one
      * @param  string|RelationPolicy|null  $policy  'generate' (default), 'reference' or 'none'
      */
     public function relation(
@@ -170,7 +170,11 @@ final class Layout
     }
 
     /**
-     * Namespaces ('App\\Support\\') or paths ('app/Support') inside a declared root that no kind owns.
+     * Namespaces ('App\\Support\\') or paths ('app/Support') inside a declared
+     * root that no kind owns: mod never places anything there, reverse mapping
+     * reports classes below them as not owned, and discovery skips them. Use
+     * it for hand-maintained corners of a root that would otherwise match a
+     * nested or discover-anywhere kind.
      */
     public function exclude(string ...$excluded): self
     {

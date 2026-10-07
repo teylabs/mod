@@ -33,11 +33,11 @@ final readonly class Root
         string|false|null $command = null,
         ?int $priority = null,
         ?bool $nested = null,
-        ?string $discover = null,
+        ?bool $discoverAnywhere = null,
         ?array $except = null,
         ?Closure $using = null,
     ): self {
-        $this->layout->kind($id, $in, $suffix, $fixed, $timestamped, $command, $priority, $nested, $discover, $except, function (Kind $kind) use ($using): void {
+        $this->layout->kind($id, $in, $suffix, $fixed, $timestamped, $command, $priority, $nested, $discoverAnywhere, $except, function (Kind $kind) use ($using): void {
             $kind->withinRoot($this->name);
 
             if ($using !== null) {
