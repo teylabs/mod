@@ -2,7 +2,8 @@
 
 namespace Tey\Mod\Layout;
 
-use Tey\Mod\Generation\InvalidGeneratorSetup;
+use Tey\Mod\Exceptions\InvalidGeneratorSetup;
+use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Layout\BuiltIn\BuiltInLayouts;
 use Tey\Mod\Preset\Preset;
 

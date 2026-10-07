@@ -3,14 +3,14 @@
 use Tey\Mod\Discovery\DiscoveryDefinition;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryType;
-use Tey\Mod\Discovery\Exceptions\InvalidDiscoveryConfig;
 use Tey\Mod\Discovery\PresetFingerprint;
-use Tey\Mod\Layout\InvalidLayout;
+use Tey\Mod\Exceptions\InvalidDiscoveryConfig;
+use Tey\Mod\Exceptions\InvalidLayout;
+use Tey\Mod\Exceptions\InvalidPreset;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\Root;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\TemplateRule;
-use Tey\Mod\Preset\InvalidPreset;
 use Tey\Mod\Preset\Preset;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseOutcome;

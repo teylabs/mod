@@ -1,8 +1,7 @@
 <?php
 
-namespace Tey\Mod\Layout;
+namespace Tey\Mod\Exceptions;
 
-use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Preset\PresetIssue;
 
 /**

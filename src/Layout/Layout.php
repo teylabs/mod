@@ -3,6 +3,7 @@
 namespace Tey\Mod\Layout;
 
 use Closure;
+use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Preset\Preset;
 use Tey\Mod\Relation\RelationPolicy;

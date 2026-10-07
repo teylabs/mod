@@ -1,9 +1,9 @@
 <?php
 
 use Tey\Mod\Artifact\IdentityShape;
+use Tey\Mod\Exceptions\InvalidGeneratorSetup;
+use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Exceptions\ModException;
-use Tey\Mod\Generation\InvalidGeneratorSetup;
-use Tey\Mod\Layout\InvalidLayout;
 use Tey\Mod\Layout\Kind;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;

@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\ServiceProvider;
 use Pest\TestSuite;
 use Tey\Mod\Commands\RequestCommand;
-use Tey\Mod\Generation\InvalidGeneratorSetup;
+use Tey\Mod\Exceptions\InvalidGeneratorSetup;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Fixtures\Layouts;
 use Tey\Mod\Tests\TestCase;

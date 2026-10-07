@@ -1,8 +1,6 @@
 <?php
 
-namespace Tey\Mod\Discovery\Exceptions;
-
-use Tey\Mod\Exceptions\ModException;
+namespace Tey\Mod\Exceptions;
 
 final class InvalidDiscoveryCache extends ModException
 {

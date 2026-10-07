@@ -2,7 +2,7 @@
 
 namespace Tey\Mod\Discovery;
 
-use Tey\Mod\Discovery\Exceptions\InvalidDiscoveryCache;
+use Tey\Mod\Exceptions\InvalidDiscoveryCache;
 use Throwable;
 use UnexpectedValueException;
 

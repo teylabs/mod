@@ -6,6 +6,7 @@ use Closure;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\IdentityShape;
 use Tey\Mod\Artifact\NamePolicy;
+use Tey\Mod\Exceptions\InvalidPreset;
 use Tey\Mod\Placement\Dimension;
 use Tey\Mod\Placement\OpaquePlacementRule;
 use Tey\Mod\Placement\PlacementContext;

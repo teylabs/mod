@@ -9,7 +9,7 @@ use Tey\Mod\Discovery\DiscoveryCache;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryRegistrar;
 use Tey\Mod\Discovery\DiscoveryType;
-use Tey\Mod\Discovery\Exceptions\InvalidDiscoveryCache;
+use Tey\Mod\Exceptions\InvalidDiscoveryCache;
 use Tey\Mod\Preset\Preset;
 use Tey\Mod\Tests\Feature\Discovery\Support\DiscoveryFixture;
 use Tey\Mod\Tests\Feature\Discovery\Support\Sources;

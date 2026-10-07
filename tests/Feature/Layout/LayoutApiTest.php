@@ -1,8 +1,8 @@
 <?php
 
 use Tey\Mod\Discovery\DiscoveryType;
+use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Facades\Mod;
-use Tey\Mod\Layout\InvalidLayout;
 use Tey\Mod\Layout\Root;
 use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
 use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;

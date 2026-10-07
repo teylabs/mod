@@ -1,6 +1,6 @@
 <?php
 
-use Tey\Mod\Preset\InvalidPreset;
+use Tey\Mod\Exceptions\InvalidPreset;
 use Tey\Mod\Preset\Preset;
 use Tey\Mod\Preset\PresetValidator;
 use Tey\Mod\Tests\Fixtures\Layouts;

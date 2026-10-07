@@ -1,8 +1,8 @@
 <?php
 
-namespace Tey\Mod\Preset;
+namespace Tey\Mod\Exceptions;
 
-use Tey\Mod\Exceptions\ModException;
+use Tey\Mod\Preset\PresetIssue;
 
 final class InvalidPreset extends ModException
 {

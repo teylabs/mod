@@ -2,6 +2,7 @@
 
 namespace Tey\Mod\Layout;
 
+use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Placement\Root as PlacementRoot;
 use Tey\Mod\Placement\Segment;
 use Tey\Mod\Preset\Preset;

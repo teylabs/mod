@@ -3,7 +3,7 @@
 namespace Tey\Mod\Discovery;
 
 use Closure;
-use Tey\Mod\Discovery\Exceptions\InvalidDiscoveryConfig;
+use Tey\Mod\Exceptions\InvalidDiscoveryConfig;
 use Tey\Mod\Placement\Root;
 use Tey\Mod\Preset\Preset;
 

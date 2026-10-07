@@ -1,8 +1,7 @@
 <?php
 
-namespace Tey\Mod\Generation;
+namespace Tey\Mod\Exceptions;
 
-use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Placement\Collision;
 
 /**

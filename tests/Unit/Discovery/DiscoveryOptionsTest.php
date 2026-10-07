@@ -4,7 +4,7 @@ use Tey\Mod\Discovery\CacheMismatchPolicy;
 use Tey\Mod\Discovery\DiscoveryDefinition;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryType;
-use Tey\Mod\Discovery\Exceptions\InvalidDiscoveryConfig;
+use Tey\Mod\Exceptions\InvalidDiscoveryConfig;
 use Tey\Mod\Tests\Fixtures\Layouts;
 
 /**

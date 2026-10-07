@@ -2,8 +2,8 @@
 
 use Tey\Mod\Artifact\ArtifactRequest;
 use Tey\Mod\Exceptions\InvalidArtifactName;
+use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Exceptions\InvalidPlacementOption;
-use Tey\Mod\Layout\InvalidLayout;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\Root;
 use Tey\Mod\Placement\PlacementContext;

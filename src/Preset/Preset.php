@@ -3,6 +3,7 @@
 namespace Tey\Mod\Preset;
 
 use Tey\Mod\Artifact\ArtifactKind;
+use Tey\Mod\Exceptions\InvalidPreset;
 use Tey\Mod\Exceptions\UnknownArtifactKind;
 use Tey\Mod\Exceptions\UnknownRelation;
 use Tey\Mod\Placement\Dimension;

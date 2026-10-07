@@ -4,7 +4,7 @@ namespace Tey\Mod\Discovery;
 
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Testing\Fakes\EventFake;
-use Tey\Mod\Discovery\Exceptions\InvalidDiscoveryCache;
+use Tey\Mod\Exceptions\InvalidDiscoveryCache;
 use Tey\Mod\Preset\Preset;
 use WeakMap;
 

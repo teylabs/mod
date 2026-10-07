@@ -11,9 +11,9 @@ use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\NamePolicyKind;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Commands\Concerns\InteractsWithPreset;
+use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\GenerationPlan;
-use Tey\Mod\Generation\GenerationRefused;
 use Tey\Mod\Generation\GeneratorAdapter;
 use Tey\Mod\Generation\ModMigrationCreator;
 

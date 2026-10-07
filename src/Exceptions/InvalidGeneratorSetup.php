@@ -1,8 +1,6 @@
 <?php
 
-namespace Tey\Mod\Generation;
-
-use Tey\Mod\Exceptions\ModException;
+namespace Tey\Mod\Exceptions;
 
 /**
  * The host configuration cannot produce a working set of generators.

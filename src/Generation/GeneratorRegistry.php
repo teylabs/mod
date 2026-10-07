@@ -17,6 +17,7 @@ use Tey\Mod\Commands\PolicyCommand;
 use Tey\Mod\Commands\ProviderCommand;
 use Tey\Mod\Commands\RequestCommand;
 use Tey\Mod\Commands\SeederCommand;
+use Tey\Mod\Exceptions\InvalidGeneratorSetup;
 use Tey\Mod\Preset\Preset;
 
 /**
