@@ -16,7 +16,7 @@ use Tey\Mod\Relation\RelationResolution;
  * The model is --model (placed as the model kind when bare), else the target
  * of a declared factory -> model relation, else the native guess. When
  * Laravel's naming convention would not link the pair, the factory names
- * its model with $model.
+ * its model with $model, fully qualified (older native stubs import nothing).
  */
 class FactoryCommand extends FactoryMakeCommand implements GeneratorAdapter
 {
@@ -59,7 +59,7 @@ class FactoryCommand extends FactoryMakeCommand implements GeneratorAdapter
         if (! (new FactoryConvention($this->laravel->getNamespace()))->links($model, (string) $primary->fqcn())) {
             $stub = preg_replace(
                 '/(class '.preg_quote($basename, '/').' extends Factory\R\{\R)/',
-                '$1    protected $model = '.class_basename($model).'::class;'."\n\n",
+                '$1    protected $model = \\'.$model.'::class;'."\n\n",
                 $stub,
                 1,
             ) ?? $stub;

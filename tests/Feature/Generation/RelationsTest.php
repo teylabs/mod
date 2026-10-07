@@ -21,8 +21,7 @@ it('generates a model with its factory in ordinary Laravel', function () {
             ->and($model)->toContain('/** @use HasFactory<\Database\Factories\InvoiceFactory> */')
             ->and($model)->not->toContain('newFactory')
             ->and($factory)->toContain('namespace Database\Factories;')
-            ->and($factory)->toContain('use App\Models\Invoice;')
-            ->and($factory)->toContain('@extends Factory<Invoice>')
+            ->and($workspace->references('database/factories/InvoiceFactory.php', 'App\Models\Invoice'))->toBeTrue()
             ->and($factory)->not->toContain('protected $model');
     });
 });
@@ -43,9 +42,9 @@ it('links a module model to its module factory by resolved identity', function (
             ->toContain('return \App\Modules\Billing\Database\Factories\InvoiceFactory::new();')
             ->and($workspace->read('app/Modules/Billing/Database/Factories/InvoiceFactory.php'))
             ->toContain('namespace App\Modules\Billing\Database\Factories;')
-            ->toContain('use App\Modules\Billing\Models\Invoice;')
             ->toContain('class InvoiceFactory extends Factory')
-            ->toContain('protected $model = Invoice::class;');
+            ->toContain('protected $model = \App\Modules\Billing\Models\Invoice::class;')
+            ->and($workspace->references('app/Modules/Billing/Database/Factories/InvoiceFactory.php', 'App\Modules\Billing\Models\Invoice'))->toBeTrue();
     });
 });
 
@@ -54,8 +53,7 @@ it('places the factory relation across a feature root in vertical slices', funct
         $workspace->artisan('mod:model', ['name' => 'Invoice', '--in' => 'Billing', '-f' => true])->assertSuccessful();
 
         expect($workspace->files())->toBe(['app/Billing/Database/Factories/InvoiceFactory.php', 'app/Billing/Models/Invoice.php'])
-            ->and($workspace->read('app/Billing/Database/Factories/InvoiceFactory.php'))
-            ->toContain('use App\Billing\Models\Invoice;');
+            ->and($workspace->references('app/Billing/Database/Factories/InvoiceFactory.php', 'App\Billing\Models\Invoice'))->toBeTrue();
     });
 });
 
@@ -63,8 +61,7 @@ it('places a bare factory --model as the model kind of the same placement', func
     Workspace::run('modules', function (Workspace $workspace) {
         $workspace->artisan('mod:factory', ['name' => 'InvoiceFactory', '--in' => 'Billing', '--model' => 'Invoice'])->assertSuccessful();
 
-        expect($workspace->read('app/Modules/Billing/Database/Factories/InvoiceFactory.php'))
-            ->toContain('use App\Modules\Billing\Models\Invoice;');
+        expect($workspace->references('app/Modules/Billing/Database/Factories/InvoiceFactory.php', 'App\Modules\Billing\Models\Invoice'))->toBeTrue();
     });
 });
 
@@ -73,7 +70,7 @@ it('resolves a factory model through the declared reference relation', function 
         $workspace->artisan('mod:factory', ['name' => 'InvoiceFactory'])->assertSuccessful();
 
         expect($workspace->files())->toBe(['database/factories/InvoiceFactory.php'])
-            ->and($workspace->read('database/factories/InvoiceFactory.php'))->toContain('use App\Models\Invoice;');
+            ->and($workspace->references('database/factories/InvoiceFactory.php', 'App\Models\Invoice'))->toBeTrue();
     });
 });
 
