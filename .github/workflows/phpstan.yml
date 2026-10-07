@@ -1,0 +1,31 @@
+name: PHPStan
+
+on:
+  push:
+    paths:
+      - '**.php'
+      - 'phpstan.neon.dist'
+      - 'phpstan.tests.neon.dist'
+      - 'composer.json'
+
+jobs:
+  phpstan:
+    name: phpstan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Install composer dependencies
+        uses: ramsey/composer-install@v4
+
+      - name: Run PHPStan on src
+        run: ./vendor/bin/phpstan analyse --memory-limit=1G --error-format=github
+
+      - name: Run PHPStan on tests
+        run: ./vendor/bin/phpstan analyse -c phpstan.tests.neon.dist --memory-limit=1G --error-format=github
