@@ -86,16 +86,16 @@ final class PresetValidator
         $roots = $this->roots($definition['roots'] ?? []);
         $dimensions = $this->dimensions($definition['dimensions'] ?? []);
         $excluded = $this->excluded($definition['excluded'] ?? []);
-        [$kinds, $rules, $declaredKinds] = $this->kinds($definition['kinds'] ?? [], $roots, $dimensions);
-        $dimensions = $this->multiDimensions($dimensions, $rules);
-        $relations = $this->relations($definition['relations'] ?? [], $declaredKinds, $dimensions);
-
         $commands = $definition['commands'] ?? true;
 
         if (! is_bool($commands)) {
             $this->issue(PresetIssueCode::InvalidShape, 'commands', 'must be a boolean');
             $commands = true;
         }
+
+        [$kinds, $rules, $declaredKinds] = $this->kinds($definition['kinds'] ?? [], $roots, $dimensions, $commands);
+        $dimensions = $this->multiDimensions($dimensions, $rules);
+        $relations = $this->relations($definition['relations'] ?? [], $declaredKinds, $dimensions);
 
         if ($this->issues !== []) {
             return null;
@@ -246,9 +246,10 @@ final class PresetValidator
     /**
      * @param  array<string, Root>  $roots
      * @param  array<string, Dimension>  $dimensions
+     * @param  bool  $commandsEnabled  when false (a host dispatches its own commands) kinds may share a command name
      * @return array{array<string, ArtifactKind>, array<string, PlacementRule>, list<string>}
      */
-    private function kinds(mixed $definition, array $roots, array $dimensions): array
+    private function kinds(mixed $definition, array $roots, array $dimensions, bool $commandsEnabled = true): array
     {
         if (! is_array($definition)) {
             $this->issue(PresetIssueCode::InvalidShape, 'kinds', 'must be a map of kind id to definition');
@@ -310,7 +311,7 @@ final class PresetValidator
                     continue;
                 }
 
-                if (isset($commands[$command])) {
+                if ($commandsEnabled && isset($commands[$command])) {
                     $this->issue(PresetIssueCode::DuplicateCommandName, $subject, "command [{$command}] is already used by kind [{$commands[$command]}]");
 
                     continue;

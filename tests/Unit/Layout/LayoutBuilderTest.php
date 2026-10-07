@@ -293,3 +293,19 @@ it('takes discoverAnywhere as a boolean and refuses false', function () {
         ->and(fn () => (new Layout('no'))->root('app', 'App\\', 'app')->kind('provider', in: 'Providers', discoverAnywhere: false))
         ->toThrow(ModException::class, 'discoverAnywhere cannot be false');
 });
+
+it('lets kinds share a command name when the layout registers no commands', function () {
+    $shared = (new Layout('host'))->root('app', 'App\\', 'app')
+        ->kind('model', in: 'Models', command: 'host:model')
+        ->kind('legacy-model', in: 'Legacy/Models', command: 'host:model')
+        ->withoutCommands()
+        ->compile();
+
+    expect($shared->kind('model')->command)->toBe('host:model')
+        ->and($shared->kind('legacy-model')->command)->toBe('host:model')
+        ->and(fn () => (new Layout('mod'))->root('app', 'App\\', 'app')
+            ->kind('model', in: 'Models', command: 'host:model')
+            ->kind('legacy-model', in: 'Legacy/Models', command: 'host:model')
+            ->compile())
+        ->toThrow(InvalidLayout::class, 'already used by kind [model]');
+});

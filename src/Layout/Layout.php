@@ -190,7 +190,10 @@ final class Layout
     }
 
     /**
-     * Register no mod:* commands for this layout (a host with its own artisan catalog).
+     * Register no mod:* commands for this layout (a host with its own artisan
+     * catalog). Kinds keep their command names for the host to dispatch by,
+     * and several kinds may then share one (a host that places the same
+     * command's output in different roots).
      */
     public function withoutCommands(): self
     {
