@@ -73,7 +73,7 @@ it('declares subscriber and directory definitions', function () {
     $preset = anywhereLayout();
 
     expect(array_map(fn (DiscoveryDefinition $d) => $d->identity(), (new DiscoveryOptions)->definitionsFor($preset)))
-        ->toBe(['provider:provider:on', 'subscriber:subscriber:on']);
+        ->toBe(['migration:directory:on', 'provider:provider:on', 'subscriber:subscriber:on']);
 
     $options = DiscoveryOptions::fromConfig(['kinds' => ['migration' => 'directory', 'subscriber' => false]]);
     expect(array_map(fn (DiscoveryDefinition $d) => $d->identity(), $options->definitionsFor($preset)))

@@ -143,3 +143,21 @@ it('still registers everything once in an application without its own discovery'
     expect(overlapRawListeners($fx))->toHaveCount(2)
         ->and($discovery->registerListeners($events, DiscoveryRegistrar::applicationListenerPaths($this->app)))->toBe(0);
 }));
+
+it('leaves nested listener folders inside app/Listeners to Laravel too', DiscoveryFixture::around(function (DiscoveryFixture $fx) {
+    // Type-first places listeners in app/Listeners/<Feature>; Laravel discovers app/Listeners recursively.
+    $events = '\\{{ns}}\\App\\Events\\';
+    $fx->write('app/Events/InvoicePaid.php', Sources::event('App\\Events', 'InvoicePaid'))
+        ->write('app/Listeners/Billing/SendReceipt.php', Sources::listener('App\\Listeners\\Billing', 'SendReceipt', 'handle', $events.'InvoicePaid'));
+    $preset = $fx->layout('type-first');
+    $this->app->setBasePath($fx->path());
+    EventServiceProvider::setEventDiscoveryPaths([$fx->path('app/Listeners')]);
+    DiscoverEvents::guessClassNamesUsing(static fn (SplFileInfo $file): string => $fx->class('App\\Listeners\\Billing\\'.$file->getBasename('.php')));
+
+    DiscoveryRegistrar::register($this->app, $preset);
+    expect(overlapListenerStrings($fx))->toBe([]);
+
+    app()->register(new EventServiceProvider(app()));
+
+    expect(overlapListenerStrings($fx))->toBe([$fx->class('App\\Listeners\\Billing\\SendReceipt').'@handle']);
+}));

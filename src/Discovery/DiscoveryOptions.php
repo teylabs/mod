@@ -3,6 +3,7 @@
 namespace Tey\Mod\Discovery;
 
 use Closure;
+use Tey\Mod\Artifact\NamePolicyKind;
 use Tey\Mod\Exceptions\InvalidDiscoveryConfig;
 use Tey\Mod\Placement\Root;
 use Tey\Mod\Preset\Preset;
@@ -125,6 +126,14 @@ final readonly class DiscoveryOptions
         foreach (DiscoveryType::cases() as $type) {
             if ($type->isClassType() && $preset->hasKind($type->value) && $preset->kind($type->value)->isClass()) {
                 $definitions[$type->value] = new DiscoveryDefinition($type->value, $type);
+            }
+        }
+
+        // Timestamped file kinds are migrations: their directories are collected so the
+        // migrator loads them (opt out with 'kinds' => ['migration' => false]).
+        foreach ($preset->kinds() as $kind) {
+            if (! $kind->isClass() && $kind->namePolicy->kind === NamePolicyKind::Timestamped) {
+                $definitions[$kind->id] = DiscoveryDefinition::directories($kind->id);
             }
         }
 

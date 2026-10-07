@@ -5,8 +5,10 @@ namespace Tey\Mod\Discovery;
 use Illuminate\Console\Application as Artisan;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider;
 use ReflectionClass;
+use Tey\Mod\Artifact\NamePolicyKind;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Preset\Preset;
 use WeakReference;
@@ -65,6 +67,8 @@ final class DiscoveryRegistrar
             });
         }
 
+        self::loadMigrationDirectories($app, $preset, $inventory);
+
         return $discovery;
     }
 
@@ -96,6 +100,49 @@ final class DiscoveryRegistrar
         if ($app->runningInConsole() && ! $app->runningUnitTests()) {
             fwrite(STDERR, $message.PHP_EOL);
         }
+    }
+
+    /**
+     * The directories of every timestamped file kind (migrations placed by the
+     * layout) join the migrator's paths, so `php artisan migrate` sees them;
+     * the application's default database/migrations is Laravel's own.
+     */
+    private static function loadMigrationDirectories(Application $app, Preset $preset, Inventory $inventory): void
+    {
+        $default = realpath($app->databasePath('migrations'));
+        $directories = [];
+
+        foreach ($inventory->ofType(DiscoveryType::Directory) as $entry) {
+            if (! $preset->hasKind($entry->kindId) || $preset->kind($entry->kindId)->namePolicy->kind !== NamePolicyKind::Timestamped) {
+                continue;
+            }
+
+            $directory = rtrim($app->basePath(), '/\\').DIRECTORY_SEPARATOR.$entry->path;
+
+            if ($default === false || realpath($directory) !== $default) {
+                $directories[] = $directory;
+            }
+        }
+
+        if ($directories === []) {
+            return;
+        }
+
+        $load = static function (Migrator $migrator) use ($directories): void {
+            foreach ($directories as $directory) {
+                $migrator->path($directory);
+            }
+        };
+
+        if ($app->resolved('migrator')) {
+            $load($app->make('migrator'));
+        }
+
+        $app->afterResolving('migrator', static function (mixed $migrator) use ($load): void {
+            if ($migrator instanceof Migrator) {
+                $load($migrator);
+            }
+        });
     }
 
     /**
