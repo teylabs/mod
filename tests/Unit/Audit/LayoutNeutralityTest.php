@@ -11,15 +11,24 @@
 /**
  * Every code token of src, comments and docblocks stripped.
  *
+ * src/Layout/BuiltIn is exempt: it is the layouts mod ships, written as data
+ * with the public builder, so it necessarily names folders and placeholders.
+ * The DDD-vocabulary check below and tests/Unit/VocabularyTest.php still
+ * cover it.
+ *
  * @return list<array{file: string, line: int, text: string}>
  */
-function engineCodeTokens(): array
+function engineCodeTokens(bool $withBuiltInLayouts = false): array
 {
     $root = dirname(__DIR__, 3).'/src';
     $tokens = [];
 
     foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS)) as $file) {
         if (! in_array($file->getExtension(), ['php', 'stub'], true)) {
+            continue;
+        }
+
+        if (! $withBuiltInLayouts && str_starts_with(substr($file->getPathname(), strlen($root) + 1), 'Layout/BuiltIn/')) {
             continue;
         }
 
@@ -38,11 +47,11 @@ function engineCodeTokens(): array
 /**
  * @return list<string>
  */
-function codeTokensMatching(string $pattern): array
+function codeTokensMatching(string $pattern, bool $withBuiltInLayouts = false): array
 {
     $hits = [];
 
-    foreach (engineCodeTokens() as $token) {
+    foreach (engineCodeTokens($withBuiltInLayouts) as $token) {
         if (preg_match($pattern, $token['text']) === 1) {
             $hits[] = "{$token['file']}:{$token['line']} {$token['text']}";
         }
@@ -55,8 +64,17 @@ it('names no fixture layout, dimension or segment in engine code', function () {
     expect(codeTokensMatching('/(module|feature|slice|billing|invoice|vertical|cookbook|type-?first)/i'))->toBe([]);
 });
 
+it('exempts only the built-in layouts from the layout-word check', function () {
+    $exempt = array_diff(
+        array_unique(array_column(engineCodeTokens(withBuiltInLayouts: true), 'file')),
+        array_unique(array_column(engineCodeTokens(), 'file')),
+    );
+
+    expect(array_values($exempt))->toBe(['Layout/BuiltIn/BuiltInLayouts.php']);
+});
+
 it('names no DDD concept in engine code', function () {
-    expect(codeTokensMatching('/(domain|layer|bounded|aggregate|value-?object|ddd)/i'))->toBe([]);
+    expect(codeTokensMatching('/(domain|layer|bounded|aggregate|value-?object|ddd)/i', withBuiltInLayouts: true))->toBe([]);
 });
 
 it('does not depend on Laravel-DDD', function () {
@@ -67,7 +85,7 @@ it('does not depend on Laravel-DDD', function () {
 
     expect(array_filter($packages, fn (string $package) => preg_match('/lunarstorm|laravel-ddd/i', $package) === 1))->toBe([])
         ->and($composer['repositories'] ?? [])->toBe([])
-        ->and(codeTokensMatching('/lunarstorm|LaravelDdd/i'))->toBe([]);
+        ->and(codeTokensMatching('/lunarstorm|LaravelDdd/i', withBuiltInLayouts: true))->toBe([]);
 });
 
 it('declares no static properties on any engine class', function () {

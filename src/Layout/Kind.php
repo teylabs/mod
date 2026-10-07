@@ -1,0 +1,162 @@
+<?php
+
+namespace Tey\Mod\Layout;
+
+use Closure;
+use Tey\Mod\Placement\PlacementContext;
+
+/**
+ * One kind of a layout: where its artifacts go and how they are named.
+ *
+ * Reached through `->kind(..., using: fn (Kind $kind) => $kind->...)` for
+ * what the named arguments do not cover; every method returns the kind.
+ */
+final class Kind
+{
+    private ?string $in = null;
+
+    private ?string $root = null;
+
+    /** @var 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null */
+    private string|array|null $name = null;
+
+    private bool $file = false;
+
+    private string|false|null $command = null;
+
+    private ?int $priority = null;
+
+    /** @var (Closure(string, PlacementContext): string)|null */
+    private ?Closure $place = null;
+
+    /** @var list<string> */
+    private array $reads = [];
+
+    /**
+     * @internal created by Layout::kind()
+     */
+    public function __construct(public readonly string $id) {}
+
+    /**
+     * Where the kind's artifacts go: "Models", "Http/Controllers/{area?}",
+     * or "root:Path/{area}" to place them in another declared root.
+     */
+    public function in(string $path): self
+    {
+        $this->in = $path;
+
+        return $this;
+    }
+
+    public function asGiven(): self
+    {
+        $this->name = 'as-given';
+
+        return $this;
+    }
+
+    /**
+     * The basename is the given name plus this suffix (Invoice → InvoiceController).
+     */
+    public function suffix(string $suffix): self
+    {
+        $this->name = ['suffix' => $suffix];
+
+        return $this;
+    }
+
+    /**
+     * Every artifact of the kind has this basename; its placement tells them apart.
+     */
+    public function fixed(string $basename): self
+    {
+        $this->name = ['fixed' => $basename];
+
+        return $this;
+    }
+
+    /**
+     * A file named <timestamp>_<name>, like a migration.
+     */
+    public function timestamped(): self
+    {
+        $this->name = 'timestamped';
+
+        return $this;
+    }
+
+    /**
+     * A plain file rather than a PHP class (a routes file, say).
+     */
+    public function file(): self
+    {
+        $this->file = true;
+
+        return $this;
+    }
+
+    /**
+     * The artisan command that generates the kind; false for none. Defaults to mod:<kind>.
+     */
+    public function command(string|false $command): self
+    {
+        $this->command = $command;
+
+        return $this;
+    }
+
+    /**
+     * Breaks ties when two kinds could own the same class.
+     */
+    public function priority(int $priority): self
+    {
+        $this->priority = $priority;
+
+        return $this;
+    }
+
+    /**
+     * Place artifacts with a closure instead of a path: it returns the
+     * sub-namespace under the root. Such kinds generate but are never
+     * recognised by discovery.
+     *
+     * @param  Closure(string, PlacementContext): string  $place
+     * @param  list<string>  $reads  the placeholders the closure reads, e.g. ['area']
+     */
+    public function place(Closure $place, array $reads = []): self
+    {
+        $this->place = $place;
+        $this->reads = $reads;
+
+        return $this;
+    }
+
+    /**
+     * @internal the root a Root closure declared the kind in
+     */
+    public function withinRoot(string $root): self
+    {
+        $this->root = $root;
+
+        return $this;
+    }
+
+    /**
+     * @internal
+     *
+     * @return array{in: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, priority: ?int, place: (Closure(string, PlacementContext): string)|null, reads: list<string>}
+     */
+    public function toArray(): array
+    {
+        return [
+            'in' => $this->in,
+            'root' => $this->root,
+            'name' => $this->name,
+            'file' => $this->file,
+            'command' => $this->command,
+            'priority' => $this->priority,
+            'place' => $this->place,
+            'reads' => $this->reads,
+        ];
+    }
+}
