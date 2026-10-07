@@ -32,6 +32,7 @@ final class DiscoveryRegistrar
         $app->instance(Discovery::class, $discovery);
 
         $inventory = $discovery->inventory();
+        self::warnAboutStaleCache($app, $discovery);
 
         foreach ($inventory->classes(DiscoveryType::Provider) as $provider) {
             $app->register($provider);
@@ -68,6 +69,33 @@ final class DiscoveryRegistrar
     /**
      * One discovery per application: registering the same preset and settings again is a no-op, anything else is an error.
      */
+    /**
+     * A stale cache file that the scan policy ignored is worth knowing about:
+     * every boot scans until the cache is rebuilt or removed.
+     */
+    private static function warnAboutStaleCache(Application $app, Discovery $discovery): void
+    {
+        $reason = $discovery->staleCacheReason();
+
+        if ($reason === null) {
+            return;
+        }
+
+        $message = sprintf(
+            'mod: ignoring the stale discovery cache at [%s] (%s); scanning instead. Rebuild it with `php artisan mod:discovery-cache` or remove it with `php artisan mod:discovery-clear`.',
+            $discovery->cache()->path,
+            rtrim($reason, '.'),
+        );
+
+        if ($app->bound('log')) {
+            $app->make('log')->warning($message);
+        }
+
+        if ($app->runningInConsole() && ! $app->runningUnitTests()) {
+            fwrite(STDERR, $message.PHP_EOL);
+        }
+    }
+
     private static function existing(Application $app, Discovery $requested): Discovery
     {
         $existing = $app->make(Discovery::class);

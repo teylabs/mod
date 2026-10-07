@@ -14,7 +14,7 @@ use Tey\Mod\Preset\Preset;
  *         'enabled' => true,                                   // false: discover nothing
  *         'kinds' => ['provider' => false, 'subscriber' => 'listener'],  // merged over the defaults
  *         'cache' => 'bootstrap/cache/mod-discovery.php',      // relative to the base path, or absolute
- *         'on_stale_cache' => 'fail',                          // or 'scan'
+ *         'on_stale_cache' => 'scan',                          // or 'fail'
  *     ]
  *
  * By default a preset kind whose id is `provider`, `command`, `listener` or
@@ -39,7 +39,7 @@ final readonly class DiscoveryOptions
         public bool $enabled = true,
         public array $kinds = [],
         public string $cachePath = self::DEFAULT_CACHE,
-        public CacheMismatchPolicy $onStaleCache = CacheMismatchPolicy::Fail,
+        public CacheMismatchPolicy $onStaleCache = CacheMismatchPolicy::Scan,
         public ?Closure $candidates = null,
     ) {}
 
@@ -90,7 +90,7 @@ final readonly class DiscoveryOptions
             throw InvalidDiscoveryConfig::because('cache', 'expected a file path');
         }
 
-        $policy = $config['on_stale_cache'] ?? CacheMismatchPolicy::Fail->value;
+        $policy = $config['on_stale_cache'] ?? CacheMismatchPolicy::Scan->value;
         $policy = $policy instanceof CacheMismatchPolicy ? $policy : (is_string($policy) ? CacheMismatchPolicy::tryFrom($policy) : null);
 
         if ($policy === null) {

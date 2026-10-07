@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\Log;
 use Tey\Mod\Discovery\CacheMismatchPolicy;
 use Tey\Mod\Discovery\Console\DiscoveryCacheCommand;
 use Tey\Mod\Discovery\Console\DiscoveryClearCommand;
@@ -69,27 +70,27 @@ it('registers from the cache without scanning', DiscoveryFixture::around(functio
 
 it('refuses a cache built for another preset, naming the fix', DiscoveryFixture::around(function (DiscoveryFixture $fx) {
     $preset = cacheTree($fx);
-    discoveryFor($fx, $preset)->writeCache();
+    discoveryFor($fx, $preset, ['on_stale_cache' => 'fail'])->writeCache();
 
     $definition = Layouts::definition('ordinary');
     $definition['kinds']['provider']['segments'] = ['Providers', 'Registered'];
     $other = $fx->preset($definition);
 
-    expect(fn () => discoveryFor($fx, $other)->inventory())
+    expect(fn () => discoveryFor($fx, $other, ['on_stale_cache' => 'fail'])->inventory())
         ->toThrow(InvalidDiscoveryCache::class, 'it was built for a different layout. Rebuild it with `php artisan mod:discovery-cache`');
 }));
 
 it('refuses a cache built with other discovery settings', DiscoveryFixture::around(function (DiscoveryFixture $fx) {
     $preset = cacheTree($fx);
-    discoveryFor($fx, $preset)->writeCache();
+    discoveryFor($fx, $preset, ['on_stale_cache' => 'fail'])->writeCache();
 
-    expect(fn () => discoveryFor($fx, $preset, ['kinds' => ['listener' => false]])->inventory())
+    expect(fn () => discoveryFor($fx, $preset, ['kinds' => ['listener' => false], 'on_stale_cache' => 'fail'])->inventory())
         ->toThrow(InvalidDiscoveryCache::class, 'different discovery settings');
 }));
 
 it('refuses unknown schema versions and malformed files', DiscoveryFixture::around(function (DiscoveryFixture $fx) {
     $preset = cacheTree($fx);
-    $discovery = discoveryFor($fx, $preset);
+    $discovery = discoveryFor($fx, $preset, ['on_stale_cache' => 'fail']);
     $file = $discovery->cache()->path;
     $header = "'preset' => '{$discovery->presetFingerprint()}', 'definitions' => '{$discovery->definitionsFingerprint()}'";
 
@@ -102,7 +103,7 @@ it('refuses unknown schema versions and malformed files', DiscoveryFixture::arou
     ] as $contents => $problem) {
         file_put_contents($file, $contents);
 
-        expect(fn () => discoveryFor($fx, $preset)->inventory())->toThrow(InvalidDiscoveryCache::class, $problem);
+        expect(fn () => discoveryFor($fx, $preset, ['on_stale_cache' => 'fail'])->inventory())->toThrow(InvalidDiscoveryCache::class, $problem);
     }
 }));
 
@@ -115,15 +116,29 @@ it('scans cold without rewriting the file under the scan policy', DiscoveryFixtu
 
     expect($discovery->inventory()->equals($discovery->scan()))->toBeTrue()
         ->and($discovery->source())->toBe('scan')
+        ->and($discovery->staleCacheReason())->toContain('schema')
         ->and(file_get_contents($file))->toBe("<?php return ['schema' => 0];");
 }));
 
-it('fails registration loudly under the default policy', DiscoveryFixture::around(function (DiscoveryFixture $fx) {
+it('scans and warns instead of failing under the default policy', DiscoveryFixture::around(function (DiscoveryFixture $fx) {
+    $preset = cacheTree($fx);
+    file_put_contents($fx->path('bootstrap/cache/mod-discovery.php'), "<?php return ['schema' => 0];");
+    $this->app->setBasePath($fx->path());
+    $log = Log::spy();
+
+    $discovery = DiscoveryRegistrar::register($this->app, $preset);
+
+    expect($discovery->source())->toBe('scan')
+        ->and($discovery->staleCacheReason())->not->toBeNull();
+    $log->shouldHaveReceived('warning')->once()->withArgs(fn (string $message) => str_contains($message, 'mod:discovery-cache'));
+}));
+
+it('fails registration loudly under the fail policy', DiscoveryFixture::around(function (DiscoveryFixture $fx) {
     $preset = cacheTree($fx);
     file_put_contents($fx->path('bootstrap/cache/mod-discovery.php'), "<?php return ['schema' => 0];");
     $this->app->setBasePath($fx->path());
 
-    expect(fn () => DiscoveryRegistrar::register($this->app, $preset))->toThrow(InvalidDiscoveryCache::class);
+    expect(fn () => DiscoveryRegistrar::register($this->app, $preset, DiscoveryOptions::fromConfig(['on_stale_cache' => 'fail'])))->toThrow(InvalidDiscoveryCache::class);
 }));
 
 it('honours a configured cache path and clears it', DiscoveryFixture::around(function (DiscoveryFixture $fx) {

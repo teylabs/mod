@@ -44,7 +44,8 @@ it('reads the defaults from an empty config', function () {
     expect($options->enabled)->toBeTrue()
         ->and($options->kinds)->toBe([])
         ->and($options->cachePath)->toBe('bootstrap/cache/mod-discovery.php')
-        ->and($options->onStaleCache)->toBe(CacheMismatchPolicy::Fail)
+        ->and($options->onStaleCache)->toBe(CacheMismatchPolicy::Scan)
+        ->and(DiscoveryOptions::fromConfig(['on_stale_cache' => 'fail'])->onStaleCache)->toBe(CacheMismatchPolicy::Fail)
         ->and(DiscoveryOptions::fromConfig(['on_stale_cache' => 'scan'])->onStaleCache)->toBe(CacheMismatchPolicy::Scan)
         ->and(DiscoveryOptions::fromConfig(['kinds' => ['x' => DiscoveryType::Command]])->kinds)->toBe(['x' => DiscoveryType::Command]);
 });

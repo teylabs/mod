@@ -39,8 +39,9 @@ return [
         'enabled' => true,
         'kinds' => [],
         'cache' => 'bootstrap/cache/mod-discovery.php',
-        // 'fail' refuses a stale or foreign cache; 'scan' scans instead (never rewrites the file).
-        'on_stale_cache' => 'fail',
+        // 'scan' ignores a stale or foreign cache file, scans instead (never rewriting the file) and
+        // warns; 'fail' refuses to boot until the cache is rebuilt (mod:discovery-cache) or removed.
+        'on_stale_cache' => 'scan',
     ],
 
 ];

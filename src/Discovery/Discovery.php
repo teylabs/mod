@@ -25,6 +25,9 @@ final class Discovery
 
     private ?string $source = null;
 
+    /** Why an existing cache file was ignored under the scan policy, once known. */
+    private ?string $staleCache = null;
+
     /** @var WeakMap<object, true> */
     private WeakMap $dispatchers;
 
@@ -67,6 +70,8 @@ final class Discovery
                 if ($this->options->onStaleCache === CacheMismatchPolicy::Fail) {
                     throw $exception;
                 }
+
+                $this->staleCache = $exception->getMessage();
             }
         }
 
@@ -81,6 +86,15 @@ final class Discovery
     public function source(): ?string
     {
         return $this->source;
+    }
+
+    /**
+     * Why an existing cache file was ignored (scan policy): the validation
+     * message, or null when the cache was used or there was none.
+     */
+    public function staleCacheReason(): ?string
+    {
+        return $this->staleCache;
     }
 
     /**
