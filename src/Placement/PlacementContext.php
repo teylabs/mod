@@ -9,7 +9,8 @@ use Tey\Mod\Preset\Preset;
 /**
  * Where an artifact is placed: an ordered map of dimension name to value.
  *
- * An empty context is ordinary Laravel with no grouping at all.
+ * An empty context is ordinary Laravel with no grouping at all. A
+ * multi-segment dimension's value is a '/'-joined chain of folders.
  */
 final readonly class PlacementContext
 {
@@ -33,7 +34,9 @@ final readonly class PlacementContext
 
     /**
      * Parse the value of the placement CLI option (`--in=Billing/CreateInvoice`):
-     * dimension values in the preset's declared order, separated by "/".
+     * dimension values in the preset's declared order, separated by "/". Inside
+     * a multi-segment dimension the folders are separated by "." instead
+     * (`--in=Billing.Invoicing/CreateInvoice`).
      */
     public static function fromOption(string $option, Preset $preset): self
     {
@@ -43,7 +46,7 @@ final readonly class PlacementContext
             return self::none();
         }
 
-        $dimensions = $preset->dimensionNames();
+        $dimensions = $preset->dimensions();
 
         if ($dimensions === []) {
             throw InvalidPlacementOption::noDimensions($option);
@@ -52,19 +55,32 @@ final readonly class PlacementContext
         $parts = explode('/', $option);
 
         if (count($parts) > count($dimensions)) {
-            throw InvalidPlacementOption::tooManyValues($option, $dimensions);
+            throw InvalidPlacementOption::tooManyValues($option, $preset->dimensionNames());
         }
 
         $values = [];
 
         foreach ($parts as $index => $value) {
             $value = trim($value);
+            $dimension = $dimensions[$index];
+
+            if ($dimension->multi) {
+                $chain = str_replace('.', '/', $value);
+
+                if (! Identifier::isSegmentChain($chain)) {
+                    throw InvalidPlacementOption::malformedValue($option, $value);
+                }
+
+                $values[$dimension->name] = $chain;
+
+                continue;
+            }
 
             if (! Identifier::isClassSegment($value)) {
                 throw InvalidPlacementOption::malformedValue($option, $value);
             }
 
-            $values[$dimensions[$index]] = $value;
+            $values[$dimension->name] = $value;
         }
 
         return new self($values);

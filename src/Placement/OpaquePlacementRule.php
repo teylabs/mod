@@ -15,6 +15,9 @@ use Tey\Mod\Exceptions\InvalidArtifactName;
  * A callback-driven placement. It can place but never recognise: arbitrary
  * callbacks are not invertible, so reverse mapping reports Unsupported for
  * anything under its root instead of guessing.
+ *
+ * A nested rule accepts nested names and places their folders after the
+ * callback's sub-namespace.
  */
 final readonly class OpaquePlacementRule implements PlacementRule
 {
@@ -28,6 +31,7 @@ final readonly class OpaquePlacementRule implements PlacementRule
         private Closure $subNamespace,
         private array $dimensions = [],
         private int $priority = 0,
+        private bool $nested = false,
     ) {}
 
     public function kindId(): string
@@ -45,6 +49,11 @@ final readonly class OpaquePlacementRule implements PlacementRule
         return $this->priority;
     }
 
+    public function nested(): bool
+    {
+        return $this->nested;
+    }
+
     /**
      * @return list<string>
      */
@@ -55,20 +64,32 @@ final readonly class OpaquePlacementRule implements PlacementRule
 
     public function place(ArtifactKind $kind, string $name, PlacementContext $context, array $attributes): ResolvedArtifact
     {
+        $nested = [];
+
         if (Identifier::isNested($name)) {
-            throw InvalidArtifactName::nested($name, $this->dimensions);
+            if (! $this->nested) {
+                throw InvalidArtifactName::nested($name, $this->dimensions);
+            }
+
+            [$nested, $name] = Identifier::splitNested($name);
+
+            foreach ($nested as $folder) {
+                if (! Identifier::isClassSegment($folder)) {
+                    throw InvalidArtifactName::malformed($folder, 'a folder name inside a nested artifact name');
+                }
+            }
         }
 
         $basename = $kind->namePolicy->basename($kind->id, $kind->shape, $name, $attributes);
         $below = trim(str_replace('/', '\\', ($this->subNamespace)($name, $context)), '\\');
-        $parts = $below === '' ? [] : explode('\\', $below);
+        $parts = [...($below === '' ? [] : explode('\\', $below)), ...$nested];
         $path = $this->root->pathFor($parts, $basename.'.php');
 
         $identity = $kind->shape === IdentityShape::File || ! $this->root->isClassRoot()
             ? new FileIdentity($path)
             : new ClassIdentity($this->root->namespaceFor($parts), $basename, $path);
 
-        return new ResolvedArtifact($kind, $context, $name, $identity);
+        return new ResolvedArtifact($kind, $context, $name, $identity, $nested);
     }
 
     public function isInvertible(): bool

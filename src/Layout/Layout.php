@@ -33,7 +33,7 @@ final class Layout
     /** @var array<string, Kind> */
     private array $kinds = [];
 
-    /** @var array<string, array{from: ?string, to: ?string, scope: string|array<array-key, string>|null, name: string|array<string, string>|null, policy: string|RelationPolicy|null}> */
+    /** @var array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop'}|null, name: string|array<string, string>|null, policy: string|RelationPolicy|null}> */
     private array $relations = [];
 
     /** @var list<string> */
@@ -69,7 +69,11 @@ final class Layout
     /**
      * An artifact kind. `in:` is its path below the root ("Http/Controllers/{area?}",
      * or "root:Path" for another root); the generating command defaults to mod:<id>.
+     * `nested: true` accepts nested names ("Billing/Invoice"); `discover: 'anywhere'`
+     * (with `except: [...]`) widens discovery to every file below the kind's
+     * dimension folders. A `{name+}` placeholder spans one or more folders.
      *
+     * @param  list<string>|null  $except  folders discovery skips, relative to the dimension folder
      * @param  (Closure(Kind): mixed)|null  $using  for what the named arguments do not cover
      */
     public function kind(
@@ -80,6 +84,9 @@ final class Layout
         ?bool $timestamped = null,
         string|false|null $command = null,
         ?int $priority = null,
+        ?bool $nested = null,
+        ?string $discover = null,
+        ?array $except = null,
         ?Closure $using = null,
     ): self {
         $this->guard();
@@ -112,6 +119,18 @@ final class Layout
             $kind->priority($priority);
         }
 
+        if ($nested !== null) {
+            $kind->nested($nested);
+        }
+
+        if ($discover !== null || $except !== null) {
+            if ($discover !== null && $discover !== 'anywhere') {
+                throw new ModException("Kind [{$id}]: discover must be 'anywhere' when given.");
+            }
+
+            $kind->discoverAnywhere($except ?? []);
+        }
+
         if ($using !== null) {
             $using($kind);
         }
@@ -122,7 +141,7 @@ final class Layout
     /**
      * A relation from one kind to another (mod:model --factory follows `from: 'model', to: 'factory'`).
      *
-     * @param  string|list<string>|null  $scope  'same' (default), or the placeholders the target keeps, e.g. ['area']
+     * @param  string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop'}|null  $scope  'same' (default), the placeholders the target keeps, e.g. ['area'], or ['keep' => [...], 'nested' => 'drop'] to drop the source's nested folders
      * @param  string|array<string, string>|null  $name  'explicit', or ['prefix' => 'Store', 'suffix' => ..., 'strip-suffix' => ...]
      * @param  string|RelationPolicy|null  $policy  'generate' (default), 'reference' or 'none'
      */
@@ -196,7 +215,7 @@ final class Layout
     /**
      * @internal
      *
-     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, Kind>, relations: array<string, array{from: ?string, to: ?string, scope: string|array<array-key, string>|null, name: string|array<string, string>|null, policy: string|RelationPolicy|null}>, excluded: list<string>, commands: bool}
+     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, Kind>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop'}|null, name: string|array<string, string>|null, policy: string|RelationPolicy|null}>, excluded: list<string>, commands: bool}
      */
     public function toArray(): array
     {

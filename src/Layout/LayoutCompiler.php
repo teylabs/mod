@@ -21,7 +21,7 @@ final class LayoutCompiler
 {
     private const ROOT_PREFIX = '/^([A-Za-z_][A-Za-z0-9_-]*):(.*)$/';
 
-    private const PLACEHOLDER = '/^\{[A-Za-z_][A-Za-z0-9_]*\??\}$/';
+    private const PLACEHOLDER = '/^\{[A-Za-z_][A-Za-z0-9_]*\+?\??\}$/';
 
     /** @var list<PresetIssue> */
     private array $issues = [];
@@ -91,7 +91,7 @@ final class LayoutCompiler
     }
 
     /**
-     * @param  array{in: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, priority: ?int, place: ?\Closure, reads: list<string>}  $kind
+     * @param  array{in: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: ?\Closure, reads: list<string>}  $kind
      * @param  array<string, array{namespace: ?string, path: string}>  $roots
      * @return array{array<string, mixed>, list<string>}|null the internal kind definition and the placeholders it reads
      */
@@ -144,6 +144,15 @@ final class LayoutCompiler
             $definition['priority'] = $kind['priority'];
         }
 
+        if ($kind['nested'] !== null) {
+            $definition['nested'] = $kind['nested'];
+        }
+
+        if ($kind['discover'] !== null) {
+            $definition['discover'] = $kind['discover'];
+            $definition['except'] = $kind['except'] ?? [];
+        }
+
         if ($kind['place'] !== null) {
             $definition['place'] = $kind['place'];
             $definition['dimensions'] = $kind['reads'];
@@ -157,7 +166,7 @@ final class LayoutCompiler
         foreach ($segments as $segment) {
             if (str_contains($segment, '{') || str_contains($segment, '}')) {
                 if (preg_match(self::PLACEHOLDER, $segment) !== 1) {
-                    $this->issue(PresetIssueCode::InvalidKind, $call, "placeholder [{$segment}] must be a whole folder such as {name} or {name?}");
+                    $this->issue(PresetIssueCode::InvalidKind, $call, "placeholder [{$segment}] must be a whole folder such as {name}, {name?}, {name+} or {name+?}");
 
                     return null;
                 }
@@ -281,14 +290,14 @@ final class LayoutCompiler
     }
 
     /**
-     * @param  array{from: ?string, to: ?string, scope: string|array<array-key, string>|null, name: string|array<string, string>|null, policy: string|RelationPolicy|null}  $relation
+     * @param  array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop'}|null, name: string|array<string, string>|null, policy: string|RelationPolicy|null}  $relation
      * @return array<string, mixed>
      */
     private function relation(array $relation): array
     {
         $scope = $relation['scope'] ?? 'same';
 
-        if (is_array($scope) && ! isset($scope['keep'])) {
+        if (is_array($scope) && ! isset($scope['keep']) && ! array_key_exists('nested', $scope)) {
             $scope = ['keep' => array_values($scope)];
         }
 

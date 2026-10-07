@@ -29,10 +29,12 @@ use Tey\Mod\Relation\ScopeMap;
  *    'kinds'      => ['model' => [
  *        'shape' => 'class'|'file', 'name' => 'as-given'|'timestamped'|['suffix' => 'Controller']|['fixed' => 'Request'],
  *        'command' => 'mod:model', 'root' => 'app', 'segments' => ['Models', '{feature}', '{slice?}'], 'priority' => 0,
+ *        'nested' => true,                       // accepts "Billing/Invoice" and keeps the folders below the kind's own
+ *        'discover' => 'anywhere', 'except' => ['Tests'],   // discovery widening below the dimension folders
  *        'place' => Closure(string $name, PlacementContext $context): string   // opaque alternative to 'segments'
  *    ]],
  *    'relations'  => ['factory' => [
- *        'from' => 'model', 'to' => 'factory', 'scope' => 'same'|['keep' => ['feature']],
+ *        'from' => 'model', 'to' => 'factory', 'scope' => 'same'|['keep' => ['feature'], 'nested' => 'keep'|'drop'],
  *        'name' => 'explicit'|['strip-suffix' => 'Controller', 'prefix' => 'Store', 'suffix' => 'Request'], 'policy' => 'generate',
  *    ]],
  *  ]
@@ -82,6 +84,7 @@ final class PresetValidator
         $dimensions = $this->dimensions($definition['dimensions'] ?? []);
         $excluded = $this->excluded($definition['excluded'] ?? []);
         [$kinds, $rules, $declaredKinds] = $this->kinds($definition['kinds'] ?? [], $roots, $dimensions);
+        $dimensions = $this->multiDimensions($dimensions, $rules);
         $relations = $this->relations($definition['relations'] ?? [], $declaredKinds, $dimensions);
 
         $commands = $definition['commands'] ?? true;
@@ -336,7 +339,35 @@ final class PresetValidator
                 continue;
             }
 
-            $rule = $this->rule($subject, $id, $root, $priority, $entry, $dimensions);
+            $nested = $entry['nested'] ?? false;
+
+            if (! is_bool($nested)) {
+                $this->issue(PresetIssueCode::InvalidKind, $subject, 'nested must be a boolean');
+
+                continue;
+            }
+
+            $discover = $entry['discover'] ?? null;
+
+            if ($discover !== null && $discover !== 'anywhere') {
+                $this->issue(PresetIssueCode::InvalidKind, $subject, 'discover must be "anywhere" when given');
+
+                continue;
+            }
+
+            $except = $this->except($subject, $entry['except'] ?? []);
+
+            if ($except === null) {
+                continue;
+            }
+
+            if ($discover === null && $except !== []) {
+                $this->issue(PresetIssueCode::InvalidKind, $subject, 'except needs discover: "anywhere"');
+
+                continue;
+            }
+
+            $rule = $this->rule($subject, $id, $root, $priority, $entry, $dimensions, $nested, $discover === 'anywhere', $except);
 
             if ($rule === null) {
                 continue;
@@ -394,8 +425,9 @@ final class PresetValidator
     /**
      * @param  array<array-key, mixed>  $entry
      * @param  array<string, Dimension>  $dimensions
+     * @param  list<string>  $except
      */
-    private function rule(string $subject, string $id, Root $root, int $priority, array $entry, array $dimensions): ?PlacementRule
+    private function rule(string $subject, string $id, Root $root, int $priority, array $entry, array $dimensions, bool $nested = false, bool $anywhere = false, array $except = []): ?PlacementRule
     {
         $place = $entry['place'] ?? null;
 
@@ -425,8 +457,14 @@ final class PresetValidator
                 $names[] = $name;
             }
 
+            if ($anywhere) {
+                $this->issue(PresetIssueCode::InvalidKind, $subject, 'discover: "anywhere" needs a declarative placement (segments), not a callback');
+
+                return null;
+            }
+
             /** @var Closure(string, PlacementContext): string $place */
-            return new OpaquePlacementRule($id, $root, $place, $names, $priority);
+            return new OpaquePlacementRule($id, $root, $place, $names, $priority, $nested);
         }
 
         $segments = $entry['segments'] ?? [];
@@ -463,7 +501,83 @@ final class PresetValidator
             $parsed[] = $segment;
         }
 
-        return new TemplateRule($id, $root, $parsed, $priority);
+        return new TemplateRule($id, $root, $parsed, $priority, $nested, $anywhere, $except);
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    private function except(string $subject, mixed $definition): ?array
+    {
+        if (! is_array($definition)) {
+            $this->issue(PresetIssueCode::InvalidKind, $subject, 'except must be a list of folders');
+
+            return null;
+        }
+
+        $folders = [];
+
+        foreach ($definition as $folder) {
+            if (! is_string($folder) || preg_match('#^[A-Za-z_][A-Za-z0-9_.-]*(/[A-Za-z_][A-Za-z0-9_.-]*)*$#', $folder) !== 1) {
+                $this->issue(PresetIssueCode::InvalidKind, $subject, 'except folders must be relative folder paths such as "Tests" or "Database/Migrations"');
+
+                return null;
+            }
+
+            $folders[] = $folder;
+        }
+
+        return $folders;
+    }
+
+    /**
+     * A dimension is multi-segment when a rule reads it as `{name+}`; every rule must then agree.
+     *
+     * @param  array<string, Dimension>  $dimensions
+     * @param  array<string, PlacementRule>  $rules
+     * @return array<string, Dimension>
+     */
+    private function multiDimensions(array $dimensions, array $rules): array
+    {
+        $multi = [];
+        $single = [];
+
+        foreach ($rules as $kindId => $rule) {
+            if (! $rule instanceof TemplateRule) {
+                continue;
+            }
+
+            foreach ($rule->segments() as $segment) {
+                if ($segment->dimension === null) {
+                    continue;
+                }
+
+                if ($segment->multi) {
+                    $multi[$segment->dimension][] = $kindId;
+                } else {
+                    $single[$segment->dimension][] = $kindId;
+                }
+            }
+        }
+
+        foreach ($multi as $name => $kinds) {
+            if (isset($single[$name])) {
+                $this->issue(PresetIssueCode::InvalidDimension, "dimensions.{$name}", sprintf(
+                    'is multi-segment ({%s+}) in kind [%s] but single in kind [%s]; use one form everywhere',
+                    $name,
+                    $kinds[0],
+                    $single[$name][0],
+                ));
+
+                continue;
+            }
+
+            if (isset($dimensions[$name])) {
+                $dimensions[$name] = new Dimension($name, true);
+            }
+        }
+
+        return $dimensions;
     }
 
     /**
@@ -533,10 +647,24 @@ final class PresetValidator
             return ScopeMap::same();
         }
 
-        if (is_array($definition) && is_array($definition['keep'] ?? null)) {
+        if (is_array($definition) && (is_array($definition['keep'] ?? null) || array_key_exists('nested', $definition))) {
+            $nestedValue = $definition['nested'] ?? 'keep';
+
+            if (! in_array($nestedValue, ['keep', 'drop'], true)) {
+                $this->issue(PresetIssueCode::InvalidRelation, $subject, 'scope nested must be "keep" or "drop"');
+
+                return null;
+            }
+
+            $keepNested = $nestedValue === 'keep';
+
+            if (! isset($definition['keep'])) {
+                return ScopeMap::same($keepNested);
+            }
+
             $keep = [];
 
-            foreach ($definition['keep'] as $name) {
+            foreach ((array) $definition['keep'] as $name) {
                 if (! is_string($name) || ! isset($dimensions[$name])) {
                     $this->issue(PresetIssueCode::UnknownDimension, $subject, 'scope keeps dimension ['.(is_scalar($name) ? (string) $name : '').'] which is not declared');
 
@@ -545,10 +673,10 @@ final class PresetValidator
                 $keep[] = $name;
             }
 
-            return ScopeMap::keep($keep);
+            return ScopeMap::keep($keep, $keepNested);
         }
 
-        $this->issue(PresetIssueCode::InvalidRelation, $subject, 'scope must be "same" or [\'keep\' => [...]]');
+        $this->issue(PresetIssueCode::InvalidRelation, $subject, 'scope must be "same" or [\'keep\' => [...], \'nested\' => \'keep\'|\'drop\']');
 
         return null;
     }

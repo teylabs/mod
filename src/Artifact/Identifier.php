@@ -25,4 +25,35 @@ final class Identifier
     {
         return str_contains($value, '\\') || str_contains($value, '/');
     }
+
+    /**
+     * Split a nested name ("Billing/Invoice", "Billing\Invoice") into its folder segments and basename.
+     *
+     * @return array{0: list<string>, 1: string}
+     */
+    public static function splitNested(string $value): array
+    {
+        $parts = array_values(array_filter(explode('/', str_replace('\\', '/', $value)), static fn (string $part): bool => $part !== ''));
+        $basename = (string) array_pop($parts);
+
+        return [$parts, $basename];
+    }
+
+    /**
+     * Whether every folder of a '/'-joined chain is a class segment (and the chain is not empty).
+     */
+    public static function isSegmentChain(string $value): bool
+    {
+        if ($value === '') {
+            return false;
+        }
+
+        foreach (explode('/', $value) as $part) {
+            if (! self::isClassSegment($part)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }

@@ -44,6 +44,26 @@ final readonly class Inventory
         return array_map(static fn (DiscoveredArtifact $entry): string => $entry->class, $this->ofType($type));
     }
 
+    /**
+     * The directories a file kind's discovery collected (DiscoveryType::Directory), sorted.
+     *
+     * @return list<string>
+     */
+    public function directories(string $kindId): array
+    {
+        $paths = [];
+
+        foreach ($this->entries as $entry) {
+            if ($entry->type === DiscoveryType::Directory && $entry->kindId === $kindId) {
+                $paths[] = $entry->path;
+            }
+        }
+
+        sort($paths);
+
+        return $paths;
+    }
+
     public function rejection(string $path): ?Rejection
     {
         foreach ($this->rejections as $rejection) {

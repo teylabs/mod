@@ -148,7 +148,7 @@ it('builds and clears the cache through the console commands', DiscoveryFixture:
     $kernel->registerCommand($this->app->make(DiscoveryClearCommand::class));
 
     $this->artisan('mod:discovery-cache')
-        ->expectsOutputToContain('1 providers, 1 commands, 1 listeners, 2 rejected')
+        ->expectsOutputToContain('1 providers, 1 commands, 1 listeners, 0 subscribers, 0 directories, 2 rejected')
         ->assertSuccessful();
 
     expect(is_file($fx->path('bootstrap/cache/mod-discovery.php')))->toBeTrue();

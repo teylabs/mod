@@ -50,7 +50,7 @@ trait InteractsWithPreset
             InputOption::VALUE_REQUIRED,
             $dimensions === []
                 ? 'Placement (this layout declares no dimensions)'
-                : 'Placement: '.implode('/', $dimensions).' values in that order, separated by "/"',
+                : 'Placement: '.implode('/', $dimensions).' values in that order, separated by "/" (folders inside a multi-segment value separated by ".")',
         ));
 
         return $this;

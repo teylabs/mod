@@ -2,11 +2,14 @@
 
 namespace Tey\Mod\Discovery;
 
+use Closure;
 use FilesystemIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
 use Tey\Mod\Artifact\ResolvedArtifact;
+use Tey\Mod\Placement\Root;
+use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Preset\Preset;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseMatch;
@@ -17,17 +20,28 @@ use Tey\Mod\Reverse\ReverseOutcome;
  * core reverse mapper decide ownership of each file and keeps only eligible
  * classes owned by a discovered kind.
  *
+ * A kind declared `discover: 'anywhere'` also offers every file below its
+ * dimension folders (minus its `except` folders) as a candidate; eligibility
+ * still decides, and such candidates are never reported as rejections.
+ * A `directory` definition collects the directories a file kind's template
+ * binds that hold at least one file.
+ *
  * Symlinks are not followed. Files are visited in sorted order, so the
- * inventory is deterministic.
+ * inventory is deterministic. The host may replace the file walker with its
+ * own candidate-file source; what it yields is still sorted and owned here.
  */
 final readonly class DiscoveryScanner
 {
     private ReverseMapper $mapper;
 
+    /**
+     * @param  (Closure(Root, string): iterable<string>)|null  $candidates
+     */
     public function __construct(
         private Preset $preset,
         private string $basePath,
         private Eligibility $eligibility = new Eligibility,
+        private ?Closure $candidates = null,
     ) {
         $this->mapper = new ReverseMapper($preset);
     }
@@ -37,35 +51,71 @@ final readonly class DiscoveryScanner
      */
     public function scan(array $definitions): Inventory
     {
+        /** @var array<string, DiscoveredArtifact> $entries keyed by path + type */
         $entries = [];
         /** @var array<string, Rejection> $rejections */
         $rejections = [];
         /** @var array<string, ReverseMatch> $matches */
         $matches = [];
+        /** @var array<string, list<string>> $files */
+        $files = [];
 
-        foreach ($definitions as $definition) {
-            if (! $definition->enabled) {
+        $enabled = array_values(array_filter($definitions, static fn (DiscoveryDefinition $definition): bool => $definition->enabled));
+        $discoveredKinds = [];
+
+        foreach ($enabled as $definition) {
+            $discoveredKinds[$definition->kindId] = $definition->type;
+        }
+
+        foreach ($enabled as $definition) {
+            $rule = $this->preset->rule($definition->kindId);
+            $kind = $this->preset->kind($definition->kindId);
+
+            if ($definition->type === DiscoveryType::Directory) {
+                if ($rule instanceof TemplateRule) {
+                    foreach ($this->directories($rule->root()->path) as $directory) {
+                        $context = $rule->recogniseDirectory($directory);
+
+                        if ($context !== null) {
+                            $entries[$directory.'|directory'] = new DiscoveredArtifact($definition->kindId, DiscoveryType::Directory, '', $directory, $context->toArray());
+                        }
+                    }
+                }
+
                 continue;
             }
 
-            $root = $this->preset->rule($definition->kindId)->root();
+            $anywhere = $rule instanceof TemplateRule && $rule->anywhere() ? $rule : null;
+            $files[$rule->root()->path] ??= $this->files($rule->root());
 
-            foreach ($this->files($root->path) as $path) {
+            foreach ($files[$rule->root()->path] as $path) {
                 $match = $matches[$path] ??= $this->mapper->fromPath($path);
 
-                if ($match->outcome === ReverseOutcome::Matched) {
-                    if ($match->artifact === null || $match->artifact->kind->id !== $definition->kindId) {
+                if ($match->outcome === ReverseOutcome::Matched && $match->artifact !== null) {
+                    if ($match->artifact->kind->id === $definition->kindId) {
+                        $this->collect($definition, $match->artifact, $path, $entries, $rejections, true);
+
                         continue;
                     }
 
-                    $result = $this->entry($definition, $match->artifact, $path);
+                    // Owned by another kind. An anywhere kind still considers it unless that
+                    // kind is itself discovered as the same type (it is reported there).
+                    if ($anywhere === null || ($discoveredKinds[$match->artifact->kind->id] ?? null) === $definition->type) {
+                        continue;
+                    }
+                }
 
-                    if ($result instanceof Rejection) {
-                        $rejections[$path] ??= $result;
-                    } else {
-                        $entries[] = $result;
+                if ($anywhere !== null) {
+                    $candidate = $anywhere->recogniseAnywhere($kind, $path);
+
+                    if ($candidate !== null) {
+                        $this->collect($definition, $candidate, $path, $entries, $rejections, false);
                     }
 
+                    continue;
+                }
+
+                if ($match->outcome === ReverseOutcome::Matched) {
                     continue;
                 }
 
@@ -77,9 +127,39 @@ final readonly class DiscoveryScanner
             }
         }
 
+        // A class that both listens and subscribes registers once, as a subscriber.
+        foreach ($entries as $key => $entry) {
+            if ($entry->type === DiscoveryType::Listener && isset($entries[$entry->path.'|'.DiscoveryType::Subscriber->value])) {
+                unset($entries[$key]);
+            }
+        }
+
+        foreach ($entries as $entry) {
+            unset($rejections[$entry->path]);
+        }
+
         ksort($rejections);
 
-        return new Inventory($entries, array_values($rejections));
+        return new Inventory(array_values($entries), array_values($rejections));
+    }
+
+    /**
+     * @param  array<string, DiscoveredArtifact>  $entries
+     * @param  array<string, Rejection>  $rejections
+     */
+    private function collect(DiscoveryDefinition $definition, ResolvedArtifact $artifact, string $path, array &$entries, array &$rejections, bool $owned): void
+    {
+        $result = $this->entry($definition, $artifact, $path);
+
+        if ($result instanceof Rejection) {
+            if ($owned) {
+                $rejections[$path] ??= $result;
+            }
+
+            return;
+        }
+
+        $entries[$path.'|'.$definition->type->value] = $result;
     }
 
     private function entry(DiscoveryDefinition $definition, ResolvedArtifact $artifact, string $path): DiscoveredArtifact|Rejection
@@ -128,11 +208,62 @@ final readonly class DiscoveryScanner
     }
 
     /**
-     * Relative, '/'-separated paths of the PHP files below a root directory, sorted.
+     * Relative, '/'-separated paths of the PHP files below a root, sorted:
+     * from the host's candidate-file source when it has one, else mod's walker.
      *
      * @return list<string>
      */
-    private function files(string $rootPath): array
+    private function files(Root $root): array
+    {
+        if ($this->candidates !== null) {
+            $prefix = $root->path === '' ? '' : Root::normalisePath($root->path).'/';
+            $files = [];
+
+            foreach (($this->candidates)($root, $this->basePath) as $path) {
+                $path = Root::normalisePath($path);
+
+                if ($path !== '' && str_ends_with($path, '.php') && ($prefix === '' || str_starts_with($path, $prefix))) {
+                    $files[$path] = $path;
+                }
+            }
+
+            $files = array_values($files);
+            sort($files);
+
+            return $files;
+        }
+
+        return $this->walk($root->path, static fn (SplFileInfo $item): bool => $item->isFile() && $item->getExtension() === 'php');
+    }
+
+    /**
+     * Relative, '/'-separated paths of the directories below a root that hold at least one regular file, sorted.
+     *
+     * @return list<string>
+     */
+    private function directories(string $rootPath): array
+    {
+        $directories = [];
+
+        foreach ($this->walk($rootPath, static fn (SplFileInfo $item): bool => $item->isFile()) as $file) {
+            $directory = dirname($file);
+
+            if ($directory !== '.' && $directory !== '') {
+                $directories[$directory] = $directory;
+            }
+        }
+
+        $directories = array_values($directories);
+        sort($directories);
+
+        return $directories;
+    }
+
+    /**
+     * @param  Closure(SplFileInfo): bool  $accept
+     * @return list<string>
+     */
+    private function walk(string $rootPath, Closure $accept): array
     {
         $directory = $this->absolute($rootPath);
 
@@ -147,7 +278,7 @@ final readonly class DiscoveryScanner
 
         /** @var SplFileInfo $item */
         foreach ($items as $item) {
-            if ($item->isLink() || ! $item->isFile() || $item->getExtension() !== 'php') {
+            if ($item->isLink() || ! $accept($item)) {
                 continue;
             }
 

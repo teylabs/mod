@@ -26,6 +26,13 @@ final class Kind
 
     private ?int $priority = null;
 
+    private ?bool $nested = null;
+
+    private ?string $discover = null;
+
+    /** @var list<string>|null */
+    private ?array $except = null;
+
     /** @var (Closure(string, PlacementContext): string)|null */
     private ?Closure $place = null;
 
@@ -106,6 +113,31 @@ final class Kind
     }
 
     /**
+     * Accept nested names ("Billing/Invoice"): the folders go below the kind's
+     * own folder and the basename last, as native make:* does.
+     */
+    public function nested(bool $nested = true): self
+    {
+        $this->nested = $nested;
+
+        return $this;
+    }
+
+    /**
+     * Discover this kind anywhere below its dimension folders, not only in
+     * its own folder (eligibility still decides), skipping the given folders.
+     *
+     * @param  list<string>  $except  folders relative to the dimension folder, e.g. ['Tests', 'Database/Migrations']
+     */
+    public function discoverAnywhere(array $except = []): self
+    {
+        $this->discover = 'anywhere';
+        $this->except = $except;
+
+        return $this;
+    }
+
+    /**
      * Breaks ties when two kinds could own the same class.
      */
     public function priority(int $priority): self
@@ -144,7 +176,7 @@ final class Kind
     /**
      * @internal
      *
-     * @return array{in: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, priority: ?int, place: (Closure(string, PlacementContext): string)|null, reads: list<string>}
+     * @return array{in: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: (Closure(string, PlacementContext): string)|null, reads: list<string>}
      */
     public function toArray(): array
     {
@@ -155,6 +187,9 @@ final class Kind
             'file' => $this->file,
             'command' => $this->command,
             'priority' => $this->priority,
+            'nested' => $this->nested,
+            'discover' => $this->discover,
+            'except' => $this->except,
             'place' => $this->place,
             'reads' => $this->reads,
         ];

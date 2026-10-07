@@ -16,17 +16,30 @@ use Tey\Mod\Exceptions\MissingDimension;
  * A declarative placement: root + ordered segments + the kind's name policy.
  *
  * Because every part is data, the rule is an exact inverse of itself.
+ *
+ * A nested rule (`nested: true`) also accepts nested names: "Billing/Invoice"
+ * places the folders after the template and the basename last, exactly like
+ * native make:* does, and recognises them back as the artifact's `nested`
+ * folders. A multi-segment dimension (`{name+}`) spans one or more folders.
+ *
+ * An "anywhere" rule (`discover: 'anywhere'`) additionally offers discovery
+ * every file below its bound dimension folders, minus the `except` folders;
+ * that widening is for discovery only and never reaches reverse mapping.
  */
 final readonly class TemplateRule implements PlacementRule
 {
     /**
      * @param  list<Segment>  $segments
+     * @param  list<string>  $except  folders (relative to the dimension folder, '/'-joined) discovery skips for an anywhere rule
      */
     public function __construct(
         private string $kindId,
         private Root $root,
         private array $segments,
         private int $priority = 0,
+        private bool $nested = false,
+        private bool $anywhere = false,
+        private array $except = [],
     ) {}
 
     public function kindId(): string
@@ -42,6 +55,24 @@ final readonly class TemplateRule implements PlacementRule
     public function priority(): int
     {
         return $this->priority;
+    }
+
+    public function nested(): bool
+    {
+        return $this->nested;
+    }
+
+    public function anywhere(): bool
+    {
+        return $this->anywhere;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function except(): array
+    {
+        return $this->except;
     }
 
     /**
@@ -76,14 +107,26 @@ final readonly class TemplateRule implements PlacementRule
         return ($this->root->namespace ?? '').'|'.$this->root->path.'|'.implode('/', array_map(
             static fn (Segment $segment): string => $segment->describe(),
             $this->segments,
-        ));
+        )).($this->nested ? '|nested' : '').($this->anywhere ? '|anywhere:'.implode(',', $this->except) : '');
     }
 
     public function place(ArtifactKind $kind, string $name, PlacementContext $context, array $attributes): ResolvedArtifact
     {
+        $nested = [];
+
         if (Identifier::isNested($name)) {
-            // Checked first: "mod:model Billing/Invoice" needs the --in hint more than a missing-dimension error.
-            throw InvalidArtifactName::nested($name, $this->dimensions());
+            if (! $this->nested) {
+                // Checked first: "mod:model Billing/Invoice" needs the --in hint more than a missing-dimension error.
+                throw InvalidArtifactName::nested($name, $this->dimensions());
+            }
+
+            [$nested, $name] = Identifier::splitNested($name);
+
+            foreach ($nested as $folder) {
+                if (! Identifier::isClassSegment($folder)) {
+                    throw InvalidArtifactName::malformed($folder, 'a folder name inside a nested artifact name');
+                }
+            }
         }
 
         $parts = [];
@@ -108,6 +151,16 @@ final readonly class TemplateRule implements PlacementRule
                 continue;
             }
 
+            if ($segment->multi) {
+                if (! Identifier::isSegmentChain($value)) {
+                    throw InvalidArtifactName::malformed($value, 'a "/"-separated chain of folder names for ['.$dimension.']');
+                }
+
+                array_push($parts, ...explode('/', $value));
+
+                continue;
+            }
+
             $parts[] = $value;
         }
 
@@ -120,7 +173,7 @@ final readonly class TemplateRule implements PlacementRule
         $basename = $kind->namePolicy->basename($kind->id, $kind->shape, $name, $attributes);
         $stem = $kind->namePolicy->stem($kind->shape, $basename) ?? $name;
 
-        return new ResolvedArtifact($kind, $context->only($used), $stem, $this->identity($kind, $parts, $basename));
+        return new ResolvedArtifact($kind, $context->only($used), $stem, $this->identity($kind, [...$parts, ...$nested], $basename), $nested);
     }
 
     public function isInvertible(): bool
@@ -130,58 +183,179 @@ final readonly class TemplateRule implements PlacementRule
 
     public function recognise(ArtifactKind $kind, string $subject, bool $isPath): array
     {
-        if ($isPath) {
-            $remainder = $this->root->pathRemainder($subject);
+        $parts = $this->parts($kind, $subject, $isPath);
 
-            if ($remainder === null || ! str_ends_with($remainder, '.php')) {
-                return [];
-            }
-
-            $parts = explode('/', substr($remainder, 0, -4));
-        } else {
-            if (! $kind->isClass()) {
-                return [];
-            }
-
-            $remainder = $this->root->namespaceRemainder($subject);
-
-            if ($remainder === null) {
-                return [];
-            }
-
-            $parts = explode('\\', $remainder);
-        }
-
-        if (in_array('', $parts, true)) {
+        if ($parts === null) {
             return [];
         }
 
         $basename = array_pop($parts);
-        $stem = $kind->namePolicy->stem($kind->shape, $basename);
+        $stem = $basename === null ? null : $kind->namePolicy->stem($kind->shape, $basename);
 
-        if ($stem === null) {
+        if ($basename === null || $stem === null) {
             return [];
+        }
+
+        $bindings = [];
+
+        foreach ($this->bind(0, $parts, 0, PlacementContext::none()) as [$context, $consumed]) {
+            if ($consumed < count($parts) && ! $this->nested) {
+                continue;
+            }
+
+            $bindings[] = [$context, $consumed];
+        }
+
+        // A multi-segment dimension followed by nested folders could split anywhere;
+        // the dimension binds minimally and the folders take the rest (as discovery does).
+        if ($this->nested && $this->multi() && $bindings !== []) {
+            $shortest = min(array_column($bindings, 1));
+            $bindings = array_values(array_filter($bindings, static fn (array $binding): bool => $binding[1] === $shortest));
         }
 
         $matches = [];
 
-        foreach ($this->bind(0, $parts, 0, PlacementContext::none()) as $context) {
-            $matches[] = new ResolvedArtifact($kind, $context, $stem, $this->identity($kind, $parts, $basename));
+        foreach ($bindings as [$context, $consumed]) {
+            $matches[] = new ResolvedArtifact($kind, $context, $stem, $this->identity($kind, $parts, $basename), self::after($parts, $consumed));
         }
 
         return $matches;
     }
 
     /**
-     * Bind template segments to concrete parts, exploring every way optional dimensions can be absent.
+     * Discovery widening for an anywhere rule: the artifact a file below this
+     * rule's dimension folders would be, whatever folder it sits in.
+     *
+     * The leading dimension segments bind minimally (one folder for `{x+}`),
+     * literal template folders are not required, every remaining folder is
+     * recorded as `nested`, and files inside an `except` folder are skipped.
+     * Returns null when the file is not a candidate.
+     */
+    public function recogniseAnywhere(ArtifactKind $kind, string $path): ?ResolvedArtifact
+    {
+        if (! $this->anywhere) {
+            return null;
+        }
+
+        $parts = $this->parts($kind, $path, true);
+
+        if ($parts === null) {
+            return null;
+        }
+
+        $basename = array_pop($parts);
+        $stem = $basename === null ? null : $kind->namePolicy->stem($kind->shape, $basename);
+
+        if ($basename === null || $stem === null) {
+            return null;
+        }
+
+        $context = PlacementContext::none();
+        $index = 0;
+
+        foreach ($this->segments as $segment) {
+            if ($segment->literal !== null) {
+                break;
+            }
+
+            $part = $parts[$index] ?? null;
+
+            if ($part === null || ! Identifier::isClassSegment($part)) {
+                if ($segment->required) {
+                    return null;
+                }
+
+                continue;
+            }
+
+            $context = $context->with((string) $segment->dimension, $part);
+            $index++;
+        }
+
+        $nested = self::after($parts, $index);
+        $below = implode('/', $nested);
+
+        foreach ($this->except as $folder) {
+            if ($below === $folder || str_starts_with($below, $folder.'/')) {
+                return null;
+            }
+        }
+
+        return new ResolvedArtifact($kind, $context, $stem, $this->identity($kind, $parts, $basename), $nested);
+    }
+
+    /**
+     * Discovery of directories for a file kind: the context a directory binds
+     * when its path is exactly this rule's template (every segment consumed).
+     */
+    public function recogniseDirectory(string $path): ?PlacementContext
+    {
+        $remainder = $this->root->pathRemainder(Root::normalisePath($path));
+
+        if ($remainder === null || $remainder === '') {
+            return null;
+        }
+
+        $parts = explode('/', $remainder);
+
+        if (in_array('', $parts, true)) {
+            return null;
+        }
+
+        foreach ($this->bind(0, $parts, 0, PlacementContext::none()) as [$context, $consumed]) {
+            if ($consumed === count($parts)) {
+                return $context;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The subject split into folder parts plus basename, or null when it is not under this rule's root.
+     *
+     * @return list<string>|null
+     */
+    private function parts(ArtifactKind $kind, string $subject, bool $isPath): ?array
+    {
+        if ($isPath) {
+            $remainder = $this->root->pathRemainder($subject);
+
+            if ($remainder === null || ! str_ends_with($remainder, '.php')) {
+                return null;
+            }
+
+            $parts = explode('/', substr($remainder, 0, -4));
+        } else {
+            if (! $kind->isClass()) {
+                return null;
+            }
+
+            $remainder = $this->root->namespaceRemainder($subject);
+
+            if ($remainder === null) {
+                return null;
+            }
+
+            $parts = explode('\\', $remainder);
+        }
+
+        return in_array('', $parts, true) ? null : $parts;
+    }
+
+    /**
+     * Bind template segments to concrete parts, exploring every way optional
+     * and multi-segment dimensions can be absent or span. Each binding is the
+     * context plus how many parts it consumed; the caller decides whether the
+     * remainder is acceptable (nested folders) or not.
      *
      * @param  list<string>  $parts
-     * @return list<PlacementContext>
+     * @return list<array{0: PlacementContext, 1: int}>
      */
     private function bind(int $segmentIndex, array $parts, int $partIndex, PlacementContext $bound): array
     {
         if ($segmentIndex === count($this->segments)) {
-            return $partIndex === count($parts) ? [$bound] : [];
+            return [[$bound, $partIndex]];
         }
 
         $segment = $this->segments[$segmentIndex];
@@ -196,7 +370,18 @@ final readonly class TemplateRule implements PlacementRule
         $dimension = (string) $segment->dimension;
         $results = [];
 
-        if ($part !== null && Identifier::isClassSegment($part)) {
+        if ($segment->multi) {
+            $chain = [];
+
+            for ($end = $partIndex; $end < count($parts); $end++) {
+                if (! Identifier::isClassSegment($parts[$end])) {
+                    break;
+                }
+
+                $chain[] = $parts[$end];
+                $results = [...$results, ...$this->bind($segmentIndex + 1, $parts, $end + 1, $bound->with($dimension, implode('/', $chain)))];
+            }
+        } elseif ($part !== null && Identifier::isClassSegment($part)) {
             $results = $this->bind($segmentIndex + 1, $parts, $partIndex + 1, $bound->with($dimension, $part));
         }
 
@@ -205,6 +390,34 @@ final readonly class TemplateRule implements PlacementRule
         }
 
         return $results;
+    }
+
+    private function multi(): bool
+    {
+        foreach ($this->segments as $segment) {
+            if ($segment->multi) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The parts from the given index on.
+     *
+     * @param  list<string>  $parts
+     * @return list<string>
+     */
+    private static function after(array $parts, int $from): array
+    {
+        $rest = [];
+
+        for ($i = $from; $i < count($parts); $i++) {
+            $rest[] = $parts[$i];
+        }
+
+        return $rest;
     }
 
     /**

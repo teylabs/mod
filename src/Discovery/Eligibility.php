@@ -41,6 +41,10 @@ final readonly class Eligibility
                 ? []
                 : sprintf('[%s] does not extend %s', $class, Command::class),
             DiscoveryType::Listener => $this->events($reflection),
+            DiscoveryType::Subscriber => $this->subscribes($reflection)
+                ? []
+                : sprintf('[%s] has no public subscribe() method taking exactly one parameter', $class),
+            DiscoveryType::Directory => sprintf('[%s] is a class; directories are discovered from file kinds', $class),
         };
     }
 
@@ -76,5 +80,21 @@ final readonly class Eligibility
         return $events === []
             ? sprintf('[%s] has no public handle or __invoke method whose first parameter is typed with an event class', $reflection->name)
             : $events;
+    }
+
+    /**
+     * Laravel's Event::subscribe() contract: a public, non-static subscribe() with exactly one parameter.
+     *
+     * @param  ReflectionClass<object>  $reflection
+     */
+    private function subscribes(ReflectionClass $reflection): bool
+    {
+        if (! $reflection->hasMethod('subscribe')) {
+            return false;
+        }
+
+        $method = $reflection->getMethod('subscribe');
+
+        return $method->isPublic() && ! $method->isStatic() && $method->getNumberOfParameters() === 1;
     }
 }

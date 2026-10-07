@@ -55,7 +55,7 @@ it('rejects invalid config with the offending key', function (array $config, str
     [['enabled' => 'yes'], '[mod.discovery.enabled]'],
     [['kinds' => 'provider'], '[mod.discovery.kinds]'],
     [['kinds' => ['provider']], 'keys must be kind ids'],
-    [['kinds' => ['provider' => 'middleware']], '[mod.discovery.kinds.provider]: expected provider, command, listener or false'],
+    [['kinds' => ['provider' => 'middleware']], '[mod.discovery.kinds.provider]: expected provider, command, listener, subscriber, directory or false'],
     [['cache' => ''], '[mod.discovery.cache]'],
     [['on_stale_cache' => 'rebuild'], '[mod.discovery.on_stale_cache]'],
 ]);

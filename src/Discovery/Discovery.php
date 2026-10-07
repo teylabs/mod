@@ -88,7 +88,7 @@ final class Discovery
      */
     public function scan(): Inventory
     {
-        return (new DiscoveryScanner($this->preset, $this->basePath))->scan($this->definitions);
+        return (new DiscoveryScanner($this->preset, $this->basePath, new Eligibility, $this->options->candidates))->scan($this->definitions);
     }
 
     public function cache(): DiscoveryCache
@@ -122,16 +122,22 @@ final class Discovery
         return PresetFingerprint::of($this->preset);
     }
 
+    /**
+     * The definitions digest; a custom candidate-file source is recorded by
+     * presence only (a closure cannot be hashed), so rebuild the cache on
+     * deploy when the source changes.
+     */
     public function definitionsFingerprint(): string
     {
-        return PresetFingerprint::ofDefinitions($this->definitions);
+        return PresetFingerprint::ofDefinitions($this->definitions).($this->options->candidates !== null ? ':custom-candidates' : '');
     }
 
     /**
-     * Register the discovered listeners on a dispatcher once. Repeated calls,
-     * and fakes wrapping a dispatcher that already has them, add nothing.
+     * Register the discovered listeners and subscribers on a dispatcher once.
+     * Repeated calls, and fakes wrapping a dispatcher that already has them,
+     * add nothing.
      *
-     * @return int the number of listeners added
+     * @return int the number of listeners and subscribers added
      */
     public function registerListeners(Dispatcher $events): int
     {
@@ -154,6 +160,11 @@ final class Discovery
                 $events->listen($binding['event'], $listener->class.'@'.$binding['method']);
                 $added++;
             }
+        }
+
+        foreach ($this->inventory()->ofType(DiscoveryType::Subscriber) as $subscriber) {
+            $events->subscribe($subscriber->class);
+            $added++;
         }
 
         return $added;

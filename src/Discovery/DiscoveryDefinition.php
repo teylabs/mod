@@ -4,7 +4,8 @@ namespace Tey\Mod\Discovery;
 
 /**
  * Discovery for one preset kind: which kind's files are scanned and what the
- * framework does with the eligible classes.
+ * framework does with the eligible classes (or, for a file kind, which
+ * directories are collected).
  *
  * The kind id is preset data, so any kind can be discovered as any type; the
  * type's semantic eligibility still decides what registers.
@@ -30,6 +31,19 @@ final readonly class DiscoveryDefinition
     public static function listeners(string $kindId = 'listener'): self
     {
         return new self($kindId, DiscoveryType::Listener);
+    }
+
+    public static function subscribers(string $kindId = 'subscriber'): self
+    {
+        return new self($kindId, DiscoveryType::Subscriber);
+    }
+
+    /**
+     * The directories a file kind's template binds that hold at least one file.
+     */
+    public static function directories(string $kindId): self
+    {
+        return new self($kindId, DiscoveryType::Directory);
     }
 
     public function disabled(): self

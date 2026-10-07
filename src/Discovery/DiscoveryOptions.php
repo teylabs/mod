@@ -2,7 +2,9 @@
 
 namespace Tey\Mod\Discovery;
 
+use Closure;
 use Tey\Mod\Discovery\Exceptions\InvalidDiscoveryConfig;
+use Tey\Mod\Placement\Root;
 use Tey\Mod\Preset\Preset;
 
 /**
@@ -15,8 +17,14 @@ use Tey\Mod\Preset\Preset;
  *         'on_stale_cache' => 'fail',                          // or 'scan'
  *     ]
  *
- * By default a preset kind whose id is `provider`, `command` or `listener`
- * is discovered as that type.
+ * By default a preset kind whose id is `provider`, `command`, `listener` or
+ * `subscriber` is discovered as that type. A `directory` type collects the
+ * directories of a file kind (per-feature migration folders, say).
+ *
+ * A host may supply its own candidate-file source: a closure returning the
+ * relative, '/'-separated .php paths below a root that discovery should
+ * consider (to skip generated or vendored subtrees, or to reuse an existing
+ * finder). Ownership, eligibility and registration stay with mod.
  */
 final readonly class DiscoveryOptions
 {
@@ -24,12 +32,14 @@ final readonly class DiscoveryOptions
 
     /**
      * @param  array<string, DiscoveryType|false>  $kinds  overrides keyed by kind id
+     * @param  (Closure(Root, string): iterable<string>)|null  $candidates  candidate-file source: (root, basePath) → relative .php paths
      */
     public function __construct(
         public bool $enabled = true,
         public array $kinds = [],
         public string $cachePath = self::DEFAULT_CACHE,
         public CacheMismatchPolicy $onStaleCache = CacheMismatchPolicy::Fail,
+        public ?Closure $candidates = null,
     ) {}
 
     /**
@@ -67,7 +77,7 @@ final readonly class DiscoveryOptions
             $resolved = is_string($type) ? DiscoveryType::tryFrom($type) : ($type instanceof DiscoveryType ? $type : null);
 
             if ($resolved === null) {
-                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", 'expected provider, command, listener or false');
+                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", 'expected provider, command, listener, subscriber, directory or false');
             }
 
             $kinds[$kindId] = $resolved;
@@ -90,6 +100,16 @@ final readonly class DiscoveryOptions
     }
 
     /**
+     * The same options with a candidate-file source.
+     *
+     * @param  Closure(Root, string): iterable<string>  $candidates
+     */
+    public function withCandidates(Closure $candidates): self
+    {
+        return new self($this->enabled, $this->kinds, $this->cachePath, $this->onStaleCache, $candidates);
+    }
+
+    /**
      * Every definition for this preset, disabled ones included, ordered by kind id.
      *
      * @return list<DiscoveryDefinition>
@@ -102,7 +122,7 @@ final readonly class DiscoveryOptions
         $definitions = [];
 
         foreach (DiscoveryType::cases() as $type) {
-            if ($preset->hasKind($type->value) && $preset->kind($type->value)->isClass()) {
+            if ($type->isClassType() && $preset->hasKind($type->value) && $preset->kind($type->value)->isClass()) {
                 $definitions[$type->value] = new DiscoveryDefinition($type->value, $type);
             }
         }
@@ -120,8 +140,12 @@ final readonly class DiscoveryOptions
                 continue;
             }
 
-            if (! $preset->kind($kindId)->isClass()) {
-                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", 'only class kinds can be discovered');
+            if ($type->isClassType() && ! $preset->kind($kindId)->isClass()) {
+                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", 'only class kinds can be discovered as '.$type->value);
+            }
+
+            if (! $type->isClassType() && $preset->kind($kindId)->isClass()) {
+                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", 'only file kinds can be discovered as directories');
             }
 
             $definitions[$kindId] = new DiscoveryDefinition($kindId, $type);

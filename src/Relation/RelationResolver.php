@@ -12,6 +12,8 @@ use Tey\Mod\Preset\Preset;
  * Resolves a relation from an already resolved source artifact to its target identity.
  *
  * Whether the target exists on disk is the generator's concern; this stays pure.
+ * The source's nested folders carry over to the target unless the relation's
+ * scope drops them; a target kind that is not nested refuses them.
  */
 final readonly class RelationResolver
 {
@@ -45,10 +47,12 @@ final readonly class RelationResolver
             );
         }
 
+        $nested = $relation->scope->applyNested($source->nested);
+
         try {
             $target = $this->placement->resolve(new ArtifactRequest(
                 $relation->toKind,
-                $targetName,
+                implode('/', [...$nested, $targetName]),
                 $relation->scope->apply($source->context),
                 $attributes,
             ));
