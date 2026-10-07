@@ -42,7 +42,10 @@
         "test": "vendor/bin/pest --no-coverage",
         "lint": "vendor/bin/pint --test",
         "format": "vendor/bin/pint",
-        "analyse": "vendor/bin/phpstan analyse --memory-limit=1G"
+        "analyse": [
+            "vendor/bin/phpstan analyse --memory-limit=1G",
+            "vendor/bin/phpstan analyse -c phpstan.tests.neon.dist --memory-limit=1G"
+        ]
     },
     "config": {
         "sort-packages": true,
