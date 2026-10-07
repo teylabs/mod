@@ -142,7 +142,7 @@ class ModServiceProvider extends ServiceProvider
         }
 
         foreach ($this->app->make(GeneratorRegistry::class)->commands($preset, $this->app) as $command) {
-            $artisan->add($command);
+            $artisan->resolveCommands([$command]);
         }
     }
 }

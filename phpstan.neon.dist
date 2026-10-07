@@ -3,11 +3,3 @@ parameters:
     paths:
         - src
     tmpDir: build/phpstan
-    ignoreErrors:
-        # Supported across Laravel 11–13: add() is deprecated from Symfony 7.4,
-        # whose replacement addCommand() older releases lack.
-        -
-            identifier: method.deprecated
-            message: '#deprecated method add\(\) of class Illuminate\\Console\\Application#'
-            path: src/ModServiceProvider.php
-            reportUnmatched: false
