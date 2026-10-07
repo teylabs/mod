@@ -1,0 +1,62 @@
+{
+    "name": "tey/mod",
+    "description": "A layout-neutral generation and discovery engine for Laravel applications.",
+    "keywords": [
+        "tey",
+        "laravel",
+        "modules",
+        "generators",
+        "discovery"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Jasper Tey",
+            "email": "jasper@jtey.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.3|^8.4",
+        "illuminate/contracts": "^11.44|^12.0|^13.0",
+        "illuminate/support": "^11.44|^12.0|^13.0"
+    },
+    "require-dev": {
+        "larastan/larastan": "^3.0",
+        "laravel/pint": "^1.21",
+        "orchestra/testbench": "^9.11|^10.0|^11.0",
+        "pestphp/pest": "^3.8|^4.0",
+        "pestphp/pest-plugin-laravel": "^3.2|^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Tey\\Mod\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tey\\Mod\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/pest --no-coverage",
+        "lint": "vendor/bin/pint --test",
+        "format": "vendor/bin/pint",
+        "analyse": "vendor/bin/phpstan analyse --memory-limit=1G"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Tey\\Mod\\ModServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
