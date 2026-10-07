@@ -16,7 +16,7 @@ use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseOutcome;
 
 /*
- * E3 discover-anywhere, E4 directory discovery and E5 subscribers at the
+ * Discover-anywhere, directory discovery and subscribers at the
  * preset level: the pure parts (recognition, definitions, fingerprints).
  */
 function anywhereLayout(): Preset

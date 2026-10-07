@@ -47,7 +47,7 @@ dataset('module kinds', [
     'action (declared kind)' => ['mod:action', 'SendInvoice', 'app/Modules/Billing/Actions/SendInvoice.php', 'App\Modules\Billing\Actions', 'class SendInvoice'],
 ]);
 
-it('generates every kind in a cookbook module', function (string $command, string $name, string $path, string $namespace, string $class) {
+it('generates every kind in a module', function (string $command, string $name, string $path, string $namespace, string $class) {
     Workspace::run('modules', function (Workspace $workspace) use ($command, $name, $path, $namespace, $class) {
         $workspace->artisan($command, ['name' => $name, '--in' => 'Billing'])->assertSuccessful();
 
@@ -77,7 +77,7 @@ it('places migrations in ordinary Laravel', function () {
     });
 });
 
-it('places migrations in a cookbook module', function () {
+it('places migrations in a module', function () {
     Workspace::run('modules', function (Workspace $workspace) {
         $workspace->artisan('mod:migration', ['name' => 'create_invoices_table', '--in' => 'Billing'])->assertSuccessful();
 

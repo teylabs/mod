@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Layout 5: the cookbook's app/Modules/<Module>. Flat familiar folders
+ * Layout 5: app/Modules/<Module>. Flat familiar folders
  * (Controllers/ beside Models/, no Http/), Database/{Factories,Seeders,Migrations},
  * a routes file per module. app/UI and app/Support are siblings, not modules.
  */

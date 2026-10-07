@@ -11,7 +11,7 @@ use Tey\Mod\Tests\Feature\Discovery\Support\DiscoveryFixture;
 use Tey\Mod\Tests\Feature\Discovery\Support\Sources;
 
 /*
- * E3 discover-anywhere + except, E4 directories, E5 subscribers and E6 a
+ * Discover-anywhere with except, directories, subscribers and a
  * host-supplied candidate-file source, end to end on a grouped layout.
  */
 function groupedTree(DiscoveryFixture $fx): Preset

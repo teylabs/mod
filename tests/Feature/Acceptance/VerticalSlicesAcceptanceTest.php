@@ -11,7 +11,7 @@ use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
 use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 
 /*
- * M2.4 acceptance, layout 3: vertical slices (app/<Feature>/<Slice>/...).
+ * Acceptance, layout 3: vertical slices (app/<Feature>/<Slice>/...).
  * Slice classes have fixed basenames; the slice message is called Command
  * and must never become an Artisan command. Provider, event and listener
  * kinds extend the built-in `slices` layout from AppServiceProvider::boot().

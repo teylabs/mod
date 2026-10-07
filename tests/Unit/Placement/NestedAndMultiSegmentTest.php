@@ -15,7 +15,7 @@ use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseOutcome;
 
 /*
- * E1 nested names (`nested: true`) and E2 multi-segment placeholders
+ * Nested names (`nested: true`) and multi-segment placeholders
  * (`{group+}`), on a layout with a nested group folder chain.
  */
 function groupedLayout(): Preset

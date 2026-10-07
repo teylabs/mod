@@ -8,7 +8,7 @@ use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
 use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 
 /*
- * M2.4 acceptance, layout 2: feature-first (app/Features/<Feature>/...).
+ * Acceptance, layout 2: feature-first (app/Features/<Feature>/...).
  * The built-in `features` layout has no event or listener kinds; they are
  * added from AppServiceProvider::boot(), exactly as a host would.
  */

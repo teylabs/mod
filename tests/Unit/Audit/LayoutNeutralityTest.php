@@ -1,11 +1,10 @@
 <?php
 
 /*
- * Layout neutrality: if the engine needs layout-specific
- * branches, the design is not ready. Layout words may appear in prose
+ * Layout neutrality: the engine has no layout-specific branches. Layout words may appear in prose
  * (docblocks, comments) as examples, never in code: no string literal,
  * identifier or variable of the engine names a fixture's segments or
- * dimensions. The engine never depends on Laravel-DDD.
+ * dimensions. The engine has no dependency on any layout package.
  */
 
 /**
@@ -77,7 +76,7 @@ it('names no DDD concept in engine code', function () {
     expect(codeTokensMatching('/(domain|layer|bounded|aggregate|value-?object|ddd)/i', withBuiltInLayouts: true))->toBe([]);
 });
 
-it('does not depend on Laravel-DDD', function () {
+it('has no dependency on any layout package', function () {
     $root = dirname(__DIR__, 3);
     /** @var array<string, mixed> $composer */
     $composer = json_decode((string) file_get_contents($root.'/composer.json'), true, flags: JSON_THROW_ON_ERROR);

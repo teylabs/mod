@@ -10,7 +10,7 @@ use Tey\Mod\Tests\Support\OwnedAppRoot;
 use Tey\Mod\Tests\TestCase;
 
 /*
- * The whole loop on the cookbook modules layout, through the service
+ * The whole loop on the modules layout, through the service
  * provider only: generate with mod:*, boot a fresh app that discovers and
  * registers what was generated, cache it, and replay the identical inventory.
  */
@@ -29,7 +29,7 @@ it('generates into a module, discovers it on a fresh boot and replays it from th
         $event = "App\\Modules\\Billing\\Events\\{$tag}Paid";
         $listener = "App\\Modules\\Billing\\Listeners\\Send{$tag}Receipt";
 
-        // The cookbook layout plus a listener kind, declared in data only.
+        // The modules layout plus a listener kind, declared in data only.
         $definition = Layouts::definition('modules');
         $definition['kinds']['listener'] = [
             'shape' => 'class', 'name' => 'as-given', 'command' => 'mod:listener',

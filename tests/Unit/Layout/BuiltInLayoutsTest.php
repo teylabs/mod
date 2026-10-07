@@ -5,7 +5,7 @@ use Tey\Mod\Preset\Preset;
 use Tey\Mod\Tests\Fixtures\Layouts;
 
 /*
- * The built-in layouts are the M2 proof layouts, rewritten with the public
+ * The built-in layouts are the fixture layouts, rewritten with the public
  * builder: each compiles to the same roots, dimensions, kinds, rules,
  * relations and exclusions as its fixture (kinds compared by id; the builder
  * groups them by root).
@@ -36,7 +36,7 @@ function presetShape(Preset $preset): array
 it('compiles each built-in layout to its fixture', function (string $builtIn, string $fixture) {
     expect(presetShape((new LayoutRegistry)->compile($builtIn)))->toEqual(presetShape(Layouts::named($fixture)));
 })->with([
-    'laravel (the M2 default configuration)' => ['laravel', 'laravel'],
+    'laravel (the original default configuration)' => ['laravel', 'laravel'],
     'features' => ['features', 'feature-first'],
     'slices' => ['slices', 'vertical-slices'],
     'type-first' => ['type-first', 'type-first'],

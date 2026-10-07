@@ -6,7 +6,7 @@ use Tey\Mod\Commands\ModelCommand;
 use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
 
 /*
- * M2.4 E2: one logical request ("an Invoice model with its factory, in
+ * One logical request ("an Invoice model with its factory, in
  * Billing where the layout has a place for it") generated for real under
  * the five built-in layouts, selected by name. Five different identities
  * come out of the same command classes; only the layout data differs.

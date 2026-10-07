@@ -9,7 +9,7 @@ use Tey\Mod\Reverse\ReverseOutcome;
 use Tey\Mod\Tests\Fixtures\Layouts;
 
 /*
- * Layout 5: the cookbook's app/Modules/<Module> with flat folders.
+ * Layout 5: app/Modules/<Module> with flat folders.
  */
 
 it('places artifacts inside the module', function (string $kind, string $name, ?string $fqcn, string $path) {

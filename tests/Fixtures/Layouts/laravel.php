@@ -2,8 +2,8 @@
 
 /*
  * Built-in layout `laravel` (the default): ordinary Laravel, mod:* places
- * files exactly like make:*. The M2 default configuration, kept as the
- * reference the built-in is checked against.
+ * files exactly like make:*. The original default configuration, kept as
+ * the reference the built-in is checked against.
  */
 return [
     'roots' => [

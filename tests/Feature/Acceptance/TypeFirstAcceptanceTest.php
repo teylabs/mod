@@ -8,7 +8,7 @@ use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
 use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 
 /*
- * M2.4 acceptance, layout 4: type-first with an optional feature after the
+ * Acceptance, layout 4: type-first with an optional feature after the
  * kind segments (App\Models\Invoice and App\Models\Billing\Invoice under one
  * layout). The built-in `type-first` layout declares no provider, event,
  * listener or command kinds; they are added from AppServiceProvider::boot().

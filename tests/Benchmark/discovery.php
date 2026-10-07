@@ -1,11 +1,11 @@
 <?php
 
 /*
- * Discovery: cold scan vs cache replay on a fixed tree (M2.4 E4).
+ * Discovery: cold scan vs cache replay on a fixed tree.
  *
  *     php tests/Benchmark/discovery.php [runs=15]
  *
- * Builds a temporary cookbook-modules tree with 200 discoverable classes
+ * Builds a temporary modules-layout tree with 200 discoverable classes
  * (10 modules x 10 providers + 10 listeners, plus one event per module),
  * writes the discovery cache once, then times Discovery::inventory() in a
  * fresh PHP process per run: cold (no cache file: walk, reverse-map,

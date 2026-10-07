@@ -13,7 +13,7 @@ use Tey\Mod\Preset\Preset;
 use Tey\Mod\Relation\RelationPolicy;
 
 /**
- * The DDD-like layout of the M2.5 brief, as one chain.
+ * A DDD-like layout, as one chain.
  */
 function dddLayout(LayoutRegistry $registry): Layout
 {
@@ -54,7 +54,7 @@ it('returns the layout builder from every chain method', function () {
         ->and($layout->withoutCommands())->toBe($layout);
 });
 
-it('compiles the brief\'s DDD-like layout from one chain with nested closures', function () {
+it('compiles a DDD-like layout from one chain with nested closures', function () {
     $preset = dddLayout(new LayoutRegistry)->compile();
 
     expect($preset->dimensionNames())->toBe(['domain'])

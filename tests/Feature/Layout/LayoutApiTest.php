@@ -8,7 +8,7 @@ use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
 use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 
 /*
- * M2.5: the public layout API end to end. A whole DDD-like layout is defined
+ * The public layout API end to end. A whole DDD-like layout is defined
  * as ONE chain with nested closures in the application's
  * AppServiceProvider::boot(), selected with `'layout' => 'ddd'`, and both
  * mod:* generation and discovery honour it: the active layout compiles only

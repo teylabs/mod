@@ -10,7 +10,7 @@ use Tey\Mod\Tests\Feature\Discovery\Support\Sources;
 use Tey\Mod\Tests\Fixtures\Layouts;
 
 /*
- * The cookbook's app/Modules/<Module>, extended with two module-owned kinds
+ * The modules layout (app/Modules/<Module>), extended with two module-owned kinds
  * whose ids are not the default type names: discovery follows host settings.
  */
 function modulesTree(DiscoveryFixture $fx): Preset

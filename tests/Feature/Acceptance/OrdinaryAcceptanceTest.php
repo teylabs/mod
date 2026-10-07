@@ -8,7 +8,7 @@ use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
 use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 
 /*
- * M2.4 acceptance, layout 1: ordinary Laravel (no placement dimension), the
+ * Acceptance, layout 1: ordinary Laravel (no placement dimension), the
  * built-in default `laravel` layout plus a custom query kind added from
  * AppServiceProvider::boot().
  * generate -> relate -> reverse-map -> discover -> cache -> replay, through

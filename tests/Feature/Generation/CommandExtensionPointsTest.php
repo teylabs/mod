@@ -13,7 +13,7 @@ use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Fixtures\Layouts;
 
 /*
- * E7+: the protected hooks a host package builds its own generators on, and
+ * The protected hooks a host package builds its own generators on, and
  * the "Group:Name" shorthand every adapter accepts.
  */
 

@@ -144,7 +144,7 @@ final readonly class BuiltInLayouts
     }
 
     /**
-     * The cookbook's app/Modules/<Module>: flat familiar folders, a routes
+     * app/Modules/<Module>: flat familiar folders, a routes
      * file per module; app/UI and app/Support are siblings, not modules.
      */
     private function modules(Layout $layout): Layout

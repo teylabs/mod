@@ -9,7 +9,7 @@ use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
 use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 
 /*
- * M2.4 acceptance, layout 5: the cookbook's app/Modules/<Module> with flat
+ * Acceptance, layout 5: app/Modules/<Module> with flat
  * folders. app/UI and app/Support are siblings, not modules. The built-in
  * `modules` layout is extended with listener and Artisan command kinds from
  * AppServiceProvider::boot(), exactly as a host would.
@@ -22,7 +22,7 @@ function modulesLayout(): LayoutUnderTest
         ->kind('command', in: 'Modules/{module}/Console'));
 }
 
-it('runs the whole loop on cookbook modules', function () {
+it('runs the whole loop on the modules layout', function () {
     AcceptanceApp::run(modulesLayout(), function (AcceptanceApp $app) {
         $t = $app->tag;
         $in = ['--in' => 'Billing'];
@@ -118,7 +118,7 @@ it('runs the whole loop on cookbook modules', function () {
     });
 });
 
-it('refuses, rejects and reports on cookbook modules', function () {
+it('refuses, rejects and reports on the modules layout', function () {
     AcceptanceApp::run(modulesLayout(), function (AcceptanceApp $app) {
         $t = $app->tag;
         $app->boot();
