@@ -116,7 +116,7 @@ final class DiscoveryRegistrar
             return [];
         }
 
-        $provider = $app->getProvider(EventServiceProvider::class);
+        $provider = $app instanceof \Illuminate\Foundation\Application ? $app->getProvider(EventServiceProvider::class) : null;
 
         if ($provider instanceof EventServiceProvider) {
             if (! $provider->shouldDiscoverEvents()) {

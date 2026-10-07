@@ -11,10 +11,3 @@ parameters:
             message: '#deprecated method add\(\) of class Illuminate\\Console\\Application#'
             path: src/ModServiceProvider.php
             reportUnmatched: false
-        # The per-directory migration clock exists only on newer Laravel; the
-        # creator checks for it before use.
-        -
-            identifier: property.notFound
-            message: '#ModMigrationCreator::\$currentMigrationPath#'
-            path: src/Generation/ModMigrationCreator.php
-            reportUnmatched: false
