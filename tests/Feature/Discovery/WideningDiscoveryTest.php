@@ -138,15 +138,17 @@ it('takes candidate files from a host source and keeps ownership, eligibility an
         $base = rtrim($basePath, '/').'/'.$root->path;
 
         foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($base, FilesystemIterator::SKIP_DOTS)) as $file) {
-            if (! $file->isFile() || str_contains($file->getPathname(), '/Support/')) {
+            $pathname = str_replace('\\', '/', $file->getPathname());
+
+            if (! $file->isFile() || str_contains($pathname, '/Support/')) {
                 continue; // the host skips its Support subtrees
             }
 
-            if ($definition->kindId === 'command' && str_contains($file->getPathname(), '/Console/')) {
+            if ($definition->kindId === 'command' && str_contains($pathname, '/Console/')) {
                 continue; // and scopes candidates per discovered kind: no console files for the command kind
             }
 
-            yield $root->path.'/'.substr($file->getPathname(), strlen($base) + 1);
+            yield $root->path.'/'.substr($pathname, strlen($base) + 1);
         }
 
         yield 'src/Billing/Providers/BillingProvider.php'; // duplicates collapse

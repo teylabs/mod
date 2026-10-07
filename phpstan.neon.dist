@@ -1,8 +1,20 @@
-includes:
-    - vendor/larastan/larastan/extension.neon
-
 parameters:
     level: 9
     paths:
         - src
     tmpDir: build/phpstan
+    ignoreErrors:
+        # Supported across Laravel 11–13: add() is deprecated from Symfony 7.4,
+        # whose replacement addCommand() older releases lack.
+        -
+            identifier: method.deprecated
+            message: '#deprecated method add\(\) of class Illuminate\\Console\\Application#'
+            path: src/ModServiceProvider.php
+            reportUnmatched: false
+        # The per-directory migration clock exists only on newer Laravel; the
+        # creator checks for it before use.
+        -
+            identifier: property.notFound
+            message: '#ModMigrationCreator::\$currentMigrationPath#'
+            path: src/Generation/ModMigrationCreator.php
+            reportUnmatched: false

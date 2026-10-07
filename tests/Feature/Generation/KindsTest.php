@@ -1,6 +1,6 @@
 <?php
 
-use Illuminate\Foundation\Application;
+use Illuminate\Database\Migrations\MigrationCreator;
 use Illuminate\Support\Facades\Date;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 
@@ -101,7 +101,7 @@ it('uses the migration timestamp the native creator chooses', function () {
         // The native clock skips the occupied second; the resolved name follows it.
         expect($workspace->exists('database/migrations/2026_01_01_000001_create_invoices_table.php'))->toBeTrue();
     });
-})->skip(fn () => version_compare(Application::VERSION, '12.0', '<'), 'collision-free migration prefixes are Laravel 12+');
+})->skip(fn () => ! property_exists(MigrationCreator::class, 'currentMigrationPath'), 'the native migration creator has no per-directory clock in this Laravel version');
 
 it('places a feature-first model', function () {
     Workspace::run('feature-first', function (Workspace $workspace) {
