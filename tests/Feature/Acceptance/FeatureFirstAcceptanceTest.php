@@ -3,25 +3,21 @@
 use Symfony\Component\Console\Exception\CommandNotFoundException;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\RejectionReason;
+use Tey\Mod\Facades\Mod;
 use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
-use Tey\Mod\Tests\Fixtures\Layouts;
+use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 
 /*
  * M2.4 acceptance, layout 2: feature-first (app/Features/<Feature>/...).
- * The fixture has no event or listener kinds; they are added here as preset
- * data only, exactly as a host would.
+ * The built-in `features` layout has no event or listener kinds; they are
+ * added from AppServiceProvider::boot(), exactly as a host would.
  */
 
-/**
- * @return array<string, mixed>
- */
-function featureFirstLayout(): array
+function featureFirstLayout(): LayoutUnderTest
 {
-    $definition = Layouts::definition('feature-first');
-    $definition['kinds']['event'] = ['shape' => 'class', 'name' => 'as-given', 'command' => 'mod:event', 'root' => 'app', 'segments' => ['Features', '{feature}', 'Events']];
-    $definition['kinds']['listener'] = ['shape' => 'class', 'name' => 'as-given', 'command' => 'mod:listener', 'root' => 'app', 'segments' => ['Features', '{feature}', 'Listeners']];
-
-    return $definition;
+    return new LayoutUnderTest('features', fn () => Mod::layout('features')
+        ->kind('event', in: 'Features/{feature}/Events')
+        ->kind('listener', in: 'Features/{feature}/Listeners'));
 }
 
 it('runs the whole loop on feature-first', function () {
@@ -38,7 +34,7 @@ it('runs the whole loop on feature-first', function () {
         $app->artisan('mod:event', ['name' => "Invoice{$t}Paid", ...$in])->assertSuccessful();
         $app->artisan('mod:listener', ['name' => "Send{$t}Receipt", '--event' => "Invoice{$t}Paid", ...$in])->assertSuccessful();
         $app->artisan('mod:command', ['name' => "Prune{$t}Invoices"])->assertSuccessful();
-        // query and validator: custom kinds declared in preset data only.
+        // query and validator: custom kinds the built-in layout declares as data.
         $app->artisan('mod:query', ['name' => "Overdue{$t}Invoices", ...$in])->assertSuccessful();
         $app->artisan('mod:validator', ['name' => "Invoice{$t}", ...$in])->assertSuccessful();
         $app->artisan('mod:migration', ['name' => 'create_invoices_table', ...$in])->assertSuccessful();

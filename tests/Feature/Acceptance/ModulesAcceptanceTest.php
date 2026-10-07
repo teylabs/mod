@@ -4,25 +4,22 @@ use Symfony\Component\Console\Exception\CommandNotFoundException;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\Exceptions\InvalidDiscoveryConfig;
 use Tey\Mod\Discovery\RejectionReason;
+use Tey\Mod\Facades\Mod;
 use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
-use Tey\Mod\Tests\Fixtures\Layouts;
+use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 
 /*
  * M2.4 acceptance, layout 5: the cookbook's app/Modules/<Module> with flat
- * folders. app/UI and app/Support are siblings, not modules. Listener and
- * Artisan command kinds are added as preset data only.
+ * folders. app/UI and app/Support are siblings, not modules. The built-in
+ * `modules` layout is extended with listener and Artisan command kinds from
+ * AppServiceProvider::boot(), exactly as a host would.
  */
 
-/**
- * @return array<string, mixed>
- */
-function modulesLayout(): array
+function modulesLayout(): LayoutUnderTest
 {
-    $definition = Layouts::definition('modules');
-    $definition['kinds']['listener'] = ['shape' => 'class', 'name' => 'as-given', 'command' => 'mod:listener', 'root' => 'app', 'segments' => ['Modules', '{module}', 'Listeners']];
-    $definition['kinds']['command'] = ['shape' => 'class', 'name' => 'as-given', 'command' => 'mod:command', 'root' => 'app', 'segments' => ['Modules', '{module}', 'Console']];
-
-    return $definition;
+    return new LayoutUnderTest('modules', fn () => Mod::layout('modules')
+        ->kind('listener', in: 'Modules/{module}/Listeners')
+        ->kind('command', in: 'Modules/{module}/Console'));
 }
 
 it('runs the whole loop on cookbook modules', function () {
@@ -39,7 +36,7 @@ it('runs the whole loop on cookbook modules', function () {
         $app->artisan('mod:event', ['name' => "Invoice{$t}Paid", ...$in])->assertSuccessful();
         $app->artisan('mod:listener', ['name' => "Send{$t}Receipt", '--event' => "Invoice{$t}Paid", ...$in])->assertSuccessful();
         $app->artisan('mod:command', ['name' => "Prune{$t}Invoices", ...$in])->assertSuccessful();
-        // action, data and query: custom kinds declared in preset data only.
+        // action, data and query: custom kinds the built-in layout declares as data.
         $app->artisan('mod:action', ['name' => "Pay{$t}Invoice", ...$in])->assertSuccessful();
         $app->artisan('mod:data', ['name' => "Invoice{$t}Data", ...$in])->assertSuccessful();
         $app->artisan('mod:query', ['name' => "Overdue{$t}Invoices", ...$in])->assertSuccessful();

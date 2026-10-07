@@ -3,17 +3,25 @@
 use Symfony\Component\Console\Exception\CommandNotFoundException;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\RejectionReason;
+use Tey\Mod\Facades\Mod;
 use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
-use Tey\Mod\Tests\Fixtures\Layouts;
+use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 
 /*
- * M2.4 acceptance, layout 1: ordinary Laravel (no placement dimension).
+ * M2.4 acceptance, layout 1: ordinary Laravel (no placement dimension), the
+ * built-in default `laravel` layout plus a custom query kind added from
+ * AppServiceProvider::boot().
  * generate -> relate -> reverse-map -> discover -> cache -> replay, through
  * the service provider only, then the negative cases.
  */
 
+function ordinaryLayout(): LayoutUnderTest
+{
+    return new LayoutUnderTest('laravel', fn () => Mod::layout('laravel')->kind('query', in: 'Queries'));
+}
+
 it('runs the whole loop on ordinary Laravel', function () {
-    AcceptanceApp::run(Layouts::definition('ordinary'), function (AcceptanceApp $app) {
+    AcceptanceApp::run(ordinaryLayout(), function (AcceptanceApp $app) {
         $t = $app->tag;
         $app->boot();
 
@@ -24,7 +32,7 @@ it('runs the whole loop on ordinary Laravel', function () {
         $app->artisan('mod:event', ['name' => "Invoice{$t}Paid"])->assertSuccessful();
         $app->artisan('mod:listener', ['name' => "Send{$t}Receipt", '--event' => "Invoice{$t}Paid"])->assertSuccessful();
         $app->artisan('mod:command', ['name' => "Prune{$t}Invoices"])->assertSuccessful();
-        // query: a custom kind declared in preset data only.
+        // query: a custom kind added from AppServiceProvider::boot().
         $app->artisan('mod:query', ['name' => "Overdue{$t}Invoices"])->assertSuccessful();
         $app->artisan('mod:migration', ['name' => 'create_invoices_table'])->assertSuccessful();
 
@@ -103,7 +111,7 @@ it('runs the whole loop on ordinary Laravel', function () {
 });
 
 it('refuses, rejects and reports on ordinary Laravel', function () {
-    AcceptanceApp::run(Layouts::definition('ordinary'), function (AcceptanceApp $app) {
+    AcceptanceApp::run(ordinaryLayout(), function (AcceptanceApp $app) {
         $t = $app->tag;
         $app->boot();
 
@@ -116,7 +124,7 @@ it('refuses, rejects and reports on ordinary Laravel', function () {
             ->assertFailed();
         expect($app->read("app/Models/Invoice{$t}.php"))->toBe($before);
 
-        // Unknown kind: the preset declares no handler, so there is no mod:handler.
+        // Unknown kind: the layout declares no handler, so there is no mod:handler.
         expect(fn () => $app->artisan('mod:handler', ['name' => 'Anything']))->toThrow(CommandNotFoundException::class);
 
         // --in in a layout without dimensions.

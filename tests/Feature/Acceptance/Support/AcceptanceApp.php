@@ -2,6 +2,7 @@
 
 namespace Tey\Mod\Tests\Feature\Acceptance\Support;
 
+use Closure;
 use FilesystemIterator;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Contracts\Foundation\Application;
@@ -12,19 +13,24 @@ use RuntimeException;
 use SplFileInfo;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Tey\Mod\Discovery\Discovery;
+use Tey\Mod\Facades\Mod;
+use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Preset\Preset;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseMatch;
 use Tey\Mod\Tests\Feature\Generation\Support\CommandResult;
+use Tey\Mod\Tests\Support\AppServiceProvider;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
 use Tey\Mod\Tests\TestCase;
 
 /**
  * One layout, end to end, through the service provider only: an owned app
- * root, fresh application boots configured with the layout's preset, mod:*
- * calls, and an autoloader for the classes generated into the root.
+ * root, fresh application boots with `mod.layout` naming the layout and the
+ * test's Mod::layout() calls running in the application's
+ * AppServiceProvider::boot(), mod:* calls, and an autoloader for the classes
+ * generated into the root.
  *
- * The autoloader is derived from the preset's own roots, so it knows nothing
+ * The autoloader is derived from the layout's own roots, so it knows nothing
  * about any particular layout. Generated classes are loaded into this PHP
  * process: tests give them unique names (see tag()).
  */
@@ -37,37 +43,40 @@ final class AcceptanceApp
     private ?Application $app = null;
 
     /**
-     * @param  array<string, mixed>  $definition
      * @param  array<string, mixed>  $discovery  mod.discovery settings
+     * @param  (Closure(): mixed)|null  $define  Mod::layout() calls, run in AppServiceProvider::boot()
      */
     private function __construct(
         private readonly TestCase $case,
         public readonly OwnedAppRoot $root,
-        public readonly array $definition,
+        public readonly string $layout,
+        private readonly ?Closure $define,
         private readonly array $discovery,
     ) {
-        $this->preset = Preset::fromArray($definition);
+        $this->preset = $this->expectedPreset();
         $this->tag = 'T'.bin2hex(random_bytes(4));
     }
 
     /**
      * @template TReturn
      *
-     * @param  array<string, mixed>  $definition  a raw preset definition
+     * @param  string|LayoutUnderTest  $layout  a `mod.layout` name, or one with Mod::layout() calls for AppServiceProvider::boot()
      * @param  callable(self): TReturn  $callback
      * @param  array<string, mixed>  $discovery  extra mod.discovery settings
      * @return TReturn
      */
-    public static function run(array $definition, callable $callback, array $discovery = []): mixed
+    public static function run(string|LayoutUnderTest $layout, callable $callback, array $discovery = []): mixed
     {
+        $layout = is_string($layout) ? new LayoutUnderTest($layout) : $layout;
+
         $case = TestSuite::getInstance()->test;
 
         if (! $case instanceof TestCase) {
             throw new RuntimeException('Acceptance tests need the Testbench test case.');
         }
 
-        return OwnedAppRoot::using(function (OwnedAppRoot $root) use ($case, $definition, $discovery, $callback) {
-            $app = new self($case, $root, $definition, $discovery);
+        return OwnedAppRoot::using(function (OwnedAppRoot $root) use ($case, $layout, $discovery, $callback) {
+            $app = new self($case, $root, $layout->name, $layout->define, $discovery);
             $autoload = $app->autoloader();
 
             spl_autoload_register($autoload);
@@ -87,12 +96,22 @@ final class AcceptanceApp
      */
     public function boot(array $discovery = []): Application
     {
-        return $this->app = $this->case->bootApplicationUsing(function (Application $app) use ($discovery): void {
+        $this->app = $this->case->bootApplicationUsing(function (Application $app) use ($discovery): void {
             $config = $app->make('config');
             $app->setBasePath($this->root->path);
-            $config->set('mod.preset', $this->definition);
+            $config->set('mod.layout', $this->layout);
             $config->set('mod.discovery', [...(array) $config->get('mod.discovery', []), 'enabled' => true, ...$this->discovery, ...$discovery]);
+
+            if ($this->define !== null) {
+                $app->instance(AppServiceProvider::BOOT, $this->define);
+            }
         });
+
+        if ($this->app->make(Preset::class) != $this->preset) {
+            throw new RuntimeException("The booted application compiled layout [{$this->layout}] differently from the test's expectation.");
+        }
+
+        return $this->app;
     }
 
     public function app(): Application
@@ -213,7 +232,7 @@ final class AcceptanceApp
     }
 
     /**
-     * Every file under app/ and database/, relative to the root, sorted.
+     * Every file under app/, database/ and src/, relative to the root, sorted.
      *
      * @return list<string>
      */
@@ -221,7 +240,11 @@ final class AcceptanceApp
     {
         $files = [];
 
-        foreach (['app', 'database'] as $top) {
+        foreach (['app', 'database', 'src'] as $top) {
+            if (! is_dir($this->root->path($top))) {
+                continue;
+            }
+
             $items = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->root->path($top), FilesystemIterator::SKIP_DOTS));
 
             /** @var SplFileInfo $item */
@@ -252,9 +275,30 @@ final class AcceptanceApp
     }
 
     /**
-     * PSR-4 loading for the preset's namespaced roots inside the owned root.
+     * The preset the booted application must end up with: the same
+     * Mod::layout() calls, run on a scratch registry, so tests can place and
+     * map artifacts before booting.
      */
-    private function autoloader(): \Closure
+    private function expectedPreset(): Preset
+    {
+        $registry = new LayoutRegistry;
+        Mod::swap($registry);
+
+        try {
+            if ($this->define !== null) {
+                ($this->define)();
+            }
+
+            return $registry->compile($this->layout);
+        } finally {
+            Mod::clearResolvedInstance(LayoutRegistry::class);
+        }
+    }
+
+    /**
+     * PSR-4 loading for the layout's namespaced roots inside the owned root.
+     */
+    private function autoloader(): Closure
     {
         $map = [];
 

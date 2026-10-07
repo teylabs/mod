@@ -3,30 +3,26 @@
 use Symfony\Component\Console\Exception\CommandNotFoundException;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\RejectionReason;
+use Tey\Mod\Facades\Mod;
 use Tey\Mod\Placement\PlacementResolver;
 use Tey\Mod\Relation\RelationResolver;
 use Tey\Mod\Relation\RelationStatus;
 use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
-use Tey\Mod\Tests\Fixtures\Layouts;
+use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 
 /*
  * M2.4 acceptance, layout 3: vertical slices (app/<Feature>/<Slice>/...).
  * Slice classes have fixed basenames; the slice message is called Command
  * and must never become an Artisan command. Provider, event and listener
- * kinds are added as preset data only.
+ * kinds extend the built-in `slices` layout from AppServiceProvider::boot().
  */
 
-/**
- * @return array<string, mixed>
- */
-function verticalSlicesLayout(): array
+function verticalSlicesLayout(): LayoutUnderTest
 {
-    $definition = Layouts::definition('vertical-slices');
-    $definition['kinds']['provider'] = ['shape' => 'class', 'name' => ['suffix' => 'ServiceProvider'], 'command' => 'mod:provider', 'root' => 'app', 'segments' => ['{feature}', 'Providers']];
-    $definition['kinds']['event'] = ['shape' => 'class', 'name' => 'as-given', 'command' => 'mod:event', 'root' => 'app', 'segments' => ['{feature}', 'Events']];
-    $definition['kinds']['listener'] = ['shape' => 'class', 'name' => 'as-given', 'command' => 'mod:listener', 'root' => 'app', 'segments' => ['{feature}', 'Listeners']];
-
-    return $definition;
+    return new LayoutUnderTest('slices', fn () => Mod::layout('slices')
+        ->kind('provider', in: '{feature}/Providers', suffix: 'ServiceProvider')
+        ->kind('event', in: '{feature}/Events')
+        ->kind('listener', in: '{feature}/Listeners'));
 }
 
 it('runs the whole loop on vertical slices', function () {

@@ -3,28 +3,24 @@
 use Symfony\Component\Console\Exception\CommandNotFoundException;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\RejectionReason;
+use Tey\Mod\Facades\Mod;
 use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
-use Tey\Mod\Tests\Fixtures\Layouts;
+use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 
 /*
  * M2.4 acceptance, layout 4: type-first with an optional feature after the
  * kind segments (App\Models\Invoice and App\Models\Billing\Invoice under one
- * preset). The fixture declares no provider, event, listener or command
- * kinds; they are added here as preset data only.
+ * layout). The built-in `type-first` layout declares no provider, event,
+ * listener or command kinds; they are added from AppServiceProvider::boot().
  */
 
-/**
- * @return array<string, mixed>
- */
-function typeFirstLayout(): array
+function typeFirstLayout(): LayoutUnderTest
 {
-    $definition = Layouts::definition('type-first');
-    $definition['kinds']['provider'] = ['shape' => 'class', 'name' => ['suffix' => 'ServiceProvider'], 'command' => 'mod:provider', 'root' => 'app', 'segments' => ['Providers', '{feature?}']];
-    $definition['kinds']['event'] = ['shape' => 'class', 'name' => 'as-given', 'command' => 'mod:event', 'root' => 'app', 'segments' => ['Events', '{feature?}']];
-    $definition['kinds']['listener'] = ['shape' => 'class', 'name' => 'as-given', 'command' => 'mod:listener', 'root' => 'app', 'segments' => ['Listeners', '{feature?}']];
-    $definition['kinds']['command'] = ['shape' => 'class', 'name' => 'as-given', 'command' => 'mod:command', 'root' => 'app', 'segments' => ['Console', 'Commands']];
-
-    return $definition;
+    return new LayoutUnderTest('type-first', fn () => Mod::layout('type-first')
+        ->kind('provider', in: 'Providers/{feature?}', suffix: 'ServiceProvider')
+        ->kind('event', in: 'Events/{feature?}')
+        ->kind('listener', in: 'Listeners/{feature?}')
+        ->kind('command', in: 'Console/Commands'));
 }
 
 it('runs the whole loop on type-first, with and without a feature', function () {
@@ -148,12 +144,14 @@ it('refuses, rejects and reports on type-first', function () {
     });
 });
 
-it('reports a declared overlap as ambiguous until the preset gives a priority', function () {
+it('reports a declared overlap as ambiguous until the layout gives a priority', function () {
     // A second kind that also claims app/Listeners: data, not code, creates the ambiguity.
-    $definition = typeFirstLayout();
-    $definition['kinds']['subscriber'] = ['shape' => 'class', 'name' => ['suffix' => 'Subscriber'], 'root' => 'app', 'segments' => ['Listeners']];
+    $layout = new LayoutUnderTest('type-first', function () {
+        (typeFirstLayout()->define)();
+        Mod::layout('type-first')->kind('subscriber', in: 'Listeners', suffix: 'Subscriber', command: false);
+    });
 
-    AcceptanceApp::run($definition, function (AcceptanceApp $app) {
+    AcceptanceApp::run($layout, function (AcceptanceApp $app) {
         $t = $app->tag;
         $path = $app->handWrite("app/Listeners/Audit{$t}Subscriber.php", 'App\Listeners', <<<PHP
             class Audit{$t}Subscriber
@@ -170,9 +168,12 @@ it('reports a declared overlap as ambiguous until the preset gives a priority', 
             ->and($rejection?->candidates)->toHaveCount(2);
     });
 
-    $definition['kinds']['listener']['priority'] = 1;
+    $prioritised = new LayoutUnderTest('type-first', function () use ($layout) {
+        ($layout->define)();
+        Mod::layout('type-first')->kind('listener', priority: 1);
+    });
 
-    AcceptanceApp::run($definition, function (AcceptanceApp $app) {
+    AcceptanceApp::run($prioritised, function (AcceptanceApp $app) {
         $t = $app->tag;
         $path = $app->handWrite("app/Listeners/Audit{$t}Subscriber.php", 'App\Listeners', <<<PHP
             class Audit{$t}Subscriber

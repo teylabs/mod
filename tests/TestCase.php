@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Contracts\Foundation\Application;
 use Orchestra\Testbench\TestCase as Orchestra;
 use Tey\Mod\ModServiceProvider;
+use Tey\Mod\Tests\Support\AppServiceProvider;
 
 abstract class TestCase extends Orchestra
 {
@@ -16,6 +17,7 @@ abstract class TestCase extends Orchestra
     {
         return [
             ModServiceProvider::class,
+            AppServiceProvider::class,
         ];
     }
 

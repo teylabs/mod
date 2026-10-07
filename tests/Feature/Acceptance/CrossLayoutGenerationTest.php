@@ -4,20 +4,19 @@ use Illuminate\Contracts\Console\Kernel;
 use Tey\Mod\Commands\FactoryCommand;
 use Tey\Mod\Commands\ModelCommand;
 use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
-use Tey\Mod\Tests\Fixtures\Layouts;
 
 /*
  * M2.4 E2: one logical request ("an Invoice model with its factory, in
  * Billing where the layout has a place for it") generated for real under
- * all five presets. Five different identities come out of the same command
- * classes; only the preset data differs.
+ * the five built-in layouts, selected by name. Five different identities
+ * come out of the same command classes; only the layout data differs.
  */
 
 it('generates the same logical artifact as five different identities through the same code', function () {
     $results = [];
 
-    foreach (Layouts::NAMES as $layout) {
-        $results[$layout] = AcceptanceApp::run(Layouts::definition($layout), function (AcceptanceApp $app) {
+    foreach (['laravel', 'features', 'slices', 'type-first', 'modules'] as $layout) {
+        $results[$layout] = AcceptanceApp::run($layout, function (AcceptanceApp $app) {
             $name = "Invoice{$app->tag}";
             $in = $app->preset->dimensionNames() === [] ? [] : ['--in' => 'Billing'];
             $app->boot();
