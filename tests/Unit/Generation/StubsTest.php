@@ -7,6 +7,7 @@ use Tey\Mod\Generation\GeneratedBase;
 use Tey\Mod\Generation\PackageDetector;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Generation\StubRegistry;
+use Tey\Mod\Layout\BuiltIn\Starters;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Layout\Root;
@@ -204,7 +205,7 @@ it('compiles a kind label and refuses an empty one', function () {
     expect($preset->kind('record')->label)->toBe('Ledger record')
         ->and($preset->kind('entry')->label)->toBeNull()
         ->and((new LayoutRegistry)->compile('ddd')->kind('dto')->label)->toBe('DTO')
-        ->and((new LayoutRegistry)->compile('modules')->kind('data')->label)->toBe('Data object');
+        ->and((new LayoutRegistry)->compile('modules')->kind('dto')->label)->toBe('DTO');
 
     $definition = [
         'roots' => ['app' => ['namespace' => 'App\\', 'path' => 'app']],
@@ -212,4 +213,57 @@ it('compiles a kind label and refuses an empty one', function () {
     ];
 
     expect(fn () => Preset::fromArray($definition))->toThrow(InvalidPreset::class, 'label must be a non-empty string');
+});
+
+it('maps each starter to the kind ids it applies to, and no other', function () {
+    $registry = Starters::register(new StubRegistry);
+
+    foreach (['dto' => 'DTO', 'data' => 'DTO', 'data-transfer-object' => 'DTO', 'view-model' => 'View model', 'viewmodel' => 'View model', 'value-object' => 'Value object', 'value' => 'Value object', 'action' => 'Action'] as $kind => $label) {
+        expect($registry->starterFor($kind)?->labelText())->toBe($label, $kind);
+    }
+
+    foreach (['query', 'handler', 'message', 'validator', 'model', 'class'] as $kind) {
+        expect($registry->starterFor($kind))->toBeNull($kind);
+    }
+
+    expect($registry->starterFor('dto')?->generatedBase()?->name)->toBe('DataTransferObject')
+        ->and($registry->starterFor('dto')?->generatedBase()?->in)->toBe('Data')
+        ->and($registry->starterFor('dto')?->generatedBase()?->inKindRoot)->toBeFalse()
+        ->and($registry->starterFor('view-model')?->generatedBase()?->in)->toBe('ViewModels')
+        ->and($registry->starterFor('value-object')?->generatedBase())->toBeNull()
+        ->and($registry->starterFor('action')?->generatedBase())->toBeNull();
+});
+
+it('resolves a registered stub, then the layout stub, then the starter', function () {
+    $registry = Starters::register(new StubRegistry);
+    $layout = Stub::file('/layout.stub');
+    $package = Stub::file('/package.stub');
+
+    expect($registry->resolve('dto', null))->toBe($registry->starterFor('dto'))
+        ->and($registry->resolve('dto', $layout))->toBe($layout)
+        ->and($registry->resolve('query', null))->toBeNull();
+
+    $registry->for('dto', $package);
+
+    expect($registry->resolve('dto', $layout))->toBe($package);
+});
+
+it('keeps the ddd bases in the domain root, where laravel-ddd puts them', function () {
+    $preset = (new LayoutRegistry)->compile('ddd');
+    $dto = $preset->stub('dto')?->generatedBase();
+    $viewModel = $preset->stub('view-model')?->generatedBase();
+
+    expect([$dto?->in, $dto?->inKindRoot])->toBe(['Shared/Data', true])
+        ->and([$viewModel?->in, $viewModel?->inKindRoot])->toBe(['Shared/ViewModels', true])
+        ->and($preset->stub('value-object'))->toBeNull()
+        ->and(GeneratedBase::named('Record', in: 'Records', stub: 'x')->inKindRoot()->inKindRoot)->toBeTrue();
+});
+
+it('declares dto, view-model and value-object in the modules layout', function () {
+    $preset = (new LayoutRegistry)->compile('modules');
+
+    expect([$preset->kind('dto')->command, $preset->kind('dto')->aliases, $preset->kind('dto')->label])->toBe(['mod:dto', ['mod:data'], 'DTO'])
+        ->and($preset->kind('value-object')->command)->toBe('mod:value')
+        ->and($preset->kind('view-model')->command)->toBe('mod:view-model')
+        ->and($preset->hasKind('data'))->toBeFalse();
 });

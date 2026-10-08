@@ -100,7 +100,7 @@ it('reads a plugin base from its own config key before detection and the generat
         $dto = fn () => Stub::file($workspace->root->path('package/stubs/dto.stub'))
             ->base(config: 'ddd.base_dto')
             ->whenInstalled('spatie/laravel-data', base: 'Spatie\\LaravelData\\Data')
-            ->generatesBase(GeneratedBase::named('DataTransferObject', in: 'Shared/Data', stub: $workspace->root->path('package/stubs/bases/data-transfer-object.stub')));
+            ->generatesBase(GeneratedBase::named('DataTransferObject', in: 'Shared/Data', stub: $workspace->root->path('package/stubs/bases/data-transfer-object.stub'))->inKindRoot());
 
         Mod::stubs()->for('dto', $dto());
         $generated = $workspace->artisan('mod:dto', ['name' => 'Knowledge:DocumentData']);

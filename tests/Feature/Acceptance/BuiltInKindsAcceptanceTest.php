@@ -44,7 +44,7 @@ function builtInFolders(string $layout, string $group, string $slice): array
     }
     if ($layout === 'modules') {
         $folders = array_replace($folders, ['controller' => 'Controllers', 'request' => 'Requests', 'resource' => 'Resources', 'middleware' => 'Middleware', 'channel' => 'Channels', 'command' => 'Console']);
-        $folders += ['action' => 'Actions', 'data' => 'Data', 'query' => 'Queries'];
+        $folders += ['action' => 'Actions', 'dto' => 'Data', 'value-object' => 'ValueObjects', 'view-model' => 'ViewModels', 'query' => 'Queries'];
     }
     if ($layout === 'features') {
         $folders += ['query' => 'Queries', 'validator' => 'Validation'];

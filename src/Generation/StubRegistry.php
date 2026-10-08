@@ -11,13 +11,17 @@ use Illuminate\Support\ServiceProvider;
  *
  * Precedence when generating: the application's published
  * `stubs/mod.<kind>.stub`, then the stub registered last for the kind, then
- * the stub the layout declares, then the generator's own. The registry keeps
- * which service provider registered each stub.
+ * the stub the layout declares, then the starter for the kind, then the
+ * generator's own. The registry keeps which service provider registered
+ * each stub.
  */
 final class StubRegistry
 {
     /** @var array<string, array{stub: Stub, by: ?string}> */
     private array $stubs = [];
+
+    /** @var array<string, Stub> */
+    private array $starters = [];
 
     public function for(string $kind, Stub $stub): self
     {
@@ -29,6 +33,32 @@ final class StubRegistry
     public function get(string $kind): ?Stub
     {
         return $this->stubs[$kind]['stub'] ?? null;
+    }
+
+    /**
+     * @internal the starter a kind of this id gets in any layout, below a layout's own stub
+     */
+    public function starter(string $kind, Stub $stub): self
+    {
+        $this->starters[$kind] = $stub;
+
+        return $this;
+    }
+
+    /**
+     * @internal
+     */
+    public function starterFor(string $kind): ?Stub
+    {
+        return $this->starters[$kind] ?? null;
+    }
+
+    /**
+     * @internal the Stub a kind is generated from: registered, else the layout's, else the starter
+     */
+    public function resolve(string $kind, ?Stub $layoutStub): ?Stub
+    {
+        return $this->get($kind) ?? $layoutStub ?? $this->starterFor($kind);
     }
 
     /**

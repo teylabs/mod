@@ -3,6 +3,7 @@
 use Tey\Mod\Artifact\ArtifactRequest;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Facades\Mod;
+use Tey\Mod\Generation\PackageDetector;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\PlacementResolver;
 use Tey\Mod\Preset\Preset;
@@ -58,4 +59,42 @@ function isolatedDomainNamespace(?string $namespace = null): string
     Mod::layout('ddd')->root('domain', $namespace.'\\', 'src/Domain');
 
     return $namespace;
+}
+
+/**
+ * Pretend these Composer packages are installed, and no class is.
+ */
+function starterPackages(string ...$packages): void
+{
+    app()->instance(PackageDetector::class, new class($packages) implements PackageDetector
+    {
+        /**
+         * @param  list<string>  $packages
+         */
+        public function __construct(private array $packages) {}
+
+        public function isInstalled(string $package): bool
+        {
+            return in_array($package, $this->packages, true);
+        }
+
+        public function classExists(string $class): bool
+        {
+            return false;
+        }
+    });
+}
+
+/**
+ * A bases folder of this test's own below app/Support: generated bases stay
+ * loaded for the whole process, so no other test may share their names.
+ *
+ * @return array{string, string} the folder and its namespace
+ */
+function isolatedBasesPath(): array
+{
+    $folder = 'B'.bin2hex(random_bytes(4));
+    config()->set('mod.bases_path', "app/Support/{$folder}");
+
+    return ["app/Support/{$folder}", "App\\Support\\{$folder}"];
 }

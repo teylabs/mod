@@ -36,7 +36,7 @@ it('runs the whole loop on the modules layout', function () {
         $app->artisan('mod:event', ['name' => "Invoice{$t}Paid", ...$in])->assertSuccessful();
         $app->artisan('mod:listener', ['name' => "Send{$t}Receipt", '--event' => "Invoice{$t}Paid", ...$in])->assertSuccessful();
         $app->artisan('mod:command', ['name' => "Prune{$t}Invoices", ...$in])->assertSuccessful();
-        // action, data and query: custom kinds the built-in layout declares as data.
+        // action, dto (through its mod:data alias) and query: kinds Laravel has no generator for.
         $app->artisan('mod:action', ['name' => "Pay{$t}Invoice", ...$in])->assertSuccessful();
         $app->artisan('mod:data', ['name' => "Invoice{$t}Data", ...$in])->assertSuccessful();
         $app->artisan('mod:query', ['name' => "Overdue{$t}Invoices", ...$in])->assertSuccessful();
@@ -49,7 +49,7 @@ it('runs the whole loop on the modules layout', function () {
             "app/Modules/Billing/Actions/Pay{$t}Invoice.php" => ['action', "{$ns}\\Actions\\Pay{$t}Invoice"],
             "app/Modules/Billing/Console/Prune{$t}Invoices.php" => ['command', "{$ns}\\Console\\Prune{$t}Invoices"],
             "app/Modules/Billing/Controllers/Invoice{$t}Controller.php" => ['controller', "{$ns}\\Controllers\\Invoice{$t}Controller"],
-            "app/Modules/Billing/Data/Invoice{$t}Data.php" => ['data', "{$ns}\\Data\\Invoice{$t}Data"],
+            "app/Modules/Billing/Data/Invoice{$t}Data.php" => ['dto', "{$ns}\\Data\\Invoice{$t}Data"],
             "app/Modules/Billing/Database/Factories/Invoice{$t}Factory.php" => ['factory', "{$ns}\\Database\\Factories\\Invoice{$t}Factory"],
             "app/Modules/Billing/Database/Seeders/Invoice{$t}Seeder.php" => ['seeder', "{$ns}\\Database\\Seeders\\Invoice{$t}Seeder"],
             "app/Modules/Billing/Events/Invoice{$t}Paid.php" => ['event', "{$ns}\\Events\\Invoice{$t}Paid"],
@@ -63,7 +63,13 @@ it('runs the whole loop on the modules layout', function () {
         ];
         ksort($generated);
 
-        expect($app->files())->toBe(array_keys($generated))
+        // The DTO's generated base lives outside the module, and the layout owns none of it.
+        $base = "{$app->basesPath()}/Data/DataTransferObject.php";
+        $files = [...array_keys($generated), $base];
+        sort($files);
+
+        expect($app->files())->toBe($files)
+            ->and($app->mapPath($base)->isMatched())->toBeFalse()
             ->and($app->read("app/Modules/Billing/Models/Invoice{$t}.php"))
             ->toContain("HasFactory<\\{$ns}\\Database\\Factories\\Invoice{$t}Factory>")
             ->toContain("return \\{$ns}\\Database\\Factories\\Invoice{$t}Factory::new();")
@@ -98,7 +104,8 @@ it('runs the whole loop on the modules layout', function () {
             ->and($cold->classes(DiscoveryType::Listener))->toBe(["{$ns}\\Listeners\\Audit{$t}Payment", "{$ns}\\Listeners\\Send{$t}Receipt"])
             ->and(array_unique(array_map(fn ($entry) => $entry->context, $cold->entries), SORT_REGULAR))->toBe([$ctx])
             ->and($cold->rejection('app/Modules/Billing/routes/web.php')?->reason)->toBe(RejectionReason::NotOwned)
-            ->and($cold->rejections)->toHaveCount(1);
+            ->and($cold->rejection($base)?->detail)->toContain('inside excluded root')
+            ->and($cold->rejections)->toHaveCount(2);
 
         $assertRegistered = function () use ($app, $t, $ns, $event) {
             expect($app->app()->getProvider("{$ns}\\Providers\\Billing{$t}ServiceProvider"))->not->toBeNull()

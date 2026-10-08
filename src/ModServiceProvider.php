@@ -11,11 +11,13 @@ use Tey\Mod\Discovery\Discovery;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryRegistrar;
 use Tey\Mod\Exceptions\InvalidGeneratorSetup;
+use Tey\Mod\Generation\BaseWriter;
 use Tey\Mod\Generation\ComposerPackageDetector;
 use Tey\Mod\Generation\GeneratorRegistry;
 use Tey\Mod\Generation\ModMigrationCreator;
 use Tey\Mod\Generation\PackageDetector;
 use Tey\Mod\Generation\StubRegistry;
+use Tey\Mod\Layout\BuiltIn\Starters;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Preset\Preset;
 use Tey\Mod\Resolution\ModelConventions;
@@ -27,7 +29,13 @@ class ModServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../config/mod.php', 'mod');
 
         $this->app->singleton(LayoutRegistry::class);
-        $this->app->singleton(StubRegistry::class);
+        $this->app->singleton(StubRegistry::class, fn (): StubRegistry => Starters::register(new StubRegistry));
+        $this->app->bind(BaseWriter::class, fn (Application $app): BaseWriter => new BaseWriter(
+            $app->make('files'),
+            $app->basePath(),
+            self::basesPath($app),
+            self::appNamespace($app),
+        ));
         $this->app->singleton(PackageDetector::class, ComposerPackageDetector::class);
         $this->app->singleton(ModManager::class);
 
@@ -108,7 +116,32 @@ class ModServiceProvider extends ServiceProvider
             throw new InvalidGeneratorSetup('Config [mod.layout] must be a layout name such as "laravel".');
         }
 
-        return $app->make(LayoutRegistry::class)->compile($name);
+        $registry = $app->make(LayoutRegistry::class);
+
+        if ($registry->has($name) && ! $registry->layout($name)->isSealed()) {
+            $registry->layout($name)->reserveBaseFolders($app->make(StubRegistry::class), self::basesPath($app));
+        }
+
+        return $registry->compile($name);
+    }
+
+    /**
+     * `mod.bases_path`: where generated bases go, relative to the base path.
+     */
+    private static function basesPath(Application $app): string
+    {
+        $path = $app->make('config')->get('mod.bases_path', 'app/Support');
+
+        return is_string($path) && trim($path, '/ ') !== '' ? trim($path, '/ ') : 'app/Support';
+    }
+
+    private static function appNamespace(Application $app): string
+    {
+        try {
+            return $app instanceof \Illuminate\Foundation\Application ? $app->getNamespace() : 'App\\';
+        } catch (\RuntimeException) {
+            return 'App\\';
+        }
     }
 
     private function discoveryEnabled(): bool

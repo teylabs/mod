@@ -6,8 +6,10 @@ use Closure;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\Stub;
+use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Preset\Preset;
 use Tey\Mod\Relation\RelationPolicy;
+use Tey\Mod\Support\Path;
 
 /**
  * A named layout, defined (or extended) as one fluent chain:
@@ -262,6 +264,42 @@ final class Layout
     public function seal(): void
     {
         $this->sealed = true;
+    }
+
+    /**
+     * @internal
+     */
+    public function isSealed(): bool
+    {
+        return $this->sealed;
+    }
+
+    /**
+     * @internal exclude the folders generated bases go in (app/Support/Data,
+     * ...) when they lie inside a root, so a base is never taken for a group
+     * or a kind's class
+     */
+    public function reserveBaseFolders(StubRegistry $stubs, string $basesPath): void
+    {
+        $folders = [];
+
+        foreach ($this->kinds as $id => $kind) {
+            $base = $stubs->resolve($id, $kind->toArray()['stub'])?->generatedBase();
+
+            if ($base !== null && ! $base->inKindRoot) {
+                $folders[] = Path::join($basesPath, $base->in);
+            }
+        }
+
+        foreach (array_unique($folders) as $folder) {
+            foreach ($this->roots as $root) {
+                if ($root['namespace'] !== null && Path::relative($root['path'], $folder) !== null) {
+                    $this->exclude($folder);
+
+                    break;
+                }
+            }
+        }
     }
 
     /**

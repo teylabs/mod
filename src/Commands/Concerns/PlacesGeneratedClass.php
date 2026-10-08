@@ -7,6 +7,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Exceptions\ModException;
+use Tey\Mod\Generation\BaseWriter;
 use Tey\Mod\Generation\GeneratedBase;
 use Tey\Mod\Generation\GenerationPlan;
 use Tey\Mod\Generation\PackageDetector;
@@ -242,13 +243,14 @@ trait PlacesGeneratedClass
 
     /**
      * Hook: the Stub the kind's classes are generated from: the one a
-     * package registered for the kind (Mod::stubs()), else the layout's.
+     * package registered for the kind (Mod::stubs()), else the layout's,
+     * else the starter for a kind of this id.
      */
     protected function stubDefinition(): ?Stub
     {
         $kind = $this->kind()->id;
 
-        return $this->laravel->make(StubRegistry::class)->get($kind) ?? $this->preset()->stub($kind);
+        return $this->laravel->make(StubRegistry::class)->resolve($kind, $this->preset()->stub($kind));
     }
 
     /**
@@ -311,7 +313,7 @@ trait PlacesGeneratedClass
         }
 
         $config = $this->laravel->make('config');
-        $configured = $config->get('mod.layouts.'.$this->layoutName().'.bases.'.$this->kind()->id);
+        $configured = $config->get('mod.bases.'.$this->kind()->id);
         $choice = $stub->choose(
             $this->laravel->make(PackageDetector::class),
             static fn (string $key): mixed => $config->get($key),
@@ -328,30 +330,18 @@ trait PlacesGeneratedClass
     }
 
     /**
-     * The generated base's class, written into the kind's root first when it does not exist yet.
+     * The generated base's class, written first when it does not exist yet.
      * An existing base is never overwritten, not even with --force.
      */
     private function ensureBase(GeneratedBase $base): string
     {
-        $root = $this->preset()->rule($this->kind()->id)->root();
-        $folder = str_replace('/', '\\', $base->in);
-        $fqcn = rtrim((string) $root->namespace, '\\').'\\'.($folder === '' ? '' : $folder.'\\').$base->name;
-        $relative = Path::join($root->path, $base->in, $base->name.'.php');
-        $absolute = $this->existingArtifacts()->absolute($relative);
+        $writer = $this->laravel->make(BaseWriter::class);
+        $location = $writer->locate($base, $this->preset(), $this->kind()->id);
 
-        if (class_exists($fqcn) || is_file($absolute)) {
-            return $fqcn;
+        if ($writer->ensure($base, $location)) {
+            $this->components->info("Created base class {$location['fqcn']} [{$location['path']}].");
         }
 
-        $published = $this->laravel->basePath('stubs/mod.base.'.$base->stubName().'.stub');
-        $body = (string) file_get_contents(is_file($published) ? $published : $base->stub);
-        $namespace = substr($fqcn, 0, (int) strrpos($fqcn, '\\'));
-
-        $this->files->ensureDirectoryExists(dirname($absolute));
-        $this->files->put($absolute, str_replace(['{{ namespace }}', '{{namespace}}', '{{ class }}', '{{class}}'], [$namespace, $namespace, $base->name, $base->name], $body));
-
-        $this->components->info("Created base class {$fqcn} [{$relative}].");
-
-        return $fqcn;
+        return $location['fqcn'];
     }
 }

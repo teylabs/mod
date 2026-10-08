@@ -16,6 +16,7 @@ use Tey\Mod\Discovery\Discovery;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Generation\GeneratorRegistry;
 use Tey\Mod\Generation\StubRegistry;
+use Tey\Mod\Layout\BuiltIn\Starters;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\ModManager;
 use Tey\Mod\Preset\Preset;
@@ -57,8 +58,8 @@ final class AcceptanceApp
         private readonly ?Closure $define,
         private readonly array $discovery,
     ) {
-        $this->preset = $this->expectedPreset();
         $this->tag = 'T'.bin2hex(random_bytes(4));
+        $this->preset = $this->expectedPreset();
     }
 
     /**
@@ -104,6 +105,8 @@ final class AcceptanceApp
             $config = $app->make('config');
             $app->setBasePath($this->root->path);
             $config->set('mod.layout', $this->layout);
+            // Generated bases stay loaded for the whole process: each app gets its own.
+            $config->set('mod.bases_path', $this->basesPath());
             $config->set('mod.discovery', [...(array) $config->get('mod.discovery', []), 'enabled' => true, ...$this->discovery, ...$discovery]);
 
             if ($this->define !== null) {
@@ -293,10 +296,22 @@ final class AcceptanceApp
                 ($this->define)();
             }
 
+            if ($registry->has($this->layout)) {
+                $registry->layout($this->layout)->reserveBaseFolders(Starters::register(new StubRegistry), $this->basesPath());
+            }
+
             return $registry->compile($this->layout);
         } finally {
             Mod::clearResolvedInstance(ModManager::class);
         }
+    }
+
+    /**
+     * This app's bases folder, below app/Support so no layout takes it for a group.
+     */
+    public function basesPath(): string
+    {
+        return "app/Support/{$this->tag}";
     }
 
     /**

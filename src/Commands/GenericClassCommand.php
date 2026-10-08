@@ -47,6 +47,16 @@ class GenericClassCommand extends GeneratorCommand implements GeneratorAdapter
         return preg_match('/^\p{Lu}{2}/u', $label) === 1 ? $label : lcfirst($label);
     }
 
+    /**
+     * The noun the output uses: the kind's label, else its starter's, else the kind id.
+     */
+    public function handle()
+    {
+        $this->type = $this->kind()->label ?? $this->stubDefinition()?->labelText() ?? Str::headline($this->kind()->id);
+
+        return parent::handle();
+    }
+
     protected function getStub()
     {
         return $this->modStubFile() ?? __DIR__.'/stubs/class.stub';

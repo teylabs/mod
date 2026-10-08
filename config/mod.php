@@ -30,21 +30,26 @@ return [
     'generators' => [],
 
     /*
-     * Per-layout settings. `bases` names the class a kind's generated classes
-     * extend, by kind id. Null (the default) lets mod decide: a supported
-     * package when it is installed (spatie/laravel-data for DTOs,
-     * spatie/laravel-view-models for view models, lorisleiva/laravel-actions
-     * for actions), else a base class it writes into the app on first use.
+     * The class a kind's generated classes extend, by kind id. Null (the
+     * default) lets mod decide: a supported package when it is installed
+     * (spatie/laravel-data for DTOs, spatie/laravel-view-models for view
+     * models, lorisleiva/laravel-actions for actions), else a base class it
+     * writes into the app on first use.
      */
-    'layouts' => [
-        'ddd' => [
-            'bases' => [
-                'dto' => null,
-                'view-model' => null,
-                'action' => null,
-            ],
-        ],
+    'bases' => [
+        'dto' => null,
+        'view-model' => null,
+        'value-object' => null,
+        'action' => null,
     ],
+
+    /*
+     * Where those generated base classes go: app/Support/Data/DataTransferObject.php,
+     * app/Support/ViewModels/ViewModel.php. The ddd layout keeps them in
+     * src/Domain/Shared instead. `php artisan mod:bases` writes any that are
+     * missing, for example after copying a module from another app.
+     */
+    'bases_path' => 'app/Support',
 
     /*
      * Runtime discovery of the providers, Artisan commands and listeners the

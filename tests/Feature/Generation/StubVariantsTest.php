@@ -122,8 +122,8 @@ it('extends a configured base before anything detected or generated', function (
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'ddd');
         isolatedDomainNamespace();
-        config()->set('mod.layouts.ddd.bases.dto', 'App\\Support\\Data');
-        config()->set('mod.layouts.ddd.bases.action', 'App\\Support\\Action');
+        config()->set('mod.bases.dto', 'App\\Support\\Data');
+        config()->set('mod.bases.action', 'App\\Support\\Action');
         installedPackages('spatie/laravel-data');
 
         $dto = $workspace->artisan('mod:dto', ['name' => 'Billing:InvoiceData']);

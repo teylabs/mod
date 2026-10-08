@@ -14,7 +14,7 @@ use Closure;
  *
  * When generating, the first rule that applies decides:
  *
- *  1. a configured base (`mod.layouts.<layout>.bases.<kind>`, `->base(config:)` or
+ *  1. a configured base (`mod.bases.<kind>`, `->base(config:)` or
  *     `->base(class:)`): the class extends it, nothing is generated;
  *  2. the first variant whose package is installed (or class exists): its stub and
  *     base; no base class is generated;
@@ -35,6 +35,8 @@ final class Stub
     private ?string $baseConfig = null;
 
     private ?GeneratedBase $generatedBase = null;
+
+    private ?string $label = null;
 
     private function __construct(public readonly string $path) {}
 
@@ -85,6 +87,32 @@ final class Stub
         $this->generatedBase = $base;
 
         return $this;
+    }
+
+    /**
+     * The noun a kind generated from this stub prints, unless the kind has its own label.
+     */
+    public function label(string $label): self
+    {
+        $this->label = $label;
+
+        return $this;
+    }
+
+    /**
+     * @internal
+     */
+    public function labelText(): ?string
+    {
+        return $this->label;
+    }
+
+    /**
+     * @internal the base generated when no explicit base or variant applies
+     */
+    public function generatedBase(): ?GeneratedBase
+    {
+        return $this->generatedBase;
     }
 
     /**
