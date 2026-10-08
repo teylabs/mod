@@ -25,7 +25,7 @@ To discover another file type as one of these, map it in `config/mod.php`:
 
 ### Where Discovery Looks
 
-A file type is discovered in its own folder, such as `src/Domain/<Domain>/Listeners`. With `discoverAnywhere: true`, it is discovered in every PHP file below its group folder, and `except:` skips folders below the group folder, such as `src/Domain/Billing/Tests`:
+A file type is discovered in its own folder, such as `src/Domain/<Domain>/Listeners`. With `discoverAnywhere: true`, it is discovered in every PHP file below its group folder, and `except:` skips folders below the group folder, such as `src/Domain/Knowledge/Tests`:
 
 ```php
 // app/Providers/AppServiceProvider.php
@@ -58,11 +58,11 @@ To manage migration folders yourself, turn this off:
 A model the layout places finds its factory and policy through the layout:
 
 ```php
-use App\Modules\Billing\Models\Invoice;
+use App\Modules\Knowledge\Models\Document;
 use Illuminate\Support\Facades\Gate;
 
-Invoice::factory();                 // App\Modules\Billing\Database\Factories\InvoiceFactory
-Gate::getPolicyFor(Invoice::class); // App\Modules\Billing\Policies\InvoicePolicy
+Document::factory();                 // App\Modules\Knowledge\Database\Factories\DocumentFactory
+Gate::getPolicyFor(Document::class); // App\Modules\Knowledge\Policies\DocumentPolicy
 ```
 
 The model needs no `newFactory()` method and the policy no `Gate::policy()` call. A policy your application registers for a model with `Gate::policy()` is kept. A factory resolver your application sets after mod (`Factory::guessFactoryNamesUsing()`) replaces mod's, as it would replace any earlier one. Turn either off with `'discovery.factories' => false` or `'discovery.policies' => false`.
@@ -95,7 +95,7 @@ public function register(): void
     $this->app->booted(function ($app) {
         $options = DiscoveryOptions::fromConfig([...config('mod.discovery'), 'enabled' => true])
             ->withCandidates(fn (Root $root, string $basePath, DiscoveryDefinition $definition): iterable => [
-                'app/Modules/Billing/Listeners/SendInvoiceReceipt.php',
+                'app/Modules/Knowledge/Listeners/GenerateEmbeddings.php',
             ]);
 
         DiscoveryRegistrar::register($app, $app->make(Preset::class), $options);

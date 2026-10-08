@@ -6,7 +6,7 @@ For choosing a layout, see the [README](../README.md#choosing-a-layout).
 
 ## Built-In Layouts
 
-The `laravel` layout puts every file where the matching `make:*` command does. `type-first` uses the same folders with an optional sub-folder: `mod:job Billing:SendInvoice` writes `app/Jobs/Billing/SendInvoice.php`, and `mod:job SendInvoice` writes `app/Jobs/SendInvoice.php`. Both also have `mod:config`, on Laravel versions with `make:config`.
+The `laravel` layout puts every file where the matching `make:*` command does. `type-first` uses the same folders with an optional sub-folder: `mod:job Knowledge:ExtractText` writes `app/Jobs/Knowledge/ExtractText.php`, and `mod:job ExtractText` writes `app/Jobs/ExtractText.php`. Both also have `mod:config`, on Laravel versions with `make:config`.
 
 The other layouts put each file in a folder below its group:
 
@@ -55,7 +55,7 @@ The other layouts put each file in a folder below its group:
 | `mod:value` | | | | `ValueObjects` |
 | `mod:view-model` | | | | `ViewModels` |
 
-- A slice's classes have fixed names, so `mod:handler Handler --in=Billing/CreateInvoice` writes `app/Billing/CreateInvoice/Handler.php`.
+- A slice's classes have fixed names, so `mod:handler Handler --in=Knowledge/IndexDocument` writes `app/Knowledge/IndexDocument/Handler.php`.
 - `mod:test --unit` writes to `tests/Unit` instead of `tests/Feature`.
 - In `features` and `slices`, `mod:command` without a feature writes to `app/Console/Commands`.
 
@@ -67,12 +67,12 @@ The other layouts put each file in a folder below its group:
 ```
 
 ```bash
-php artisan mod:model Billing:Invoice --factory
-# -> src/Domain/Billing/Models/Invoice.php
-# -> src/Domain/Billing/Database/Factories/InvoiceFactory.php
+php artisan mod:model Knowledge:Document --factory
+# -> src/Domain/Knowledge/Models/Document.php
+# -> src/Domain/Knowledge/Database/Factories/DocumentFactory.php
 ```
 
-The folders match [laravel-ddd](https://github.com/teylabs/laravel-ddd), so a laravel-ddd application keeps its structure. Each class belongs to a domain, given as `--domain=Billing`, `--in=Billing` or the `Billing:` prefix. A domain can be nested: `Reporting.Internal` (or `Reporting/Internal`) writes to `src/Domain/Reporting/Internal/...`.
+The folders match [laravel-ddd](https://github.com/teylabs/laravel-ddd), so a laravel-ddd application keeps its structure. Each class belongs to a domain, given as `--domain=Knowledge`, `--in=Knowledge` or the `Knowledge:` prefix. A domain can be nested: `Knowledge.Search` (or `Knowledge/Search`) writes to `src/Domain/Knowledge/Search/...`.
 
 | Namespace | Folder | Holds |
 | --- | --- | --- |
@@ -130,9 +130,9 @@ public function boot(): void
 ```
 
 ```bash
-php artisan mod:model Billing:Invoice --factory
-# -> src/Domain/Billing/Models/Invoice.php
-# -> src/Domain/Billing/Database/Factories/InvoiceFactory.php
+php artisan mod:model Knowledge:Document --factory
+# -> src/Domain/Knowledge/Models/Document.php
+# -> src/Domain/Knowledge/Database/Factories/DocumentFactory.php
 ```
 
 Calling `Mod::layout()` with an existing name extends that layout. Repeating a file type, root or relation changes only the arguments you pass:
@@ -156,7 +156,7 @@ The layout is checked the first time it is used. Every problem is reported at on
 | `suffix:` | `'Controller'` | appended to the class name |
 | `fixed:` | `'Handler'` | a fixed class name, whatever name is given |
 | `timestamped:` | `true` | a timestamped file name, as for migrations |
-| `nested:` | `true` | accepts names like `Archived/Invoice`, as `make:model Archived/Invoice` does |
+| `nested:` | `true` | accepts names like `Archived/Document`, as `make:model Archived/Document` does |
 | `command:` | `'mod:repo'` | the command name, `mod:<id>` by default; `false` for none |
 | `aliases:` | `['mod:repository']` | more command names |
 | `label:` | `'DTO'` | the noun the command prints: "DTO [...] created successfully." |
@@ -170,7 +170,7 @@ A file type with no matching Laravel generator starts as an empty class. Put a `
 `relation($id, from: ..., to: ...)` connects two file types. It drives options such as `--factory` and `--policy`, and how one class refers to another.
 
 - `name:` says how the related name derives from the original: `'explicit'` (always named by the caller), or a map of `strip-suffix`, `prefix` and `suffix`, such as `['prefix' => 'Store']`. The related type's own `suffix:` or `fixed:` still applies.
-- `scope: ['nested' => 'drop']` stops nested folders carrying over. By default they do: `Models/Archived/Invoice` relates to `Policies/Archived/InvoicePolicy`.
+- `scope: ['nested' => 'drop']` stops nested folders carrying over. By default they do: `Models/Archived/Document` relates to `Policies/Archived/DocumentPolicy`.
 - `policy:` is `'generate'` (create the related file), `'reference'` (refer to it only) or `'none'`.
 
 ### Exclusions
@@ -183,17 +183,17 @@ Placeholders in `in:` are the layout's dimensions: the ways it groups code. Thei
 
 | Placeholder | Meaning | Value |
 | --- | --- | --- |
-| `{feature}` | one folder | `--feature=Billing` or `--in=Billing` |
-| `{feature?}` | an optional folder | omit it, or `--feature=Billing` |
-| `{area+}` | one or more folders | `--area=Reporting.Internal` writes to `.../Reporting/Internal/...` |
+| `{feature}` | one folder | `--feature=Knowledge` or `--in=Knowledge` |
+| `{feature?}` | an optional folder | omit it, or `--feature=Knowledge` |
+| `{area+}` | one or more folders | `--area=Knowledge.Search` writes to `.../Knowledge/Search/...` |
 
 ### Renaming an Option
 
 An option is named after its placeholder. To call it something else, rename it on the layout:
 
 ```php
-Mod::layout('modules')->placementOption('area');               // mod:model Invoice --area=Billing
-Mod::layout('slices')->placementOption('operation', '{slice}'); // --feature=Billing --operation=CreateInvoice
+Mod::layout('modules')->placementOption('area');               // mod:model Document --area=Knowledge
+Mod::layout('slices')->placementOption('operation', '{slice}'); // --feature=Knowledge --operation=IndexDocument
 ```
 
 With one placeholder, you don't need to say which one. With several, name the placeholder you are renaming.
@@ -204,7 +204,7 @@ Some Laravel commands already have an option that could share a placeholder's na
 
 ## Adding a Layer
 
-Add a root to the built-in layout from a service provider. Its file types use the same `{domain+}` placeholder, so they take the same `--domain` option and `Billing:` prefix:
+Add a root to the built-in layout from a service provider. Its file types use the same `{domain+}` placeholder, so they take the same `--domain` option and `Knowledge:` prefix:
 
 ```php
 // app/Providers/AppServiceProvider.php
@@ -221,11 +221,11 @@ public function boot(): void
 ```
 
 ```bash
-php artisan mod:repository Billing:Invoice
-# -> src/Infrastructure/Billing/Repositories/InvoiceRepository.php
+php artisan mod:repository Knowledge:Document
+# -> src/Infrastructure/Knowledge/Repositories/DocumentRepository.php
 
-php artisan mod:client Reporting.Internal:Ledger
-# -> src/Infrastructure/Reporting/Internal/Clients/LedgerClient.php
+php artisan mod:client Knowledge.Search:Index
+# -> src/Infrastructure/Knowledge/Search/Clients/IndexClient.php
 ```
 
 Add `"Infrastructure\\": "src/Infrastructure/"` to your `composer.json` autoload as well.

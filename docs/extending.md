@@ -17,7 +17,7 @@ Everything below goes in that provider. Mod reads it when Artisan starts, so the
 Extend a built-in layout with `Mod::layout()`. A new file type gets a `mod:<type>` command; `command:` renames it, `aliases:` adds other names and `label:` sets the noun its output uses:
 
 ```php
-// src/BillingToolsServiceProvider.php
+// src/KnowledgeToolsServiceProvider.php
 use Tey\Mod\Facades\Mod;
 
 public function boot(): void
@@ -28,10 +28,10 @@ public function boot(): void
 ```
 
 ```bash
-php artisan mod:builder Billing:Invoice
-# ->  INFO  Query builder [src/Domain/Billing/Builders/InvoiceBuilder.php] created successfully.
-php artisan mod:query-builder Billing:Payment
-# -> src/Domain/Billing/Builders/PaymentBuilder.php
+php artisan mod:builder Knowledge:Document
+# ->  INFO  Query builder [src/Domain/Knowledge/Builders/DocumentBuilder.php] created successfully.
+php artisan mod:query-builder Knowledge:Chunk
+# -> src/Domain/Knowledge/Builders/ChunkBuilder.php
 ```
 
 - Repeating an existing file type changes only the arguments you pass. Aliases add up: `->kind('dto', aliases: ['mod:payload'])` keeps `mod:data` and the DTO's other aliases.
@@ -92,7 +92,7 @@ Mod::stubs()->for('dto', Stub::file(__DIR__.'/../stubs/dto.stub')
 ```
 
 ```bash
-php artisan mod:dto Billing:InvoiceData
+php artisan mod:dto Knowledge:DocumentData
 # ->  INFO  Using spatie/laravel-data (installed).
 ```
 
@@ -129,9 +129,9 @@ Mod::stubs()->for('dto', Stub::file(__DIR__.'/../stubs/dto.stub')
 ```
 
 ```bash
-php artisan mod:dto Billing:InvoiceData
+php artisan mod:dto Knowledge:DocumentData
 # ->  INFO  Created base class Domain\Shared\Data\DataTransferObject [src/Domain/Shared/Data/DataTransferObject.php].
-# ->  INFO  DTO [src/Domain/Billing/Data/InvoiceData.php] created successfully.
+# ->  INFO  DTO [src/Domain/Knowledge/Data/DocumentData.php] created successfully.
 ```
 
 - `in:` is a folder below the file type's root, so the base above lands in `src/Domain/Shared/Data`.
@@ -147,7 +147,7 @@ Replace the command behind a file type with `Mod::generators()->use()`. Extend t
 // src/Commands/BuilderCommand.php
 <?php
 
-namespace Billing\Tools\Commands;
+namespace Knowledge\Tools\Commands;
 
 use Tey\Mod\Commands\GenericClassCommand;
 use Tey\Mod\Generation\GenerationPlan;
@@ -162,7 +162,7 @@ class BuilderCommand extends GenericClassCommand
 ```
 
 ```php
-use Billing\Tools\Commands\BuilderCommand;
+use Knowledge\Tools\Commands\BuilderCommand;
 use Tey\Mod\Facades\Mod;
 
 Mod::generators()->use('builder', BuilderCommand::class);
@@ -206,9 +206,9 @@ class DddServiceProvider extends ServiceProvider
 ```
 
 ```bash
-php artisan mod:builder Billing:Invoice
-# -> src/Domain/Billing/Builders/InvoiceBuilder.php
-php artisan mod:view-model Billing:ShowInvoice
+php artisan mod:builder Knowledge:Document
+# -> src/Domain/Knowledge/Builders/DocumentBuilder.php
+php artisan mod:view-model Knowledge:ShowDocument
 # with ddd.base_view_model set to Domain\Shared\ViewModels\ViewModel:
 # ->  INFO  Using the configured base Domain\Shared\ViewModels\ViewModel.
 ```

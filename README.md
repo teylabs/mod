@@ -12,21 +12,21 @@ Organizing an app by module, feature or domain usually means fighting Laravel's 
 Created by [Jasper Tey](https://github.com/jaspertey), building on the lessons from [laravel-ddd](https://github.com/teylabs/laravel-ddd) and generalized for the many other ways developers organize their growing Laravel applications.
 
 ```bash
-php artisan mod:model Billing:Invoice -mf   # with 'layout' => 'modules'
+php artisan mod:model Knowledge:Document -mf   # with 'layout' => 'modules'
 ```
 
 ```text
-app/Modules/Billing/
+app/Modules/Knowledge/
 ├── Database/
 │   ├── Factories/
-│   │   └── InvoiceFactory.php
+│   │   └── DocumentFactory.php
 │   └── Migrations/
-│       └── 2026_10_08_120000_create_invoices_table.php
+│       └── 2026_10_08_120000_create_documents_table.php
 └── Models/
-    └── Invoice.php
+    └── Document.php
 ```
 
-`php artisan migrate` runs that migration, and `Invoice::factory()` finds that factory.
+`php artisan migrate` runs that migration, and `Document::factory()` finds that factory.
 
 > [!NOTE]
 > Mod is pre-1.0. Minor releases may change the API until 1.0.
@@ -58,13 +58,13 @@ Choose a layout in `config/mod.php`:
 Generate a model with its migration and factory, then migrate:
 
 ```bash
-php artisan mod:model Billing:Invoice -mf
-# -> app/Modules/Billing/Models/Invoice.php
-# -> app/Modules/Billing/Database/Factories/InvoiceFactory.php
-# -> app/Modules/Billing/Database/Migrations/2026_10_08_120000_create_invoices_table.php
+php artisan mod:model Knowledge:Document -mf
+# -> app/Modules/Knowledge/Models/Document.php
+# -> app/Modules/Knowledge/Database/Factories/DocumentFactory.php
+# -> app/Modules/Knowledge/Database/Migrations/2026_10_08_120000_create_documents_table.php
 
 php artisan migrate
-# -> runs 2026_10_08_120000_create_invoices_table
+# -> runs 2026_10_08_120000_create_documents_table
 ```
 
 ## Usage
@@ -73,38 +73,38 @@ php artisan migrate
 
 Six layouts are built in. The default, `laravel`, places files exactly like `make:*`, so you can install mod first and switch layouts later.
 
-| Layout | Organizes code as | `mod:model Billing:Invoice` writes |
+| Layout | Organizes code as | `mod:model Knowledge:Document` writes |
 | --- | --- | --- |
-| `laravel` | Laravel's own folders | `app/Models/Invoice.php` (no `Billing:`) |
-| `modules` | a modular monolith: one folder per module | `app/Modules/Billing/Models/Invoice.php` |
-| `features` | feature folders | `app/Features/Billing/Models/Invoice.php` |
-| `slices` | vertical slices: features, each split into slices | `app/Billing/Models/Invoice.php` |
-| `type-first` | Laravel's folders, with an optional sub-folder | `app/Models/Billing/Invoice.php` |
-| `ddd` | domain-driven design, as in laravel-ddd | `src/Domain/Billing/Models/Invoice.php` |
+| `laravel` | Laravel's own folders | `app/Models/Document.php` (no `Knowledge:`) |
+| `modules` | a modular monolith: one folder per module | `app/Modules/Knowledge/Models/Document.php` |
+| `features` | feature folders | `app/Features/Knowledge/Models/Document.php` |
+| `slices` | vertical slices: features, each split into slices | `app/Knowledge/Models/Document.php` |
+| `type-first` | Laravel's folders, with an optional sub-folder | `app/Models/Knowledge/Document.php` |
+| `ddd` | domain-driven design, as in laravel-ddd | `src/Domain/Knowledge/Models/Document.php` |
 
-Each tree below is the result of `php artisan mod:model Billing:Invoice --all` in a fresh app.
+Each tree below is the result of `php artisan mod:model Knowledge:Document --all` in a fresh app.
 
 <details>
 <summary><code>modules</code></summary>
 
 ```text
-app/Modules/Billing/
+app/Modules/Knowledge/
 ├── Controllers/
-│   └── InvoiceController.php
+│   └── DocumentController.php
 ├── Database/
 │   ├── Factories/
-│   │   └── InvoiceFactory.php
+│   │   └── DocumentFactory.php
 │   ├── Migrations/
-│   │   └── 2026_10_08_120000_create_invoices_table.php
+│   │   └── 2026_10_08_120000_create_documents_table.php
 │   └── Seeders/
-│       └── InvoiceSeeder.php
+│       └── DocumentSeeder.php
 ├── Models/
-│   └── Invoice.php
+│   └── Document.php
 ├── Policies/
-│   └── InvoicePolicy.php
+│   └── DocumentPolicy.php
 └── Requests/
-    ├── StoreInvoiceRequest.php
-    └── UpdateInvoiceRequest.php
+    ├── StoreDocumentRequest.php
+    └── UpdateDocumentRequest.php
 ```
 
 </details>
@@ -113,24 +113,24 @@ app/Modules/Billing/
 <summary><code>features</code></summary>
 
 ```text
-app/Features/Billing/
+app/Features/Knowledge/
 ├── Database/
 │   ├── Factories/
-│   │   └── InvoiceFactory.php
+│   │   └── DocumentFactory.php
 │   ├── Migrations/
-│   │   └── 2026_10_08_120000_create_invoices_table.php
+│   │   └── 2026_10_08_120000_create_documents_table.php
 │   └── Seeders/
-│       └── InvoiceSeeder.php
+│       └── DocumentSeeder.php
 ├── Http/
 │   ├── Controllers/
-│   │   └── InvoiceController.php
+│   │   └── DocumentController.php
 │   └── Requests/
-│       ├── StoreInvoiceRequest.php
-│       └── UpdateInvoiceRequest.php
+│       ├── StoreDocumentRequest.php
+│       └── UpdateDocumentRequest.php
 ├── Models/
-│   └── Invoice.php
+│   └── Document.php
 └── Policies/
-    └── InvoicePolicy.php
+    └── DocumentPolicy.php
 ```
 
 </details>
@@ -138,21 +138,21 @@ app/Features/Billing/
 <details>
 <summary><code>slices</code></summary>
 
-A slice holds one operation's classes, each with a fixed name. This tree is the result of `mod:model Billing:Invoice -mf`, then `mod:handler`, `mod:request` and `mod:message` with `--in=Billing/CreateInvoice`:
+A slice holds one operation's classes, each with a fixed name. This tree is the result of `mod:model Knowledge:Document -mf`, then `mod:handler`, `mod:request` and `mod:message` with `--in=Knowledge/IndexDocument`:
 
 ```text
-app/Billing/
-├── CreateInvoice/
+app/Knowledge/
+├── IndexDocument/
 │   ├── Command.php
 │   ├── Handler.php
 │   └── Request.php
 ├── Database/
 │   ├── Factories/
-│   │   └── InvoiceFactory.php
+│   │   └── DocumentFactory.php
 │   └── Migrations/
-│       └── 2026_10_08_120000_create_invoices_table.php
+│       └── 2026_10_08_120000_create_documents_table.php
 └── Models/
-    └── Invoice.php
+    └── Document.php
 ```
 
 </details>
@@ -164,28 +164,28 @@ app/Billing/
 app/
 ├── Http/
 │   ├── Controllers/
-│   │   └── Billing/
-│   │       └── InvoiceController.php
+│   │   └── Knowledge/
+│   │       └── DocumentController.php
 │   └── Requests/
-│       └── Billing/
-│           ├── StoreInvoiceRequest.php
-│           └── UpdateInvoiceRequest.php
+│       └── Knowledge/
+│           ├── StoreDocumentRequest.php
+│           └── UpdateDocumentRequest.php
 ├── Models/
-│   └── Billing/
-│       └── Invoice.php
+│   └── Knowledge/
+│       └── Document.php
 └── Policies/
-    └── Billing/
-        └── InvoicePolicy.php
+    └── Knowledge/
+        └── DocumentPolicy.php
 database/
 ├── factories/
-│   └── Billing/
-│       └── InvoiceFactory.php
+│   └── Knowledge/
+│       └── DocumentFactory.php
 ├── migrations/
-│   └── Billing/
-│       └── 2026_10_08_120000_create_invoices_table.php
+│   └── Knowledge/
+│       └── 2026_10_08_120000_create_documents_table.php
 └── seeders/
-    └── Billing/
-        └── InvoiceSeeder.php
+    └── Knowledge/
+        └── DocumentSeeder.php
 ```
 
 </details>
@@ -194,24 +194,24 @@ database/
 <summary><code>ddd</code></summary>
 
 ```text
-app/Modules/Billing/
+app/Modules/Knowledge/
 ├── Controllers/
-│   └── InvoiceController.php
+│   └── DocumentController.php
 └── Requests/
-    ├── StoreInvoiceRequest.php
-    └── UpdateInvoiceRequest.php
-src/Domain/Billing/
+    ├── StoreDocumentRequest.php
+    └── UpdateDocumentRequest.php
+src/Domain/Knowledge/
 ├── Database/
 │   ├── Factories/
-│   │   └── InvoiceFactory.php
+│   │   └── DocumentFactory.php
 │   ├── Migrations/
-│   │   └── 2026_10_08_120000_create_invoices_table.php
+│   │   └── 2026_10_08_120000_create_documents_table.php
 │   └── Seeders/
-│       └── InvoiceSeeder.php
+│       └── DocumentSeeder.php
 ├── Models/
-│   └── Invoice.php
+│   └── Document.php
 └── Policies/
-    └── InvoicePolicy.php
+    └── DocumentPolicy.php
 ```
 
 </details>
@@ -223,21 +223,21 @@ src/Domain/Billing/
 Each file type in your layout has a `mod:*` command. It is Laravel's own `make:*` command underneath, with the same arguments and options, so the generated code is what Laravel would write:
 
 ```bash
-php artisan mod:event Billing:InvoicePaid
-# -> app/Modules/Billing/Events/InvoicePaid.php
+php artisan mod:event Knowledge:DocumentUploaded
+# -> app/Modules/Knowledge/Events/DocumentUploaded.php
 
-php artisan mod:listener Billing:SendInvoiceReceipt --event=InvoicePaid
-# -> app/Modules/Billing/Listeners/SendInvoiceReceipt.php (imports App\Modules\Billing\Events\InvoicePaid)
+php artisan mod:listener Knowledge:GenerateEmbeddings --event=DocumentUploaded
+# -> app/Modules/Knowledge/Listeners/GenerateEmbeddings.php (imports App\Modules\Knowledge\Events\DocumentUploaded)
 
-php artisan mod:job Billing:SendInvoice
-# -> app/Modules/Billing/Jobs/SendInvoice.php
+php artisan mod:job Knowledge:ExtractText
+# -> app/Modules/Knowledge/Jobs/ExtractText.php
 ```
 
 `php artisan list mod` shows every command your layout has. `make:*` is untouched and keeps writing to Laravel's default folders.
 
 #### Related Files
 
-Options such as `-m`, `-f`, `--policy`, `--requests` and `--all` create the related files in the same module, as in the trees above. The model links its factory, so `Invoice::factory()` works wherever the factory lives.
+Options such as `-m`, `-f`, `--policy`, `--requests` and `--all` create the related files in the same module, as in the trees above. The model links its factory, so `Document::factory()` works wherever the factory lives.
 
 `mod:*` checks every file it is about to write before writing any of them. When one already exists, it prints an error and writes nothing.
 
@@ -245,29 +245,29 @@ Options such as `-m`, `-f`, `--policy`, `--requests` and `--all` create the rela
 
 The `laravel` layout puts files where `make:*` does. The other layouts group your code, so each command also needs to know which group a file belongs to.
 
-Each way a layout groups code is a **dimension**. `modules` has one: the module. `slices` has two: the feature, and the slice inside it. A layout's folders show each one as a placeholder, such as `{module}` in `app/Modules/{module}/Models`, and you give it a value, such as `Billing`. These three commands do the same thing:
+Each way a layout groups code is a **dimension**. `modules` has one: the module. `slices` has two: the feature, and the slice inside it. A layout's folders show each one as a placeholder, such as `{module}` in `app/Modules/{module}/Models`, and you give it a value, such as `Knowledge`. These three commands do the same thing:
 
 ```bash
-php artisan mod:model Invoice --module=Billing   # an option named after the placeholder
-php artisan mod:model Invoice --in=Billing       # every value at once
-php artisan mod:model Billing:Invoice            # the short form: value, colon, class name
+php artisan mod:model Document --module=Knowledge   # an option named after the placeholder
+php artisan mod:model Document --in=Knowledge       # every value at once
+php artisan mod:model Knowledge:Document            # the short form: value, colon, class name
 ```
 
 When there are two values, `--in` and the short form take them in order, separated by `/`:
 
 ```bash
-php artisan mod:handler Handler --feature=Billing --slice=CreateInvoice
-php artisan mod:handler Handler --in=Billing/CreateInvoice
-# -> app/Billing/CreateInvoice/Handler.php
+php artisan mod:handler Handler --feature=Knowledge --slice=IndexDocument
+php artisan mod:handler Handler --in=Knowledge/IndexDocument
+# -> app/Knowledge/IndexDocument/Handler.php
 ```
 
 | Layout | Options | Values |
 | --- | --- | --- |
-| `modules` | `--module` | `Billing` |
-| `features` | `--feature` | `Billing` |
-| `slices` | `--feature`, `--slice` | `Billing`, `CreateInvoice` |
-| `type-first` | `--feature` (optional) | `Billing`, or none for `app/Models/Invoice.php` |
-| `ddd` | `--domain` (one or more folders) | `Billing`, or `Reporting.Internal` for `src/Domain/Reporting/Internal` |
+| `modules` | `--module` | `Knowledge` |
+| `features` | `--feature` | `Knowledge` |
+| `slices` | `--feature`, `--slice` | `Knowledge`, `IndexDocument` |
+| `type-first` | `--feature` (optional) | `Knowledge`, or none for `app/Models/Document.php` |
+| `ddd` | `--domain` (one or more folders) | `Knowledge`, or `Knowledge.Search` for `src/Domain/Knowledge/Search` |
 
 Commands in `features` and `slices` go to `app/Console/Commands` when you leave the value out.
 
@@ -287,15 +287,15 @@ The `ddd` layout uses [laravel-ddd](https://github.com/teylabs/laravel-ddd)'s fo
 ```bash
 composer dump-autoload
 
-php artisan mod:dto Billing:InvoiceData
+php artisan mod:dto Knowledge:DocumentData
 # -> src/Domain/Shared/Data/DataTransferObject.php (created once)
-# -> src/Domain/Billing/Data/InvoiceData.php
+# -> src/Domain/Knowledge/Data/DocumentData.php
 
-php artisan mod:action Billing:PayInvoice
-# -> src/Domain/Billing/Actions/PayInvoice.php
+php artisan mod:action Knowledge:IndexDocument
+# -> src/Domain/Knowledge/Actions/IndexDocument.php
 
-php artisan mod:value Billing:Money
-# -> src/Domain/Billing/ValueObjects/Money.php
+php artisan mod:value Knowledge:ContentHash
+# -> src/Domain/Knowledge/ValueObjects/ContentHash.php
 ```
 
 `mod:view-model` completes the set, and laravel-ddd's command names work as aliases (`mod:data`, `mod:value-object`, `mod:viewmodel`). See [docs/layouts.md](docs/layouts.md#the-ddd-layout) for every folder and for adding a layer such as `src/Infrastructure`.
@@ -312,7 +312,7 @@ DTOs, value objects, view models and actions start as plain Laravel-style classe
 | `mod:value` | | a plain class with a constructor |
 
 ```bash
-php artisan mod:dto Billing:InvoiceData
+php artisan mod:dto Knowledge:DocumentData
 # ->  INFO  Using spatie/laravel-data (installed).
 ```
 
@@ -323,30 +323,30 @@ A base class is written into your app the first time it is needed, and it is you
 Providers, Artisan commands, event listeners and event subscribers anywhere your layout places them are registered with Laravel:
 
 ```bash
-php artisan mod:command Billing:SendReminders
-php artisan mod:listener Billing:SendInvoiceReceipt --event=InvoicePaid
+php artisan mod:command Knowledge:PruneDocuments
+php artisan mod:listener Knowledge:GenerateEmbeddings --event=DocumentUploaded
 
-php artisan event:list --event=InvoicePaid
-# -> App\Modules\Billing\Events\InvoicePaid
-# ->   ⇂ App\Modules\Billing\Listeners\SendInvoiceReceipt@handle
+php artisan event:list --event=DocumentUploaded
+# -> App\Modules\Knowledge\Events\DocumentUploaded
+# ->   ⇂ App\Modules\Knowledge\Listeners\GenerateEmbeddings@handle
 ```
 
 A listener Laravel's own event discovery already registers is never registered twice. [docs/discovery.md](docs/discovery.md) covers what is discovered where.
 
 #### Migrations
 
-Migration folders outside `database/migrations`, such as `app/Modules/Billing/Database/Migrations`, are added to Laravel's migrator. `php artisan migrate`, `migrate:rollback` and `migrate:status` include them.
+Migration folders outside `database/migrations`, such as `app/Modules/Knowledge/Database/Migrations`, are added to Laravel's migrator. `php artisan migrate`, `migrate:rollback` and `migrate:status` include them.
 
 #### Factories and Policies
 
 A model the layout places finds its factory and its policy by the layout's folders, with no registration:
 
 ```php
-use App\Modules\Billing\Models\Invoice;
+use App\Modules\Knowledge\Models\Document;
 use Illuminate\Support\Facades\Gate;
 
-Invoice::factory();                 // App\Modules\Billing\Database\Factories\InvoiceFactory
-Gate::getPolicyFor(Invoice::class); // App\Modules\Billing\Policies\InvoicePolicy
+Document::factory();                 // App\Modules\Knowledge\Database\Factories\DocumentFactory
+Gate::getPolicyFor(Document::class); // App\Modules\Knowledge\Policies\DocumentPolicy
 ```
 
 ### Your Own File Types
@@ -364,8 +364,8 @@ public function boot(): void
 ```
 
 ```bash
-php artisan mod:validator Billing:Payment
-# -> app/Modules/Billing/Validators/PaymentValidator.php
+php artisan mod:validator Knowledge:Upload
+# -> app/Modules/Knowledge/Validators/UploadValidator.php
 ```
 
 It starts as an empty class. To start from your own stub, add `stubs/mod.validator.stub` to your app:
@@ -405,9 +405,9 @@ public function boot(): void
 ```
 
 ```bash
-php artisan mod:model Billing:Invoice --factory   # after adding Domain\ to composer.json, as in the DDD layout
-# -> src/Domain/Billing/Models/Invoice.php
-# -> src/Domain/Billing/Factories/InvoiceFactory.php
+php artisan mod:model Knowledge:Document --factory   # after adding Domain\ to composer.json, as in the DDD layout
+# -> src/Domain/Knowledge/Models/Document.php
+# -> src/Domain/Knowledge/Factories/DocumentFactory.php
 ```
 
 `Mod::layout()` with a built-in name extends that layout instead, as in [Your Own File Types](#your-own-file-types). [docs/layouts.md](docs/layouts.md#defining-a-layout) lists every method and option.

@@ -40,18 +40,18 @@ it('adds an infrastructure layer to the ddd layout', function () {
                 ->kind('client', in: '{domain+}/Clients', suffix: 'Client'));
         Mod::layout('ddd')->kind('job', in: 'infrastructure:{domain+}/Jobs');
 
-        expect($workspace->artisan('mod:repository', ['name' => 'Billing:Invoice']))
-            ->toHaveGenerated('src/Infrastructure/Billing/Repositories/InvoiceRepository.php', 'Infrastructure\\Billing\\Repositories')
-            ->and($workspace->artisan('mod:client', ['name' => 'Reporting.Internal:Ledger']))
-            ->toHaveGenerated('src/Infrastructure/Reporting/Internal/Clients/LedgerClient.php', 'Infrastructure\\Reporting\\Internal\\Clients')
-            ->and($workspace->artisan('mod:job', ['name' => 'SyncInvoices', '--domain' => 'Billing']))
-            ->toHaveGenerated('src/Infrastructure/Billing/Jobs/SyncInvoices.php', 'Infrastructure\\Billing\\Jobs');
+        expect($workspace->artisan('mod:repository', ['name' => 'Knowledge:Document']))
+            ->toHaveGenerated('src/Infrastructure/Knowledge/Repositories/DocumentRepository.php', 'Infrastructure\\Knowledge\\Repositories')
+            ->and($workspace->artisan('mod:client', ['name' => 'Knowledge.Search:Index']))
+            ->toHaveGenerated('src/Infrastructure/Knowledge/Search/Clients/IndexClient.php', 'Infrastructure\\Knowledge\\Search\\Clients')
+            ->and($workspace->artisan('mod:job', ['name' => 'SyncDocuments', '--domain' => 'Knowledge']))
+            ->toHaveGenerated('src/Infrastructure/Knowledge/Jobs/SyncDocuments.php', 'Infrastructure\\Knowledge\\Jobs');
 
         $workspace->write('stubs/mod.repository.stub', "<?php\n\nnamespace {{ namespace }};\n\nclass {{ class }}\n{\n    //\n}\n");
-        $workspace->artisan('mod:repository', ['name' => 'Billing:Payment'])->assertSuccessful();
+        $workspace->artisan('mod:repository', ['name' => 'Knowledge:Chunk'])->assertSuccessful();
 
-        expect($workspace->read('src/Infrastructure/Billing/Repositories/PaymentRepository.php'))
-            ->toBe("<?php\n\nnamespace Infrastructure\\Billing\\Repositories;\n\nclass PaymentRepository\n{\n    //\n}\n");
+        expect($workspace->read('src/Infrastructure/Knowledge/Repositories/ChunkRepository.php'))
+            ->toBe("<?php\n\nnamespace Infrastructure\\Knowledge\\Repositories;\n\nclass ChunkRepository\n{\n    //\n}\n");
     });
 });
 
@@ -66,14 +66,14 @@ it('adds a kind with an alias, its stub and a swapped generator from a plugin', 
         Mod::stubs()->for('builder', Stub::file($workspace->root->path('package/stubs/builder.stub')));
         Mod::generators()->use('builder', DocsBuilderCommand::class);
 
-        $builder = $workspace->artisan('mod:builder', ['name' => 'Billing:Invoice']);
+        $builder = $workspace->artisan('mod:builder', ['name' => 'Knowledge:Document']);
 
-        expect($builder)->toHaveGenerated('src/Domain/Billing/Builders/InvoiceBuilder.php', "{$ns}\\Billing\\Builders")
-            ->and($builder->output)->toContain('Query builder [src/Domain/Billing/Builders/InvoiceBuilder.php] created successfully.')
+        expect($builder)->toHaveGenerated('src/Domain/Knowledge/Builders/DocumentBuilder.php', "{$ns}\\Knowledge\\Builders")
+            ->and($builder->output)->toContain('Query builder [src/Domain/Knowledge/Builders/DocumentBuilder.php] created successfully.')
             ->and($builder->output)->toContain('Add a newEloquentBuilder() method to the model to use it.')
-            ->and($workspace->read('src/Domain/Billing/Builders/InvoiceBuilder.php'))->toContain('class InvoiceBuilder extends Builder')
-            ->and($workspace->artisan('mod:query-builder', ['name' => 'Billing:Payment']))
-            ->toHaveGenerated('src/Domain/Billing/Builders/PaymentBuilder.php');
+            ->and($workspace->read('src/Domain/Knowledge/Builders/DocumentBuilder.php'))->toContain('class DocumentBuilder extends Builder')
+            ->and($workspace->artisan('mod:query-builder', ['name' => 'Knowledge:Chunk']))
+            ->toHaveGenerated('src/Domain/Knowledge/Builders/ChunkBuilder.php');
     });
 });
 
@@ -85,8 +85,8 @@ it('adds to the aliases of an existing kind', function () {
 
         Mod::layout('ddd')->kind('dto', aliases: ['mod:payload']);
 
-        expect($workspace->artisan('mod:payload', ['name' => 'Billing:InvoiceData']))->toHaveGenerated('src/Domain/Billing/Data/InvoiceData.php')
-            ->and($workspace->artisan('mod:data', ['name' => 'Billing:LineData']))->toHaveGenerated('src/Domain/Billing/Data/LineData.php');
+        expect($workspace->artisan('mod:payload', ['name' => 'Knowledge:DocumentData']))->toHaveGenerated('src/Domain/Knowledge/Data/DocumentData.php')
+            ->and($workspace->artisan('mod:data', ['name' => 'Knowledge:ChunkData']))->toHaveGenerated('src/Domain/Knowledge/Data/ChunkData.php');
     });
 });
 
@@ -103,16 +103,16 @@ it('reads a plugin base from its own config key before detection and the generat
             ->generatesBase(GeneratedBase::named('DataTransferObject', in: 'Shared/Data', stub: $workspace->root->path('package/stubs/bases/data-transfer-object.stub')));
 
         Mod::stubs()->for('dto', $dto());
-        $generated = $workspace->artisan('mod:dto', ['name' => 'Billing:InvoiceData']);
+        $generated = $workspace->artisan('mod:dto', ['name' => 'Knowledge:DocumentData']);
 
         expect($generated->output)->toContain("Created base class {$ns}\\Shared\\Data\\DataTransferObject [src/Domain/Shared/Data/DataTransferObject.php].")
-            ->and($workspace->read('src/Domain/Billing/Data/InvoiceData.php'))->toContain('class InvoiceData extends DataTransferObject');
+            ->and($workspace->read('src/Domain/Knowledge/Data/DocumentData.php'))->toContain('class DocumentData extends DataTransferObject');
 
         config()->set('ddd.base_dto', "{$ns}\\Shared\\Data\\BaseData");
-        $configured = $workspace->artisan('mod:dto', ['name' => 'Billing:LineData']);
+        $configured = $workspace->artisan('mod:dto', ['name' => 'Knowledge:ChunkData']);
 
         expect($configured->output)->toContain("Using the configured base {$ns}\\Shared\\Data\\BaseData.")
-            ->and($workspace->read('src/Domain/Billing/Data/LineData.php'))->toContain("use {$ns}\\Shared\\Data\\BaseData;\n\nclass LineData extends BaseData\n");
+            ->and($workspace->read('src/Domain/Knowledge/Data/ChunkData.php'))->toContain("use {$ns}\\Shared\\Data\\BaseData;\n\nclass ChunkData extends BaseData\n");
     });
 });
 
