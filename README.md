@@ -37,6 +37,8 @@ app/Modules/Knowledge/
 - [Auto-discovery](#auto-discovery) of providers, commands, listeners, migrations, factories and policies
 - [Your own file types](#your-own-file-types) in one line
 
+The full documentation is at [mod.teylabs.com](https://mod.teylabs.com).
+
 ## Installation
 
 Mod requires PHP 8.3+ and Laravel 12 or 13.
@@ -512,6 +514,8 @@ Yes. A layout that writes outside `app/`, such as `ddd`'s `src/Domain`, needs a 
 Both are mature. nwidart/laravel-modules also enables and disables modules at runtime and handles per-module assets. InterNACHI/modular also loads Blade components and translations. Mod doesn't discover per-module routes, views, translations or assets; a module loads its routes from its own provider, as in [Module Routes](#module-routes). Choose mod to keep a structure you already have, or to use DDD, feature folders or vertical slices instead of one module format.
 
 ## Documentation
+
+The full documentation, with guides and a complete reference, is at [mod.teylabs.com](https://mod.teylabs.com). The pages below cover the same ground in this repository.
 
 - [Layouts](docs/layouts.md): every built-in layout's folders, defining a layout, and adding a layer
 - [Discovery](docs/discovery.md): what is discovered where, caching, and supplying your own files
