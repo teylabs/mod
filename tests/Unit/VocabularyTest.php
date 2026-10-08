@@ -10,7 +10,7 @@ it('keeps DDD vocabulary out of the engine source', function () {
     $offenders = [];
 
     foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator(dirname(__DIR__, 2).'/src')) as $file) {
-        if (! $file->isFile() || $file->getExtension() !== 'php' || str_contains(str_replace('\\', '/', $file->getPathname()), '/src/Layout/BuiltIn/')) {
+        if (! $file->isFile() || $file->getExtension() !== 'php' || (str_contains(str_replace('\\', '/', $file->getPathname()), '/src/Layout/BuiltIn/') || str_ends_with(str_replace('\\', '/', $file->getPathname()), '/src/Generation/Starters.php'))) {
             continue;
         }
 

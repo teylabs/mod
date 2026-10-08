@@ -2,6 +2,7 @@
 
 namespace Tey\Mod\Layout\BuiltIn;
 
+use Tey\Mod\Generation\Starters;
 use Tey\Mod\Layout\Kind;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\Root;
@@ -269,9 +270,9 @@ final readonly class BuiltInLayouts
         $layout
             ->root('domain', 'Domain\\', 'src/Domain', fn (Root $root) => $root
                 ->kind('model', in: '{domain+}/Models')
-                ->kind('dto', in: '{domain+}/Data', label: 'DTO', aliases: ['mod:data-transfer-object', 'mod:datatransferobject', 'mod:data'], stub: Starters::dto(inKindRoot: 'Shared/Data'))
+                ->kind('dto', in: '{domain+}/Data', label: 'DTO', aliases: ['mod:data-transfer-object', 'mod:datatransferobject', 'mod:data'], stub: Starters::dto(baseIn: 'Shared/Data'))
                 ->kind('value-object', in: '{domain+}/ValueObjects', label: 'Value object', command: 'mod:value', aliases: ['mod:value-object', 'mod:valueobject'])
-                ->kind('view-model', in: '{domain+}/ViewModels', label: 'View model', aliases: ['mod:viewmodel'], stub: Starters::viewModel(inKindRoot: 'Shared/ViewModels'))
+                ->kind('view-model', in: '{domain+}/ViewModels', label: 'View model', aliases: ['mod:viewmodel'], stub: Starters::viewModel(baseIn: 'Shared/ViewModels'))
                 ->kind('action', in: '{domain+}/Actions', label: 'Action')
                 ->kind('cast', in: '{domain+}/Casts')
                 ->kind('channel', in: '{domain+}/Channels')

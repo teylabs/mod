@@ -1,8 +1,8 @@
 <?php
 
 use Tey\Mod\Facades\Mod;
+use Tey\Mod\Generation\Starters;
 use Tey\Mod\Generation\Stub;
-use Tey\Mod\Layout\BuiltIn\Starters;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\Root;
 use Tey\Mod\Reverse\ReverseMapper;

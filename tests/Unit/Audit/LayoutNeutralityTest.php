@@ -12,11 +12,22 @@ use Tey\Mod\Support\Path;
  */
 
 /**
+ * Whether a file below src is shipped content rather than engine code.
+ */
+function isBuiltInContent(string $relative): bool
+{
+    return str_starts_with($relative, 'Layout/BuiltIn/')
+        || $relative === 'Generation/Starters.php'
+        || str_starts_with($relative, 'Generation/stubs/starters/');
+}
+
+/**
  * Every code token of src, comments and docblocks stripped.
  *
- * src/Layout/BuiltIn is exempt: it is the layouts mod ships (including the
- * ddd layout and its stubs), written as data with the public builder, so it
- * necessarily names folders, placeholders and DDD terms. Everything else in
+ * The built-in content is exempt: src/Layout/BuiltIn (the layouts mod ships,
+ * written as data with the public builder) and the starters
+ * (src/Generation/Starters.php and src/Generation/stubs/starters), which
+ * necessarily name folders, placeholders and DDD terms. Everything else in
  * src stays neutral.
  *
  * @return list<array{file: string, line: int, text: string}>
@@ -31,7 +42,7 @@ function engineCodeTokens(bool $withBuiltInLayouts = false): array
             continue;
         }
 
-        if (! $withBuiltInLayouts && str_starts_with((string) Path::relative($root, $file->getPathname()), 'Layout/BuiltIn/')) {
+        if (! $withBuiltInLayouts && isBuiltInContent((string) Path::relative($root, $file->getPathname()))) {
             continue;
         }
 
@@ -76,7 +87,7 @@ it('exempts only the built-in layouts from the layout-word check', function () {
     expect($exempt)->not->toBeEmpty();
 
     foreach ($exempt as $file) {
-        expect($file)->toStartWith('Layout/BuiltIn/');
+        expect(isBuiltInContent($file))->toBeTrue($file);
     }
 });
 
@@ -90,7 +101,7 @@ it('keeps the ddd vocabulary to the built-in layouts', function () {
     expect($hits)->not->toBeEmpty();
 
     foreach ($hits as $hit) {
-        expect($hit)->toStartWith('Layout/BuiltIn/');
+        expect(isBuiltInContent(explode(':', $hit)[0]))->toBeTrue($hit);
     }
 });
 

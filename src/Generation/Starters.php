@@ -1,10 +1,6 @@
 <?php
 
-namespace Tey\Mod\Layout\BuiltIn;
-
-use Tey\Mod\Generation\GeneratedBase;
-use Tey\Mod\Generation\Stub;
-use Tey\Mod\Generation\StubRegistry;
+namespace Tey\Mod\Generation;
 
 /**
  * Starter stubs for the file types Laravel has no generator for: plain
@@ -33,27 +29,27 @@ final class Starters
      * A data transfer object extending spatie/laravel-data's Data, else a
      * generated DataTransferObject base with fromArray() and toArray().
      *
-     * @param  ?string  $inKindRoot  the base's folder below the kind's root ("Shared/Data"), instead of the bases folder
+     * @param  ?string  $baseIn  the base's folder below the kind's root ("Shared/Data"), instead of the bases folder
      */
-    public static function dto(?string $inKindRoot = null): Stub
+    public static function dto(?string $baseIn = null): Stub
     {
         return Stub::file(self::STUBS.'/dto.stub')
             ->label('DTO')
             ->whenInstalled('spatie/laravel-data', base: 'Spatie\\LaravelData\\Data')
-            ->generatesBase(self::base('DataTransferObject', 'Data', 'data-transfer-object', $inKindRoot));
+            ->generatesBase(self::base('DataTransferObject', 'Data', 'data-transfer-object', $baseIn));
     }
 
     /**
      * A view model extending spatie/laravel-view-models' ViewModel, else a generated ViewModel base.
      *
-     * @param  ?string  $inKindRoot  the base's folder below the kind's root ("Shared/ViewModels"), instead of the bases folder
+     * @param  ?string  $baseIn  the base's folder below the kind's root ("Shared/ViewModels"), instead of the bases folder
      */
-    public static function viewModel(?string $inKindRoot = null): Stub
+    public static function viewModel(?string $baseIn = null): Stub
     {
         return Stub::file(self::STUBS.'/view-model.stub')
             ->label('View model')
             ->whenInstalled('spatie/laravel-view-models', base: 'Spatie\\ViewModels\\ViewModel')
-            ->generatesBase(self::base('ViewModel', 'ViewModels', 'view-model', $inKindRoot));
+            ->generatesBase(self::base('ViewModel', 'ViewModels', 'view-model', $baseIn));
     }
 
     /**
@@ -90,10 +86,10 @@ final class Starters
         return $registry;
     }
 
-    private static function base(string $name, string $in, string $stub, ?string $inKindRoot): GeneratedBase
+    private static function base(string $name, string $in, string $stub, ?string $baseIn): GeneratedBase
     {
-        $base = GeneratedBase::named($name, in: $inKindRoot ?? $in, stub: self::STUBS."/bases/{$stub}.stub");
+        $base = GeneratedBase::named($name, in: $baseIn ?? $in, stub: self::STUBS."/bases/{$stub}.stub");
 
-        return $inKindRoot === null ? $base : $base->inKindRoot();
+        return $baseIn === null ? $base : $base->inKindRoot();
     }
 }
