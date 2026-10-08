@@ -239,3 +239,16 @@ it('keeps the title-cased kind id for a kind without a label', function () {
 });
 
 final class SwappedDtoCommand extends GenericClassCommand {}
+
+it('describes a file type by its label, else its id in words', function () {
+    Workspace::run(null, function () {
+        config()->set('mod.layout', 'modules');
+        Mod::layout('modules')
+            ->kind('api-resource', in: 'Modules/{module}/Api', label: 'API resource')
+            ->kind('report-builder', in: 'Modules/{module}/Reports');
+
+        expect(Artisan::all()['mod:api-resource']->getDescription())->toBe('Create a new API resource class')
+            ->and(Artisan::all()['mod:report-builder']->getDescription())->toBe('Create a new Report Builder class')
+            ->and(Artisan::all()['mod:view-model']->getDescription())->toBe('Create a new view model class');
+    });
+});

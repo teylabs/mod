@@ -34,7 +34,7 @@ class GenericClassCommand extends GeneratorCommand implements GeneratorAdapter
         $this->bindKind($preset, $kind);
 
         $this->type = $kind->label ?? Str::headline($kind->id);
-        $this->setDescription('Create a new '.($kind->label === null ? $kind->id : self::noun($kind->label)).' class');
+        $this->setDescription('Create a new '.($kind->label === null ? Str::headline($kind->id) : self::noun($kind->label)).' class');
 
         return $this;
     }
