@@ -4,7 +4,7 @@ namespace Tey\Mod\Layout;
 
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Exceptions\InvalidLayout;
-use Tey\Mod\Exceptions\UnknownArtifactKind;
+use Tey\Mod\Exceptions\UnknownKind;
 use Tey\Mod\Exceptions\UnknownRelation;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Placement\Dimension;
@@ -95,7 +95,7 @@ final readonly class CompiledLayout
 
     public function kind(string $kindId): ArtifactKind
     {
-        return $this->kinds[$kindId] ?? throw UnknownArtifactKind::id($kindId);
+        return $this->kinds[$kindId] ?? throw UnknownKind::id($kindId);
     }
 
     /**
@@ -108,7 +108,7 @@ final readonly class CompiledLayout
 
     public function rule(string $kindId): PlacementRule
     {
-        return $this->rules[$kindId] ?? throw UnknownArtifactKind::id($kindId);
+        return $this->rules[$kindId] ?? throw UnknownKind::id($kindId);
     }
 
     /**

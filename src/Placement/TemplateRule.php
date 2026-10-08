@@ -9,7 +9,7 @@ use Tey\Mod\Artifact\Identifier;
 use Tey\Mod\Artifact\IdentityShape;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Exceptions\DimensionNotApplicable;
-use Tey\Mod\Exceptions\InvalidArtifactName;
+use Tey\Mod\Exceptions\InvalidName;
 use Tey\Mod\Exceptions\MissingDimension;
 use Tey\Mod\Layout\CompiledLayout;
 
@@ -138,14 +138,14 @@ final readonly class TemplateRule implements PlacementRule
         if (Identifier::isNested($name)) {
             if (! $this->nested) {
                 // Checked first: "mod:model Billing/Invoice" needs the --in hint more than a missing-dimension error.
-                throw InvalidArtifactName::nested($name, $this->dimensions());
+                throw InvalidName::nested($name, $this->dimensions());
             }
 
             [$nested, $name] = Identifier::splitNested($name);
 
             foreach ($nested as $folder) {
                 if (! Identifier::isClassSegment($folder)) {
-                    throw InvalidArtifactName::malformed($folder, 'a folder name inside a nested artifact name');
+                    throw InvalidName::malformed($folder, 'a folder name inside a nested name');
                 }
             }
         }
@@ -174,7 +174,7 @@ final readonly class TemplateRule implements PlacementRule
 
             if ($segment->multi) {
                 if (! Identifier::isSegmentChain($value)) {
-                    throw InvalidArtifactName::malformed($value, 'a "/"-separated chain of folder names for ['.$dimension.']');
+                    throw InvalidName::malformed($value, 'a "/"-separated chain of folder names for ['.$dimension.']');
                 }
 
                 array_push($parts, ...explode('/', $value));

@@ -1,7 +1,6 @@
 <?php
 
 use Tey\Mod\Artifact\IdentityShape;
-use Tey\Mod\Exceptions\InvalidGeneratorSetup;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Layout\CompiledLayout;
@@ -190,7 +189,7 @@ it('starts a built-in layout from its definition and an unknown name empty', fun
 
 it('refuses to compile a layout nobody defined', function () {
     expect(fn () => (new LayoutRegistry)->compile('nope'))
-        ->toThrow(InvalidGeneratorSetup::class, "Layout [nope] is not defined. Use a built-in layout (laravel, features, slices, type-first, modules, ddd) or define it with Mod::layout('nope')");
+        ->toThrow(InvalidLayout::class, "Layout [nope] is not defined. Use a built-in layout (laravel, features, slices, type-first, modules, ddd) or define it with Mod::layout('nope')");
 });
 
 it('refuses changes to a layout already compiled for use', function () {

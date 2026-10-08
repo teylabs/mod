@@ -12,7 +12,7 @@ use Tey\Mod\Discovery\Console\DiscoveryClearCommand;
 use Tey\Mod\Discovery\Discovery;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryRegistrar;
-use Tey\Mod\Exceptions\InvalidGeneratorSetup;
+use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Generation\BaseWriter;
 use Tey\Mod\Generation\ComposerPackageDetector;
 use Tey\Mod\Generation\GeneratorRegistry;
@@ -124,7 +124,7 @@ class ModServiceProvider extends ServiceProvider
         $name = $config->get('mod.layout', 'laravel');
 
         if (! is_string($name) || $name === '') {
-            throw new InvalidGeneratorSetup('Config [mod.layout] must be a layout name such as "laravel".');
+            throw InvalidLayout::notNamed();
         }
 
         $registry = $app->make(LayoutRegistry::class);

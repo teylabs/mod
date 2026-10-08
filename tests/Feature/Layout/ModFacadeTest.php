@@ -1,5 +1,6 @@
 <?php
 
+use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
@@ -16,5 +17,13 @@ it('returns the compiled active layout from Mod::current()', function () {
             ->and(Mod::current())->toBe(app(CompiledLayout::class))
             ->and(Mod::current()->hasKind('dto'))->toBeTrue()
             ->and(Mod::current()->placementOptions())->toBe(['module' => 'module']);
+    });
+});
+
+it('says so when mod.layout is not a layout name', function () {
+    Workspace::run(null, function () {
+        config()->set('mod.layout', ['modules']);
+
+        expect(fn () => Mod::current())->toThrow(InvalidLayout::class, 'Config [mod.layout] must be a layout name such as "laravel".');
     });
 });

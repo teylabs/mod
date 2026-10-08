@@ -388,7 +388,7 @@ final class PresetValidator
             $root = $roots[$rootName];
 
             if ($shape === IdentityShape::PhpClass && ! $root->isClassRoot()) {
-                $this->issue(PresetIssueCode::InvalidKind, $subject, "class artifacts need a namespaced root; [{$rootName}] has no namespace");
+                $this->issue(PresetIssueCode::InvalidKind, $subject, "a file type of classes needs a namespaced root; [{$rootName}] has no namespace");
 
                 continue;
             }

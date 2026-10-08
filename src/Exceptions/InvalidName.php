@@ -2,7 +2,7 @@
 
 namespace Tey\Mod\Exceptions;
 
-final class InvalidArtifactName extends ModException
+final class InvalidName extends ModException
 {
     /**
      * @param  list<string>  $dimensions
@@ -11,17 +11,17 @@ final class InvalidArtifactName extends ModException
     {
         $hint = $dimensions === []
             ? 'Nested names are not supported.'
-            : 'Nested names are not supported; place the artifact with --in='.implode('/', array_map(
+            : 'Nested names are not supported; place it with --in='.implode('/', array_map(
                 static fn (string $dimension): string => '<'.$dimension.'>',
                 $dimensions,
             )).' instead.';
 
-        return new self("Invalid artifact name [{$name}]. {$hint}");
+        return new self("Invalid name [{$name}]. {$hint}");
     }
 
     public static function malformed(string $name, string $expected): self
     {
-        return new self("Invalid artifact name [{$name}]: expected {$expected}.");
+        return new self("Invalid name [{$name}]: expected {$expected}.");
     }
 
     public static function missingAttribute(string $kindId, string $attribute, string $expected): self

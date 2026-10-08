@@ -2,7 +2,7 @@
 
 namespace Tey\Mod\Exceptions;
 
-final class UnknownArtifactKind extends ModException
+final class UnknownKind extends ModException
 {
     public static function id(string $kindId): self
     {

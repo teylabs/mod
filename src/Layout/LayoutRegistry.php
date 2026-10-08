@@ -2,7 +2,6 @@
 
 namespace Tey\Mod\Layout;
 
-use Tey\Mod\Exceptions\InvalidGeneratorSetup;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Layout\BuiltIn\BuiltInLayouts;
 
@@ -77,12 +76,7 @@ final class LayoutRegistry
     public function compile(string $name): CompiledLayout
     {
         if (! $this->has($name)) {
-            throw new InvalidGeneratorSetup(sprintf(
-                'Layout [%s] is not defined. Use a built-in layout (%s) or define it with Mod::layout(\'%s\') in a service provider.',
-                $name,
-                implode(', ', $this->builtIn->names()),
-                $name,
-            ));
+            throw InvalidLayout::notDefined($name, $this->builtIn->names());
         }
 
         $layout = $this->layout($name);

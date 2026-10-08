@@ -34,7 +34,7 @@ final readonly class ReverseMatch
      */
     public static function ambiguous(array $candidates): self
     {
-        return new self(ReverseOutcome::Ambiguous, null, $candidates, 'more than one rule recognises this artifact and none has priority');
+        return new self(ReverseOutcome::Ambiguous, null, $candidates, 'more than one file type places this file and none has priority');
     }
 
     public static function unsupported(string $reason): self

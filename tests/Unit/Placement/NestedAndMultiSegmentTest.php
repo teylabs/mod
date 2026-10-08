@@ -1,8 +1,8 @@
 <?php
 
 use Tey\Mod\Artifact\ArtifactRequest;
-use Tey\Mod\Exceptions\InvalidArtifactName;
 use Tey\Mod\Exceptions\InvalidLayout;
+use Tey\Mod\Exceptions\InvalidName;
 use Tey\Mod\Exceptions\InvalidPlacementOption;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\Layout;
@@ -57,12 +57,12 @@ it('places a nested name below the kind folder and keeps the folders as nested',
 
 it('still refuses nested names on kinds that do not accept them', function () {
     expect(fn () => place(groupedLayout(), 'request', 'Archived/StoreInvoice', 'Billing'))
-        ->toThrow(InvalidArtifactName::class, '--in=<group>');
+        ->toThrow(InvalidName::class, '--in=<group>');
 });
 
 it('rejects a nested folder that is not a class segment', function () {
     expect(fn () => place(groupedLayout(), 'model', 'bad-folder/Invoice', 'Billing'))
-        ->toThrow(InvalidArtifactName::class, 'folder name inside a nested artifact name');
+        ->toThrow(InvalidName::class, 'folder name inside a nested name');
 });
 
 it('places a multi-segment dimension as a chain of folders', function () {
@@ -90,7 +90,7 @@ it('reads a multi-segment value from --in with dots between its folders', functi
 it('rejects a multi-segment value that is not a folder chain', function () {
     expect(fn () => (new PlacementResolver(groupedLayout()))->resolve(
         ArtifactRequest::for('model', 'Invoice', PlacementContext::of(['group' => 'Billing\\Invoicing'])),
-    ))->toThrow(InvalidArtifactName::class, 'chain of folder names');
+    ))->toThrow(InvalidName::class, 'chain of folder names');
 });
 
 it('maps nested and multi-segment artifacts back exactly', function () {

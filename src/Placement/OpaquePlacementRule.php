@@ -9,7 +9,7 @@ use Tey\Mod\Artifact\FileIdentity;
 use Tey\Mod\Artifact\Identifier;
 use Tey\Mod\Artifact\IdentityShape;
 use Tey\Mod\Artifact\ResolvedArtifact;
-use Tey\Mod\Exceptions\InvalidArtifactName;
+use Tey\Mod\Exceptions\InvalidName;
 
 /**
  * A callback-driven placement. It can place but never recognise: arbitrary
@@ -70,14 +70,14 @@ final readonly class OpaquePlacementRule implements PlacementRule
 
         if (Identifier::isNested($name)) {
             if (! $this->nested) {
-                throw InvalidArtifactName::nested($name, $this->dimensions);
+                throw InvalidName::nested($name, $this->dimensions);
             }
 
             [$nested, $name] = Identifier::splitNested($name);
 
             foreach ($nested as $folder) {
                 if (! Identifier::isClassSegment($folder)) {
-                    throw InvalidArtifactName::malformed($folder, 'a folder name inside a nested artifact name');
+                    throw InvalidName::malformed($folder, 'a folder name inside a nested name');
                 }
             }
         }

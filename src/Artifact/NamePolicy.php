@@ -2,7 +2,7 @@
 
 namespace Tey\Mod\Artifact;
 
-use Tey\Mod\Exceptions\InvalidArtifactName;
+use Tey\Mod\Exceptions\InvalidName;
 
 /**
  * How a requested name becomes a basename, and back.
@@ -48,7 +48,7 @@ final readonly class NamePolicy
     {
         if ($this->kind !== NamePolicyKind::Fixed && Identifier::isNested($name)) {
             // Thrown with the dimension hint by the resolver, which knows the layout.
-            throw InvalidArtifactName::nested($name, []);
+            throw InvalidName::nested($name, []);
         }
 
         return match ($this->kind) {
@@ -110,11 +110,11 @@ final readonly class NamePolicy
         $timestamp = $attributes['timestamp'] ?? null;
 
         if (! is_string($timestamp) || preg_match(self::TIMESTAMP_PATTERN, $timestamp) !== 1) {
-            throw InvalidArtifactName::missingAttribute($kindId, 'timestamp', 'format YYYY_MM_DD_HHMMSS');
+            throw InvalidName::missingAttribute($kindId, 'timestamp', 'format YYYY_MM_DD_HHMMSS');
         }
 
         if (! Identifier::isFileStem($name) || preg_match('/^[a-z0-9_]+$/', $name) !== 1) {
-            throw InvalidArtifactName::malformed($name, 'a snake_case migration name');
+            throw InvalidName::malformed($name, 'a snake_case migration name');
         }
 
         return $timestamp.'_'.$name;
@@ -123,7 +123,7 @@ final readonly class NamePolicy
     private function validated(IdentityShape $shape, string $name): string
     {
         if (! $this->isValid($shape, $name)) {
-            throw InvalidArtifactName::malformed(
+            throw InvalidName::malformed(
                 $name,
                 $shape === IdentityShape::PhpClass ? 'a PHP class name' : 'a lowercase file name',
             );

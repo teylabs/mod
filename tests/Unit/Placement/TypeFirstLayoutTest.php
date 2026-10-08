@@ -1,6 +1,6 @@
 <?php
 
-use Tey\Mod\Exceptions\InvalidArtifactName;
+use Tey\Mod\Exceptions\InvalidName;
 use Tey\Mod\Placement\PlacementResolver;
 use Tey\Mod\Relation\RelationResolver;
 use Tey\Mod\Reverse\ReverseMapper;
@@ -32,7 +32,7 @@ it('places artifacts with and without a feature from one preset', function (stri
 
 it('rejects a nested name that would duplicate the feature', function () {
     expect(fn () => place(Layouts::typeFirst(), 'model', 'Billing\Invoice', 'Billing'))
-        ->toThrow(InvalidArtifactName::class, '--in=<feature>');
+        ->toThrow(InvalidName::class, '--in=<feature>');
 });
 
 it('carries the feature across roots in relations', function () {

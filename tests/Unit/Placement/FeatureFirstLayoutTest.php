@@ -1,6 +1,6 @@
 <?php
 
-use Tey\Mod\Exceptions\InvalidArtifactName;
+use Tey\Mod\Exceptions\InvalidName;
 use Tey\Mod\Exceptions\MissingDimension;
 use Tey\Mod\Placement\PlacementResolver;
 use Tey\Mod\Relation\RelationResolver;
@@ -44,7 +44,7 @@ it('requires the feature for feature kinds', function () {
 
 it('rejects nested names and points at --in', function () {
     expect(fn () => place(Layouts::featureFirst(), 'model', 'Billing/Invoice'))
-        ->toThrow(InvalidArtifactName::class, '--in=<feature>');
+        ->toThrow(InvalidName::class, '--in=<feature>');
 });
 
 it('keeps relations inside the feature', function () {
