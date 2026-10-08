@@ -1,11 +1,11 @@
-# Mod — Modular Layouts for Laravel
+# Mod: Modular Development Toolkit for Laravel
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/tey/mod.svg?style=flat-square)](https://packagist.org/packages/tey/mod)
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/teylabs/mod/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/teylabs/mod/actions?query=workflow%3Arun-tests+branch%3Amain)
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/teylabs/mod/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/teylabs/mod/actions?query=workflow%3A%22Fix+PHP+code+style+issues%22+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/tey/mod.svg?style=flat-square)](https://packagist.org/packages/tey/mod)
 
-Lightweight toolkit for modular development in Laravel. Choose or extend common layouts like DDD and modular monoliths, or create your own. Laravel's generators, auto-discovery, migrations and factories keep working.
+Mod is a lightweight toolkit for modular development in Laravel. Choose or extend common layouts like DDD and modular monoliths, or create your own. Laravel's generators, auto-discovery, migrations and factories keep working.
 
 ```bash
 php artisan mod:model Billing:Invoice -mf   # with 'layout' => 'modules'
