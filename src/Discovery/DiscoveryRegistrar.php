@@ -13,6 +13,7 @@ use ReflectionClass;
 use Tey\Mod\Artifact\NamePolicyKind;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Preset\Preset;
+use Tey\Mod\Resolution\ModelConventions;
 use Tey\Mod\Support\Path;
 use WeakReference;
 
@@ -31,7 +32,8 @@ final class DiscoveryRegistrar
 {
     public static function register(Application $app, Preset $preset, ?DiscoveryOptions $options = null): Discovery
     {
-        $discovery = new Discovery($preset, $options ?? new DiscoveryOptions, $app->basePath());
+        $options ??= new DiscoveryOptions;
+        $discovery = new Discovery($preset, $options, $app->basePath());
 
         if ($app->bound(Discovery::class)) {
             return self::existing($app, $discovery);
@@ -73,6 +75,12 @@ final class DiscoveryRegistrar
 
         self::loadMigrationDirectories($app, $preset, $inventory);
         self::registerPolicies($app, $inventory->pairs(DiscoveryType::Policy));
+
+        // mod's provider installs factory lookup at boot; a host that turned discovery off
+        // and registers it here gets it now, unless the application already has it.
+        if ($options->factories && ! ModelConventions::installedFor($app)) {
+            ModelConventions::register($app);
+        }
 
         return $discovery;
     }

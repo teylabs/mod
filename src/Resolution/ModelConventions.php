@@ -68,6 +68,14 @@ final class ModelConventions
     }
 
     /**
+     * Whether the factory name resolver Laravel holds now is this application's.
+     */
+    public static function installedFor(Application $app): bool
+    {
+        return self::of(self::current())?->app->get() === $app;
+    }
+
+    /**
      * The instance behind a registered resolver, when it is one of these.
      */
     public static function of(?callable $resolver): ?self

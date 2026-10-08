@@ -3,7 +3,10 @@
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
+use Tey\Mod\Discovery\DiscoveryOptions;
+use Tey\Mod\Discovery\DiscoveryRegistrar;
 use Tey\Mod\Discovery\DiscoveryType;
+use Tey\Mod\Preset\Preset;
 use Tey\Mod\Relation\RelationPolicy;
 use Tey\Mod\Resolution\ModelConventions;
 use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
@@ -155,6 +158,20 @@ it('turns factory and policy lookup off with discovery, which they read', functi
         expect(ModelConventions::current())->toBeNull()
             ->and(Gate::policies())->not->toHaveKey($classes['model'])
             ->and(fn () => call_user_func([$classes['model'], 'factory']))->toThrow(Error::class, 'Database\\Factories\\');
+    });
+});
+
+it('resolves factories and policies for a host that registers discovery itself', function () {
+    AcceptanceApp::run('modules', function (AcceptanceApp $app) {
+        $app->boot();
+        $classes = generateModelWithRelations($app, "Invoice{$app->tag}");
+        Factory::flushState();
+
+        $application = $app->boot(['enabled' => false]);
+        DiscoveryRegistrar::register($application, $application->make(Preset::class), DiscoveryOptions::fromConfig([...(array) config('mod.discovery'), 'enabled' => true]));
+
+        expect(Gate::policies())->toHaveKey($classes['model'])
+            ->and(modelFactory($classes['model']))->toBeInstanceOf($classes['factory']);
     });
 });
 
