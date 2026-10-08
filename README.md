@@ -6,7 +6,7 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/tey/mod.svg?style=flat-square)](https://packagist.org/packages/tey/mod)
 [![License](https://img.shields.io/packagist/l/tey/mod.svg?style=flat-square)](LICENSE.md)
 
-Mod lets a Laravel application declare how its code is organised (ordinary Laravel, feature folders, vertical slices, type-first, `app/Modules/<Module>`, or a layout of your own) and then works within that layout:
+Mod lets a Laravel application declare how its code is organised (ordinary Laravel, feature folders, vertical slices, type-first, `app/Modules/<Module>`, domain-driven design, or a layout of your own) and then works within that layout:
 
 - **Generation.** `mod:*` commands place files where your layout says, using Laravel's own `make:*` generators, so the generated code is exactly what Laravel would write.
 - **Relations.** Related artifacts land in the right place too: a model's factory, a controller's form requests, a listener's event.
@@ -34,7 +34,7 @@ php artisan vendor:publish --tag=mod-config
 
 ## Choosing a layout
 
-`config/mod.php` names the active layout. Five layouts are built in:
+`config/mod.php` names the active layout. Six layouts are built in:
 
 ```php
 'layout' => 'modules',
@@ -47,8 +47,11 @@ php artisan vendor:publish --tag=mod-config
 | `slices` | `app/<Feature>/<Slice>/...` (fixed basenames such as `Handler`) | `app/Billing/Models/Invoice.php` |
 | `type-first` | `app/Models/<Feature?>/...` (the feature folder is optional) | `app/Models/Billing/Invoice.php` |
 | `modules` | `app/Modules/<Module>/...` (flat folders, no `Http/`) | `app/Modules/Billing/Models/Invoice.php` |
+| `ddd` | `src/Domain/<Domain>/...`; controllers, requests and middleware in `app/Modules/<Domain>/...` | `src/Domain/Billing/Models/Invoice.php` |
 
-All five layouts declare the common native generator kinds, including events, listeners and tests. Tests live under `tests/Feature/<placement>` (`--unit` uses `tests/Unit/<placement>`); config files are declared only by `laravel` and `type-first`, when the native generator is available. Components and views are held to v1. `php artisan list mod` shows the commands your layout provides.
+All six layouts declare the common native generator kinds, including events, listeners and tests. Tests live under `tests/Feature/<placement>` (`--unit` uses `tests/Unit/<placement>`); config files are declared only by `laravel` and `type-first`, when the native generator is available. Components and views are held to v1. `php artisan list mod` shows the commands your layout provides.
+
+The `ddd` layout uses laravel-ddd's folders, so a laravel-ddd application keeps its structure. It adds four kinds Laravel has no generator for: `mod:dto` (`src/Domain/<Domain>/Data`), `mod:value` (`ValueObjects`), `mod:view-model` (`ViewModels`) and `mod:action` (`Actions`), with laravel-ddd's aliases (`mod:data`, `mod:value-object`, `mod:viewmodel` and so on). Subdomains nest: `mod:model Reporting.Internal:Report` writes `src/Domain/Reporting/Internal/Models/Report.php`. To add a layer such as `src/Infrastructure`, see [docs/layouts.md](docs/layouts.md#adding-a-layer).
 
 Commands in `features` and `slices` belong to a feature when placement is given and use `app/Console/Commands` when it is omitted. Other kinds still require their declared placement. Slice requests have one fixed `Request` per operation; request companions generate that single request, with no update-request relation. Modules do not declare a routes kind.
 
@@ -75,6 +78,7 @@ Each way a layout groups your code is called a **dimension**. The `modules` layo
 | `features` | feature | `app/Features/{feature}/Models` | `Billing` |
 | `slices` | feature, slice | `app/{feature}/{slice}` | `Billing`, `CreateInvoice` |
 | `type-first` | feature (optional) | `app/Models/{feature?}` | `Billing`, or nothing |
+| `ddd` | domain (one or more folders) | `src/Domain/{domain+}/Models` | `Billing`, or `Reporting.Internal` |
 
 Every placeholder a command's path uses is also an option of that command, with the same name. These three commands do the same thing:
 
@@ -109,6 +113,30 @@ With `--in` and the short form, the values follow the layout's order, feature fi
 - Every error mod raises extends `Tey\Mod\Exceptions\ModException`.
 - `make:*` is untouched and keeps writing to Laravel's default locations.
 
+### Stub variants
+
+The `ddd` layout's DTOs, view models and actions are starter classes: plain Laravel-style classes to get you running. When a package for them is installed, mod uses it instead:
+
+```bash
+php artisan mod:dto Billing:InvoiceData
+# without spatie/laravel-data:
+# ->  INFO  Created base class Domain\Shared\Data\DataTransferObject [src/Domain/Shared/Data/DataTransferObject.php].
+# ->  INFO  Dto [src/Domain/Billing/Data/InvoiceData.php] created successfully.
+# with spatie/laravel-data installed:
+# ->  INFO  Using spatie/laravel-data (installed).
+```
+
+| Kind | Installed package | Otherwise |
+| --- | --- | --- |
+| `dto` | [spatie/laravel-data](https://github.com/spatie/laravel-data): extends `Spatie\LaravelData\Data` | extends a `DataTransferObject` base with `fromArray()` and `toArray()`, written into your app on first use |
+| `view-model` | [spatie/laravel-view-models](https://github.com/spatie/laravel-view-models): extends `Spatie\ViewModels\ViewModel` | extends a `ViewModel` base, written into your app on first use |
+| `action` | [lorisleiva/laravel-actions](https://github.com/lorisleiva/laravel-actions): `use AsAction;` | a plain class with `handle()` |
+| `value-object` | | a plain class with a constructor |
+
+- A base class written into your app is yours: mod never overwrites it, not even with `--force`. Publish `stubs/mod.base.data-transfer-object.stub` or `stubs/mod.base.view-model.stub` to change its body.
+- To extend your own class instead, set it in `config/mod.php`: `'layouts' => ['ddd' => ['bases' => ['dto' => App\Support\Data::class]]]`. A configured base wins over an installed package.
+- Publish `stubs/mod.<kind>.stub` (for example `stubs/mod.dto.stub`) to replace a stub. It can use `{{ baseImport }}` and `{{ extends }}` for the base mod chose.
+
 ## Defining or extending a layout
 
 Define a layout as one fluent chain in any service provider, for example in `AppServiceProvider::boot()`, then select it by name in `config/mod.php`:
@@ -117,7 +145,7 @@ Define a layout as one fluent chain in any service provider, for example in `App
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Layout\Root;
 
-Mod::layout('ddd')
+Mod::layout('domains')
     ->root('domain', 'Domain\\', 'src/Domain', fn (Root $r) => $r
         ->kind('model', in: '{domain}/Models')
         ->kind('action', in: '{domain}/Actions'))
@@ -129,7 +157,7 @@ Mod::layout('ddd')
 ```
 
 ```php
-'layout' => 'ddd',
+'layout' => 'domains',
 ```
 
 `php artisan mod:model Billing:Invoice --factory` now writes `src/Domain/Billing/Models/Invoice.php` and `src/Domain/Billing/Database/Factories/InvoiceFactory.php`. A `Domain\\` entry in your `composer.json` autoload is up to you.
@@ -161,7 +189,7 @@ The building blocks:
 - `exclude(...)` marks namespaces or paths inside a declared root that no kind owns: mod never places anything there, does not treat their classes as part of the layout, and discovery skips them.
 - `withoutCommands()` registers no `mod:*` commands for the layout. Its kinds keep their `command:` names for a host to dispatch by, and several kinds may then share one.
 
-A kind with no matching Laravel generator (`action` above) gets a plain class. Put a `stubs/mod.<kind>.stub` in your application to change it.
+A kind with no matching Laravel generator (`action` above) gets a plain class. Put a `stubs/mod.<kind>.stub` in your application to change it. To add a folder such as `src/Infrastructure` to a built-in layout, see [docs/layouts.md](docs/layouts.md#adding-a-layer).
 
 The active layout is checked the first time it is used. Every problem is reported at once, each naming the call that caused it.
 
@@ -263,12 +291,15 @@ Every `mod:*` command is a subclass of the matching Laravel command, for example
   - `placementContext()`;
   - `placementOptions()` chooses which placement options a generator adds: option name => the dimension it sets, with `null` for `--in`. Return `[]` to add none; child commands then receive the `Group:Name` form. `Preset::dimensions()` lists the layout's dimensions in order, and `Preset::placementOptions()` maps each one to its option name.
 - **Layout and kind:** `resolvePreset()` and `kindId()`, for commands not registered through the layout.
+- **Stubs:** `stubDefinition()` returns the `Stub` the class is generated from (by default the one registered with `Mod::stubs()`, else the layout's).
 - **Collisions:** `collisionPolicy()` returns `CollisionPolicy::Refuse` (mod checks the whole plan before writing) or `CollisionPolicy::Native` (the native generator's own check and `--force` decide).
 - **Lifecycle:**
   - `plansEagerly()`, with `resolvePlan()` to plan from inside your own `handle()`;
   - `beforeGeneration(GenerationPlan $plan)` and `afterGeneration(GenerationPlan $plan, int $exitCode)`;
   - the same hooks exist on `MigrationCommand`, whose `nativePathAllowed()` also lets `--path`/`--realpath` through instead of refusing them.
 - **Output:** `reportRefusal(ModException $e)` and `reportReference(ResolvedArtifact $target)` are the only places the adapters print on their own.
+
+A package can also register stubs and generated bases for any kind (`Mod::stubs()`), swap a kind's generator (`Mod::generators()`), and add kinds, commands and aliases to a built-in layout. See [docs/extending.md](docs/extending.md).
 
 ## Testing
 
