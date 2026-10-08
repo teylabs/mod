@@ -62,6 +62,9 @@ use Tey\Mod\Reverse\ReverseMapper;
  */
 trait InteractsWithLayout
 {
+    /** @var array<string, string> group values the user settled on (case or near miss), by dimension */
+    private array $modGroupValues = [];
+
     private ?CompiledLayout $modLayout = null;
 
     private ?ArtifactKind $modKind = null;
@@ -409,7 +412,13 @@ trait InteractsWithLayout
      */
     protected function placementContext(): PlacementContext
     {
-        return PlacementContext::fromOption($this->placementInput() ?? '', $this->layout());
+        $context = PlacementContext::fromOption($this->placementInput() ?? '', $this->layout());
+
+        foreach ($this->modGroupValues as $dimension => $value) {
+            $context = $context->with($dimension, $value);
+        }
+
+        return $context;
     }
 
     /**

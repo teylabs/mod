@@ -19,6 +19,8 @@ use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Relation\RelationResolution;
 use Tey\Mod\Support\Path;
 
+use function Laravel\Prompts\select;
+
 /**
  * Places the class a native GeneratorCommand writes.
  *
@@ -70,6 +72,7 @@ trait PlacesGeneratedClass
         $this->plan = null;
         $this->modStub = null;
         $this->modStubPrepared = false;
+        $this->modGroupValues = [];
         $exitCode = self::FAILURE;
 
         try {
@@ -91,6 +94,62 @@ trait PlacesGeneratedClass
 
             $this->plan = $previous;
         }
+    }
+
+    /**
+     * Settle the group folders the plan walks into: a value that differs from
+     * the one existing group only by case uses that group; several such groups,
+     * or a near miss, are a question when interactive; anything else is a new
+     * group, reported once the plan stands.
+     *
+     * @return array{0: GenerationPlan, 1: ?string} the plan and the new-group notice
+     */
+    private function settleGroups(GenerationPlan $plan): array
+    {
+        $groups = $this->laravel->make(GroupFolders::class, ['basePath' => $this->laravel->basePath()]);
+        $interactive = $this->input->isInteractive();
+
+        for ($level = 0; $level < 64; $level++) {
+            $finding = $groups->inspect($this->layout()->rule($plan->primary->kind->id), $plan->primary);
+
+            if ($finding === null) {
+                return [$plan, null];
+            }
+
+            ['kind' => $kind, 'dimension' => $dimension, 'value' => $value, 'suggestions' => $suggestions] = $finding;
+            $group = ucfirst($dimension);
+            $choice = null;
+
+            if ($kind === 'case') {
+                $choice = $suggestions[0];
+                $this->components->info("Using existing {$dimension} {$choice} (you typed {$value}).");
+            } elseif ($kind === 'cases') {
+                if (! $interactive) {
+                    throw GenerationRefused::because("{$group} [{$value}] doesn't exist; did you mean [".implode('] or [', $suggestions).']?');
+                }
+
+                $choice = (string) select("{$group} [{$value}] doesn't exist. Which one did you mean?", [...$suggestions, 'Cancel'], $suggestions[0]);
+
+                if ($choice === 'Cancel') {
+                    throw GenerationRefused::because('Cancelled; nothing was written.');
+                }
+            } elseif ($kind === 'near' && $interactive) {
+                $create = "Create new {$dimension} {$value}";
+                $answer = (string) select("{$group} [{$value}] doesn't exist. Did you mean an existing one?", [...$suggestions, $create], $suggestions[0]);
+                $choice = $answer === $create ? null : $answer;
+            }
+
+            if ($choice === null) {
+                $existing = $finding['existing'];
+
+                return [$plan, "Created new {$dimension} {$value}".($existing === [] ? '' : ' (existing: '.implode(', ', $existing).')').'.'];
+            }
+
+            $this->modGroupValues[$dimension] = $choice;
+            $plan = $this->plan();
+        }
+
+        return [$plan, null];
     }
 
     /**
@@ -137,7 +196,7 @@ trait PlacesGeneratedClass
             return $this->plan;
         }
 
-        $plan = $this->plan();
+        [$plan, $newGroup] = $this->settleGroups($this->plan());
         // Read through the input itself: not every adapter's native command declares --force.
         $force = $this->input->hasOption('force') && (bool) $this->input->getOption('force');
         // Let native placement handle its own duplicate; custom placement keeps
@@ -149,12 +208,6 @@ trait PlacesGeneratedClass
                 && $this->alreadyExists($this->getNameInput());
         } finally {
             $this->plan = null;
-        }
-
-        [$refusal, $newGroup] = (new GroupFolders($this->laravel->basePath()))->check($this->layout()->rule($plan->primary->kind->id), $plan->primary);
-
-        if ($refusal !== null) {
-            throw GenerationRefused::because($refusal);
         }
 
         if (! $nativeDuplicate) {

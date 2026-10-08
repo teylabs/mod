@@ -2,33 +2,43 @@
 
 namespace Tey\Mod\Generation;
 
+use Closure;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Placement\PlacementRule;
 use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Support\Path;
 
 /**
- * The group folders a placement walks into ("app/Modules/Knowledge"): a value
- * that differs from an existing folder only by case is refused, and a value
- * that starts a new folder is reported with the folders that exist.
+ * The group folders a placement walks into ("app/Modules/Knowledge"),
+ * compared with the folders that exist, level by level:
+ *
+ *  - case: one existing folder differs only by case (knowledge → Knowledge);
+ *  - cases: several do (only on a case-sensitive disk);
+ *  - near: none does, but one or more are a near miss (Knowledg → Knowledge):
+ *    at most 2 edits, ignoring case, and no more than a third of the name's length;
+ *  - new: the folder is new.
  *
  * @internal used by the mod:* generators
  */
 final readonly class GroupFolders
 {
-    public function __construct(private string $basePath) {}
+    /**
+     * @param  (Closure(string): list<string>)|null  $folders  the folders directly inside a directory
+     */
+    public function __construct(private string $basePath, private ?Closure $folders = null) {}
 
     /**
-     * @return array{0: ?string, 1: ?string} the refusal, or the new-group notice
+     * The first level of the placement that is not an existing folder, or null.
+     *
+     * @return array{kind: 'case'|'cases'|'near'|'new', dimension: string, value: string, suggestions: list<string>, existing: list<string>}|null
      */
-    public function check(PlacementRule $rule, ResolvedArtifact $artifact): array
+    public function inspect(PlacementRule $rule, ResolvedArtifact $artifact): ?array
     {
         if (! $rule instanceof TemplateRule || $artifact->context->isEmpty()) {
-            return [null, null];
+            return null;
         }
 
         $path = $rule->root()->path;
-        $notice = null;
 
         foreach ($rule->segments() as $segment) {
             if ($segment->literal !== null) {
@@ -47,7 +57,7 @@ final readonly class GroupFolders
             $parts = explode('/', $value);
 
             foreach ($parts as $index => $part) {
-                $existing = $this->folders(Path::join($this->basePath, $path));
+                $existing = $this->foldersIn(Path::join($this->basePath, $path));
 
                 if (in_array($part, $existing, true)) {
                     $path = Path::join($path, $part);
@@ -55,31 +65,60 @@ final readonly class GroupFolders
                     continue;
                 }
 
-                foreach ($existing as $folder) {
-                    if (strcasecmp($folder, $part) === 0) {
-                        $meant = $parts;
-                        $meant[$index] = $folder;
+                $replace = static function (string $folder) use ($parts, $index): string {
+                    $parts[$index] = $folder;
 
-                        return [ucfirst($dimension)." [{$value}] doesn't exist; did you mean [".implode('/', $meant).']?', null];
-                    }
+                    return implode('/', $parts);
+                };
+
+                $cases = array_values(array_filter($existing, static fn (string $folder): bool => strcasecmp($folder, $part) === 0));
+
+                if ($cases !== []) {
+                    return ['kind' => count($cases) === 1 ? 'case' : 'cases', 'dimension' => $dimension, 'value' => $value, 'suggestions' => array_map($replace, $cases), 'existing' => $existing];
                 }
 
-                $notice ??= "Created new {$dimension} {$value}".($existing === [] ? '' : ' (existing: '.implode(', ', $existing).')').'.';
-                array_splice($parts, 0, $index);
-                $path = Path::join($path, ...$parts);
+                $near = $this->nearMisses($part, $existing);
 
-                break;
+                return ['kind' => $near === [] ? 'new' : 'near', 'dimension' => $dimension, 'value' => $value, 'suggestions' => array_map($replace, $near), 'existing' => $existing];
             }
         }
 
-        return [null, $notice];
+        return null;
+    }
+
+    /**
+     * Existing folders within a small edit distance, closest first.
+     *
+     * @param  list<string>  $existing
+     * @return list<string>
+     */
+    private function nearMisses(string $part, array $existing): array
+    {
+        $limit = min(2, max(1, intdiv(strlen($part), 3)));
+        $distances = [];
+
+        foreach ($existing as $folder) {
+            $distance = levenshtein(strtolower($part), strtolower($folder));
+
+            if ($distance > 0 && $distance <= $limit) {
+                $distances[$folder] = $distance;
+            }
+        }
+
+        uksort($distances, static fn (string $a, string $b): int => [$distances[$a], $a] <=> [$distances[$b], $b]);
+
+        return array_map(strval(...), array_keys($distances));
     }
 
     /**
      * @return list<string> the folders directly inside, sorted
      */
-    private function folders(string $directory): array
+    private function foldersIn(string $directory): array
     {
+        if ($this->folders !== null) {
+            return ($this->folders)($directory);
+        }
+
         if (! is_dir($directory)) {
             return [];
         }
