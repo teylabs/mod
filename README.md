@@ -17,9 +17,8 @@ Mod lets a Laravel application declare how its code is organised (ordinary Larav
 ## Requirements
 
 - PHP 8.3+
-- Laravel 11.44+, 12 or 13
+- Laravel 12 or 13
 
-> On Laravel 11, use 11.46.2+ or keep `symfony/console` below 7.4. Earlier Laravel 11 releases cannot run Artisan commands with symfony/console 7.4, with or without mod.
 
 ## Installation
 

@@ -17,4 +17,4 @@ Initial release.
 - A host can supply its own candidate files to discovery (`DiscoveryOptions::withCandidates()`), or turn the `mod:*` commands off (`'commands' => false` or `withoutCommands()`) while keeping placement and discovery.
 - Protected extension points on the generator commands, including the migration command, for packages that build their own command catalog on top of mod.
 - Every exception extends `Tey\Mod\Exceptions\ModException`.
-- Support for PHP 8.3+ and Laravel 11.44+, 12 and 13.
+- Support for PHP 8.3+ and Laravel 12 and 13.

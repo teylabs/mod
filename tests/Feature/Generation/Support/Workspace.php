@@ -65,8 +65,7 @@ final class Workspace
     }
 
     /**
-     * Whether a generated file refers to a class: imported, or fully qualified
-     * (native factory stubs import the model on newer Laravel, qualify it on 11.x).
+     * Whether a generated file refers to a class: imported, or fully qualified.
      */
     public function references(string $relative, string $fqcn): bool
     {
