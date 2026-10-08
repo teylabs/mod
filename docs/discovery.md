@@ -14,14 +14,34 @@ Mod registers the providers, Artisan commands, event listeners and event subscri
 
 Discovery runs after every provider has booted. Only classes that really are providers, commands, listeners or subscribers are registered; everything else is skipped.
 
-To discover another file type as one of these, map it in `config/mod.php`:
+A subscriber in a `Listeners` folder is treated the way Laravel's own event discovery treats it: its typed `handle*()` methods are registered as listeners, and `subscribe()` isn't called. To register subscribers, give them a `subscriber` file type of their own:
+
+```php
+// app/Providers/AppServiceProvider.php
+use Tey\Mod\Facades\Mod;
+
+Mod::layout('modules')->kind('subscriber', in: 'Modules/{module}/Subscribers');
+```
+
+### Discovering Another File Type
+
+`discovery.kinds` is keyed by file type id. The built-in layouts call their Artisan commands `command`, so those are discovered already. To discover a file type of your own, map its id to what it is discovered as:
+
+```php
+// app/Providers/AppServiceProvider.php
+use Tey\Mod\Facades\Mod;
+
+Mod::layout('modules')->kind('handler', in: 'Modules/{module}/Handlers');
+```
 
 ```php
 // config/mod.php
 'discovery' => [
-    'kinds' => ['console' => 'command'],
+    'kinds' => ['handler' => 'listener'],
 ],
 ```
+
+A key that isn't a file type of the active layout stops the app with an error listing the layout's file type ids.
 
 ### Where Discovery Looks
 
@@ -29,6 +49,8 @@ A file type is discovered in its own folder, such as `src/Domain/<Domain>/Listen
 
 ```php
 // app/Providers/AppServiceProvider.php
+use Tey\Mod\Facades\Mod;
+
 Mod::layout('ddd')->kind('listener', in: '{domain+}/Listeners', discoverAnywhere: true, except: ['Tests']);
 ```
 
@@ -65,7 +87,7 @@ Document::factory();                 // App\Modules\Knowledge\Database\Factories
 Gate::getPolicyFor(Document::class); // App\Modules\Knowledge\Policies\DocumentPolicy
 ```
 
-The model needs no `newFactory()` method and the policy no `Gate::policy()` call. A policy your application registers for a model with `Gate::policy()` is kept. A factory resolver your application sets after mod (`Factory::guessFactoryNamesUsing()`) replaces mod's, as it would replace any earlier one. Turn either off with `'discovery.factories' => false` or `'discovery.policies' => false`.
+The model needs no `newFactory()` method and the policy no `Gate::policy()` call. Both lookups read the discovered classes, so `'discovery.enabled' => false` turns them off too. A policy your application registers for a model with `Gate::policy()` is kept. A factory resolver your application sets after mod (`Factory::guessFactoryNamesUsing()`) replaces mod's, as it would replace any earlier one. Turn either off with `'discovery.factories' => false` or `'discovery.policies' => false`.
 
 ## Caching
 
@@ -103,4 +125,4 @@ public function register(): void
 }
 ```
 
-The candidates are paths relative to the application. The definition says which file type (and discovery type) is being collected, so candidates can be scoped per type. Mod still decides which candidates are registered, in what order, and how.
+The candidates are paths relative to the application. The definition says which file type (and discovery type) is being collected, so candidates can be scoped per type. Mod still decides which candidates are registered, in what order, and how. `DiscoveryRegistrar::register()` also turns on factory and policy lookup, unless `discovery.factories` or `discovery.policies` is `false`.
