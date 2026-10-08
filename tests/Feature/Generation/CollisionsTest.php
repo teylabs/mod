@@ -69,3 +69,34 @@ it('refuses related artifacts that collide with each other', function () {
         expect($workspace->files())->toBe(['app/Modules/Billing/Models/Invoice.php']);
     });
 });
+
+it('exits 0 when every file of the plan already exists, as make:* does', function () {
+    Workspace::run('modules', function (Workspace $workspace) {
+        $workspace->write('app/Modules/Billing/Models/Invoice.php', '<?php // mine');
+        $workspace->write('app/Modules/Billing/Database/Factories/InvoiceFactory.php', '<?php // mine');
+
+        $workspace->artisan('mod:model', ['name' => 'Invoice', '--in' => 'Billing', '--factory' => true])
+            ->expectsOutputToContain('app/Modules/Billing/Models/Invoice.php already exists.')
+            ->expectsOutputToContain('app/Modules/Billing/Database/Factories/InvoiceFactory.php already exists.')
+            ->doesntExpectOutputToContain('Nothing was written.')
+            ->assertSuccessful();
+    });
+});
+
+it('exits 1 when a file that does not exist yet is not written', function (array $existing, array $options) {
+    Workspace::run('modules', function (Workspace $workspace) use ($existing, $options) {
+        foreach ($existing as $path) {
+            $workspace->write($path, '<?php // mine');
+        }
+
+        $workspace->artisan('mod:model', ['name' => 'Invoice', '--in' => 'Billing', ...$options])
+            ->expectsOutputToContain('Nothing was written.')
+            ->assertFailed();
+
+        expect($workspace->files())->toBe($existing);
+    });
+})->with([
+    'the factory exists, the model does not' => [['app/Modules/Billing/Database/Factories/InvoiceFactory.php'], ['--factory' => true]],
+    'both exist, the migration is new' => [['app/Modules/Billing/Database/Factories/InvoiceFactory.php', 'app/Modules/Billing/Models/Invoice.php'], ['--factory' => true, '--migration' => true]],
+    '--force asks to overwrite the model' => [['app/Modules/Billing/Database/Factories/InvoiceFactory.php', 'app/Modules/Billing/Models/Invoice.php'], ['--factory' => true, '--force' => true]],
+]);

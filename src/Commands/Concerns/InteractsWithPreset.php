@@ -15,6 +15,7 @@ use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\CollisionPolicy;
 use Tey\Mod\Generation\ExistingArtifacts;
 use Tey\Mod\Generation\GenerationPlan;
+use Tey\Mod\Placement\Collision;
 use Tey\Mod\Placement\CollisionDiagnoser;
 use Tey\Mod\Placement\CollisionKind;
 use Tey\Mod\Placement\PlacementContext;
@@ -603,12 +604,31 @@ trait InteractsWithPreset
         $collisions = $plan->collisions(new CollisionDiagnoser, $this->existingArtifacts(), $overwritePrimary);
 
         if ($collisions !== []) {
-            throw GenerationRefused::collisions($collisions,
-                duplicatePrimary: ! $overwritePrimary && count($collisions) === 1
-                    && $collisions[0]->kind === CollisionKind::Path
-                    && $collisions[0]->artifact->equals($plan->primary),
-            );
+            throw GenerationRefused::collisions($collisions, nothingMissing: ! $overwritePrimary && $this->everyFileExists($plan, $collisions));
         }
+    }
+
+    /**
+     * Whether every file the plan would write already exists, and no class
+     * clashes with one elsewhere: then nothing new was held back.
+     *
+     * @param  list<Collision>  $collisions
+     */
+    private function everyFileExists(GenerationPlan $plan, array $collisions): bool
+    {
+        foreach ($collisions as $collision) {
+            if ($collision->kind !== CollisionKind::Path) {
+                return false;
+            }
+        }
+
+        foreach ([$plan->primary, ...$plan->generated()] as $artifact) {
+            if (! is_file($this->existingArtifacts()->absolute($artifact->path()))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -620,7 +640,7 @@ trait InteractsWithPreset
             $this->components->error($line);
         }
 
-        return $exception instanceof GenerationRefused && $exception->duplicatePrimary ? self::SUCCESS : self::FAILURE;
+        return $exception instanceof GenerationRefused && $exception->nothingMissing ? self::SUCCESS : self::FAILURE;
     }
 
     /**
