@@ -1,6 +1,9 @@
 # Path-based git attributes
 # https://www.kernel.org/pub/software/scm/git/docs/gitattributes.html
 
+# Stubs are copied byte for byte into generated files: keep them LF on every OS.
+*.stub text eol=lf
+
 # Ignore all test and development files with "export-ignore".
 /.github            export-ignore
 /.gitattributes     export-ignore
