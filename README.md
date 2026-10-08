@@ -232,9 +232,11 @@ php artisan mod:listener Knowledge:GenerateEmbeddings --event=DocumentUploaded
 
 `php artisan list mod` shows every command your layout has. `make:*` is untouched and keeps writing to Laravel's default folders.
 
+Every command is `mod:<file type>`. A hyphenated one also works without the dash, so `mod:view-model` can be typed as `mod:viewmodel` and `mod:value-object` as `mod:valueobject`. Running a command your layout doesn't have names the layouts that have it.
+
 #### Related Files
 
-Options such as `-m`, `-f`, `--policy`, `--requests` and `--all` create the related files in the same module, as in the trees above. The model links its factory, so `Document::factory()` works wherever the factory lives.
+Options such as `-m`, `-f`, `--policy`, `--requests` and `--all` create the related files in the same module, as in the trees above. `Document::factory()` finds the module's factory through [auto-discovery](#auto-discovery). `mod:model -f` also writes a `newFactory()` method into the model, so the model keeps working without mod.
 
 `mod:*` checks every file it is about to write before writing any of them. When one already exists, it prints an error and writes nothing. It exits with 0 when every file it would write already exists, as `make:*` does, and with 1, printing "Nothing was written.", when it holds back a file that doesn't exist yet.
 
@@ -253,9 +255,9 @@ php artisan mod:model Knowledge:Document            # the short form: value, col
 When there are two values, `--in` and the short form take them in order, separated by `/`:
 
 ```bash
-php artisan mod:handler Handler --feature=Knowledge --slice=IndexDocument
-php artisan mod:handler Handler --in=Knowledge/IndexDocument
-# -> app/Knowledge/IndexDocument/Handler.php
+php artisan mod:handler --feature=Knowledge --slice=IndexDocument
+php artisan mod:handler --in=Knowledge/IndexDocument
+# -> app/Knowledge/IndexDocument/Handler.php (a slice's handler has a fixed name, so it takes none)
 ```
 
 | Layout | Options | Values |
@@ -267,6 +269,13 @@ php artisan mod:handler Handler --in=Knowledge/IndexDocument
 | `ddd` | `--domain` (one or more folders) | `Knowledge`, or `Knowledge.Search` for `src/Domain/Knowledge/Search` |
 
 Commands in `features` and `slices` go to `app/Console/Commands` when you leave the value out.
+
+A value names a folder. A value that differs from an existing module only by case uses that module: `mod:model knowledge:Note` prints "Using existing module Knowledge (you typed knowledge)." and writes to `app/Modules/Knowledge`. A near miss such as `Knowledg` asks whether you meant an existing module or a new one. Without a terminal to ask in, such as with `--no-interaction` or in CI, it starts the new module and says so:
+
+```bash
+php artisan mod:model Knowledg:Note --no-interaction
+# ->  INFO  Created new module Knowledg (existing: Agents, Knowledge).
+```
 
 ### The DDD Layout
 
@@ -292,11 +301,11 @@ php artisan mod:action Knowledge:IndexDocument
 # -> src/Domain/Knowledge/Actions/IndexDocument.php
 ```
 
-`mod:value` and `mod:view-model` complete the set, and laravel-ddd's command names work as aliases (`mod:data`, `mod:value-object`, `mod:viewmodel`). See [docs/layouts.md](docs/layouts.md#the-ddd-layout) for every folder and for adding a layer such as `src/Infrastructure`.
+`mod:value-object` and `mod:view-model` complete the set, and laravel-ddd's command names work as aliases (`mod:data`, `mod:value`, `mod:viewmodel`). See [docs/layouts.md](docs/layouts.md#the-ddd-layout) for every folder and for adding a layer such as `src/Infrastructure`.
 
 ### Starter Stubs and Base Classes
 
-`mod:dto`, `mod:view-model`, `mod:value` and `mod:action` start as plain Laravel-style classes, in any layout that has them (`modules` and `ddd` have all four). When [spatie/laravel-data](https://github.com/spatie/laravel-data), [spatie/laravel-view-models](https://github.com/spatie/laravel-view-models) or [lorisleiva/laravel-actions](https://github.com/lorisleiva/laravel-actions) is installed, mod uses it instead:
+`mod:dto`, `mod:view-model`, `mod:value-object` and `mod:action` start as plain Laravel-style classes, in any layout that has them (`modules` and `ddd` have all four). When [spatie/laravel-data](https://github.com/spatie/laravel-data), [spatie/laravel-view-models](https://github.com/spatie/laravel-view-models) or [lorisleiva/laravel-actions](https://github.com/lorisleiva/laravel-actions) is installed, mod uses it instead:
 
 ```bash
 php artisan mod:dto Knowledge:DocumentData
@@ -350,10 +359,11 @@ It starts as an empty class. To start from your own stub, add `stubs/mod.validat
 
 ### Self-Contained Modules
 
-Keep everything a feature needs in one folder, so you can copy it to the next project. The `modules` layout keeps models, migrations, factories, actions, DTOs, view models, value objects, events, listeners and jobs inside each module. Build two modules, Knowledge and Agents:
+Keep everything a feature needs in one folder, so you can copy it to the next project. The `modules` layout keeps models, migrations, factories, policies, controllers, actions, DTOs, view models, value objects, events, listeners and jobs inside each module. Build two modules, Knowledge and Agents:
 
 ```bash
 php artisan mod:model Knowledge:Document -mf --controller --resource --requests
+php artisan mod:policy Knowledge:DocumentPolicy --model=Document
 php artisan mod:action Knowledge:IndexDocument
 php artisan mod:dto Knowledge:DocumentData
 php artisan mod:event Knowledge:DocumentUploaded
@@ -362,7 +372,7 @@ php artisan mod:view-model Knowledge:ShowDocument
 
 php artisan mod:model Agents:Conversation -m
 php artisan mod:action Agents:AnswerQuestion
-php artisan mod:value Agents:TokenUsage
+php artisan mod:value-object Agents:TokenUsage
 php artisan mod:job Agents:GenerateReply
 ```
 
@@ -401,6 +411,8 @@ app/Modules/
     │   └── GenerateEmbeddings.php
     ├── Models/
     │   └── Document.php
+    ├── Policies/
+    │   └── DocumentPolicy.php
     ├── Requests/
     │   ├── StoreDocumentRequest.php
     │   └── UpdateDocumentRequest.php
@@ -410,9 +422,42 @@ app/Modules/
 
 </details>
 
-The DTO and the view model extend the shared base classes in `app/Support`, which the first `mod:dto` and `mod:view-model` write once.
+Inside a module, `--model=Document` means the module's `Document`, so the policy imports `App\Modules\Knowledge\Models\Document` and `Gate::getPolicyFor(Document::class)` finds it. The DTO and the view model extend the shared base classes in `app/Support`, which the first `mod:dto` and `mod:view-model` write once.
 
-Each module is one folder, and its migrations, listeners and factories come with it to another project that uses the `modules` layout: copy the folder, run `php artisan mod:bases` once.
+#### Module Routes
+
+Mod doesn't discover route files. Load a module's routes from a provider in the module, which discovery registers:
+
+```bash
+php artisan mod:provider Knowledge:Knowledge
+# -> app/Modules/Knowledge/Providers/KnowledgeServiceProvider.php
+```
+
+```php
+// app/Modules/Knowledge/Providers/KnowledgeServiceProvider.php
+public function boot(): void
+{
+    $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+}
+```
+
+```php
+// app/Modules/Knowledge/routes/web.php
+<?php
+
+use App\Modules\Knowledge\Controllers\DocumentController;
+use Illuminate\Support\Facades\Route;
+
+Route::middleware('web')->group(function () {
+    Route::resource('documents', DocumentController::class);
+});
+```
+
+`php artisan route:list` shows the module's routes, and `route:cache` includes them.
+
+#### Copying a Module
+
+Each module is one folder, and its routes, migrations, listeners, factories and policies come with it. The other project needs mod installed with `'layout' => 'modules'` in `config/mod.php`. Then copy the folder and run `php artisan mod:bases` once to write the base classes its DTOs and view models extend.
 
 To define a layout from scratch instead, see [Defining a Layout](docs/layouts.md#defining-a-layout).
 
@@ -437,11 +482,13 @@ To define a layout from scratch instead, see [Defining a Layout](docs/layouts.md
 `php artisan optimize` caches discovery, and `php artisan optimize:clear` clears it:
 
 ```bash
-php artisan mod:discovery-cache   # also run by optimize
-php artisan mod:discovery-clear   # also run by optimize:clear
+php artisan mod:cache   # also run by optimize
+php artisan mod:clear   # also run by optimize:clear
 ```
 
 Like Laravel's own caches, the discovery cache doesn't pick up new classes. Run `php artisan optimize:clear` after adding a provider, command or listener while it exists.
+
+`mod:cache` counts the files it found but didn't register as "rejected", and says why. Plain classes such as `app/Models/User.php` need nothing; [Caching](docs/discovery.md#caching) explains each reason.
 
 ## FAQ
 
@@ -462,7 +509,7 @@ Yes. A layout that writes outside `app/`, such as `ddd`'s `src/Domain`, needs a 
 | Generators | `module:make-*` | `make:*` with `--module=` | `mod:*`, built on `make:*` |
 | Discovered | providers | providers, commands, migrations, factories, policies, listeners, Blade components, translations | providers, commands, listeners, subscribers, migrations, factories, policies |
 
-Both are mature. nwidart/laravel-modules also enables and disables modules at runtime and handles per-module assets. InterNACHI/modular also loads Blade components and translations. Mod doesn't load per-module routes, views, translations or assets yet; routes and views are planned. Choose mod to keep a structure you already have, or to use DDD, feature folders or vertical slices instead of one module format.
+Both are mature. nwidart/laravel-modules also enables and disables modules at runtime and handles per-module assets. InterNACHI/modular also loads Blade components and translations. Mod doesn't discover per-module routes, views, translations or assets; a module loads its routes from its own provider, as in [Module Routes](#module-routes). Choose mod to keep a structure you already have, or to use DDD, feature folders or vertical slices instead of one module format.
 
 ## Documentation
 

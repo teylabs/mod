@@ -51,13 +51,14 @@ The other layouts put each file in a folder below its group:
 | `mod:seeder` | `Database/Seeders` | `Database/Seeders` | `Database/Seeders` | `Database/Seeders` |
 | `mod:test` | `tests/Feature/Modules/<Module>` | `tests/Feature/<Feature>` | `tests/Feature/<Feature>/<Slice>` | `tests/Feature/<Domain>` |
 | `mod:validator` | | `Validation` | `<Slice>/Validator.php` | |
-| `mod:value` | `ValueObjects` | | | `ValueObjects` |
+| `mod:value-object` | `ValueObjects` | | | `ValueObjects` |
 | `mod:view-model` | `ViewModels` | | | `ViewModels` |
 
-- A slice's classes have fixed names, so `mod:handler Handler --in=Knowledge/IndexDocument` writes `app/Knowledge/IndexDocument/Handler.php`.
+- A slice's classes have fixed names, so they need no name: `mod:handler --in=Knowledge/IndexDocument` writes `app/Knowledge/IndexDocument/Handler.php`. A different name is not used, and the command says so.
 - `mod:test --unit` writes to `tests/Unit` instead of `tests/Feature`.
 - `mod:provider` adds `ServiceProvider` to the name, except in `ddd`, which names providers as given, as laravel-ddd and `make:provider` do.
-- In `modules`, `mod:dto` answers to `mod:data` as well.
+- In `modules`, `mod:dto` answers to `mod:data` as well, and `mod:value-object` to `mod:value`.
+- Every hyphenated command also works without the dash: `mod:viewmodel`, `mod:valueobject`, `mod:jobmiddleware`. This applies to your own file types too, unless the name is already taken.
 - In `features` and `slices`, `mod:command` without a feature writes to `app/Console/Commands`.
 
 ## The DDD Layout
@@ -86,7 +87,7 @@ The DDD commands also answer to laravel-ddd's names:
 | Command | Aliases |
 | --- | --- |
 | `mod:dto` | `mod:data`, `mod:data-transfer-object`, `mod:datatransferobject` |
-| `mod:value` | `mod:value-object`, `mod:valueobject` |
+| `mod:value-object` | `mod:value`, `mod:valueobject` |
 | `mod:view-model` | `mod:viewmodel` |
 
 Add the namespace to your `composer.json` autoload, then run `composer dump-autoload`:
@@ -104,14 +105,14 @@ DTOs, view models, value objects and actions start from [starter stubs](#starter
 
 ## Starter Stubs
 
-`mod:dto`, `mod:view-model`, `mod:value` and `mod:action` start as plain Laravel-style classes. When a package for them is installed, mod uses it instead:
+`mod:dto`, `mod:view-model`, `mod:value-object` and `mod:action` start as plain Laravel-style classes. When a package for them is installed, mod uses it instead:
 
 | Command | When installed | Otherwise |
 | --- | --- | --- |
 | `mod:dto` | [spatie/laravel-data](https://github.com/spatie/laravel-data): extends `Data` | extends a `DataTransferObject` base with `fromArray()` and `toArray()` |
 | `mod:view-model` | [spatie/laravel-view-models](https://github.com/spatie/laravel-view-models): extends `ViewModel` | extends a `ViewModel` base |
 | `mod:action` | [lorisleiva/laravel-actions](https://github.com/lorisleiva/laravel-actions): `use AsAction;` | a plain class with `handle()` |
-| `mod:value` | | a plain class with a constructor |
+| `mod:value-object` | | a plain class with a constructor |
 
 The `modules` and `ddd` layouts have all four commands. In any layout, a file type with the id `dto` (or `data`), `view-model`, `value-object` (or `value`) or `action` starts from the matching starter. Add one to the `features` layout and it starts as a DTO:
 
@@ -131,7 +132,7 @@ php artisan mod:dto Knowledge:DocumentData
 # ->  INFO  DTO [app/Features/Knowledge/Data/DocumentData.php] created successfully.
 ```
 
-A file type with another id uses a starter through `stub:`, for example `->kind('payload', in: 'Features/{feature}/Payloads', stub: Starters::dto())` with `use Tey\Mod\Layout\BuiltIn\Starters;`.
+A file type with another id uses a starter through `stub:`, for example `->kind('payload', in: 'Features/{feature}/Payloads', stub: Starters::dto())` with `use Tey\Mod\Generation\Starters;`. `Starters::dto(baseIn: 'Shared/Data')` and `Starters::viewModel(baseIn: ...)` put the generated base below the file type's own root instead of `bases_path`, as `ddd` does.
 
 ### Generated Base Classes
 
@@ -193,7 +194,7 @@ public function boot(): void
         ->root('app', 'App\\', 'app', fn (Root $root) => $root
             ->kind('controller', in: 'Modules/{domain}/Controllers', suffix: 'Controller'))
         ->kind('factory', in: 'domain:{domain}/Database/Factories', suffix: 'Factory')
-        ->relation('factory', from: 'model', to: 'factory')
+        ->relation('model-factory', from: 'model', to: 'factory')
         ->exclude('App\\Support\\');
 }
 ```
@@ -215,6 +216,14 @@ Calling `Mod::layout()` with an existing name extends that layout. Repeating a f
 Mod::layout('features')->kind('job', in: 'Features/{feature}/Queue');
 ```
 
+`in:` is relative to the file type's root, not to the group folder, so the job above writes `app/Features/Knowledge/Queue/ExtractText.php`. A repeated file type keeps its root. A new one goes in the layout's first root, unless `in:` starts with another root's name, as in [Adding a Layer](#adding-a-layer):
+
+| Layout | First root | Other roots |
+| --- | --- | --- |
+| `laravel`, `type-first` | `app` | `database/factories`, `database/seeders`, `database/migrations`, `config`, `tests` |
+| `modules`, `features`, `slices` | `app` | `tests` |
+| `ddd` | `src/Domain` (`domain`) | `app/Modules` (`application`), `tests` |
+
 The layout is checked the first time it is used. Every problem is reported at once, each naming the call that caused it.
 
 ### Roots
@@ -234,18 +243,22 @@ The layout is checked the first time it is used. Every problem is reported at on
 | `command:` | `'mod:repo'` | the command name, `mod:<id>` by default; `false` for none |
 | `aliases:` | `['mod:repository']` | more command names |
 | `label:` | `'DTO'` | the noun the command prints: "DTO [...] created successfully." |
-| `fallback:` | `'Console/Commands'` | the folder used when the group is left out |
-| `discoverAnywhere:` | `true` | discovered in every folder below the group, with `except: ['Tests']` to skip some (see [Discovery](discovery.md)) |
+| `ungrouped:` | `'Console/Commands'` | the folder used when the group is left out |
+| `discover:` | `'anywhere'` | discovered in every folder below the group instead of its own folder (`'folder'`, the default), with `discoverExcept: ['Tests']` to skip some (see [Discovery](discovery.md)) |
 
 A file type with no matching Laravel generator starts as an empty class. Put a `stubs/mod.<type>.stub` in your application to change it.
 
 ### Related Files
 
-`relation($id, from: ..., to: ...)` connects two file types. It drives options such as `--factory` and `--policy`, and how one class refers to another.
+`relation($id, from: ..., to: ...)` connects two file types. It drives options such as `--factory` and `--policy`, and how one class refers to another. An id names both ends, `<from>-<to>`, so the built-in layouts have `model-factory`, `model-seeder`, `model-policy`, `model-controller`, `model-migration`, `factory-model`, `listener-event`, `controller-store-request`, `controller-update-request`, `model-store-request` and `model-update-request`, and `slices` adds `handler-request` and `request-model`. Repeat an id to change that relation in a built-in layout. This names a model's seeder `DocumentDataSeeder` instead of `DocumentSeeder`:
+
+```php
+Mod::layout('modules')->relation('model-seeder', name: ['suffix' => 'Data']);
+```
 
 - `name:` says how the related name derives from the original: `'explicit'` (always named by the caller), or a map of `strip-suffix`, `prefix` and `suffix`, such as `['prefix' => 'Store']`. The related type's own `suffix:` or `fixed:` still applies.
 - `scope: ['nested' => 'drop']` stops nested folders carrying over. By default they do: `Models/Archived/Document` relates to `Policies/Archived/DocumentPolicy`.
-- `policy:` is `'generate'` (create the related file), `'reference'` (refer to it only) or `'none'`.
+- `mode:` is `'generate'` (create the related file), `'reference'` (refer to it only) or `'none'`.
 
 ### Exclusions
 

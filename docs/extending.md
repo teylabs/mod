@@ -36,7 +36,9 @@ php artisan mod:query-builder Knowledge:Chunk
 
 - Repeating an existing file type changes only the arguments you pass. Aliases add up: `->kind('dto', aliases: ['mod:payload'])` keeps `mod:data` and the DTO's other aliases.
 - Without `label:`, the output names the type's id in title case (`Builder`). File types with a Laravel generator keep Laravel's wording.
+- A hyphenated command or alias also gets a dash-free alias, so `mod:query-builder` works as `mod:querybuilder`. When that name is already a command or alias, the existing one keeps it.
 - A command or alias that another file type already uses stops the layout from compiling, with an error naming both.
+- `Mod::hasLayout('ddd')` checks that a layout exists before extending it, and `Mod::layouts()` lists every layout name.
 - The layout methods are listed in [Defining a Layout](layouts.md#defining-a-layout).
 
 ### Registering Stubs
@@ -72,7 +74,7 @@ class {{ class }} extends Builder
 4. the starter for the file type's id: `dto`, `view-model`, `value-object` or `action` (see [Starter Stubs](layouts.md#starter-stubs));
 5. the Laravel generator's stub, or mod's empty class.
 
-A file type with another id uses a starter through `stub:`, such as `->kind('payload', in: '{domain+}/Payloads', stub: Starters::dto())` with `use Tey\Mod\Layout\BuiltIn\Starters;`.
+A file type with another id uses a starter through `stub:`, such as `->kind('payload', in: '{domain+}/Payloads', stub: Starters::dto())` with `use Tey\Mod\Generation\Starters;`.
 
 | Placeholder | Filled with |
 | --- | --- |
@@ -226,7 +228,8 @@ Every `mod:*` command is a subclass of the matching Laravel command, such as `Te
 | `placementInput()` | the placement in `--in` syntax, for example from your own option or prompt |
 | `placementContext()` | the placement context the command resolves against |
 | `placementOptions()` | which placement options the command adds: option name => the dimension it sets, with `null` for `--in`. Return `[]` to add none; related commands then receive the `Group:Name` form |
-| `resolvePreset()`, `kindId()` | the layout and file type, for commands not registered through the layout |
+| `resolveLayout()`, `kindId()` | the layout and file type, for commands not registered through the layout |
+| `layout()`, `kind()` | read the compiled layout and the command's file type from inside a hook |
 | `stubDefinition()` | the `Stub` the class is generated from: by default the one registered with `Mod::stubs()`, else the layout's |
 | `collisionPolicy()` | `CollisionPolicy::Refuse` (mod checks every file before writing) or `CollisionPolicy::Native` (the native generator's own check and `--force` decide) |
 | `plansEagerly()`, `resolvePlan()` | plan from inside your own `handle()` |
@@ -234,7 +237,11 @@ Every `mod:*` command is a subclass of the matching Laravel command, such as `Te
 | `nativePathAllowed()` | on `MigrationCommand`: let `--path` and `--realpath` through |
 | `reportRefusal(ModException $e)`, `reportReference(ResolvedArtifact $target)` | the only places the commands print on their own |
 
-`Preset::dimensions()` lists the layout's dimensions in order, and `Preset::placementOptions()` maps each one to its option name. Every exception mod throws extends `Tey\Mod\Exceptions\ModException`.
+These hooks are the API a subclass can rely on. The commands' other protected methods are internal and may change in any release.
+
+`Mod::current()` returns the active layout, compiled (`Tey\Mod\Layout\CompiledLayout`): `dimensionNames()` lists its dimensions in order, and `placementOptions()` maps each one to its option name.
+
+Every exception mod throws extends `Tey\Mod\Exceptions\ModException`. `UnknownKind` names a file type the layout doesn't have, `InvalidName` a class name the file type can't take, and `InvalidLayout` a layout that isn't defined, a `mod.layout` value that isn't a layout name, or a layout definition with errors.
 
 ## Turning Commands Off
 

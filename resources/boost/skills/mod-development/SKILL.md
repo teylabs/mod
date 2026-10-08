@@ -21,17 +21,19 @@ Work within the application's layout and existing conventions. Mod places files 
 
 ## Generate Files
 
-Always pass the class name and the placement, so no command prompts or fails for missing input:
+Always pass the class name and the placement, so no command prompts or fails for missing input. File types with a fixed name, such as a slice's handler, need only the placement:
 
 ```bash
 php artisan mod:model Knowledge:Document -mf
 php artisan mod:model Document --in=Knowledge
 php artisan mod:model Document --module=Knowledge
-php artisan mod:handler Handler --in=Knowledge/IndexDocument   # slices: feature, then slice
+php artisan mod:handler --in=Knowledge/IndexDocument           # slices: feature, then slice; writes Handler.php
 php artisan mod:model Report --domain=Knowledge.Search        # ddd: nested domain
 ```
 
 - The first three commands are equivalent. Use one form per command.
+- Match the existing group folder's name. A case-only difference uses the existing folder (`Using existing module Knowledge (you typed knowledge).`). A near miss such as `Knowledg` prompts in a terminal; pass `--no-interaction` so the command never waits for input. `Created new module <Name>` in the output means a new group folder was made; if that wasn't intended, it was a typo, so delete the folder and rerun.
+- Hyphenated commands also work without the dash (`mod:viewmodel`). A command the layout lacks exits 1 and names the layouts that have it; don't switch layouts to get it.
 - Without placement, a command exits with an error naming the options it accepts. The exceptions are `mod:command` in `features` and `slices`, which then writes to `app/Console/Commands`, and `type-first`, whose feature folder is optional.
 - Each `mod:*` command is Laravel's `make:*` command underneath, so Laravel's options pass through: `-m`, `-f`, `--policy`, `--controller`, `--resource`, `--requests` (requests need a resource controller), `--all`, `--event=`, `--model=`. Related files land in the same module.
 - When the file already exists, the command prints `<path> already exists.`, writes nothing and exits 0, as `make:*` does. Read the output instead of trusting the exit code.
@@ -42,7 +44,7 @@ Inspect the generated namespace, imports and related files, then run the tests r
 
 ## Self-Contained Modules
 
-In `modules`, everything a module needs (models, migrations, factories, policies, controllers, requests, actions, DTOs, events, listeners, jobs) is under `app/Modules/<Module>`. A module copied into another application that uses the same layout brings its migrations, listeners and factories with it. Its DTOs and view models extend base classes in `app/Support`; run `php artisan mod:bases` in the new application to write any that are missing.
+In `modules`, everything a module needs (models, migrations, factories, policies, controllers, requests, actions, DTOs, events, listeners, jobs) is under `app/Modules/<Module>`. Route files aren't discovered: load a module's routes from its own provider (`mod:provider Knowledge:Knowledge`, then `$this->loadRoutesFrom(__DIR__.'/../routes/web.php')` in `boot()`), which discovery registers. A module copied into another application that has mod installed with the same layout brings its routes, migrations, listeners, factories and policies with it. Its DTOs and view models extend base classes in `app/Support`; run `php artisan mod:bases` in the new application to write any that are missing.
 
 ## Stubs and Base Classes
 
@@ -59,6 +61,7 @@ In `modules`, everything a module needs (models, migrations, factories, policies
 - Migration folders the layout places, such as `app/Modules/<Module>/Database/Migrations`, are added to the migrator. A model's factory and policy are found through the layout.
 - Check registration with `php artisan event:list`, `php artisan list` and `php artisan migrate:status`.
 - `php artisan optimize` writes the discovery cache (`mod:cache`), and `optimize:clear` removes it (`mod:clear`). The cache doesn't pick up new classes: after adding a provider, command or listener while it exists, run `php artisan mod:clear`.
+- `mod:cache` reports files it found but didn't register as "rejected", with a reason; `mod:cache -v` lists them. Files "placed by no file type" need nothing.
 - `config/mod.php` `discovery.enabled`, `discovery.kinds`, `discovery.factories` and `discovery.policies` control what is discovered.
 
 ## What Not to Do
