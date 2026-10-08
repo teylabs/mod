@@ -16,7 +16,8 @@ use Tey\Mod\Relation\RelationResolution;
  * The model is --model (placed as the model kind when bare), else the target
  * of a declared factory -> model relation, else the native guess. When
  * Laravel's naming convention would not link the pair, the factory names
- * its model with $model, fully qualified (older native stubs import nothing).
+ * its model with $model: by its short name when the stub imports it, else
+ * fully qualified (older native stubs import nothing).
  */
 class FactoryCommand extends FactoryMakeCommand implements GeneratorAdapter
 {
@@ -62,13 +63,25 @@ class FactoryCommand extends FactoryMakeCommand implements GeneratorAdapter
             && ($this->option('model') || $model !== $nativeModel)) {
             $stub = preg_replace(
                 '/(class '.preg_quote($basename, '/').' extends Factory\R\{\R)/',
-                '$1    protected $model = \\'.$model.'::class;'."\n\n",
+                '$1    protected $model = '.$this->modelReference($stub, $model, $basename).'::class;'."\n\n",
                 $stub,
                 1,
             ) ?? $stub;
         }
 
         return $stub;
+    }
+
+    /**
+     * The model by its short name when the stub imports it (Laravel's does),
+     * else fully qualified; never a short name that clashes in the file.
+     */
+    private function modelReference(string $stub, string $model, string $factory): string
+    {
+        $short = class_basename($model);
+        $imported = preg_match('/^use '.preg_quote($model, '/').';$/m', $stub) === 1;
+
+        return $imported && ! in_array($short, ['Factory', $factory], true) ? $short : '\\'.$model;
     }
 
     private function modelClass(): string

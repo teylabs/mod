@@ -62,7 +62,7 @@ it('runs the whole loop on feature-first', function () {
         expect($app->read("app/Features/Billing/Models/Invoice{$t}.php"))
             ->toContain("HasFactory<\\{$ns}\\Database\\Factories\\Invoice{$t}Factory>")
             ->toContain('function newFactory()')
-            ->and($app->read("app/Features/Billing/Database/Factories/Invoice{$t}Factory.php"))->toContain("protected \$model = \\{$ns}\\Models\\Invoice{$t}::class;")
+            ->and($app->read("app/Features/Billing/Database/Factories/Invoice{$t}Factory.php"))->toContain("use {$ns}\\Models\\Invoice{$t};\n")->toContain("protected \$model = Invoice{$t}::class;")
             ->and($app->read("app/Features/Billing/Http/Controllers/Invoice{$t}Controller.php"))
             ->toContain("use {$ns}\\Http\\Requests\\StoreInvoice{$t}Request;")
             ->toContain("use {$ns}\\Models\\Invoice{$t};");
