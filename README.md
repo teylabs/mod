@@ -5,7 +5,9 @@
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/teylabs/mod/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/teylabs/mod/actions?query=workflow%3A%22Fix+PHP+code+style+issues%22+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/tey/mod.svg?style=flat-square)](https://packagist.org/packages/tey/mod)
 
-Mod is a lightweight toolkit for modular development in Laravel. Choose or extend common layouts like DDD and modular monoliths, or create your own. Laravel's generators, auto-discovery, migrations and factories keep working.
+Mod is a lightweight toolkit for modular development in Laravel.
+
+Organizing an app by module, feature or domain usually means fighting Laravel's defaults: `make:*` writes to `app/Models`, and every module's providers, commands and listeners need registering by hand. Mod makes Laravel's own tools work in the structure you choose. Pick or extend a common layout like DDD or a modular monolith, or create your own.
 
 ```bash
 php artisan mod:model Billing:Invoice -mf   # with 'layout' => 'modules'
