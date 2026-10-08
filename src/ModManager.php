@@ -39,7 +39,7 @@ final readonly class ModManager
         return $this->layouts->layout($name);
     }
 
-    public function has(string $name): bool
+    public function hasLayout(string $name): bool
     {
         return $this->layouts->has($name);
     }
@@ -47,7 +47,7 @@ final readonly class ModManager
     /**
      * @return list<string>
      */
-    public function names(): array
+    public function layouts(): array
     {
         return $this->layouts->names();
     }

@@ -27,3 +27,14 @@ it('says so when mod.layout is not a layout name', function () {
         expect(fn () => Mod::current())->toThrow(InvalidLayout::class, 'Config [mod.layout] must be a layout name such as "laravel".');
     });
 });
+
+it('says which layouts there are with Mod::hasLayout() and Mod::layouts()', function () {
+    Workspace::run(null, function () {
+        Mod::layout('domains')->root('app', 'App\\', 'app', fn ($root) => $root->kind('model', in: 'Models'));
+
+        expect(Mod::hasLayout('modules'))->toBeTrue()
+            ->and(Mod::hasLayout('domains'))->toBeTrue()
+            ->and(Mod::hasLayout('nope'))->toBeFalse()
+            ->and(Mod::layouts())->toBe(['laravel', 'features', 'slices', 'type-first', 'modules', 'ddd', 'domains']);
+    });
+});
