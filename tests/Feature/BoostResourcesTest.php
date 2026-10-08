@@ -22,10 +22,18 @@ function boostPath(string $path = ''): string
  */
 function boostSkill(string $name): array
 {
-    $contents = (string) file_get_contents(boostPath("skills/{$name}/SKILL.md"));
+    return boostFrontmatter((string) file_get_contents(boostPath("skills/{$name}/SKILL.md")), "skills/{$name}/SKILL.md");
+}
 
-    if (preg_match('/\A---\n(.*?)\n---\n(.*)\z/s', $contents, $matches) !== 1) {
-        throw new RuntimeException("skills/{$name}/SKILL.md has no frontmatter.");
+/**
+ * Split a skill into its YAML frontmatter and body, whatever its line endings.
+ *
+ * @return array{0: array<string, mixed>, 1: string}
+ */
+function boostFrontmatter(string $contents, string $file): array
+{
+    if (preg_match('/\A---\r?\n(.*?)\r?\n---\r?\n(.*)\z/s', $contents, $matches) !== 1) {
+        throw new RuntimeException("{$file} has no frontmatter.");
     }
 
     return [Yaml::parse($matches[1]), $matches[2]];
@@ -119,3 +127,10 @@ it('registers the commands the skill names for a layout in that layout', functio
     'slices' => ['slices', ['mod:handler', 'mod:command']],
     'features' => ['features', ['mod:command']],
 ]);
+
+it('reads skill frontmatter checked out with CRLF line endings', function () {
+    [$frontmatter, $body] = boostFrontmatter("---\r\nname: mod-development\r\nlicense: MIT\r\n---\r\n# Body\r\n", 'SKILL.md');
+
+    expect($frontmatter)->toBe(['name' => 'mod-development', 'license' => 'MIT'])
+        ->and($body)->toBe("# Body\r\n");
+});

@@ -4,6 +4,9 @@
 # Stubs are copied byte for byte into generated files: keep them LF on every OS.
 *.stub text eol=lf
 
+# Laravel Boost reads the guideline and skills as shipped: keep them LF on every OS.
+resources/boost/** text eol=lf
+
 # Ignore all test and development files with "export-ignore".
 /.github            export-ignore
 /.gitattributes     export-ignore
