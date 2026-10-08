@@ -51,6 +51,9 @@ trait PlacesGeneratedClass
 
     private bool $modStubPrepared = false;
 
+    /** The new-group notice, held until the class is written. */
+    private ?string $modNewGroup = null;
+
     public static function supports(ArtifactKind $kind): bool
     {
         return $kind->isClass();
@@ -91,6 +94,7 @@ trait PlacesGeneratedClass
         $this->modStub = null;
         $this->modStubPrepared = false;
         $this->modGroupValues = [];
+        $this->modNewGroup = null;
         $exitCode = self::FAILURE;
 
         try {
@@ -100,10 +104,18 @@ trait PlacesGeneratedClass
                 $this->resolvePlan();
             }
 
-            return $exitCode = parent::execute($input, $output);
+            $exitCode = parent::execute($input, $output);
+
+            // A host handle() that writes the class itself: announce the group once it exists.
+            if ($exitCode === self::SUCCESS && $this->plan !== null && is_file($this->existingArtifacts()->absolute($this->plan->primary->path()))) {
+                $this->announceNewGroup();
+            }
+
+            return $exitCode;
         } catch (ModException $exception) {
             return $exitCode = $this->reportRefusal($exception);
         } finally {
+            $this->modNewGroup = null;
             $plan = $this->currentPlan();
 
             if ($plan !== null) {
@@ -239,14 +251,34 @@ trait PlacesGeneratedClass
             $this->prepareStub();
         }
 
-        if ($newGroup !== null) {
-            $this->components->info($newGroup);
-        }
-
+        // Announced once the class is written: the native command may still refuse (an unknown guard, say).
+        $this->modNewGroup = $newGroup;
         $this->plan = $plan;
         $this->beforeGeneration($plan);
 
         return $plan;
+    }
+
+    /**
+     * The native generator calls this with the built class just before writing
+     * it, after every check of its own: the moment a new group really appears.
+     *
+     * @param  string  $stub
+     * @return string
+     */
+    protected function sortImports($stub)
+    {
+        $this->announceNewGroup();
+
+        return parent::sortImports($stub);
+    }
+
+    private function announceNewGroup(): void
+    {
+        if ($this->modNewGroup !== null) {
+            $this->components->info($this->modNewGroup);
+            $this->modNewGroup = null;
+        }
     }
 
     /**

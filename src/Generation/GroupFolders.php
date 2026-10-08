@@ -80,9 +80,10 @@ final readonly class GroupFolders
                     continue;
                 }
 
+                $kindFolders = self::kindFolders($layout, $rule, $prefix, inside: $index > 0);
                 $existing = array_values(array_filter(
                     $folders,
-                    fn (string $folder): bool => $this->holds($layout, $rule, $prefix, Path::join($parent, $folder)),
+                    fn (string $folder): bool => ! in_array($folder, $kindFolders, true) && $this->holds($layout, $rule, $prefix, Path::join($parent, $folder)),
                 ));
 
                 $replace = static function (string $folder) use ($parts, $index): string {
@@ -177,6 +178,43 @@ final readonly class GroupFolders
         }
 
         return false;
+    }
+
+    /**
+     * The root's own kind folders at the level of the dimension that ends
+     * $prefix: inside one of its groups, the folders that follow it in the
+     * root's templates (Group/Models); beside its groups, the folders in its
+     * place (Models next to the group folders). They are never groups, even
+     * when a kind places classes right in the group and so makes them look
+     * like one.
+     *
+     * @param  list<Segment>  $prefix
+     * @return list<string>
+     */
+    private static function kindFolders(CompiledLayout $layout, TemplateRule $rule, array $prefix, bool $inside): array
+    {
+        $before = $prefix;
+
+        if (! $inside) {
+            array_pop($before);
+        }
+
+        $level = count($before);
+        $folders = [];
+
+        foreach ($layout->rules() as $candidate) {
+            if (! $candidate instanceof TemplateRule || $candidate->root()->path !== $rule->root()->path || ! self::startsLike($candidate->segments(), $before)) {
+                continue;
+            }
+
+            $literal = ($candidate->segments()[$level] ?? null)?->literal;
+
+            if ($literal !== null) {
+                $folders[] = $literal;
+            }
+        }
+
+        return array_values(array_unique($folders));
     }
 
     /**

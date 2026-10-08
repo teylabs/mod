@@ -1,6 +1,9 @@
 <?php
 
+use Illuminate\Support\Facades\Artisan;
 use Pest\TestSuite;
+use Symfony\Component\Console\Output\BufferedOutput;
+use Tey\Mod\Facades\Mod;
 use Tey\Mod\Generation\GroupFolders;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\TestCase;
@@ -203,6 +206,22 @@ it('counts only folders that hold the layout as groups', function () {
     });
 });
 
+it('does not count the kind folders inside a group as nested groups', function () {
+    Workspace::run(null, function (Workspace $workspace) {
+        config()->set('mod.layout', 'ddd');
+        // A root with classes placed right in the group as well, as laravel-ddd's application root has.
+        Mod::layout('ddd')->kind('application-root', in: 'application:{domain+}', nested: true, command: false, priority: 0);
+        $workspace->write('app/Modules/Billing/Controllers/InvoiceController.php', '<?php // mine');
+        $workspace->write('app/Modules/Billing/Requests/StoreInvoiceRequest.php', '<?php // mine');
+        $workspace->write('app/Modules/Billing/Internal/Controllers/AuditController.php', '<?php // mine');
+
+        $result = $workspace->artisan('mod:controller', ['name' => 'ReportController', '--domain' => 'Billing.Reports']);
+
+        expect($result->exitCode)->toBe(0)
+            ->and($result->output)->toContain('Created new domain Billing/Reports (existing: Internal).')
+            ->and($workspace->exists('app/Modules/Billing/Reports/Controllers/ReportController.php'))->toBeTrue();
+    });
+});
 it('matches near misses against the same groups only', function () {
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'slices');
@@ -225,3 +244,29 @@ it('prints the new-group notice once per command, not once per related file', fu
             ->and(substr_count($result->output, 'Created new feature Knowledge'))->toBe(1);
     });
 });
+
+it('says nothing about a new group when the command then refuses', function (string $command, array $parameters) {
+    Workspace::run(null, function (Workspace $workspace) use ($command, $parameters) {
+        config()->set('mod.layout', 'ddd');
+        $workspace->write('src/Domain/Knowledge/Models/Document.php', '<?php // mine');
+
+        // Some native refusals throw: keep what was printed before.
+        $buffer = new BufferedOutput;
+
+        try {
+            $exitCode = Artisan::call($command, [...$parameters, '--no-interaction' => true], $buffer);
+        } catch (Throwable) {
+            $exitCode = 1;
+        }
+
+        $output = $buffer->fetch();
+
+        expect($exitCode)->not->toBe(0)
+            ->and($output)->not->toContain('Created new domain')
+            ->and($workspace->files())->toBe(['src/Domain/Knowledge/Models/Document.php']);
+    });
+})->with([
+    'policy with an unknown guard' => ['mod:policy', ['name' => 'Billing:InvoicePolicy', '--guard' => 'nope']],
+    'observer of an invalid model' => ['mod:observer', ['name' => 'Billing:InvoiceObserver', '--model' => 'Not A Model']],
+    'controller of an unknown type' => ['mod:controller', ['name' => 'Billing:InvoiceController', '--type' => 'nope']],
+]);
