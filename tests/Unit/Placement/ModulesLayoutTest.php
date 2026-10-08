@@ -39,7 +39,7 @@ it('gives the routes file a file identity', function () {
 
 it('requires the module', function () {
     expect(fn () => place(Layouts::modules(), 'model', 'Invoice'))
-        ->toThrow(MissingDimension::class, 'requires a [module]');
+        ->toThrow(MissingDimension::class, 'needs a [module]');
 });
 
 it('keeps relations inside the module', function () {

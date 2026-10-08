@@ -222,7 +222,7 @@ final class LayoutCompiler
                 }
 
                 if (strcasecmp($name, $other) === 0 || levenshtein($name, $other) <= 2) {
-                    $this->issue(PresetIssueCode::UnknownDimension, "->kind('{$kinds[0]}')", "placeholder {{$name}} is used by no other kind; did you mean {{$other}}?");
+                    $this->issue(PresetIssueCode::UnknownDimension, "->kind('{$kinds[0]}')", "placeholder {{$name}} is used by no other file type; did you mean {{$other}}?");
 
                     break;
                 }
@@ -386,7 +386,7 @@ final class LayoutCompiler
             }
 
             if (! in_array($placeholder, $placeholders, true)) {
-                $this->issue(PresetIssueCode::UnknownDimension, $call, "placeholder {{$placeholder}} is used by no kind");
+                $this->issue(PresetIssueCode::UnknownDimension, $call, "placeholder {{$placeholder}} is used by no file type");
 
                 continue;
             }

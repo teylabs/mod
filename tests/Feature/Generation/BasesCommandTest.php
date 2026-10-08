@@ -49,10 +49,12 @@ it('says when mod:bases has nothing to write', function () {
         config()->set('mod.layout', 'laravel');
 
         $workspace->artisan('mod:bases')
-            ->expectsOutputToContain('No kind in this layout extends a generated base class.')
+            ->expectsOutputToContain('No file type in this layout extends a generated base class.')
             ->assertSuccessful();
 
         expect($workspace->files())->toBe([])
-            ->and(Artisan::all())->toHaveKey('mod:bases');
+            ->and(Artisan::all())->toHaveKey('mod:bases')
+            ->and(Artisan::all()['mod:bases']->getDescription())->toBe('Create every missing base class the layout can use, whether or not a class extends it yet')
+            ->and(Artisan::all()['mod:bases']->getHelp())->toContain('every base class the layout\'s file types can extend');
     });
 });

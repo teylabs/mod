@@ -38,7 +38,7 @@ it('reports a target that cannot be placed instead of guessing', function () {
     $resolution = $relations->resolve(place($preset, 'command', 'PruneInvoices'), 'owner');
 
     expect($resolution->isResolved())->toBeFalse()
-        ->and($resolution->reason)->toContain('requires a [feature]');
+        ->and($resolution->reason)->toContain('needs a [feature]');
 });
 
 it('derives names from stems and honours explicit names', function () {

@@ -73,7 +73,7 @@ trait InteractsWithPreset
     public function forKind(Preset $preset, ArtifactKind $kind): static
     {
         if ($kind->command === null) {
-            throw new LogicException("Kind [{$kind->id}] declares no command name.");
+            throw new LogicException("File type [{$kind->id}] declares no command name.");
         }
 
         $this->modPreset = $preset;
@@ -120,7 +120,7 @@ trait InteractsWithPreset
      */
     protected function resolvePreset(): Preset
     {
-        throw new LogicException(static::class.' is not bound to a layout kind; bind it with forKind() or override resolvePreset().');
+        throw new LogicException(static::class.' is not bound to a file type of the layout; bind it with forKind() or override resolvePreset().');
     }
 
     /**
@@ -129,7 +129,7 @@ trait InteractsWithPreset
      */
     protected function kindId(): string
     {
-        throw new LogicException(static::class.' is not bound to a layout kind; bind it with forKind() or override kindId().');
+        throw new LogicException(static::class.' is not bound to a file type of the layout; bind it with forKind() or override kindId().');
     }
 
     /**
@@ -418,7 +418,7 @@ trait InteractsWithPreset
         }
 
         if (! $this->preset()->hasKind($kindId)) {
-            throw GenerationRefused::because("The layout declares no [{$kindId}] kind to place [{$name}]; pass its fully qualified class name.");
+            throw GenerationRefused::because("The layout has no [{$kindId}] file type to place [{$name}]; pass its fully qualified class name.");
         }
 
         $context = $this->placementContext()->only($this->preset()->rule($kindId)->dimensions());
@@ -523,7 +523,7 @@ trait InteractsWithPreset
         $command = $this->preset()->kind($target->kind->id)->command;
 
         if ($command === null) {
-            throw GenerationRefused::because("Kind [{$target->kind->id}] declares no command to generate [{$target->describe()}].");
+            throw GenerationRefused::because("File type [{$target->kind->id}] has no command to generate [{$target->describe()}].");
         }
 
         $exitCode = $this->call($command, [

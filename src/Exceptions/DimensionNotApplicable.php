@@ -11,7 +11,7 @@ final class DimensionNotApplicable extends ModException
 
     public static function for(string $kindId, string $dimension): self
     {
-        $exception = new self("Artifact kind [{$kindId}] does not take a [{$dimension}] placement value in this layout.");
+        $exception = new self("File type [{$kindId}] does not use a [{$dimension}] in this layout.");
         $exception->kindId = $kindId;
         $exception->dimension = $dimension;
 

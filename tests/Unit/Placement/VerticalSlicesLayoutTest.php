@@ -58,10 +58,10 @@ it('treats duplicate basenames in different slices as different identities', fun
 
 it('rejects a slice on a feature-scoped kind and requires it on slice kinds', function () {
     expect(fn () => place(Layouts::verticalSlices(), 'model', 'Invoice', 'Billing/CreateInvoice'))
-        ->toThrow(DimensionNotApplicable::class, 'does not take a [slice]');
+        ->toThrow(DimensionNotApplicable::class, 'does not use a [slice]');
 
     expect(fn () => place(Layouts::verticalSlices(), 'request', '', 'Billing'))
-        ->toThrow(MissingDimension::class, 'requires a [slice]');
+        ->toThrow(MissingDimension::class, 'needs a [slice]');
 });
 
 it('relates a slice request to the shared-scope model with an explicit name', function () {

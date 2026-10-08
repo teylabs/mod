@@ -88,9 +88,9 @@ it('refuses directory discovery of a class kind and class discovery of a file ki
     $preset = anywhereLayout();
 
     expect(fn () => DiscoveryOptions::fromConfig(['kinds' => ['model' => 'directory']])->definitionsFor($preset))
-        ->toThrow(InvalidDiscoveryConfig::class, 'only file kinds can be discovered as directories')
+        ->toThrow(InvalidDiscoveryConfig::class, 'only file types that hold plain files, such as migrations, can be discovered as directories')
         ->and(fn () => DiscoveryOptions::fromConfig(['kinds' => ['migration' => 'provider']])->definitionsFor($preset))
-        ->toThrow(InvalidDiscoveryConfig::class, 'only class kinds can be discovered as provider');
+        ->toThrow(InvalidDiscoveryConfig::class, 'only file types that hold classes can be discovered as provider');
 });
 
 it('fingerprints nested, anywhere and multi-segment rules distinctly', function () {

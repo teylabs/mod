@@ -26,6 +26,6 @@ final class InvalidArtifactName extends ModException
 
     public static function missingAttribute(string $kindId, string $attribute, string $expected): self
     {
-        return new self("Artifact kind [{$kindId}] requires a [{$attribute}] attribute ({$expected}).");
+        return new self("File type [{$kindId}] needs a [{$attribute}] attribute ({$expected}).");
     }
 }

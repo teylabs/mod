@@ -162,7 +162,7 @@ it('compiles kind aliases and refuses an alias that is already a command name', 
             ->kind('record', in: 'Records', aliases: ['mod:entry'])
             ->kind('entry', in: 'Entries'));
 
-    expect(fn () => $collision->compile())->toThrow(InvalidLayout::class, 'command [mod:entry] is already used by kind [record]');
+    expect(fn () => $collision->compile())->toThrow(InvalidLayout::class, 'command [mod:entry] is already used by file type [record]');
 
     $definition = [
         'roots' => ['app' => ['namespace' => 'App\\', 'path' => 'app']],

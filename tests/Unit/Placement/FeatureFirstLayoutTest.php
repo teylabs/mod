@@ -39,7 +39,7 @@ it('places shared infrastructure outside features with its own rule', function (
 
 it('requires the feature for feature kinds', function () {
     expect(fn () => place(Layouts::featureFirst(), 'model', 'Invoice'))
-        ->toThrow(MissingDimension::class, 'requires a [feature] placement value');
+        ->toThrow(MissingDimension::class, 'needs a [feature]');
 });
 
 it('rejects nested names and points at --in', function () {

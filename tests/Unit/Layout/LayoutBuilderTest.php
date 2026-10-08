@@ -236,15 +236,15 @@ it('reports every problem of the chain at once', function (Closure $define, stri
             ->kind('model', in: '{domain}/Models')
             ->kind('action', in: '{domain}/Actions')
             ->kind('query', in: '{domian}/Queries'),
-        "->kind('query'): placeholder {domian} is used by no other kind; did you mean {domain}?", 'unknown-dimension',
+        "->kind('query'): placeholder {domian} is used by no other file type; did you mean {domain}?", 'unknown-dimension',
     ],
     'duplicate command' => [
         fn (Layout $l) => $l->root('app', 'App\\', 'app')->kind('model', in: 'Models')->kind('entity', in: 'Entities', command: 'mod:model'),
-        "->kind('entity'): command [mod:model] is already used by kind [model]", 'duplicate-command-name',
+        "->kind('entity'): command [mod:model] is already used by file type [model]", 'duplicate-command-name',
     ],
     'unknown relation target' => [
         fn (Layout $l) => $l->root('app', 'App\\', 'app')->kind('model', in: 'Models')->relation('factory', from: 'model', to: 'factory'),
-        "->relation('factory'): to kind [factory] is not declared", 'unknown-relation-target',
+        "->relation('factory'): to file type [factory] is not declared", 'unknown-relation-target',
     ],
     'scope keeps an unknown placeholder' => [
         fn (Layout $l) => $l->root('app', 'App\\', 'app')->kind('model', in: '{team}/Models')->kind('policy', in: '{team}/Policies')->relation('policy', from: 'model', to: 'policy', scope: ['taem']),
@@ -291,7 +291,7 @@ it('takes discoverAnywhere as a boolean and refuses false', function () {
     expect($rule->anywhere())->toBeTrue()
         ->and($rule->except())->toBe(['Tests'])
         ->and(fn () => (new Layout('no'))->root('app', 'App\\', 'app')->kind('provider', in: 'Providers', discoverAnywhere: false))
-        ->toThrow(ModException::class, 'discoverAnywhere cannot be false');
+        ->toThrow(ModException::class, 'discoverAnywhere cannot be false; leave it out to discover the file type in its own folder only');
 });
 
 it('lets kinds share a command name when the layout registers no commands', function () {
@@ -307,7 +307,7 @@ it('lets kinds share a command name when the layout registers no commands', func
             ->kind('model', in: 'Models', command: 'host:model')
             ->kind('legacy-model', in: 'Legacy/Models', command: 'host:model')
             ->compile())
-        ->toThrow(InvalidLayout::class, 'already used by kind [model]');
+        ->toThrow(InvalidLayout::class, 'already used by file type [model]');
 });
 
 it('validates dimensions populated from a relation source name', function () {

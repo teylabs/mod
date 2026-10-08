@@ -145,7 +145,7 @@ final class Layout
 
         if ($discoverAnywhere !== null || $except !== null) {
             if ($discoverAnywhere === false) {
-                throw new ModException("Kind [{$id}]: discoverAnywhere cannot be false; leave it out to discover the kind in its own folder only.");
+                throw new ModException("File type [{$id}]: discoverAnywhere cannot be false; leave it out to discover the file type in its own folder only.");
             }
 
             $kind->discoverAnywhere($except ?? []);

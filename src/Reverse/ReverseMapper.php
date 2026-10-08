@@ -62,7 +62,7 @@ final readonly class ReverseMapper
 
         if ($opaque !== []) {
             return ReverseMatch::unsupported(sprintf(
-                'kind [%s] is placed by a callback that cannot be inverted',
+                'file type [%s] is placed by a callback that cannot be inverted',
                 implode(', ', $opaque),
             ));
         }

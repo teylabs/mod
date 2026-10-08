@@ -162,7 +162,7 @@ final class GeneratorRegistry
         foreach ($overrides as $kindId => $adapter) {
             if (! is_string($kindId) || ! is_string($adapter)) {
                 throw new InvalidGeneratorSetup(sprintf(
-                    'Config [mod.generators] must map kind ids to %s commands; [%s] is not one.',
+                    'Config [mod.generators] must map file type ids to %s commands; [%s] is not one.',
                     GeneratorAdapter::class,
                     is_string($adapter) ? $adapter : get_debug_type($adapter),
                 ));
@@ -179,7 +179,7 @@ final class GeneratorRegistry
     public function use(string $kindId, string $adapter, string $source = 'Mod::generators()->use()'): self
     {
         if (! is_subclass_of($adapter, GeneratorAdapter::class) || ! is_subclass_of($adapter, Command::class)) {
-            throw new InvalidGeneratorSetup(sprintf('%s must map kind ids to %s commands; [%s] is not one.', $source, GeneratorAdapter::class, $adapter));
+            throw new InvalidGeneratorSetup(sprintf('%s must map file type ids to %s commands; [%s] is not one.', $source, GeneratorAdapter::class, $adapter));
         }
 
         $this->adapters[$kindId] = $adapter;
@@ -217,7 +217,7 @@ final class GeneratorRegistry
 
             if (! $adapter::supports($kind)) {
                 throw new InvalidGeneratorSetup(sprintf(
-                    'Generator [%s] cannot generate kind [%s] (%s, name %s).',
+                    'Generator [%s] cannot generate file type [%s] (%s, name %s).',
                     $adapter,
                     $kind->id,
                     $kind->shape->value,

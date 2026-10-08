@@ -67,7 +67,7 @@ it('rejects invalid config with the offending key', function (array $config, str
 })->with([
     [['enabled' => 'yes'], '[mod.discovery.enabled]'],
     [['kinds' => 'provider'], '[mod.discovery.kinds]'],
-    [['kinds' => ['provider']], 'keys must be kind ids'],
+    [['kinds' => ['provider']], 'keys must be file type ids'],
     [['kinds' => ['provider' => 'middleware']], '[mod.discovery.kinds.provider]: expected provider, command, listener, subscriber, directory or false'],
     [['cache' => ''], '[mod.discovery.cache]'],
     [['on_stale_cache' => 'rebuild'], '[mod.discovery.on_stale_cache]'],
@@ -81,15 +81,15 @@ it('rejects kinds the preset cannot discover', function (array $kinds, string $m
     expect(fn () => DiscoveryOptions::fromConfig(['kinds' => $kinds])->definitionsFor(Layouts::ordinary()))
         ->toThrow(InvalidDiscoveryConfig::class, $message);
 })->with([
-    [['handler' => 'command'], '[mod.discovery.kinds.handler]: the active layout has no [handler] kind'],
-    [['migration' => 'listener'], 'only class kinds can be discovered'],
+    [['handler' => 'command'], '[mod.discovery.kinds.handler]: the active layout has no [handler] file type'],
+    [['migration' => 'listener'], 'only file types that hold classes can be discovered'],
 ]);
 
 it('names the kinds a layout has when the config maps one it lacks', function (string $layout) {
     $preset = (new LayoutRegistry)->compile($layout);
 
     expect(fn () => DiscoveryOptions::fromConfig(['kinds' => ['console' => 'command']])->definitionsFor($preset))
-        ->toThrow(InvalidDiscoveryConfig::class, 'Invalid discovery configuration [mod.discovery.kinds.console]: the active layout has no [console] kind. Map one of its kind ids: ');
+        ->toThrow(InvalidDiscoveryConfig::class, 'Invalid discovery configuration [mod.discovery.kinds.console]: the active layout has no [console] file type. Map one of its file types: ');
 
     try {
         DiscoveryOptions::fromConfig(['kinds' => ['console' => 'command']])->definitionsFor($preset);

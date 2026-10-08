@@ -68,7 +68,7 @@ it('refuses a rename of an unused placeholder, a malformed name and a duplicate 
     expect(placementOptionsLayoutError(fn (Layout $layout) => $layout
         ->root('app', 'App\\', 'app', fn (Root $root) => $root->kind('model', in: '{module}/Models'))
         ->placementOption('area', '{feature}')))
-        ->toContain('placeholder {feature} is used by no kind');
+        ->toContain('placeholder {feature} is used by no file type');
 
     expect(placementOptionsLayoutError(fn (Layout $layout) => $layout
         ->root('app', 'App\\', 'app', fn (Root $root) => $root->kind('model', in: '{module}/Models'))

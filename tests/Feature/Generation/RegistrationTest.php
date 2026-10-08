@@ -87,7 +87,7 @@ it('refuses an adapter that cannot generate the kind it is mapped to', function 
     config()->set('mod.generators', ['routes' => RequestCommand::class]);
 
     Workspace::run($definition, function () {
-        expect(fn () => Artisan::all())->toThrow(InvalidGeneratorSetup::class, 'cannot generate kind [routes]');
+        expect(fn () => Artisan::all())->toThrow(InvalidGeneratorSetup::class, 'cannot generate file type [routes]');
     });
 });
 

@@ -31,7 +31,7 @@ it('places with an opaque rule but reports Unsupported on the way back', functio
     $match = (new ReverseMapper($preset))->fromClass('App\Reports\Reports\R\RevenueReport');
 
     expect($match->outcome)->toBe(ReverseOutcome::Unsupported)
-        ->and($match->reason)->toContain('kind [report] is placed by a callback');
+        ->and($match->reason)->toContain('file type [report] is placed by a callback');
 });
 
 it('reports Unsupported for everything under an opaque rule root, even what another rule recognises', function () {

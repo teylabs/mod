@@ -264,7 +264,7 @@ final class PresetValidator
     private function kinds(mixed $definition, array $roots, array $dimensions, bool $commandsEnabled = true): array
     {
         if (! is_array($definition)) {
-            $this->issue(PresetIssueCode::InvalidShape, 'kinds', 'must be a map of kind id to definition');
+            $this->issue(PresetIssueCode::InvalidShape, 'kinds', 'must be a map of file type id to definition');
 
             return [[], [], []];
         }
@@ -293,7 +293,7 @@ final class PresetValidator
             }
 
             if (isset($seen[$id])) {
-                $this->issue(PresetIssueCode::DuplicateKind, $subject, "kind [{$id}] is already declared by [{$seen[$id]}]");
+                $this->issue(PresetIssueCode::DuplicateKind, $subject, "file type [{$id}] is already declared by [{$seen[$id]}]");
 
                 continue;
             }
@@ -324,7 +324,7 @@ final class PresetValidator
                 }
 
                 if ($commandsEnabled && isset($commands[$command])) {
-                    $this->issue(PresetIssueCode::DuplicateCommandName, $subject, "command [{$command}] is already used by kind [{$commands[$command]}]");
+                    $this->issue(PresetIssueCode::DuplicateCommandName, $subject, "command [{$command}] is already used by file type [{$commands[$command]}]");
 
                     continue;
                 }
@@ -355,7 +355,7 @@ final class PresetValidator
                 $names[] = $alias;
 
                 if ($commandsEnabled && isset($commands[$alias])) {
-                    $this->issue(PresetIssueCode::DuplicateCommandName, $subject, "alias [{$alias}] is already used by kind [{$commands[$alias]}]");
+                    $this->issue(PresetIssueCode::DuplicateCommandName, $subject, "alias [{$alias}] is already used by file type [{$commands[$alias]}]");
 
                     continue 2;
                 }
@@ -439,7 +439,7 @@ final class PresetValidator
                     $pattern = $variant->pattern().'|'.$policy->describe().'|'.$priority;
 
                     if (isset($patterns[$pattern])) {
-                        $this->issue(PresetIssueCode::DuplicatePlacementPattern, $subject, "places exactly like kind [{$patterns[$pattern]}] with the same priority; reverse mapping could never tell them apart");
+                        $this->issue(PresetIssueCode::DuplicatePlacementPattern, $subject, "places exactly like file type [{$patterns[$pattern]}] with the same priority; reverse mapping could never tell them apart");
 
                         continue 2;
                     }
@@ -728,7 +728,7 @@ final class PresetValidator
         foreach ($multi as $name => $kinds) {
             if (isset($single[$name])) {
                 $this->issue(PresetIssueCode::InvalidDimension, "dimensions.{$name}", sprintf(
-                    'is multi-segment ({%s+}) in kind [%s] but single in kind [%s]; use one form everywhere',
+                    'is multi-segment ({%s+}) in file type [%s] but single in file type [%s]; use one form everywhere',
                     $name,
                     $kinds[0],
                     $single[$name][0],
@@ -776,7 +776,7 @@ final class PresetValidator
 
             foreach (['from' => $from, 'to' => $to] as $end => $kindId) {
                 if (! is_string($kindId) || ! in_array($kindId, $declaredKinds, true)) {
-                    $this->issue(PresetIssueCode::UnknownRelationTarget, $subject, "{$end} kind [".(is_scalar($kindId) ? (string) $kindId : '').'] is not declared');
+                    $this->issue(PresetIssueCode::UnknownRelationTarget, $subject, "{$end} file type [".(is_scalar($kindId) ? (string) $kindId : '').'] is not declared');
                     $valid = false;
                 }
             }

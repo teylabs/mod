@@ -70,14 +70,14 @@ final readonly class DiscoveryOptions
         $rawKinds = $config['kinds'] ?? [];
 
         if (! is_array($rawKinds)) {
-            throw InvalidDiscoveryConfig::because('kinds', 'expected an array of kind id => type|false');
+            throw InvalidDiscoveryConfig::because('kinds', 'expected an array of file type id => type|false');
         }
 
         $kinds = [];
 
         foreach ($rawKinds as $kindId => $type) {
             if (! is_string($kindId)) {
-                throw InvalidDiscoveryConfig::because('kinds', 'keys must be kind ids');
+                throw InvalidDiscoveryConfig::because('kinds', 'keys must be file type ids');
             }
 
             if ($type === false) {
@@ -172,7 +172,7 @@ final readonly class DiscoveryOptions
                 $declared = array_keys($preset->kinds());
                 sort($declared);
 
-                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", "the active layout has no [{$kindId}] kind. Map one of its kind ids: ".implode(', ', $declared));
+                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", "the active layout has no [{$kindId}] file type. Map one of its file types: ".implode(', ', $declared));
             }
 
             if ($type === false) {
@@ -184,11 +184,11 @@ final readonly class DiscoveryOptions
             }
 
             if ($type->isClassType() && ! $preset->kind($kindId)->isClass()) {
-                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", 'only class kinds can be discovered as '.$type->value);
+                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", 'only file types that hold classes can be discovered as '.$type->value);
             }
 
             if (! $type->isClassType() && $preset->kind($kindId)->isClass()) {
-                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", 'only file kinds can be discovered as directories');
+                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", 'only file types that hold plain files, such as migrations, can be discovered as directories');
             }
 
             $definitions[$kindId] = new DiscoveryDefinition($kindId, $type);
