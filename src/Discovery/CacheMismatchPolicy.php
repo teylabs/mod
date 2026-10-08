@@ -5,6 +5,8 @@ namespace Tey\Mod\Discovery;
 /**
  * What to do when a discovery cache file exists but cannot be trusted
  * (unknown schema, other preset or definitions, malformed).
+ *
+ * @internal
  */
 enum CacheMismatchPolicy: string
 {

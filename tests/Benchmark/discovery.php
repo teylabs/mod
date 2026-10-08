@@ -16,7 +16,7 @@
 
 use Tey\Mod\Discovery\Discovery;
 use Tey\Mod\Discovery\DiscoveryOptions;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 
 require dirname(__DIR__, 2).'/vendor/autoload.php';
 
@@ -43,7 +43,7 @@ function benchmarkDiscovery(string $root, string $cache): Discovery
         }
     });
 
-    return new Discovery(Preset::fromArray(benchmarkPreset()), new DiscoveryOptions(cachePath: $cache), $root);
+    return new Discovery(CompiledLayout::fromArray(benchmarkPreset()), new DiscoveryOptions(cachePath: $cache), $root);
 }
 
 // Child process: time one inventory() call and print milliseconds.

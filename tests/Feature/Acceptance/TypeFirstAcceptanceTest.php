@@ -10,8 +10,7 @@ use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 /*
  * Acceptance, layout 4: type-first with an optional feature after the
  * kind segments (App\Models\Invoice and App\Models\Billing\Invoice under one
- * layout). The built-in `type-first` layout declares no provider, event,
- * listener or command kinds; they are added from AppServiceProvider::boot().
+ * layout). Built-in kinds can also be configured from AppServiceProvider::boot().
  */
 
 function typeFirstLayout(): LayoutUnderTest
@@ -49,6 +48,7 @@ it('runs the whole loop on type-first, with and without a feature', function () 
             "app/Events/Billing/Invoice{$t}Paid.php" => ['event', $ctx, "App\\Events\\Billing\\Invoice{$t}Paid"],
             "app/Http/Controllers/Billing/Invoice{$t}Controller.php" => ['controller', $ctx, "App\\Http\\Controllers\\Billing\\Invoice{$t}Controller"],
             "app/Http/Requests/Billing/StoreInvoice{$t}Request.php" => ['request', $ctx, "App\\Http\\Requests\\Billing\\StoreInvoice{$t}Request"],
+            "app/Http/Requests/Billing/UpdateInvoice{$t}Request.php" => ['request', $ctx, "App\\Http\\Requests\\Billing\\UpdateInvoice{$t}Request"],
             "app/Listeners/Billing/Send{$t}Receipt.php" => ['listener', $ctx, "App\\Listeners\\Billing\\Send{$t}Receipt"],
             "app/Models/Billing/Invoice{$t}.php" => ['model', $ctx, "App\\Models\\Billing\\Invoice{$t}"],
             "app/Models/Invoice{$t}.php" => ['model', [], "App\\Models\\Invoice{$t}"],
@@ -105,7 +105,7 @@ it('runs the whole loop on type-first, with and without a feature', function () 
         };
         $assertRegistered();
 
-        $app->artisan('mod:discovery-cache')->assertSuccessful();
+        $app->artisan('mod:cache')->assertSuccessful();
         $app->boot();
 
         expect($app->discovery()->source())->toBe('cache')
@@ -122,12 +122,12 @@ it('refuses, rejects and reports on type-first', function () {
         $app->artisan('mod:model', ['name' => "Invoice{$t}", '--in' => 'Billing'])->assertSuccessful();
 
         $app->artisan('mod:model', ['name' => "Invoice{$t}", '--in' => 'Billing'])
-            ->expectsOutputToContain("path collision: app/Models/Billing/Invoice{$t}.php already exists")
-            ->assertFailed();
+            ->expectsOutputToContain("app/Models/Billing/Invoice{$t}.php already exists.")
+            ->assertSuccessful();
         // The unscoped identity is a different artifact, so it is not a collision.
         $app->artisan('mod:model', ['name' => "Invoice{$t}"])->assertSuccessful();
 
-        expect(fn () => $app->artisan('mod:seeder', ['name' => 'Anything']))->toThrow(CommandNotFoundException::class);
+        expect(fn () => $app->artisan('mod:widget', ['name' => 'Anything']))->toThrow(CommandNotFoundException::class);
         $app->artisan('mod:model', ['name' => "Other{$t}", '--in' => 'Billing/Extra'])->assertFailed();
         $app->artisan('mod:command', ['name' => "Prune{$t}", '--in' => 'Billing'])->assertFailed();
 
@@ -165,7 +165,7 @@ it('reports a declared overlap as ambiguous until the layout gives a priority', 
 
         expect($app->discovery()->inventory()->isEmpty())->toBeTrue()
             ->and($rejection?->reason)->toBe(RejectionReason::Ambiguous)
-            ->and($rejection?->candidates)->toHaveCount(2);
+            ->and($rejection?->candidates)->toHaveCount(5);
     });
 
     $prioritised = new LayoutUnderTest('type-first', function () use ($layout) {

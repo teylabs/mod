@@ -2,6 +2,9 @@
 
 namespace Tey\Mod\Artifact;
 
+/**
+ * @internal
+ */
 final readonly class ClassIdentity implements ArtifactIdentity
 {
     public function __construct(

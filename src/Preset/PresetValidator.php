@@ -6,17 +6,19 @@ use Closure;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\IdentityShape;
 use Tey\Mod\Artifact\NamePolicy;
-use Tey\Mod\Exceptions\InvalidPreset;
+use Tey\Mod\Exceptions\InvalidLayout;
+use Tey\Mod\Generation\Stub;
+use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Placement\Dimension;
 use Tey\Mod\Placement\OpaquePlacementRule;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\PlacementRule;
-use Tey\Mod\Placement\Root;
 use Tey\Mod\Placement\Segment;
 use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Relation\NameDerivation;
 use Tey\Mod\Relation\Relation;
-use Tey\Mod\Relation\RelationPolicy;
+use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Relation\ScopeMap;
 
 /**
@@ -33,11 +35,13 @@ use Tey\Mod\Relation\ScopeMap;
  *        'nested' => true,                       // accepts "Billing/Invoice" and keeps the folders below the kind's own
  *        'discover' => 'anywhere', 'except' => ['Tests'],   // discovery widening below the dimension folders
  *        'place' => Closure(string $name, PlacementContext $context): string   // opaque alternative to 'segments'
+ *        'aliases' => ['mod:records'], 'stub' => Stub::file(...), 'label' => 'Record',
  *    ]],
  *    'relations'  => ['factory' => [
  *        'from' => 'model', 'to' => 'factory', 'scope' => 'same'|['keep' => ['feature'], 'nested' => 'keep'|'drop'],
- *        'name' => 'explicit'|['strip-suffix' => 'Controller', 'prefix' => 'Store', 'suffix' => 'Request'], 'policy' => 'generate',
+ *        'name' => 'explicit'|['strip-suffix' => 'Controller', 'prefix' => 'Store', 'suffix' => 'Request'], 'mode' => 'generate',
  *    ]],
+ *    'placement_options' => ['feature' => 'topic'],   // option name per dimension; default: the dimension in kebab-case
  *  ]
  *
  * @internal validates the compiled array definition; define layouts with Mod::layout().
@@ -63,14 +67,14 @@ final class PresetValidator
     /**
      * @param  array<string, mixed>  $definition
      *
-     * @throws InvalidPreset
+     * @throws InvalidLayout
      */
-    public function compile(array $definition): Preset
+    public function compile(array $definition): CompiledLayout
     {
         $preset = $this->build($definition);
 
         if ($this->issues !== [] || $preset === null) {
-            throw new InvalidPreset($this->issues);
+            throw new InvalidLayout(null, $this->issues);
         }
 
         return $preset;
@@ -79,7 +83,7 @@ final class PresetValidator
     /**
      * @param  array<string, mixed>  $definition
      */
-    private function build(array $definition): ?Preset
+    private function build(array $definition): ?CompiledLayout
     {
         $this->issues = [];
 
@@ -96,16 +100,26 @@ final class PresetValidator
         [$kinds, $rules, $declaredKinds] = $this->kinds($definition['kinds'] ?? [], $roots, $dimensions, $commands);
         $dimensions = $this->multiDimensions($dimensions, $rules);
         $relations = $this->relations($definition['relations'] ?? [], $declaredKinds, $dimensions);
+        $placementOptions = $this->placementOptions($definition['placement_options'] ?? [], $dimensions);
 
         if ($this->issues !== []) {
             return null;
         }
 
-        return new Preset($roots, array_values($dimensions), $kinds, $rules, $relations, $excluded, $commands);
+        $kinds = $this->withDashFreeAliases($kinds);
+        $stubs = [];
+
+        foreach (is_array($definition['kinds'] ?? null) ? $definition['kinds'] : [] as $id => $entry) {
+            if (isset($kinds[$id]) && is_array($entry) && ($entry['stub'] ?? null) instanceof Stub) {
+                $stubs[$id] = $entry['stub'];
+            }
+        }
+
+        return new CompiledLayout($roots, array_values($dimensions), $kinds, $rules, $relations, $excluded, $commands, $placementOptions, $stubs);
     }
 
     /**
-     * @return array<string, Root>
+     * @return array<string, CompiledRoot>
      */
     private function roots(mixed $definition): array
     {
@@ -145,7 +159,7 @@ final class PresetValidator
         return $roots;
     }
 
-    private function root(string $subject, mixed $entry): ?Root
+    private function root(string $subject, mixed $entry): ?CompiledRoot
     {
         if (! is_array($entry)) {
             $this->issue(PresetIssueCode::InvalidRoot, $subject, 'must be an array with a path and an optional namespace');
@@ -168,14 +182,14 @@ final class PresetValidator
             return null;
         }
 
-        if (in_array('..', explode('/', Root::normalisePath($path)), true)) {
+        if (in_array('..', explode('/', CompiledRoot::normalisePath($path)), true)) {
             $this->issue(PresetIssueCode::InvalidRoot, $subject, "path [{$path}] must not leave the application");
 
             return null;
         }
 
         if ($namespace === null) {
-            return Root::files($path);
+            return CompiledRoot::files($path);
         }
 
         if (! is_string($namespace) || preg_match(self::NAMESPACE_PATTERN, $namespace) !== 1) {
@@ -184,7 +198,7 @@ final class PresetValidator
             return null;
         }
 
-        return Root::psr4($namespace, $path);
+        return CompiledRoot::psr4($namespace, $path);
     }
 
     /**
@@ -220,7 +234,7 @@ final class PresetValidator
     }
 
     /**
-     * @return list<Root>
+     * @return list<CompiledRoot>
      */
     private function excluded(mixed $definition): array
     {
@@ -244,7 +258,7 @@ final class PresetValidator
     }
 
     /**
-     * @param  array<string, Root>  $roots
+     * @param  array<string, CompiledRoot>  $roots
      * @param  array<string, Dimension>  $dimensions
      * @param  bool  $commandsEnabled  when false (a host dispatches its own commands) kinds may share a command name
      * @return array{array<string, ArtifactKind>, array<string, PlacementRule>, list<string>}
@@ -252,7 +266,7 @@ final class PresetValidator
     private function kinds(mixed $definition, array $roots, array $dimensions, bool $commandsEnabled = true): array
     {
         if (! is_array($definition)) {
-            $this->issue(PresetIssueCode::InvalidShape, 'kinds', 'must be a map of kind id to definition');
+            $this->issue(PresetIssueCode::InvalidShape, 'kinds', 'must be a map of file type id to definition');
 
             return [[], [], []];
         }
@@ -281,7 +295,7 @@ final class PresetValidator
             }
 
             if (isset($seen[$id])) {
-                $this->issue(PresetIssueCode::DuplicateKind, $subject, "kind [{$id}] is already declared by [{$seen[$id]}]");
+                $this->issue(PresetIssueCode::DuplicateKind, $subject, "file type [{$id}] is already declared by [{$seen[$id]}]");
 
                 continue;
             }
@@ -312,11 +326,56 @@ final class PresetValidator
                 }
 
                 if ($commandsEnabled && isset($commands[$command])) {
-                    $this->issue(PresetIssueCode::DuplicateCommandName, $subject, "command [{$command}] is already used by kind [{$commands[$command]}]");
+                    $this->issue(PresetIssueCode::DuplicateCommandName, $subject, "command [{$command}] is already used by file type [{$commands[$command]}]");
 
                     continue;
                 }
                 $commands[$command] = $id;
+            }
+
+            $aliases = $entry['aliases'] ?? [];
+
+            if (! is_array($aliases) || ! array_is_list($aliases) || array_filter($aliases, static fn (mixed $alias): bool => ! is_string($alias) || $alias === '') !== []) {
+                $this->issue(PresetIssueCode::InvalidKind, $subject, 'aliases must be a list of command names');
+
+                continue;
+            }
+
+            if ($aliases !== [] && $command === null) {
+                $this->issue(PresetIssueCode::InvalidKind, $subject, 'aliases need a command to stand for');
+
+                continue;
+            }
+
+            $names = [];
+
+            foreach ($aliases as $alias) {
+                if (! is_string($alias)) {
+                    continue;
+                }
+
+                $names[] = $alias;
+
+                if ($commandsEnabled && isset($commands[$alias])) {
+                    $this->issue(PresetIssueCode::DuplicateCommandName, $subject, "alias [{$alias}] is already used by file type [{$commands[$alias]}]");
+
+                    continue 2;
+                }
+                $commands[$alias] = $id;
+            }
+
+            if (isset($entry['stub']) && ! $entry['stub'] instanceof Stub) {
+                $this->issue(PresetIssueCode::InvalidKind, $subject, 'stub must be a '.Stub::class);
+
+                continue;
+            }
+
+            $label = $entry['label'] ?? null;
+
+            if ($label !== null && (! is_string($label) || trim($label) === '')) {
+                $this->issue(PresetIssueCode::InvalidKind, $subject, 'label must be a non-empty string');
+
+                continue;
             }
 
             $rootName = $entry['root'] ?? null;
@@ -330,7 +389,7 @@ final class PresetValidator
             $root = $roots[$rootName];
 
             if ($shape === IdentityShape::PhpClass && ! $root->isClassRoot()) {
-                $this->issue(PresetIssueCode::InvalidKind, $subject, "class artifacts need a namespaced root; [{$rootName}] has no namespace");
+                $this->issue(PresetIssueCode::InvalidKind, $subject, "a file type of classes needs a namespaced root; [{$rootName}] has no namespace");
 
                 continue;
             }
@@ -378,17 +437,19 @@ final class PresetValidator
             }
 
             if ($rule instanceof TemplateRule) {
-                $pattern = $rule->pattern().'|'.$policy->describe().'|'.$priority;
+                foreach ($rule->variants() as $variant) {
+                    $pattern = $variant->pattern().'|'.$policy->describe().'|'.$priority;
 
-                if (isset($patterns[$pattern])) {
-                    $this->issue(PresetIssueCode::DuplicatePlacementPattern, $subject, "places exactly like kind [{$patterns[$pattern]}] with the same priority; reverse mapping could never tell them apart");
+                    if (isset($patterns[$pattern])) {
+                        $this->issue(PresetIssueCode::DuplicatePlacementPattern, $subject, "places exactly like file type [{$patterns[$pattern]}] with the same priority; reverse mapping could never tell them apart");
 
-                    continue;
+                        continue 2;
+                    }
+                    $patterns[$pattern] = $id;
                 }
-                $patterns[$pattern] = $id;
             }
 
-            $kinds[$id] = new ArtifactKind($id, $shape, $policy, $command);
+            $kinds[$id] = new ArtifactKind($id, $shape, $policy, $command, $names, $label);
             $rules[$id] = $rule;
         }
 
@@ -431,11 +492,17 @@ final class PresetValidator
      * @param  array<string, Dimension>  $dimensions
      * @param  list<string>  $except
      */
-    private function rule(string $subject, string $id, Root $root, int $priority, array $entry, array $dimensions, bool $nested = false, bool $anywhere = false, array $except = []): ?PlacementRule
+    private function rule(string $subject, string $id, CompiledRoot $root, int $priority, array $entry, array $dimensions, bool $nested = false, bool $anywhere = false, array $except = []): ?PlacementRule
     {
         $place = $entry['place'] ?? null;
 
         if ($place !== null) {
+            if (isset($entry['fallback'])) {
+                $this->issue(PresetIssueCode::InvalidFallback, $subject, 'ungrouped needs a declarative placement, not a callback');
+
+                return null;
+            }
+
             if (! $place instanceof Closure) {
                 $this->issue(PresetIssueCode::InvalidKind, $subject, 'place must be a Closure');
 
@@ -505,7 +572,22 @@ final class PresetValidator
             $parsed[] = $segment;
         }
 
-        return new TemplateRule($id, $root, $parsed, $priority, $nested, $anywhere, $except);
+        $fallback = null;
+
+        if (isset($entry['fallback'])) {
+            $path = $entry['fallback'];
+
+            if (! is_string($path) || ($path !== '' && preg_match('#^[A-Za-z_][A-Za-z0-9_.-]*(/[A-Za-z_][A-Za-z0-9_.-]*)*$#', $path) !== 1)) {
+                $this->issue(PresetIssueCode::InvalidFallback, $subject, 'ungrouped must be a relative folder path under the same root, without placeholders');
+
+                return null;
+            }
+
+            $folders = $path === '' ? [] : array_map(Segment::parse(...), explode('/', $path));
+            $fallback = new TemplateRule($id, $root, $folders, $priority - 1, $nested);
+        }
+
+        return new TemplateRule($id, $root, $parsed, $priority, $nested, $anywhere, $except, $fallback);
     }
 
     /**
@@ -532,6 +614,87 @@ final class PresetValidator
         }
 
         return $folders;
+    }
+
+    /**
+     * The placement options of a kind that would shadow an option the
+     * generating command already defines (its native options and their
+     * shortcuts, and mod's own --in). The command registers without them;
+     * the layout should rename them with ->placementOption().
+     *
+     * @param  list<string>  $taken  option names and shortcuts the command defines
+     * @return array<string, PresetIssue> dimension name → issue
+     */
+    public function placementOptionCollisions(CompiledLayout $preset, ArtifactKind $kind, array $taken): array
+    {
+        $issues = [];
+        $options = $preset->placementOptions();
+        $command = $kind->command ?? $kind->id;
+
+        foreach ($preset->rule($kind->id)->dimensions() as $dimension) {
+            $option = $options[$dimension] ?? null;
+
+            if ($option === null || ! in_array($option, $taken, true)) {
+                continue;
+            }
+
+            $issues[$dimension] = new PresetIssue(
+                PresetIssueCode::PlacementOptionCollision,
+                $command,
+                "placeholder {{$dimension}} would add --{$option}, which {$command} already defines. It is left out; use --in or the \"Group:Name\" prefix, or rename it with ->placementOption('...', '{{$dimension}}').",
+            );
+        }
+
+        return $issues;
+    }
+
+    /**
+     * The command option of every dimension: the declared override, else the dimension in kebab-case.
+     *
+     * @param  array<string, Dimension>  $dimensions
+     * @return array<string, string> dimension → option name
+     */
+    private function placementOptions(mixed $definition, array $dimensions): array
+    {
+        if (! is_array($definition)) {
+            $this->issue(PresetIssueCode::InvalidShape, 'placement_options', 'must be a map of dimension name to option name');
+
+            return [];
+        }
+
+        foreach ($definition as $name => $option) {
+            if (! is_string($name) || ! isset($dimensions[$name])) {
+                $this->issue(PresetIssueCode::UnknownDimension, 'placement_options.'.$name, 'names no declared dimension');
+
+                continue;
+            }
+
+            if (! is_string($option) || preg_match('/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/', $option) !== 1) {
+                $this->issue(PresetIssueCode::InvalidDimension, "placement_options.{$name}", 'option must be a lowercase name such as "area" or "sub-area"');
+            }
+        }
+
+        $options = [];
+        $owners = [];
+
+        foreach ($dimensions as $name => $dimension) {
+            $option = $definition[$name] ?? strtolower((string) preg_replace('/(?<!^)[A-Z]/', '-$0', $name));
+
+            if (! is_string($option)) {
+                continue;
+            }
+
+            if (isset($owners[$option])) {
+                $this->issue(PresetIssueCode::InvalidDimension, "placement_options.{$name}", "--{$option} is already the option of {{$owners[$option]}}; pick another name for {{$name}}");
+
+                continue;
+            }
+
+            $owners[$option] = $name;
+            $options[$name] = $option;
+        }
+
+        return $options;
     }
 
     /**
@@ -567,7 +730,7 @@ final class PresetValidator
         foreach ($multi as $name => $kinds) {
             if (isset($single[$name])) {
                 $this->issue(PresetIssueCode::InvalidDimension, "dimensions.{$name}", sprintf(
-                    'is multi-segment ({%s+}) in kind [%s] but single in kind [%s]; use one form everywhere',
+                    'is multi-segment ({%s+}) in file type [%s] but single in file type [%s]; use one form everywhere',
                     $name,
                     $kinds[0],
                     $single[$name][0],
@@ -615,19 +778,19 @@ final class PresetValidator
 
             foreach (['from' => $from, 'to' => $to] as $end => $kindId) {
                 if (! is_string($kindId) || ! in_array($kindId, $declaredKinds, true)) {
-                    $this->issue(PresetIssueCode::UnknownRelationTarget, $subject, "{$end} kind [".(is_scalar($kindId) ? (string) $kindId : '').'] is not declared');
+                    $this->issue(PresetIssueCode::UnknownRelationTarget, $subject, "{$end} file type [".(is_scalar($kindId) ? (string) $kindId : '').'] is not declared');
                     $valid = false;
                 }
             }
 
-            $policyValue = $entry['policy'] ?? null;
-            $policy = is_string($policyValue) ? RelationPolicy::tryFrom($policyValue) : null;
+            $modeValue = $entry['mode'] ?? null;
+            $mode = is_string($modeValue) ? RelationMode::tryFrom($modeValue) : null;
 
             $scope = $this->scope($subject, $entry['scope'] ?? 'same', $dimensions);
             $name = $this->nameDerivation($subject, $entry['name'] ?? null);
 
-            if ($policy === null) {
-                $this->issue(PresetIssueCode::InvalidRelation, $subject, 'policy must be "generate", "reference" or "none"');
+            if ($mode === null) {
+                $this->issue(PresetIssueCode::InvalidRelation, $subject, 'mode must be "generate", "reference" or "none"');
 
                 continue;
             }
@@ -636,7 +799,7 @@ final class PresetValidator
                 continue;
             }
 
-            $relations[$id] = new Relation($id, $from, $to, $scope, $name, $policy);
+            $relations[$id] = new Relation($id, $from, $to, $scope, $name, $mode);
         }
 
         return $relations;
@@ -651,7 +814,7 @@ final class PresetValidator
             return ScopeMap::same();
         }
 
-        if (is_array($definition) && (is_array($definition['keep'] ?? null) || array_key_exists('nested', $definition))) {
+        if (is_array($definition) && (is_array($definition['keep'] ?? null) || array_key_exists('nested', $definition) || array_key_exists('name', $definition))) {
             $nestedValue = $definition['nested'] ?? 'keep';
 
             if (! in_array($nestedValue, ['keep', 'drop'], true)) {
@@ -660,10 +823,18 @@ final class PresetValidator
                 return null;
             }
 
+            $nameDimension = $definition['name'] ?? null;
+
+            if ($nameDimension !== null && (! is_string($nameDimension) || ! isset($dimensions[$nameDimension]))) {
+                $this->issue(PresetIssueCode::UnknownDimension, $subject, 'scope name must identify a declared dimension');
+
+                return null;
+            }
+
             $keepNested = $nestedValue === 'keep';
 
             if (! isset($definition['keep'])) {
-                return ScopeMap::same($keepNested);
+                return ScopeMap::same($keepNested, $nameDimension);
             }
 
             $keep = [];
@@ -677,7 +848,7 @@ final class PresetValidator
                 $keep[] = $name;
             }
 
-            return ScopeMap::keep($keep, $keepNested);
+            return ScopeMap::keep($keep, $keepNested, $nameDimension);
         }
 
         $this->issue(PresetIssueCode::InvalidRelation, $subject, 'scope must be "same" or [\'keep\' => [...], \'nested\' => \'keep\'|\'drop\']');
@@ -721,5 +892,43 @@ final class PresetValidator
     private function issue(PresetIssueCode $code, string $subject, string $message): void
     {
         $this->issues[] = new PresetIssue($code, $subject, $message);
+    }
+
+    /**
+     * Every hyphenated command and alias also answers without its dashes
+     * (mod:view-model as mod:viewmodel), unless that name is already a
+     * command or alias: the real one wins.
+     *
+     * @param  array<string, ArtifactKind>  $kinds
+     * @return array<string, ArtifactKind>
+     */
+    private function withDashFreeAliases(array $kinds): array
+    {
+        $taken = [];
+
+        foreach ($kinds as $kind) {
+            foreach ($kind->command === null ? [] : [$kind->command, ...$kind->aliases] as $name) {
+                $taken[$name] = true;
+            }
+        }
+
+        foreach ($kinds as $id => $kind) {
+            $extra = [];
+
+            foreach ($kind->command === null ? [] : [$kind->command, ...$kind->aliases] as $name) {
+                $dashFree = str_replace('-', '', $name);
+
+                if ($dashFree !== $name && ! isset($taken[$dashFree])) {
+                    $extra[] = $dashFree;
+                    $taken[$dashFree] = true;
+                }
+            }
+
+            if ($extra !== []) {
+                $kinds[$id] = new ArtifactKind($kind->id, $kind->shape, $kind->namePolicy, $kind->command, [...$kind->aliases, ...$extra], $kind->label);
+            }
+        }
+
+        return $kinds;
     }
 }

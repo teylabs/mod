@@ -3,12 +3,12 @@
 use Tey\Mod\Artifact\ArtifactRequest;
 use Tey\Mod\Artifact\FileIdentity;
 use Tey\Mod\Exceptions\DimensionNotApplicable;
-use Tey\Mod\Exceptions\InvalidArtifactName;
+use Tey\Mod\Exceptions\InvalidName;
 use Tey\Mod\Exceptions\InvalidPlacementOption;
-use Tey\Mod\Exceptions\UnknownArtifactKind;
+use Tey\Mod\Exceptions\UnknownKind;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\PlacementResolver;
-use Tey\Mod\Relation\RelationPolicy;
+use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Relation\RelationResolver;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseOutcome;
@@ -48,12 +48,12 @@ it('gives a migration a file identity and keeps the timestamp semantics', functi
         ->and($migration->name)->toBe('create_invoices_table');
 
     expect(fn () => place(Layouts::ordinary(), 'migration', 'create_invoices_table'))
-        ->toThrow(InvalidArtifactName::class, 'timestamp');
+        ->toThrow(InvalidName::class, 'timestamp');
 });
 
 it('refuses a placement value because the layout has no dimensions (no fake empty module)', function () {
     expect(fn () => place(Layouts::ordinary(), 'request', 'StoreInvoice', 'Billing'))
-        ->toThrow(InvalidPlacementOption::class, 'declares no placement dimensions');
+        ->toThrow(InvalidPlacementOption::class, 'This layout takes no placement, so drop --in=Billing.');
 
     expect(fn () => (new PlacementResolver(Layouts::ordinary()))->resolve(
         ArtifactRequest::for('request', 'StoreInvoice', PlacementContext::of(['feature' => 'Billing'])),
@@ -62,12 +62,12 @@ it('refuses a placement value because the layout has no dimensions (no fake empt
 
 it('rejects an unknown kind', function () {
     expect(fn () => place(Layouts::ordinary(), 'repository', 'Invoice'))
-        ->toThrow(UnknownArtifactKind::class, '[repository]');
+        ->toThrow(UnknownKind::class, '[repository]');
 });
 
 it('rejects nested names without a --in hint when there are no dimensions', function () {
     expect(fn () => place(Layouts::ordinary(), 'model', 'Billing/Invoice'))
-        ->toThrow(InvalidArtifactName::class, 'Nested names are not supported.');
+        ->toThrow(InvalidName::class, 'Invalid name [Billing/Invoice]. Nested names are not supported.');
 });
 
 it('resolves relations across roots', function () {
@@ -80,12 +80,12 @@ it('resolves relations across roots', function () {
     expect($factory->isResolved())->toBeTrue()
         ->and($factory->target?->fqcn())->toBe('Database\Factories\InvoiceFactory')
         ->and($factory->target?->path())->toBe('database/factories/InvoiceFactory.php')
-        ->and($factory->policy())->toBe(RelationPolicy::Generate);
+        ->and($factory->mode())->toBe(RelationMode::Generate);
 
     $back = $relations->resolve($factory->target, 'model');
 
     expect($back->target?->fqcn())->toBe('App\Models\Invoice')
-        ->and($back->policy())->toBe(RelationPolicy::Reference);
+        ->and($back->mode())->toBe(RelationMode::Reference);
 
     $controller = place($preset, 'controller', 'Invoice');
     $requests = array_map(

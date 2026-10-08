@@ -1,24 +1,23 @@
 <?php
 
 use Tey\Mod\Artifact\IdentityShape;
-use Tey\Mod\Exceptions\InvalidGeneratorSetup;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Exceptions\ModException;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\Kind;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Layout\Root;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\TemplateRule;
-use Tey\Mod\Preset\Preset;
-use Tey\Mod\Relation\RelationPolicy;
+use Tey\Mod\Relation\RelationMode;
 
 /**
  * A DDD-like layout, as one chain.
  */
 function dddLayout(LayoutRegistry $registry): Layout
 {
-    return $registry->layout('ddd')
+    return $registry->layout('domains')
         ->root('domain', 'Domain\\', 'src/Domain', fn (Root $r) => $r
             ->kind('model', in: '{domain}/Models')
             ->kind('action', in: '{domain}/Actions'))
@@ -65,7 +64,7 @@ it('compiles a DDD-like layout from one chain with nested closures', function ()
         ->and(place($preset, 'action', 'PayInvoice', 'Billing')->path())->toBe('src/Domain/Billing/Actions/PayInvoice.php')
         ->and(place($preset, 'controller', 'Invoice', 'Billing')->fqcn())->toBe('App\\Modules\\Billing\\Controllers\\InvoiceController')
         ->and(place($preset, 'factory', 'Invoice', 'Billing')->fqcn())->toBe('Domain\\Billing\\Database\\Factories\\InvoiceFactory')
-        ->and($preset->relation('factory')->policy)->toBe(RelationPolicy::Generate)
+        ->and($preset->relation('factory')->mode)->toBe(RelationMode::Generate)
         ->and($preset->excludedRoots()[0]->namespace)->toBe('App\\Support\\')
         ->and($preset->excludedRoots()[0]->path)->toBe('app/Support');
 });
@@ -124,14 +123,14 @@ it('maps relation arguments onto the core relation', function () {
         ->kind('request', in: '{team}/{useCase}', fixed: 'Request')
         ->kind('model', in: '{team}/Models')
         ->relation('request', from: 'handler', to: 'request')
-        ->relation('model', from: 'request', to: 'model', scope: ['team'], name: 'explicit', policy: RelationPolicy::Reference)
-        ->relation('store', from: 'handler', to: 'request', name: ['prefix' => 'Store'], policy: 'none')
+        ->relation('model', from: 'request', to: 'model', scope: ['team'], name: 'explicit', mode: RelationMode::Reference)
+        ->relation('store', from: 'handler', to: 'request', name: ['prefix' => 'Store'], mode: 'none')
         ->compile();
 
-    expect($preset->relation('request')->policy)->toBe(RelationPolicy::Generate)
-        ->and($preset->relation('model')->policy)->toBe(RelationPolicy::Reference)
+    expect($preset->relation('request')->mode)->toBe(RelationMode::Generate)
+        ->and($preset->relation('model')->mode)->toBe(RelationMode::Reference)
         ->and($preset->relation('model')->scope->apply(PlacementContext::of(['team' => 'Billing', 'useCase' => 'Pay']))->toArray())->toBe(['team' => 'Billing'])
-        ->and($preset->relation('store')->policy)->toBe(RelationPolicy::None);
+        ->and($preset->relation('store')->mode)->toBe(RelationMode::None);
 });
 
 it('resolves exclusions given as namespaces or paths against the declared roots', function () {
@@ -158,39 +157,39 @@ it('extends a layout: repeated ids override the given arguments and keep the res
     $registry = new LayoutRegistry;
     dddLayout($registry);
 
-    $returned = $registry->layout('ddd')
+    $returned = $registry->layout('domains')
         ->kind('model', suffix: 'Model')
         ->kind('controller', in: 'Http/{domain}/Controllers')
         ->kind('query', in: '{domain}/Queries')
         ->root('app', 'App\\', 'application')
-        ->relation('factory', policy: 'reference')
+        ->relation('factory', mode: 'reference')
         ->exclude('App\\Support\\', 'App\\UI\\');
 
-    $preset = $registry->compile('ddd');
+    $preset = $registry->compile('domains');
 
-    expect($returned)->toBe($registry->layout('ddd'))
+    expect($returned)->toBe($registry->layout('domains'))
         ->and(array_keys($preset->kinds()))->toBe(['model', 'action', 'controller', 'factory', 'query'])
         ->and(place($preset, 'model', 'Invoice', 'Billing')->fqcn())->toBe('Domain\\Billing\\Models\\InvoiceModel')
         ->and(place($preset, 'controller', 'Invoice', 'Billing')->path())->toBe('application/Http/Billing/Controllers/InvoiceController.php')
         ->and(place($preset, 'query', 'Overdue', 'Billing')->fqcn())->toBe('Domain\\Billing\\Queries\\Overdue')
         ->and($preset->relation('factory')->fromKind)->toBe('model')
-        ->and($preset->relation('factory')->policy)->toBe(RelationPolicy::Reference)
+        ->and($preset->relation('factory')->mode)->toBe(RelationMode::Reference)
         ->and(count($preset->excludedRoots()))->toBe(2);
 });
 
 it('starts a built-in layout from its definition and an unknown name empty', function () {
     $registry = new LayoutRegistry;
 
-    expect($registry->layout('modules')->toArray()['kinds'])->toHaveKey('routes')
+    expect($registry->layout('modules')->toArray()['kinds'])->toHaveKey('model')
         ->and($registry->layout('reporting')->toArray()['kinds'])->toBe([])
         ->and($registry->has('laravel'))->toBeTrue()
         ->and($registry->has('nope'))->toBeFalse()
-        ->and($registry->names())->toBe(['laravel', 'features', 'slices', 'type-first', 'modules', 'reporting']);
+        ->and($registry->names())->toBe(['laravel', 'features', 'slices', 'type-first', 'modules', 'ddd', 'reporting']);
 });
 
 it('refuses to compile a layout nobody defined', function () {
     expect(fn () => (new LayoutRegistry)->compile('nope'))
-        ->toThrow(InvalidGeneratorSetup::class, "Layout [nope] is not defined. Use a built-in layout (laravel, features, slices, type-first, modules) or define it with Mod::layout('nope')");
+        ->toThrow(InvalidLayout::class, "Layout [nope] is not defined. Use a built-in layout (laravel, features, slices, type-first, modules, ddd) or define it with Mod::layout('nope')");
 });
 
 it('refuses changes to a layout already compiled for use', function () {
@@ -236,15 +235,15 @@ it('reports every problem of the chain at once', function (Closure $define, stri
             ->kind('model', in: '{domain}/Models')
             ->kind('action', in: '{domain}/Actions')
             ->kind('query', in: '{domian}/Queries'),
-        "->kind('query'): placeholder {domian} is used by no other kind; did you mean {domain}?", 'unknown-dimension',
+        "->kind('query'): placeholder {domian} is used by no other file type; did you mean {domain}?", 'unknown-dimension',
     ],
     'duplicate command' => [
         fn (Layout $l) => $l->root('app', 'App\\', 'app')->kind('model', in: 'Models')->kind('entity', in: 'Entities', command: 'mod:model'),
-        "->kind('entity'): command [mod:model] is already used by kind [model]", 'duplicate-command-name',
+        "->kind('entity'): command [mod:model] is already used by file type [model]", 'duplicate-command-name',
     ],
     'unknown relation target' => [
         fn (Layout $l) => $l->root('app', 'App\\', 'app')->kind('model', in: 'Models')->relation('factory', from: 'model', to: 'factory'),
-        "->relation('factory'): to kind [factory] is not declared", 'unknown-relation-target',
+        "->relation('factory'): to file type [factory] is not declared", 'unknown-relation-target',
     ],
     'scope keeps an unknown placeholder' => [
         fn (Layout $l) => $l->root('app', 'App\\', 'app')->kind('model', in: '{team}/Models')->kind('policy', in: '{team}/Policies')->relation('policy', from: 'model', to: 'policy', scope: ['taem']),
@@ -277,21 +276,36 @@ it('reports a relation to a broken kind once, on the kind', function () {
 it('compiles a fresh preset each time', function () {
     $layout = (new Layout('fresh'))->root('app', 'App\\', 'app')->kind('model', in: 'Models');
 
-    expect($layout->compile())->toBeInstanceOf(Preset::class)
+    expect($layout->compile())->toBeInstanceOf(CompiledLayout::class)
         ->and($layout->compile())->not->toBe($layout->compile());
 });
 
-it('takes discoverAnywhere as a boolean and refuses false', function () {
+it('takes discover: anywhere or folder, with discoverExcept only for anywhere', function () {
     $preset = (new Layout('anywhere'))->root('app', 'App\\', 'app')
-        ->kind('provider', in: 'Providers', discoverAnywhere: true, except: ['Tests'])
+        ->kind('provider', in: 'Providers', discover: 'anywhere', discoverExcept: ['Tests'])
+        ->kind('listener', in: 'Listeners', discover: 'folder')
         ->compile();
-    $rule = $preset->rule('provider');
-    assert($rule instanceof TemplateRule);
+    $provider = $preset->rule('provider');
+    $listener = $preset->rule('listener');
+    assert($provider instanceof TemplateRule && $listener instanceof TemplateRule);
 
-    expect($rule->anywhere())->toBeTrue()
-        ->and($rule->except())->toBe(['Tests'])
-        ->and(fn () => (new Layout('no'))->root('app', 'App\\', 'app')->kind('provider', in: 'Providers', discoverAnywhere: false))
-        ->toThrow(ModException::class, 'discoverAnywhere cannot be false');
+    expect($provider->anywhere())->toBeTrue()
+        ->and($provider->except())->toBe(['Tests'])
+        ->and($listener->anywhere())->toBeFalse()
+        ->and(fn () => (new Layout('no'))->root('app', 'App\\', 'app')->kind('provider', in: 'Providers', discover: 'everywhere'))
+        ->toThrow(ModException::class, "File type [provider]: discover must be 'folder' or 'anywhere'.")
+        ->and(fn () => (new Layout('no'))->root('app', 'App\\', 'app')->kind('provider', in: 'Providers', discoverExcept: ['Tests']))
+        ->toThrow(ModException::class, "File type [provider]: discoverExcept needs discover: 'anywhere'.");
+
+    // Back to its own folder.
+    $back = (new Layout('back'))->root('app', 'App\\', 'app')
+        ->kind('provider', in: 'Providers', discover: 'anywhere', discoverExcept: ['Tests'])
+        ->kind('provider', discover: 'folder')
+        ->compile()
+        ->rule('provider');
+    assert($back instanceof TemplateRule);
+
+    expect($back->anywhere())->toBeFalse();
 });
 
 it('lets kinds share a command name when the layout registers no commands', function () {
@@ -307,5 +321,17 @@ it('lets kinds share a command name when the layout registers no commands', func
             ->kind('model', in: 'Models', command: 'host:model')
             ->kind('legacy-model', in: 'Legacy/Models', command: 'host:model')
             ->compile())
-        ->toThrow(InvalidLayout::class, 'already used by kind [model]');
+        ->toThrow(InvalidLayout::class, 'already used by file type [model]');
+});
+
+it('validates dimensions populated from a relation source name', function () {
+    $layout = (new LayoutRegistry)->layout('operations')
+        ->root('app', 'App\\', 'app')
+        ->kind('controller', in: '{area}/Controllers')
+        ->kind('request', in: '{area}/{operation}', fixed: 'Request')
+        ->relation('request', from: 'controller', to: 'request', scope: ['name' => 'operation']);
+    $preset = $layout->compile();
+    expect($preset->relation('request')->scope->nameDimension)->toBe('operation');
+    $layout->relation('request', scope: ['name' => 'unknown']);
+    expect(fn () => $layout->compile())->toThrow(InvalidLayout::class, 'scope name must identify a declared dimension');
 });

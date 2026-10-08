@@ -2,14 +2,14 @@
 
 namespace Tey\Mod\Layout;
 
-use Tey\Mod\Exceptions\InvalidGeneratorSetup;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Layout\BuiltIn\BuiltInLayouts;
-use Tey\Mod\Preset\Preset;
 
 /**
  * The application's layouts by name: the built-in ones, extended or not,
  * and any defined with Mod::layout(). One per application (container singleton).
+ *
+ * @internal
  */
 final class LayoutRegistry
 {
@@ -48,19 +48,37 @@ final class LayoutRegistry
     }
 
     /**
+     * Every mod:* command name (aliases included) of the built-in layouts as
+     * shipped, with the file type it generates and the layouts that have it.
+     *
+     * @return array<string, array{kind: string, layouts: list<string>}>
+     */
+    public function builtInCommands(): array
+    {
+        $fresh = new self($this->builtIn);
+        $commands = [];
+
+        foreach ($this->builtIn->names() as $name) {
+            foreach ($fresh->compile($name)->kinds() as $kind) {
+                foreach ($kind->command === null ? [] : [$kind->command, ...$kind->aliases] as $command) {
+                    $commands[$command] ??= ['kind' => $kind->id, 'layouts' => []];
+                    $commands[$command]['layouts'][] = $name;
+                }
+            }
+        }
+
+        return $commands;
+    }
+
+    /**
      * Compile a layout for use. It is sealed: changing it afterwards is an error, never silently ignored.
      *
      * @throws InvalidLayout
      */
-    public function compile(string $name): Preset
+    public function compile(string $name): CompiledLayout
     {
         if (! $this->has($name)) {
-            throw new InvalidGeneratorSetup(sprintf(
-                'Layout [%s] is not defined. Use a built-in layout (%s) or define it with Mod::layout(\'%s\') in a service provider.',
-                $name,
-                implode(', ', $this->builtIn->names()),
-                $name,
-            ));
+            throw InvalidLayout::notDefined($name, $this->builtIn->names());
         }
 
         $layout = $this->layout($name);

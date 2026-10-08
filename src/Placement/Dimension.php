@@ -2,6 +2,8 @@
 
 namespace Tey\Mod\Placement;
 
+use Tey\Mod\Layout\CompiledLayout;
+
 /**
  * A placement dimension declared by the preset (for example "feature" or "module").
  *
@@ -9,7 +11,7 @@ namespace Tey\Mod\Placement;
  * A multi-segment dimension (`{name+}` in every rule that reads it) holds a
  * '/'-joined chain of folders, e.g. "Billing/Invoicing".
  *
- * @internal placement machinery; read dimensions through Preset::dimensions().
+ * @internal placement machinery; read dimensions through CompiledLayout::dimensions().
  */
 final readonly class Dimension
 {

@@ -1,7 +1,7 @@
 <?php
 
-use Tey\Mod\Exceptions\InvalidPreset;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Exceptions\InvalidLayout;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Preset\PresetValidator;
 use Tey\Mod\Tests\Fixtures\Layouts;
 
@@ -23,19 +23,19 @@ it('accepts all five layouts', function (string $layout) {
 it('reports every issue at once and throws them together', function () {
     $definition = Layouts::definition('ordinary');
     $definition['kinds']['Model'] = ['shape' => 'class', 'root' => 'app', 'segments' => ['Models']];
-    $definition['relations']['bogus'] = ['from' => 'model', 'to' => 'repository', 'scope' => 'same', 'policy' => 'generate'];
+    $definition['relations']['bogus'] = ['from' => 'model', 'to' => 'repository', 'scope' => 'same', 'mode' => 'generate'];
 
     $exception = null;
 
     try {
-        Preset::fromArray($definition);
-    } catch (InvalidPreset $caught) {
+        CompiledLayout::fromArray($definition);
+    } catch (InvalidLayout $caught) {
         $exception = $caught;
     }
 
-    expect($exception)->toBeInstanceOf(InvalidPreset::class)
+    expect($exception)->toBeInstanceOf(InvalidLayout::class)
         ->and($exception?->codes())->toBe(['invalid-kind', 'unknown-relation-target'])
-        ->and($exception?->getMessage())->toContain('[unknown-relation-target] relations.bogus');
+        ->and($exception?->getMessage())->toContain(' - relations.bogus: ')->toContain('[unknown-relation-target]');
 });
 
 it('detects duplicate kinds', function () {
@@ -113,7 +113,7 @@ it('detects malformed kinds, relations and the commands flag', function () {
     expect(issuesFor(fn (array &$d) => $d['kinds']['model']['name'] = ['prefix' => 'X']))->toBe(['invalid-kind']);
     expect(issuesFor(fn (array &$d) => $d['kinds']['migration']['shape'] = 'class'))->toBe(['invalid-kind']);
     expect(issuesFor(fn (array &$d) => $d['kinds']['model']['place'] = 'not a closure'))->toBe(['invalid-kind']);
-    expect(issuesFor(fn (array &$d) => $d['relations']['factory']['policy'] = 'maybe'))->toBe(['invalid-relation']);
+    expect(issuesFor(fn (array &$d) => $d['relations']['factory']['mode'] = 'maybe'))->toBe(['invalid-relation']);
     expect(issuesFor(fn (array &$d) => $d['relations']['factory']['scope'] = 'everything'))->toBe(['invalid-relation']);
     expect(issuesFor(fn (array &$d) => $d['relations']['factory']['name'] = ['prefix' => '']))->toBe(['invalid-relation']);
     expect(issuesFor(fn (array &$d) => $d['dimensions'] = ['Feature']))->toBe(['invalid-dimension']);
@@ -127,7 +127,7 @@ it('carries the commands flag for the host', function () {
     $definition = Layouts::definition('ordinary');
     $definition['commands'] = false;
 
-    expect(Preset::fromArray($definition)->commandsEnabled())->toBeFalse();
+    expect(CompiledLayout::fromArray($definition)->commandsEnabled())->toBeFalse();
 });
 
 it('exposes kinds, rules and relations by id', function () {
@@ -137,8 +137,8 @@ it('exposes kinds, rules and relations by id', function () {
         ->and($preset->hasKind('repository'))->toBeFalse()
         ->and($preset->kind('controller')->command)->toBe('mod:controller')
         ->and($preset->rule('factory')->root()->path)->toBe('database/factories')
-        ->and(array_keys($preset->relations()))->toBe(['factory', 'model', 'policy', 'store-request', 'update-request'])
-        ->and(array_map(fn ($r) => $r->id, $preset->relationsFrom('controller')))->toBe(['store-request', 'update-request'])
+        ->and(array_keys($preset->relations()))->toBe(['factory', 'model', 'policy', 'controller-store-request', 'controller-update-request'])
+        ->and(array_map(fn ($r) => $r->id, $preset->relationsFrom('controller')))->toBe(['controller-store-request', 'controller-update-request'])
         ->and(count($preset->roots()))->toBe(4)
         ->and($preset->dimensions())->toBe([]);
 });

@@ -5,9 +5,12 @@ namespace Tey\Mod\Discovery\Console;
 use Illuminate\Console\Command;
 use Tey\Mod\Discovery\Discovery;
 
+/**
+ * @internal the command, mod:clear, is the public part
+ */
 final class DiscoveryClearCommand extends Command
 {
-    protected $signature = 'mod:discovery-clear';
+    protected $signature = 'mod:clear';
 
     protected $description = 'Remove the discovery cache file';
 

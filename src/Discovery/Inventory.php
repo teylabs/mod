@@ -8,6 +8,8 @@ use UnexpectedValueException;
  * The result of discovery: what registers (with provenance) and what was
  * deliberately left out. Immutable; owned by the Discovery instance of one
  * application, never shared through static state.
+ *
+ * @internal
  */
 final readonly class Inventory
 {
@@ -42,6 +44,24 @@ final readonly class Inventory
     public function classes(DiscoveryType $type): array
     {
         return array_map(static fn (DiscoveredArtifact $entry): string => $entry->class, $this->ofType($type));
+    }
+
+    /**
+     * A relation type's pairs: model class => related class.
+     *
+     * @return array<string, string>
+     */
+    public function pairs(DiscoveryType $type): array
+    {
+        $pairs = [];
+
+        foreach ($this->ofType($type) as $entry) {
+            if ($entry->target !== null) {
+                $pairs[$entry->class] = $entry->target;
+            }
+        }
+
+        return $pairs;
     }
 
     /**

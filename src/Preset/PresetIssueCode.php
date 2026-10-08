@@ -3,13 +3,14 @@
 namespace Tey\Mod\Preset;
 
 /**
- * @internal issue codes of the validator; surfaces through InvalidLayout / InvalidPreset messages.
+ * @internal issue codes of the validator; surfaces through InvalidLayout / InvalidLayout messages.
  */
 enum PresetIssueCode: string
 {
     case InvalidShape = 'invalid-shape';
     case DuplicateKind = 'duplicate-kind';
     case DuplicateCommandName = 'duplicate-command-name';
+    case InvalidFallback = 'invalid-fallback';
     case InvalidKind = 'invalid-kind';
     case UnknownRoot = 'unknown-root';
     case InvalidRoot = 'invalid-root';
@@ -19,4 +20,5 @@ enum PresetIssueCode: string
     case DuplicatePlacementPattern = 'duplicate-placement-pattern';
     case UnknownRelationTarget = 'unknown-relation-target';
     case InvalidRelation = 'invalid-relation';
+    case PlacementOptionCollision = 'placement-option-collision';
 }

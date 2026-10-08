@@ -2,6 +2,9 @@
 
 namespace Tey\Mod\Reverse;
 
+/**
+ * @internal
+ */
 enum ReverseOutcome: string
 {
     case Matched = 'matched';

@@ -5,8 +5,8 @@ namespace Tey\Mod\Relation;
 use Tey\Mod\Artifact\ArtifactRequest;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Exceptions\ModException;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\PlacementResolver;
-use Tey\Mod\Preset\Preset;
 
 /**
  * Resolves a relation from an already resolved source artifact to its target identity.
@@ -14,11 +14,13 @@ use Tey\Mod\Preset\Preset;
  * Whether the target exists on disk is the generator's concern; this stays pure.
  * The source's nested folders carry over to the target unless the relation's
  * scope drops them; a target kind that is not nested refuses them.
+ *
+ * @internal
  */
 final readonly class RelationResolver
 {
     public function __construct(
-        private Preset $preset,
+        private CompiledLayout $preset,
         private PlacementResolver $placement,
     ) {}
 
@@ -53,7 +55,7 @@ final readonly class RelationResolver
             $target = $this->placement->resolve(new ArtifactRequest(
                 $relation->toKind,
                 implode('/', [...$nested, $targetName]),
-                $relation->scope->apply($source->context),
+                $relation->scope->apply($source->context, $source->name),
                 $attributes,
             ));
         } catch (ModException $exception) {

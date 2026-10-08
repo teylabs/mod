@@ -1,6 +1,5 @@
 <?php
 
-use Symfony\Component\Console\Exception\CommandNotFoundException;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\RejectionReason;
 use Tey\Mod\Facades\Mod;
@@ -9,7 +8,7 @@ use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 
 /*
  * Acceptance, layout 2: feature-first (app/Features/<Feature>/...).
- * The built-in `features` layout has no event or listener kinds; they are
+ * The built-in `features` layout includes event and listener kinds; they are
  * added from AppServiceProvider::boot(), exactly as a host would.
  */
 
@@ -47,6 +46,7 @@ it('runs the whole loop on feature-first', function () {
             "app/Features/Billing/Events/Invoice{$t}Paid.php" => ['event', $ctx, "{$ns}\\Events\\Invoice{$t}Paid"],
             "app/Features/Billing/Http/Controllers/Invoice{$t}Controller.php" => ['controller', $ctx, "{$ns}\\Http\\Controllers\\Invoice{$t}Controller"],
             "app/Features/Billing/Http/Requests/StoreInvoice{$t}Request.php" => ['request', $ctx, "{$ns}\\Http\\Requests\\StoreInvoice{$t}Request"],
+            "app/Features/Billing/Http/Requests/UpdateInvoice{$t}Request.php" => ['request', $ctx, "{$ns}\\Http\\Requests\\UpdateInvoice{$t}Request"],
             "app/Features/Billing/Listeners/Send{$t}Receipt.php" => ['listener', $ctx, "{$ns}\\Listeners\\Send{$t}Receipt"],
             "app/Features/Billing/Models/Invoice{$t}.php" => ['model', $ctx, "{$ns}\\Models\\Invoice{$t}"],
             "app/Features/Billing/Providers/Billing{$t}ServiceProvider.php" => ['provider', $ctx, "{$ns}\\Providers\\Billing{$t}ServiceProvider"],
@@ -62,7 +62,7 @@ it('runs the whole loop on feature-first', function () {
         expect($app->read("app/Features/Billing/Models/Invoice{$t}.php"))
             ->toContain("HasFactory<\\{$ns}\\Database\\Factories\\Invoice{$t}Factory>")
             ->toContain('function newFactory()')
-            ->and($app->read("app/Features/Billing/Database/Factories/Invoice{$t}Factory.php"))->toContain("protected \$model = \\{$ns}\\Models\\Invoice{$t}::class;")
+            ->and($app->read("app/Features/Billing/Database/Factories/Invoice{$t}Factory.php"))->toContain("use {$ns}\\Models\\Invoice{$t};\n")->toContain("protected \$model = Invoice{$t}::class;")
             ->and($app->read("app/Features/Billing/Http/Controllers/Invoice{$t}Controller.php"))
             ->toContain("use {$ns}\\Http\\Requests\\StoreInvoice{$t}Request;")
             ->toContain("use {$ns}\\Models\\Invoice{$t};");
@@ -102,7 +102,7 @@ it('runs the whole loop on feature-first', function () {
         };
         $assertRegistered();
 
-        $app->artisan('mod:discovery-cache')->assertSuccessful();
+        $app->artisan('mod:cache')->assertSuccessful();
         $app->boot();
 
         expect($app->discovery()->source())->toBe('cache')
@@ -119,15 +119,15 @@ it('refuses, rejects and reports on feature-first', function () {
         $app->artisan('mod:provider', ['name' => "Billing{$t}", '--in' => 'Billing'])->assertSuccessful();
 
         $app->artisan('mod:provider', ['name' => "Billing{$t}", '--in' => 'Billing'])
-            ->expectsOutputToContain("path collision: app/Features/Billing/Providers/Billing{$t}ServiceProvider.php already exists")
-            ->assertFailed();
+            ->expectsOutputToContain("app/Features/Billing/Providers/Billing{$t}ServiceProvider.php already exists.")
+            ->assertSuccessful();
 
-        expect(fn () => $app->artisan('mod:seeder', ['name' => 'Anything']))->toThrow(CommandNotFoundException::class);
+        $app->artisan('mod:seeder', ['name' => 'Anything'])->expectsOutputToContain('mod:seeder needs a feature.')->assertFailed();
 
         $app->artisan('mod:model', ['name' => "Invoice{$t}"])
-            ->expectsOutputToContain('requires a [feature] placement value; pass it with --in.')
+            ->expectsOutputToContain("mod:model needs a feature. Pass --feature=<feature>, --in=<feature>, or prefix the name: <feature>:Invoice{$t}.")
             ->assertFailed();
-        $app->artisan('mod:command', ['name' => "Prune{$t}", '--in' => 'Billing'])->assertFailed();
+        $app->artisan('mod:command', ['name' => "Prune{$t}", '--in' => 'Billing'])->assertSuccessful();
 
         // Non-registration: a plain class where providers live; not owned: the excluded shared root.
         $app->handWrite("app/Features/Billing/Providers/Plain{$t}ServiceProvider.php", 'App\Features\Billing\Providers', "class Plain{$t}ServiceProvider {}");

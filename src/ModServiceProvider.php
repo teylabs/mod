@@ -5,16 +5,25 @@ namespace Tey\Mod;
 use Illuminate\Console\Application as Artisan;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
+use Tey\Mod\Commands\BasesCommand;
+use Tey\Mod\Commands\OtherLayoutCommand;
 use Tey\Mod\Discovery\Console\DiscoveryCacheCommand;
 use Tey\Mod\Discovery\Console\DiscoveryClearCommand;
 use Tey\Mod\Discovery\Discovery;
+use Tey\Mod\Discovery\DiscoveryCandidates;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryRegistrar;
-use Tey\Mod\Exceptions\InvalidGeneratorSetup;
+use Tey\Mod\Exceptions\InvalidLayout;
+use Tey\Mod\Generation\BaseWriter;
+use Tey\Mod\Generation\ComposerPackageDetector;
 use Tey\Mod\Generation\GeneratorRegistry;
 use Tey\Mod\Generation\ModMigrationCreator;
+use Tey\Mod\Generation\PackageDetector;
+use Tey\Mod\Generation\Starters;
+use Tey\Mod\Generation\StubRegistry;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\LayoutRegistry;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Resolution\ModelConventions;
 
 class ModServiceProvider extends ServiceProvider
 {
@@ -23,11 +32,21 @@ class ModServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../config/mod.php', 'mod');
 
         $this->app->singleton(LayoutRegistry::class);
+        $this->app->singleton(StubRegistry::class, fn (): StubRegistry => Starters::register(new StubRegistry));
+        $this->app->bind(BaseWriter::class, fn (Application $app): BaseWriter => new BaseWriter(
+            $app->make('files'),
+            $app->basePath(),
+            self::basesPath($app),
+            self::appNamespace($app),
+        ));
+        $this->app->singleton(PackageDetector::class, ComposerPackageDetector::class);
+        $this->app->singleton(DiscoveryCandidates::class);
+        $this->app->singleton(ModManager::class);
 
         // The active layout compiles on first use, after every provider has booted
         // (Artisan::starting, the booted callback below), so Mod::layout() calls in
         // any provider's register() or boot() apply.
-        $this->app->singleton(Preset::class, function (Application $app): Preset {
+        $this->app->singleton(CompiledLayout::class, function (Application $app): CompiledLayout {
             return $this->activeLayout($app);
         });
 
@@ -47,16 +66,25 @@ class ModServiceProvider extends ServiceProvider
                 return;
             }
 
+            $options = DiscoveryOptions::fromConfig((array) $app->make('config')->get('mod.discovery', []));
+            $candidates = $app->make(DiscoveryCandidates::class)->using;
+
             DiscoveryRegistrar::register(
                 $app,
-                $app->make(Preset::class),
-                DiscoveryOptions::fromConfig((array) $app->make('config')->get('mod.discovery', [])),
+                $app->make(CompiledLayout::class),
+                $candidates === null ? $options : $options->withCandidates($candidates),
             );
         });
     }
 
     public function boot(): void
     {
+        // Model::factory() through the layout's factory relation; a resolver registered
+        // before this one is delegated to, one registered after it wins.
+        if ($this->discoveryEnabled() && DiscoveryOptions::fromConfig((array) $this->app->make('config')->get('mod.discovery', []))->factories) {
+            ModelConventions::register($this->app);
+        }
+
         if (! $this->app->runningInConsole()) {
             return;
         }
@@ -73,29 +101,63 @@ class ModServiceProvider extends ServiceProvider
             $this->registerGeneratorCommands($artisan);
             $this->registerDiscoveryCommands($artisan);
         });
+
+        // Last, once every provider has booted, so a package's command of the same name wins.
+        $this->app->booted(function (): void {
+            Artisan::starting(function (Artisan $artisan): void {
+                if ($artisan->getLaravel() === $this->app) {
+                    $this->registerOtherLayoutCommands($artisan);
+                }
+            });
+        });
     }
 
     /**
-     * The layout `mod.layout` names. `mod.preset`, a raw internal preset
-     * definition, is an undocumented test hook that wins when set.
+     * The layout `mod.layout` names. `mod.preset`, a raw layout definition,
+     * is an @internal test hook that wins when set; it is not public API.
      */
-    private function activeLayout(Application $app): Preset
+    private function activeLayout(Application $app): CompiledLayout
     {
         $config = $app->make('config');
         $definition = $config->get('mod.preset');
 
         if (is_array($definition)) {
             /** @var array<string, mixed> $definition */
-            return Preset::fromArray($definition);
+            return CompiledLayout::fromArray($definition);
         }
 
         $name = $config->get('mod.layout', 'laravel');
 
         if (! is_string($name) || $name === '') {
-            throw new InvalidGeneratorSetup('Config [mod.layout] must be a layout name such as "laravel".');
+            throw InvalidLayout::notNamed();
         }
 
-        return $app->make(LayoutRegistry::class)->compile($name);
+        $registry = $app->make(LayoutRegistry::class);
+
+        if ($registry->has($name) && ! $registry->layout($name)->isSealed()) {
+            $registry->layout($name)->reserveBaseFolders($app->make(StubRegistry::class), self::basesPath($app));
+        }
+
+        return $registry->compile($name);
+    }
+
+    /**
+     * `mod.bases_path`: where generated bases go, relative to the base path.
+     */
+    private static function basesPath(Application $app): string
+    {
+        $path = $app->make('config')->get('mod.bases_path', 'app/Support');
+
+        return is_string($path) && trim($path, '/ ') !== '' ? trim($path, '/ ') : 'app/Support';
+    }
+
+    private static function appNamespace(Application $app): string
+    {
+        try {
+            return $app instanceof \Illuminate\Foundation\Application ? $app->getNamespace() : 'App\\';
+        } catch (\RuntimeException) {
+            return 'App\\';
+        }
     }
 
     private function discoveryEnabled(): bool
@@ -104,7 +166,7 @@ class ModServiceProvider extends ServiceProvider
     }
 
     /**
-     * mod:discovery-cache / mod:discovery-clear, hooked into optimize and
+     * mod:cache / mod:clear, hooked into optimize and
      * optimize:clear, only while mod:* commands and discovery are both on.
      * Laravel keeps the optimize hooks in a process-wide map keyed by
      * provider, so they are set or removed to match this application.
@@ -122,7 +184,42 @@ class ModServiceProvider extends ServiceProvider
         }
 
         $artisan->resolveCommands([DiscoveryCacheCommand::class, DiscoveryClearCommand::class]);
-        $this->optimizes(optimize: 'mod:discovery-cache', clear: 'mod:discovery-clear', key: 'mod');
+        $this->optimizes(optimize: 'mod:cache', clear: 'mod:clear', key: 'mod');
+    }
+
+    /**
+     * A hidden placeholder for each mod:* command another built-in layout has
+     * and nothing here registers: running it names the layouts that have it.
+     */
+    private function registerOtherLayoutCommands(Artisan $artisan): void
+    {
+        $config = $this->app->make('config');
+        $layout = $config->get('mod.layout');
+
+        if (! (bool) $config->get('mod.commands', true) || is_array($config->get('mod.preset')) || ! is_string($layout)) {
+            return;
+        }
+
+        $preset = $this->app->make(CompiledLayout::class);
+
+        if (! $preset->commandsEnabled()) {
+            return;
+        }
+
+        $own = [];
+
+        foreach ($preset->kinds() as $kind) {
+            foreach ($kind->command === null ? [] : [$kind->command, ...$kind->aliases] as $command) {
+                $own[$command] = true;
+            }
+        }
+
+        foreach ($this->app->make(LayoutRegistry::class)->builtInCommands() as $command => $other) {
+            if (! isset($own[$command]) && ! $artisan->has($command)) {
+                // resolve() adds a command instance on every supported Laravel (addCommand() where add() is deprecated).
+                $artisan->resolve(new OtherLayoutCommand($command, $other['kind'], $other['layouts'], $layout));
+            }
+        }
     }
 
     /**
@@ -135,14 +232,21 @@ class ModServiceProvider extends ServiceProvider
             return;
         }
 
-        $preset = $this->app->make(Preset::class);
+        $preset = $this->app->make(CompiledLayout::class);
 
         if (! $preset->commandsEnabled()) {
             return;
         }
 
+        $artisan->resolveCommands([BasesCommand::class]);
+
         foreach ($this->app->make(GeneratorRegistry::class)->commands($preset, $this->app) as $command) {
             $artisan->resolveCommands([$command]);
+
+            // A placement option that would shadow one of the command's own is left out; say so.
+            foreach (method_exists($command, 'placementOptionIssues') ? $command->placementOptionIssues() : [] as $issue) {
+                $this->app->make('log')->warning('mod layout: '.$issue->describe());
+            }
         }
     }
 }

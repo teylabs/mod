@@ -3,7 +3,6 @@
 namespace Tey\Mod\Generation;
 
 use Illuminate\Database\Migrations\MigrationCreator;
-use ReflectionClass;
 use ReflectionProperty;
 
 /**
@@ -24,12 +23,12 @@ class ModMigrationCreator extends MigrationCreator
      */
     public function datePrefixFor(string $directory): string
     {
-        // Laravel 11 has no per-directory clock; its prefix is plain date().
-        if (! (new ReflectionClass(MigrationCreator::class))->hasProperty('currentMigrationPath')) {
+        // Laravel 12 uses a plain date prefix; newer creators track the directory.
+        if (! property_exists(MigrationCreator::class, 'currentMigrationPath')) {
             return parent::getDatePrefix();
         }
 
-        // Laravel 12+ keeps the directory on a property Laravel 11 does not declare; reach it by name.
+        // Read the native per-directory clock without changing its state.
         $property = new ReflectionProperty(MigrationCreator::class, 'currentMigrationPath');
         $previous = $property->getValue($this);
         $property->setValue($this, $directory);

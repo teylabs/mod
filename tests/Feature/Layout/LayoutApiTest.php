@@ -10,15 +10,15 @@ use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 /*
  * The public layout API end to end. A whole DDD-like layout is defined
  * as ONE chain with nested closures in the application's
- * AppServiceProvider::boot(), selected with `'layout' => 'ddd'`, and both
+ * AppServiceProvider::boot(), selected with `'layout' => 'domains'`, and both
  * mod:* generation and discovery honour it: the active layout compiles only
  * after every provider has booted.
  */
 
 function dddLayoutUnderTest(): LayoutUnderTest
 {
-    return new LayoutUnderTest('ddd', function () {
-        Mod::layout('ddd')
+    return new LayoutUnderTest('domains', function () {
+        Mod::layout('domains')
             ->root('domain', 'Domain\\', 'src/Domain', fn (Root $r) => $r
                 ->kind('model', in: '{domain}/Models')
                 ->kind('action', in: '{domain}/Actions'))
@@ -29,7 +29,7 @@ function dddLayoutUnderTest(): LayoutUnderTest
             ->exclude('App\\Support\\');
 
         // A later call (another provider, say) extends the same layout.
-        Mod::layout('ddd')->kind('provider', in: 'domain:{domain}/Providers', suffix: 'ServiceProvider');
+        Mod::layout('domains')->kind('provider', in: 'domain:{domain}/Providers', suffix: 'ServiceProvider');
     });
 }
 
@@ -103,5 +103,5 @@ it('reports an invalid layout with the call that caused it when mod:* starts', f
     $layout = new LayoutUnderTest('laravel', fn () => Mod::layout('laravel')->kind('job', in: 'jobs:Jobs'));
 
     expect(fn () => AcceptanceApp::run($layout, fn () => null))
-        ->toThrow(InvalidLayout::class, "Layout [laravel] is invalid:\n - ->kind('job'): root [jobs] is not declared (declared: app, factories, seeders, migrations) [unknown-root]");
+        ->toThrow(InvalidLayout::class, "Layout [laravel] is invalid:\n - ->kind('job'): root [jobs] is not declared (declared: app, factories, seeders, migrations, config, tests) [unknown-root]");
 });

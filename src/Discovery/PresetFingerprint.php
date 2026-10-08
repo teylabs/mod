@@ -2,9 +2,9 @@
 
 namespace Tey\Mod\Discovery;
 
-use Tey\Mod\Placement\Root;
+use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Placement\TemplateRule;
-use Tey\Mod\Preset\Preset;
 
 /**
  * A digest of everything in a preset that decides ownership: roots,
@@ -18,9 +18,9 @@ use Tey\Mod\Preset\Preset;
  */
 final readonly class PresetFingerprint
 {
-    public static function of(Preset $preset): string
+    public static function of(CompiledLayout $preset): string
     {
-        $describeRoot = static fn (Root $root): string => ($root->namespace ?? '').'|'.$root->path;
+        $describeRoot = static fn (CompiledRoot $root): string => ($root->namespace ?? '').'|'.$root->path;
 
         $roots = array_map($describeRoot, $preset->roots());
         ksort($roots);
@@ -33,7 +33,7 @@ final readonly class PresetFingerprint
                 $kind->shape->value,
                 $kind->namePolicy->describe(),
                 $kind->command,
-                $rule instanceof TemplateRule ? $rule->pattern() : 'opaque|'.$describeRoot($rule->root()),
+                $rule instanceof TemplateRule ? array_map(static fn (TemplateRule $variant): array => [$variant->pattern(), $variant->priority()], $rule->variants()) : 'opaque|'.$describeRoot($rule->root()),
                 $rule->priority(),
                 $rule->dimensions(),
             ];

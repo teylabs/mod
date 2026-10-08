@@ -3,11 +3,13 @@
 namespace Tey\Mod\Discovery;
 
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionUnionType;
+use Tey\Mod\Support\Path;
 
 /**
  * Semantic eligibility: a class registers only when it really is what its
@@ -27,7 +29,7 @@ final readonly class Eligibility
         $reflection = new ReflectionClass($class);
         $file = $reflection->getFileName();
 
-        if ($file === false || realpath($file) !== realpath($absolutePath)) {
+        if ($file === false || ! Path::same(realpath($file) ?: $file, realpath($absolutePath) ?: $absolutePath)) {
             return sprintf('class [%s] is loaded from [%s], not from the scanned file', $class, $file === false ? 'internal' : $file);
         }
 
@@ -46,7 +48,10 @@ final readonly class Eligibility
             DiscoveryType::Subscriber => $this->subscribes($reflection)
                 ? []
                 : sprintf('[%s] has no public subscribe() method taking exactly one parameter', $class),
-            DiscoveryType::Directory => sprintf('[%s] is a class; directories are discovered from file kinds', $class),
+            DiscoveryType::Directory => sprintf('[%s] is a class; directories are discovered for file types that hold plain files, such as migrations', $class),
+            DiscoveryType::Factory, DiscoveryType::Policy => $reflection->isSubclassOf(Model::class)
+                ? []
+                : sprintf('[%s] does not extend %s', $class, Model::class),
         };
     }
 

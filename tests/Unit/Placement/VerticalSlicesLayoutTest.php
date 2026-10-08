@@ -2,8 +2,8 @@
 
 use Tey\Mod\Exceptions\DimensionNotApplicable;
 use Tey\Mod\Exceptions\MissingDimension;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\PlacementResolver;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Relation\RelationResolver;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseOutcome;
@@ -58,10 +58,10 @@ it('treats duplicate basenames in different slices as different identities', fun
 
 it('rejects a slice on a feature-scoped kind and requires it on slice kinds', function () {
     expect(fn () => place(Layouts::verticalSlices(), 'model', 'Invoice', 'Billing/CreateInvoice'))
-        ->toThrow(DimensionNotApplicable::class, 'does not take a [slice]');
+        ->toThrow(DimensionNotApplicable::class, 'does not use a [slice]');
 
     expect(fn () => place(Layouts::verticalSlices(), 'request', '', 'Billing'))
-        ->toThrow(MissingDimension::class, 'requires a [slice]');
+        ->toThrow(MissingDimension::class, 'needs a [slice]');
 });
 
 it('relates a slice request to the shared-scope model with an explicit name', function () {
@@ -120,7 +120,7 @@ it('resolves the ambiguity with a declared priority', function () {
     $definition = Layouts::definition('vertical-slices');
     $definition['kinds']['model']['priority'] = 10;
 
-    $match = (new ReverseMapper(Preset::fromArray($definition)))->fromClass('App\Billing\Models\Request');
+    $match = (new ReverseMapper(CompiledLayout::fromArray($definition)))->fromClass('App\Billing\Models\Request');
 
     expect($match->outcome)->toBe(ReverseOutcome::Matched)
         ->and($match->artifact?->kind->id)->toBe('model')
@@ -131,7 +131,7 @@ it('shows the trap an exclusion closes: without it the declared rule matches App
     $definition = Layouts::definition('vertical-slices');
     $definition['excluded'] = [];
 
-    $match = (new ReverseMapper(Preset::fromArray($definition)))->fromClass('App\Http\Requests\Request');
+    $match = (new ReverseMapper(CompiledLayout::fromArray($definition)))->fromClass('App\Http\Requests\Request');
 
     expect($match->outcome)->toBe(ReverseOutcome::Matched)
         ->and($match->artifact?->context->toArray())->toBe(['feature' => 'Http', 'slice' => 'Requests']);

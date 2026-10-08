@@ -3,7 +3,7 @@
 namespace Tey\Mod\Generation;
 
 use Tey\Mod\Artifact\ArtifactKind;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 
 /**
  * A mod:* command that generates one preset kind.
@@ -16,6 +16,6 @@ interface GeneratorAdapter
     /** Whether this adapter can generate artifacts of the given kind's shape and naming. */
     public static function supports(ArtifactKind $kind): bool;
 
-    /** Bind the command to a kind: takes the kind's command name and adds --in. */
-    public function forKind(Preset $preset, ArtifactKind $kind): static;
+    /** Bind the command to a kind: takes the kind's command name and adds the placement options (--in and one per dimension). */
+    public function forKind(CompiledLayout $preset, ArtifactKind $kind): static;
 }

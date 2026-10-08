@@ -4,6 +4,9 @@ namespace Tey\Mod\Relation;
 
 use Tey\Mod\Artifact\ResolvedArtifact;
 
+/**
+ * @internal
+ */
 final readonly class RelationResolution
 {
     private function __construct(
@@ -29,8 +32,8 @@ final readonly class RelationResolution
         return $this->status === RelationStatus::Resolved;
     }
 
-    public function policy(): RelationPolicy
+    public function mode(): RelationMode
     {
-        return $this->relation->policy;
+        return $this->relation->mode;
     }
 }

@@ -1,6 +1,5 @@
 <?php
 
-use Symfony\Component\Console\Exception\CommandNotFoundException;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\RejectionReason;
 use Tey\Mod\Facades\Mod;
@@ -101,7 +100,7 @@ it('runs the whole loop on ordinary Laravel', function () {
         $assertRegistered();
 
         // 5. Cache, then replay on a fresh boot: identical inventory and registrations.
-        $app->artisan('mod:discovery-cache')->assertSuccessful();
+        $app->artisan('mod:cache')->assertSuccessful();
         $app->boot();
 
         expect($app->discovery()->source())->toBe('cache')
@@ -120,12 +119,14 @@ it('refuses, rejects and reports on ordinary Laravel', function () {
 
         // Collision: generating the same artifact again is refused before any write.
         $app->artisan('mod:model', ['name' => "Invoice{$t}"])
-            ->expectsOutputToContain("path collision: app/Models/Invoice{$t}.php already exists")
-            ->assertFailed();
+            ->expectsOutputToContain('Model already exists.')
+            ->assertSuccessful();
         expect($app->read("app/Models/Invoice{$t}.php"))->toBe($before);
 
-        // Unknown kind: the layout declares no handler, so there is no mod:handler.
-        expect(fn () => $app->artisan('mod:handler', ['name' => 'Anything']))->toThrow(CommandNotFoundException::class);
+        // Unknown file type: the layout declares no handler; mod:handler says which layout has one.
+        $app->artisan('mod:handler', ['name' => 'Anything'])
+            ->expectsOutputToContain('mod:handler is not a command of the laravel layout. The slices layout has it.')
+            ->assertFailed();
 
         // --in in a layout without dimensions.
         $app->artisan('mod:model', ['name' => "Other{$t}", '--in' => 'Billing'])->assertFailed();

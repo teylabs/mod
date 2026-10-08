@@ -8,12 +8,14 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
 use Tey\Mod\Artifact\ResolvedArtifact;
-use Tey\Mod\Placement\Root;
+use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Placement\TemplateRule;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Resolution\ModelRelations;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseMatch;
 use Tey\Mod\Reverse\ReverseOutcome;
+use Tey\Mod\Support\Path;
 
 /**
  * A cold scan: walks the root of every enabled discovered kind, lets the
@@ -24,7 +26,9 @@ use Tey\Mod\Reverse\ReverseOutcome;
  * dimension folders (minus its `except` folders) as a candidate; eligibility
  * still decides, and such candidates are never reported as rejections.
  * A `directory` definition collects the directories a file kind's template
- * binds that hold at least one file.
+ * binds that hold at least one file. A relation type (factory, policy) pairs
+ * each model the layout owns with the related class that exists; a model
+ * without one is not a rejection.
  *
  * Symlinks are not followed. Files are visited in sorted order, so the
  * inventory is deterministic. The host may replace the file walker with its
@@ -36,16 +40,19 @@ final readonly class DiscoveryScanner
 {
     private ReverseMapper $mapper;
 
+    private ModelRelations $relations;
+
     /**
-     * @param  (Closure(Root, string, DiscoveryDefinition): iterable<string>)|null  $candidates
+     * @param  (Closure(CompiledRoot, string, DiscoveryDefinition): iterable<string>)|null  $candidates
      */
     public function __construct(
-        private Preset $preset,
+        private CompiledLayout $preset,
         private string $basePath,
         private Eligibility $eligibility = new Eligibility,
         private ?Closure $candidates = null,
     ) {
         $this->mapper = new ReverseMapper($preset);
+        $this->relations = new ModelRelations($preset);
     }
 
     /**
@@ -76,10 +83,12 @@ final readonly class DiscoveryScanner
             if ($definition->type === DiscoveryType::Directory) {
                 if ($rule instanceof TemplateRule) {
                     foreach ($this->directories($rule->root()->path) as $directory) {
-                        $context = $rule->recogniseDirectory($directory);
+                        foreach ($rule->variants() as $variant) {
+                            $context = $variant->recogniseDirectory($directory);
 
-                        if ($context !== null) {
-                            $entries[$directory.'|directory'] = new DiscoveredArtifact($definition->kindId, DiscoveryType::Directory, '', $directory, $context->toArray());
+                            if ($context !== null) {
+                                $entries[$directory.'|directory'] = new DiscoveredArtifact($definition->kindId, DiscoveryType::Directory, '', $directory, $context->toArray());
+                            }
                         }
                     }
                 }
@@ -87,10 +96,23 @@ final readonly class DiscoveryScanner
                 continue;
             }
 
-            $anywhere = $rule instanceof TemplateRule && $rule->anywhere() ? $rule : null;
             // A host source may scope candidates per discovered kind, so the walk is cached per root and definition.
             $filesKey = $rule->root()->path.'|'.($this->candidates === null ? '' : $definition->identity());
             $files[$filesKey] ??= $this->files($rule->root(), $definition);
+
+            if ($definition->type->isRelationType()) {
+                foreach ($files[$filesKey] as $path) {
+                    $match = $matches[$path] ??= $this->mapper->fromPath($path);
+
+                    if ($match->outcome === ReverseOutcome::Matched && $match->artifact !== null && $match->artifact->kind->id === $definition->kindId) {
+                        $this->pair($definition, $match->artifact, $path, $entries);
+                    }
+                }
+
+                continue;
+            }
+
+            $anywhere = $rule instanceof TemplateRule && $rule->anywhere() ? $rule : null;
 
             foreach ($files[$filesKey] as $path) {
                 $match = $matches[$path] ??= $this->mapper->fromPath($path);
@@ -166,6 +188,26 @@ final readonly class DiscoveryScanner
         $entries[$path.'|'.$definition->type->value] = $result;
     }
 
+    /**
+     * A model and its related class, when the model is an eligible Eloquent model and the class exists.
+     *
+     * @param  array<string, DiscoveredArtifact>  $entries
+     */
+    private function pair(DiscoveryDefinition $definition, ResolvedArtifact $model, string $path, array &$entries): void
+    {
+        $entry = $this->entry($definition, $model, $path);
+
+        if (! $entry instanceof DiscoveredArtifact) {
+            return;
+        }
+
+        $target = $this->relations->targetOf($model, $definition->type->value);
+
+        if ($target !== null) {
+            $entries[$path.'|'.$definition->type->value] = new DiscoveredArtifact($entry->kindId, $entry->type, $entry->class, $entry->path, $entry->context, [], $target);
+        }
+    }
+
     private function entry(DiscoveryDefinition $definition, ResolvedArtifact $artifact, string $path): DiscoveredArtifact|Rejection
     {
         $class = $artifact->fqcn();
@@ -217,16 +259,16 @@ final readonly class DiscoveryScanner
      *
      * @return list<string>
      */
-    private function files(Root $root, DiscoveryDefinition $definition): array
+    private function files(CompiledRoot $root, DiscoveryDefinition $definition): array
     {
         if ($this->candidates !== null) {
-            $prefix = $root->path === '' ? '' : Root::normalisePath($root->path).'/';
+            $prefix = CompiledRoot::normalisePath($root->path);
             $files = [];
 
             foreach (($this->candidates)($root, $this->basePath, $definition) as $path) {
-                $path = Root::normalisePath($path);
+                $path = CompiledRoot::normalisePath($path);
 
-                if ($path !== '' && str_ends_with($path, '.php') && ($prefix === '' || str_starts_with($path, $prefix))) {
+                if ($path !== '' && str_ends_with($path, '.php') && Path::relative($prefix, $path) !== null) {
                     $files[$path] = $path;
                 }
             }
@@ -286,8 +328,11 @@ final readonly class DiscoveryScanner
                 continue;
             }
 
-            $relative = substr($item->getPathname(), strlen(rtrim($this->basePath, '/\\')) + 1);
-            $files[] = str_replace('\\', '/', $relative);
+            $relative = Path::relative($this->basePath, $item->getPathname());
+
+            if ($relative !== null) {
+                $files[] = $relative;
+            }
         }
 
         sort($files);
@@ -297,6 +342,6 @@ final readonly class DiscoveryScanner
 
     private function absolute(string $relative): string
     {
-        return rtrim($this->basePath, '/\\').($relative === '' ? '' : DIRECTORY_SEPARATOR.$relative);
+        return Path::join($this->basePath, $relative);
     }
 }

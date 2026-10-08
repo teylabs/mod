@@ -5,7 +5,7 @@ use Illuminate\Foundation\Events\DiscoverEvents;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider;
 use Illuminate\Support\Facades\Event;
 use Tey\Mod\Discovery\DiscoveryRegistrar;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Tests\Feature\Discovery\Support\DiscoveryFixture;
 use Tey\Mod\Tests\Feature\Discovery\Support\Sources;
 use Tey\Mod\Tests\Fixtures\Layouts;
@@ -16,7 +16,7 @@ use Tey\Mod\Tests\Fixtures\Layouts;
  * must not subscribe a subscriber the application already subscribed.
  */
 
-function overlapTree(DiscoveryFixture $fx): Preset
+function overlapTree(DiscoveryFixture $fx): CompiledLayout
 {
     $events = '\\{{ns}}\\App\\Events\\';
     $fx

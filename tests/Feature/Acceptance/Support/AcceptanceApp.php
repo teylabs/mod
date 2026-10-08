@@ -14,10 +14,15 @@ use SplFileInfo;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Tey\Mod\Discovery\Discovery;
 use Tey\Mod\Facades\Mod;
+use Tey\Mod\Generation\GeneratorRegistry;
+use Tey\Mod\Generation\Starters;
+use Tey\Mod\Generation\StubRegistry;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\LayoutRegistry;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\ModManager;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseMatch;
+use Tey\Mod\Support\Path;
 use Tey\Mod\Tests\Feature\Generation\Support\CommandResult;
 use Tey\Mod\Tests\Support\AppServiceProvider;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
@@ -36,7 +41,7 @@ use Tey\Mod\Tests\TestCase;
  */
 final class AcceptanceApp
 {
-    public readonly Preset $preset;
+    public readonly CompiledLayout $preset;
 
     public readonly string $tag;
 
@@ -53,8 +58,8 @@ final class AcceptanceApp
         private readonly ?Closure $define,
         private readonly array $discovery,
     ) {
-        $this->preset = $this->expectedPreset();
         $this->tag = 'T'.bin2hex(random_bytes(4));
+        $this->preset = $this->expectedPreset();
     }
 
     /**
@@ -100,6 +105,8 @@ final class AcceptanceApp
             $config = $app->make('config');
             $app->setBasePath($this->root->path);
             $config->set('mod.layout', $this->layout);
+            // Generated bases stay loaded for the whole process: each app gets its own.
+            $config->set('mod.bases_path', $this->basesPath());
             $config->set('mod.discovery', [...(array) $config->get('mod.discovery', []), 'enabled' => true, ...$this->discovery, ...$discovery]);
 
             if ($this->define !== null) {
@@ -107,7 +114,7 @@ final class AcceptanceApp
             }
         });
 
-        if ($this->app->make(Preset::class) != $this->preset) {
+        if ($this->app->make(CompiledLayout::class) != $this->preset) {
             throw new RuntimeException("The booted application compiled layout [{$this->layout}] differently from the test's expectation.");
         }
 
@@ -134,7 +141,7 @@ final class AcceptanceApp
         $output = new BufferedOutput;
         $exitCode = $this->app()->make(Kernel::class)->call($command, [...$parameters, '--no-interaction' => true], $output);
 
-        return new CommandResult($exitCode, $output->fetch());
+        return new CommandResult($exitCode, $output->fetch(), $this->root->path);
     }
 
     /**
@@ -144,8 +151,9 @@ final class AcceptanceApp
      */
     public function modCommands(): array
     {
-        $names = array_keys($this->app()->make(Kernel::class)->all());
-        $mod = array_values(array_filter($names, static fn (string $name): bool => str_starts_with($name, 'mod:')));
+        // Visible commands only: hidden placeholders name the layouts that have a command.
+        $commands = array_filter($this->app()->make(Kernel::class)->all(), static fn ($command): bool => ! $command->isHidden());
+        $mod = array_values(array_filter(array_keys($commands), static fn (string $name): bool => str_starts_with($name, 'mod:')));
         sort($mod);
 
         return $mod;
@@ -232,7 +240,7 @@ final class AcceptanceApp
     }
 
     /**
-     * Every file under app/, database/ and src/, relative to the root, sorted.
+     * Every file under app/, database/, src/, tests/ and config/, relative to the root, sorted.
      *
      * @return list<string>
      */
@@ -240,7 +248,7 @@ final class AcceptanceApp
     {
         $files = [];
 
-        foreach (['app', 'database', 'src'] as $top) {
+        foreach (['app', 'database', 'src', 'tests', 'config'] as $top) {
             if (! is_dir($this->root->path($top))) {
                 continue;
             }
@@ -250,7 +258,7 @@ final class AcceptanceApp
             /** @var SplFileInfo $item */
             foreach ($items as $item) {
                 if ($item->isFile()) {
-                    $files[] = str_replace('\\', '/', substr($item->getPathname(), strlen($this->root->path) + 1));
+                    $files[] = (string) Path::relative($this->root->path, $item->getPathname());
                 }
             }
         }
@@ -279,20 +287,32 @@ final class AcceptanceApp
      * Mod::layout() calls, run on a scratch registry, so tests can place and
      * map artifacts before booting.
      */
-    private function expectedPreset(): Preset
+    private function expectedPreset(): CompiledLayout
     {
         $registry = new LayoutRegistry;
-        Mod::swap($registry);
+        Mod::swap(new ModManager($registry, new StubRegistry, new GeneratorRegistry));
 
         try {
             if ($this->define !== null) {
                 ($this->define)();
             }
 
+            if ($registry->has($this->layout)) {
+                $registry->layout($this->layout)->reserveBaseFolders(Starters::register(new StubRegistry), $this->basesPath());
+            }
+
             return $registry->compile($this->layout);
         } finally {
-            Mod::clearResolvedInstance(LayoutRegistry::class);
+            Mod::clearResolvedInstance(ModManager::class);
         }
+    }
+
+    /**
+     * This app's bases folder, below app/Support so no layout takes it for a group.
+     */
+    public function basesPath(): string
+    {
+        return "app/Support/{$this->tag}";
     }
 
     /**
@@ -314,7 +334,7 @@ final class AcceptanceApp
         return function (string $class) use ($map): void {
             foreach ($map as $namespace => $path) {
                 if (str_starts_with($class, $namespace)) {
-                    $file = $this->root->path($path.'/'.str_replace('\\', '/', substr($class, strlen($namespace))).'.php');
+                    $file = $this->root->path(Path::join($path, Path::normalize(substr($class, strlen($namespace))).'.php'));
 
                     if (is_file($file)) {
                         require $file;

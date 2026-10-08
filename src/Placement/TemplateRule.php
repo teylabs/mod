@@ -9,8 +9,10 @@ use Tey\Mod\Artifact\Identifier;
 use Tey\Mod\Artifact\IdentityShape;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Exceptions\DimensionNotApplicable;
-use Tey\Mod\Exceptions\InvalidArtifactName;
+use Tey\Mod\Exceptions\InvalidName;
 use Tey\Mod\Exceptions\MissingDimension;
+use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Layout\CompiledRoot;
 
 /**
  * A declarative placement: root + ordered segments + the kind's name policy.
@@ -19,14 +21,14 @@ use Tey\Mod\Exceptions\MissingDimension;
  *
  * A nested rule (`nested: true`) also accepts nested names: "Billing/Invoice"
  * places the folders after the template and the basename last, exactly like
- * native make:* does, and recognises them back as the artifact's `nested`
+ * native make:* does, and recognizes them back as the artifact's `nested`
  * folders. A multi-segment dimension (`{name+}`) spans one or more folders.
  *
  * An "anywhere" rule (`discover: 'anywhere'`) additionally offers discovery
  * every file below its bound dimension folders, minus the `except` folders;
  * that widening is for discovery only and never reaches reverse mapping.
  *
- * @internal placement machinery behind Preset::rule(); build layouts with Mod::layout().
+ * @internal placement machinery behind CompiledLayout::rule(); build layouts with Mod::layout().
  */
 final readonly class TemplateRule implements PlacementRule
 {
@@ -36,20 +38,30 @@ final readonly class TemplateRule implements PlacementRule
      */
     public function __construct(
         private string $kindId,
-        private Root $root,
+        private CompiledRoot $root,
         private array $segments,
         private int $priority = 0,
         private bool $nested = false,
         private bool $anywhere = false,
         private array $except = [],
+        private ?self $fallback = null,
     ) {}
+
+    /** @return list<self> */
+    public function variants(): array
+    {
+        return $this->fallback === null ? [$this] : [
+            new self($this->kindId, $this->root, $this->segments, $this->priority, $this->nested, $this->anywhere, $this->except),
+            $this->fallback,
+        ];
+    }
 
     public function kindId(): string
     {
         return $this->kindId;
     }
 
-    public function root(): Root
+    public function root(): CompiledRoot
     {
         return $this->root;
     }
@@ -114,19 +126,27 @@ final readonly class TemplateRule implements PlacementRule
 
     public function place(ArtifactKind $kind, string $name, PlacementContext $context, array $attributes): ResolvedArtifact
     {
+        if ($context->isEmpty() && $this->fallback !== null) {
+            foreach ($this->segments as $segment) {
+                if ($segment->dimension !== null && $segment->required) {
+                    return $this->fallback->place($kind, $name, $context, $attributes);
+                }
+            }
+        }
+
         $nested = [];
 
         if (Identifier::isNested($name)) {
             if (! $this->nested) {
                 // Checked first: "mod:model Billing/Invoice" needs the --in hint more than a missing-dimension error.
-                throw InvalidArtifactName::nested($name, $this->dimensions());
+                throw InvalidName::nested($name, $this->dimensions());
             }
 
             [$nested, $name] = Identifier::splitNested($name);
 
             foreach ($nested as $folder) {
                 if (! Identifier::isClassSegment($folder)) {
-                    throw InvalidArtifactName::malformed($folder, 'a folder name inside a nested artifact name');
+                    throw InvalidName::malformed($folder, 'a folder name inside a nested name');
                 }
             }
         }
@@ -155,7 +175,7 @@ final readonly class TemplateRule implements PlacementRule
 
             if ($segment->multi) {
                 if (! Identifier::isSegmentChain($value)) {
-                    throw InvalidArtifactName::malformed($value, 'a "/"-separated chain of folder names for ['.$dimension.']');
+                    throw InvalidName::malformed($value, 'a "/"-separated chain of folder names for ['.$dimension.']');
                 }
 
                 array_push($parts, ...explode('/', $value));
@@ -185,6 +205,16 @@ final readonly class TemplateRule implements PlacementRule
 
     public function recognise(ArtifactKind $kind, string $subject, bool $isPath): array
     {
+        if ($this->fallback !== null) {
+            $matches = [];
+
+            foreach ($this->variants() as $rule) {
+                array_push($matches, ...$rule->recognise($kind, $subject, $isPath));
+            }
+
+            return $matches;
+        }
+
         $parts = $this->parts($kind, $subject, $isPath);
 
         if ($parts === null) {
@@ -254,12 +284,28 @@ final readonly class TemplateRule implements PlacementRule
 
         $context = PlacementContext::none();
         $index = 0;
+        // The dimension folders are the template's leading fixed folders plus
+        // the dimension slots after them ("Modules/{module}"); a template that
+        // starts with no dimension slot offers its whole root.
+        $leadsToDimension = $this->leadsToDimension();
+        $seenDimension = false;
 
         foreach ($this->segments as $segment) {
             if ($segment->literal !== null) {
-                break;
+                if (! $leadsToDimension || $seenDimension) {
+                    break;
+                }
+
+                if (($parts[$index] ?? null) !== $segment->literal) {
+                    return null;
+                }
+
+                $index++;
+
+                continue;
             }
 
+            $seenDimension = true;
             $part = $parts[$index] ?? null;
 
             if ($part === null || ! Identifier::isClassSegment($part)) {
@@ -292,7 +338,7 @@ final readonly class TemplateRule implements PlacementRule
      */
     public function recogniseDirectory(string $path): ?PlacementContext
     {
-        $remainder = $this->root->pathRemainder(Root::normalisePath($path));
+        $remainder = $this->root->pathRemainder(CompiledRoot::normalisePath($path));
 
         if ($remainder === null || $remainder === '') {
             return null;
@@ -392,6 +438,20 @@ final readonly class TemplateRule implements PlacementRule
         }
 
         return $results;
+    }
+
+    /**
+     * Whether a dimension slot follows the template's leading fixed folders.
+     */
+    private function leadsToDimension(): bool
+    {
+        foreach ($this->segments as $segment) {
+            if ($segment->isDimension()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function multi(): bool

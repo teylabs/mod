@@ -4,7 +4,7 @@ namespace Tey\Mod\Placement;
 
 use Tey\Mod\Artifact\Identifier;
 use Tey\Mod\Exceptions\InvalidPlacementOption;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 
 /**
  * Where an artifact is placed: an ordered map of dimension name to value.
@@ -38,7 +38,7 @@ final readonly class PlacementContext
      * a multi-segment dimension the folders are separated by "." instead
      * (`--in=Billing.Invoicing/CreateInvoice`).
      */
-    public static function fromOption(string $option, Preset $preset): self
+    public static function fromOption(string $option, CompiledLayout $preset): self
     {
         $option = trim($option);
 

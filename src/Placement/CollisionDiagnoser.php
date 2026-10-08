@@ -3,6 +3,8 @@
 namespace Tey\Mod\Placement;
 
 use Tey\Mod\Artifact\ResolvedArtifact;
+use Tey\Mod\Layout\CompiledRoot;
+use Tey\Mod\Support\Path;
 
 /**
  * Diagnoses path and class collisions before anything is written.
@@ -37,7 +39,7 @@ final readonly class CollisionDiagnoser
                 continue;
             }
 
-            if (Root::normalisePath($entry) === $path) {
+            if (Path::same(CompiledRoot::normalisePath($entry), $path)) {
                 $collisions[] = new Collision(CollisionKind::Path, $entry, $artifact);
             }
         }

@@ -31,7 +31,7 @@ it('registers one command per preset kind with a command name', function () {
     Workspace::run('modules', function () {
         // routes is a file kind without a generator: not registered.
         expect(modCommands())->toBe([
-            'mod:action', 'mod:controller', 'mod:data', 'mod:event', 'mod:factory', 'mod:migration',
+            'mod:action', 'mod:bases', 'mod:controller', 'mod:data', 'mod:event', 'mod:factory', 'mod:migration',
             'mod:model', 'mod:policy', 'mod:provider', 'mod:query', 'mod:request', 'mod:seeder',
         ]);
     });
@@ -87,7 +87,7 @@ it('refuses an adapter that cannot generate the kind it is mapped to', function 
     config()->set('mod.generators', ['routes' => RequestCommand::class]);
 
     Workspace::run($definition, function () {
-        expect(fn () => Artisan::all())->toThrow(InvalidGeneratorSetup::class, 'cannot generate kind [routes]');
+        expect(fn () => Artisan::all())->toThrow(InvalidGeneratorSetup::class, 'cannot generate file type [routes]');
     });
 });
 
@@ -95,7 +95,7 @@ it('describes --in with the preset dimensions', function () {
     Workspace::run('vertical-slices', function () {
         $option = Artisan::all()['mod:request']->getDefinition()->getOption('in');
 
-        expect($option->getDescription())->toContain('feature/slice');
+        expect($option->getDescription())->toContain('The feature and slice to place in.');
     });
 });
 
@@ -111,13 +111,13 @@ it('registers the discovery cache commands only with mod:* commands and discover
             $app->make('config')->set('mod.discovery.enabled', $discovery);
         });
 
-        expect(array_values(array_filter(modCommands(), static fn (string $name): bool => str_starts_with($name, 'mod:discovery-'))))
+        expect(array_values(array_filter(modCommands(), static fn (string $name): bool => in_array($name, ['mod:cache', 'mod:clear'], true))))
             ->toBe($expected)
             ->and(ServiceProvider::$optimizeCommands['mod'] ?? null)
-            ->toBe($expected === [] ? null : 'mod:discovery-cache');
+            ->toBe($expected === [] ? null : 'mod:cache');
     });
 })->with([
-    'both on' => [true, true, ['mod:discovery-cache', 'mod:discovery-clear']],
+    'both on' => [true, true, ['mod:cache', 'mod:clear']],
     'commands off' => [false, true, []],
     'discovery off' => [true, false, []],
 ]);

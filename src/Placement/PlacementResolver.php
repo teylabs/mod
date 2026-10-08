@@ -4,14 +4,16 @@ namespace Tey\Mod\Placement;
 
 use Tey\Mod\Artifact\ArtifactRequest;
 use Tey\Mod\Artifact\ResolvedArtifact;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 
 /**
  * Resolves an artifact request to its identity under one preset. Pure: no filesystem.
+ *
+ * @internal
  */
 final readonly class PlacementResolver
 {
-    public function __construct(private Preset $preset) {}
+    public function __construct(private CompiledLayout $preset) {}
 
     public function resolve(ArtifactRequest $request): ResolvedArtifact
     {

@@ -1,15 +1,19 @@
 {
     "name": "tey/mod",
-    "description": "A layout-neutral generation and discovery engine for Laravel applications.",
+    "description": "Lightweight toolkit for modular development in Laravel. Choose or extend common layouts like DDD and modular monoliths, or create your own.",
     "keywords": [
-        "tey",
         "laravel",
-        "mod",
         "modules",
-        "layout",
+        "modular",
+        "modular-monolith",
+        "feature-folders",
+        "vertical-slices",
+        "ddd",
+        "domain-driven-design",
         "generators",
-        "scaffolding",
-        "discovery"
+        "artisan",
+        "auto-discovery",
+        "scaffolding"
     ],
     "homepage": "https://github.com/teylabs/mod",
     "license": "MIT",
@@ -26,15 +30,20 @@
     },
     "require": {
         "php": "^8.3",
-        "laravel/framework": "^11.44|^12.0|^13.0"
+        "laravel/framework": "^12.0|^13.0"
+    },
+    "suggest": {
+        "lorisleiva/laravel-actions": "Used by mod:action when installed",
+        "spatie/laravel-data": "Used by mod:dto when installed",
+        "spatie/laravel-view-models": "Used by mod:view-model when installed"
     },
     "require-dev": {
         "larastan/larastan": "^3.0",
         "laravel/pint": "^1.21",
         "nunomaduro/collision": "^8.0",
-        "orchestra/testbench": "^9.11|^10.6|^11.0",
-        "pestphp/pest": "^3.8|^4.0",
-        "pestphp/pest-plugin-laravel": "^3.2|^4.0",
+        "orchestra/testbench": "^10.6|^11.0",
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin-laravel": "^4.0",
         "phpstan/extension-installer": "^1.1",
         "phpstan/phpstan-deprecation-rules": "^2.0",
         "phpstan/phpstan-phpunit": "^2.0"

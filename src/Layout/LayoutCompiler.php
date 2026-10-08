@@ -3,13 +3,13 @@
 namespace Tey\Mod\Layout;
 
 use Tey\Mod\Exceptions\InvalidLayout;
-use Tey\Mod\Placement\Root as PlacementRoot;
+use Tey\Mod\Generation\Stub;
 use Tey\Mod\Placement\Segment;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Preset\PresetIssue;
 use Tey\Mod\Preset\PresetIssueCode;
 use Tey\Mod\Preset\PresetValidator;
-use Tey\Mod\Relation\RelationPolicy;
+use Tey\Mod\Relation\RelationMode;
+use Tey\Mod\Support\Path;
 
 /**
  * Turns a layout's chain into the core preset: infers the placement
@@ -32,7 +32,7 @@ final class LayoutCompiler
     /**
      * @throws InvalidLayout
      */
-    public function compile(): Preset
+    public function compile(): CompiledLayout
     {
         $this->issues = [];
         $chain = $this->layout->toArray();
@@ -72,6 +72,7 @@ final class LayoutCompiler
             'excluded' => $excluded,
             'kinds' => $kinds,
             'relations' => array_map($this->relation(...), $chain['relations']),
+            'placement_options' => $this->placementOptions($chain['placement_options'], array_keys($placeholders)),
         ];
 
         $reported = array_flip(array_map(static fn (PresetIssue $issue): string => $issue->subject, $this->issues));
@@ -88,11 +89,11 @@ final class LayoutCompiler
             throw new InvalidLayout($this->layout->name, $this->issues);
         }
 
-        return Preset::fromArray($definition);
+        return CompiledLayout::fromArray($definition);
     }
 
     /**
-     * @param  array{in: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: ?\Closure, reads: list<string>}  $kind
+     * @param  array{in: ?string, fallback: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, aliases: list<string>, stub: ?Stub, label: ?string, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: ?\Closure, reads: list<string>}  $kind
      * @param  array<string, array{namespace: ?string, path: string}>  $roots
      * @return array{array<string, mixed>, list<string>}|null the internal kind definition and the placeholders it reads
      */
@@ -139,6 +140,22 @@ final class LayoutCompiler
 
         if ($kind['command'] !== false) {
             $definition['command'] = $kind['command'] ?? 'mod:'.$id;
+        }
+
+        if ($kind['aliases'] !== []) {
+            $definition['aliases'] = $kind['aliases'];
+        }
+
+        if ($kind['stub'] !== null) {
+            $definition['stub'] = $kind['stub'];
+        }
+
+        if ($kind['label'] !== null) {
+            $definition['label'] = $kind['label'];
+        }
+
+        if ($kind['fallback'] !== null) {
+            $definition['fallback'] = $kind['fallback'];
         }
 
         if ($kind['priority'] !== null) {
@@ -203,7 +220,7 @@ final class LayoutCompiler
                 }
 
                 if (strcasecmp($name, $other) === 0 || levenshtein($name, $other) <= 2) {
-                    $this->issue(PresetIssueCode::UnknownDimension, "->kind('{$kinds[0]}')", "placeholder {{$name}} is used by no other kind; did you mean {{$other}}?");
+                    $this->issue(PresetIssueCode::UnknownDimension, "->kind('{$kinds[0]}')", "placeholder {{$name}} is used by no other file type; did you mean {{$other}}?");
 
                     break;
                 }
@@ -258,9 +275,9 @@ final class LayoutCompiler
             return null;
         }
 
-        $remainder = str_replace('\\', '/', trim(substr($namespace, strlen((string) $best['namespace'])), '\\'));
+        $remainder = Path::normalize(trim(substr($namespace, strlen((string) $best['namespace'])), '\\'));
 
-        return ['namespace' => $namespace, 'path' => PlacementRoot::normalisePath($best['path'].($remainder === '' ? '' : '/'.$remainder))];
+        return ['namespace' => $namespace, 'path' => CompiledRoot::normalisePath(Path::join($best['path'], $remainder))];
     }
 
     /**
@@ -269,14 +286,14 @@ final class LayoutCompiler
      */
     private function excludedPath(string $entry, array $roots): array
     {
-        $path = PlacementRoot::normalisePath($entry);
+        $path = CompiledRoot::normalisePath($entry);
         $best = null;
 
         foreach ($roots as $root) {
-            $rootPath = PlacementRoot::normalisePath($root['path']);
+            $rootPath = CompiledRoot::normalisePath($root['path']);
 
-            if ($root['namespace'] !== null && ($path === $rootPath || str_starts_with($path, $rootPath.'/'))
-                && ($best === null || strlen($rootPath) > strlen(PlacementRoot::normalisePath($best['path'])))) {
+            if ($root['namespace'] !== null && Path::relative($rootPath, $path) !== null
+                && ($best === null || strlen($rootPath) > strlen(CompiledRoot::normalisePath($best['path'])))) {
                 $best = $root;
             }
         }
@@ -285,30 +302,30 @@ final class LayoutCompiler
             return ['path' => $path];
         }
 
-        $remainder = trim(substr($path, strlen(PlacementRoot::normalisePath($best['path']))), '/');
+        $remainder = (string) Path::relative(CompiledRoot::normalisePath($best['path']), $path);
 
         return ['namespace' => $best['namespace'].($remainder === '' ? '' : str_replace('/', '\\', $remainder).'\\'), 'path' => $path];
     }
 
     /**
-     * @param  array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop'}|null, name: string|array<string, string>|null, policy: string|RelationPolicy|null}  $relation
+     * @param  array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, mode: string|RelationMode|null}  $relation
      * @return array<string, mixed>
      */
     private function relation(array $relation): array
     {
         $scope = $relation['scope'] ?? 'same';
 
-        if (is_array($scope) && ! isset($scope['keep']) && ! array_key_exists('nested', $scope)) {
+        if (is_array($scope) && ! isset($scope['keep']) && ! array_key_exists('nested', $scope) && ! array_key_exists('name', $scope)) {
             $scope = ['keep' => array_values($scope)];
         }
 
-        $policy = $relation['policy'] ?? RelationPolicy::Generate;
+        $mode = $relation['mode'] ?? RelationMode::Generate;
 
         $definition = [
             'from' => $relation['from'],
             'to' => $relation['to'],
             'scope' => $scope,
-            'policy' => $policy instanceof RelationPolicy ? $policy->value : $policy,
+            'mode' => $mode instanceof RelationMode ? $mode->value : $mode,
         ];
 
         if ($relation['name'] !== null) {
@@ -335,8 +352,47 @@ final class LayoutCompiler
             'excluded' => $excludedCalls[(int) $key] ?? '->exclude()',
             'dimensions' => 'placeholder {'.($placeholders[(int) $key] ?? $key).'}',
             'commands' => '->withoutCommands()',
+            'placement_options' => "->placementOption('...', '{{$key}}')",
             default => $subject,
         };
+    }
+
+    /**
+     * The placeholder each ->placementOption() renames; the unnamed form needs exactly one placeholder.
+     *
+     * @param  array<string, string>  $overrides  placeholder ('' for the only one) → option
+     * @param  list<string>  $placeholders
+     * @return array<string, string> placeholder → option
+     */
+    private function placementOptions(array $overrides, array $placeholders): array
+    {
+        $options = [];
+
+        foreach ($overrides as $placeholder => $option) {
+            $call = $placeholder === '' ? "->placementOption('{$option}')" : "->placementOption('{$option}', '{{$placeholder}}')";
+
+            if ($placeholder === '') {
+                if (count($placeholders) !== 1) {
+                    $this->issue(PresetIssueCode::UnknownDimension, $call, $placeholders === []
+                        ? 'this layout has no placeholders to name an option after'
+                        : 'this layout has several placeholders; name the one to rename ('.implode(', ', array_map(static fn (string $name): string => "{{$name}}", $placeholders)).')');
+
+                    continue;
+                }
+
+                $placeholder = $placeholders[0];
+            }
+
+            if (! in_array($placeholder, $placeholders, true)) {
+                $this->issue(PresetIssueCode::UnknownDimension, $call, "placeholder {{$placeholder}} is used by no file type");
+
+                continue;
+            }
+
+            $options[$placeholder] = $option;
+        }
+
+        return $options;
     }
 
     /**

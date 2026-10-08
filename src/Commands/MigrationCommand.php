@@ -9,7 +9,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\NamePolicyKind;
-use Tey\Mod\Commands\Concerns\InteractsWithPreset;
+use Tey\Mod\Commands\Concerns\InteractsWithLayout;
 use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\GenerationPlan;
@@ -31,7 +31,7 @@ use Tey\Mod\Generation\ModMigrationCreator;
  */
 class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
 {
-    use InteractsWithPreset {
+    use InteractsWithLayout {
         rawNameInput as traitRawNameInput;
     }
 
@@ -54,7 +54,7 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
     {
         parent::configure();
 
-        $this->addPlacementOption();
+        $this->registerPlacementOptions();
     }
 
     /**

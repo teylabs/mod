@@ -2,7 +2,9 @@
 
 namespace Tey\Mod\Discovery;
 
+use Illuminate\Auth\Access\Gate as LaravelGate;
 use Illuminate\Console\Application as Artisan;
+use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Migrations\Migrator;
@@ -10,7 +12,9 @@ use Illuminate\Foundation\Support\Providers\EventServiceProvider;
 use ReflectionClass;
 use Tey\Mod\Artifact\NamePolicyKind;
 use Tey\Mod\Exceptions\ModException;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Resolution\ModelConventions;
+use Tey\Mod\Support\Path;
 use WeakReference;
 
 /**
@@ -20,14 +24,19 @@ use WeakReference;
  *
  * Call it from a service provider's register(). Providers register at once,
  * commands when that application's Artisan starts, listeners on the current
- * dispatcher and on any dispatcher that replaces it. Registering the same
+ * dispatcher and on any dispatcher that replaces it, model policies on the
+ * Gate. Registering the same
  * preset again on the same application changes nothing.
+ *
+ * @internal register discovery through the service provider; a package supplies
+ * candidate files with Mod::discoverUsing()
  */
 final class DiscoveryRegistrar
 {
-    public static function register(Application $app, Preset $preset, ?DiscoveryOptions $options = null): Discovery
+    public static function register(Application $app, CompiledLayout $preset, ?DiscoveryOptions $options = null): Discovery
     {
-        $discovery = new Discovery($preset, $options ?? new DiscoveryOptions, $app->basePath());
+        $options ??= new DiscoveryOptions;
+        $discovery = new Discovery($preset, $options, $app->basePath());
 
         if ($app->bound(Discovery::class)) {
             return self::existing($app, $discovery);
@@ -68,8 +77,49 @@ final class DiscoveryRegistrar
         }
 
         self::loadMigrationDirectories($app, $preset, $inventory);
+        self::registerPolicies($app, $inventory->pairs(DiscoveryType::Policy));
+
+        // mod's provider installs factory lookup at boot; a host that turned discovery off
+        // and registers it here gets it now, unless the application already has it.
+        if ($options->factories && ! ModelConventions::installedFor($app)) {
+            ModelConventions::register($app);
+        }
 
         return $discovery;
+    }
+
+    /**
+     * Each model's policy, as Gate::policy() would register it. A policy the
+     * application registered for the model itself is left alone, and the
+     * Gate's policy guesser still answers for every other class.
+     *
+     * @param  array<string, string>  $policies  model class => policy class
+     */
+    private static function registerPolicies(Application $app, array $policies): void
+    {
+        if ($policies === []) {
+            return;
+        }
+
+        $register = static function (mixed $gate) use ($policies): void {
+            if (! $gate instanceof Gate) {
+                return;
+            }
+
+            $explicit = $gate instanceof LaravelGate ? $gate->policies() : [];
+
+            foreach ($policies as $model => $policy) {
+                if (! isset($explicit[$model])) {
+                    $gate->policy($model, $policy);
+                }
+            }
+        };
+
+        if ($app->resolved(Gate::class)) {
+            $register($app->make(Gate::class));
+        }
+
+        $app->afterResolving(Gate::class, $register);
     }
 
     /**
@@ -88,7 +138,7 @@ final class DiscoveryRegistrar
         }
 
         $message = sprintf(
-            'mod: ignoring the stale discovery cache at [%s] (%s); scanning instead. Rebuild it with `php artisan mod:discovery-cache` or remove it with `php artisan mod:discovery-clear`.',
+            'mod: ignoring the stale discovery cache at [%s] (%s); scanning instead. Rebuild it with `php artisan mod:cache` or remove it with `php artisan mod:clear`.',
             $discovery->cache()->path,
             rtrim($reason, '.'),
         );
@@ -107,7 +157,7 @@ final class DiscoveryRegistrar
      * layout) join the migrator's paths, so `php artisan migrate` sees them;
      * the application's default database/migrations is Laravel's own.
      */
-    private static function loadMigrationDirectories(Application $app, Preset $preset, Inventory $inventory): void
+    private static function loadMigrationDirectories(Application $app, CompiledLayout $preset, Inventory $inventory): void
     {
         $default = realpath($app->databasePath('migrations'));
         $directories = [];
@@ -117,9 +167,9 @@ final class DiscoveryRegistrar
                 continue;
             }
 
-            $directory = rtrim($app->basePath(), '/\\').DIRECTORY_SEPARATOR.$entry->path;
+            $directory = Path::join($app->basePath(), $entry->path);
 
-            if ($default === false || realpath($directory) !== $default) {
+            if ($default === false || ! Path::same(realpath($directory) ?: $directory, $default)) {
                 $directories[] = $directory;
             }
         }

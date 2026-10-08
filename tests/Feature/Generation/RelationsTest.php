@@ -43,8 +43,22 @@ it('links a module model to its module factory by resolved identity', function (
             ->and($workspace->read('app/Modules/Billing/Database/Factories/InvoiceFactory.php'))
             ->toContain('namespace App\Modules\Billing\Database\Factories;')
             ->toContain('class InvoiceFactory extends Factory')
-            ->toContain('protected $model = \App\Modules\Billing\Models\Invoice::class;')
+            ->toContain("use App\Modules\Billing\Models\Invoice;\n")
+            // The stub already imports the model: name it once, by its short name.
+            ->toContain('protected $model = Invoice::class;')
+            ->and($workspace->read('app/Modules/Billing/Database/Factories/InvoiceFactory.php'))->not->toContain('\App\Modules\Billing\Models\Invoice::class')
             ->and($workspace->references('app/Modules/Billing/Database/Factories/InvoiceFactory.php', 'App\Modules\Billing\Models\Invoice'))->toBeTrue();
+    });
+});
+
+it('names the model fully qualified when a published factory stub does not import it', function () {
+    Workspace::run('modules', function (Workspace $workspace) {
+        $workspace->write('stubs/factory.stub', "<?php\n\nnamespace {{ factoryNamespace }};\n\nuse Illuminate\\Database\\Eloquent\\Factories\\Factory;\n\nclass {{ factory }}Factory extends Factory\n{\n    public function definition(): array\n    {\n        return [];\n    }\n}\n");
+
+        $workspace->artisan('mod:factory', ['name' => 'Billing:InvoiceFactory', '--model' => 'Invoice'])->assertSuccessful();
+
+        expect($workspace->read('app/Modules/Billing/Database/Factories/InvoiceFactory.php'))
+            ->toContain('protected $model = \App\Modules\Billing\Models\Invoice::class;');
     });
 });
 
@@ -65,12 +79,15 @@ it('places a bare factory --model as the model kind of the same placement', func
     });
 });
 
-it('resolves a factory model through the declared reference relation', function () {
-    Workspace::run('ordinary', function (Workspace $workspace) {
+it('resolves a factory model through a nonconventional reference relation', function () {
+    $definition = Layouts::definition('ordinary');
+    $definition['relations']['model']['name'] = ['prefix' => 'Related'];
+
+    Workspace::run($definition, function (Workspace $workspace) {
         $workspace->artisan('mod:factory', ['name' => 'InvoiceFactory'])->assertSuccessful();
 
         expect($workspace->files())->toBe(['database/factories/InvoiceFactory.php'])
-            ->and($workspace->references('database/factories/InvoiceFactory.php', 'App\Models\Invoice'))->toBeTrue();
+            ->and($workspace->references('database/factories/InvoiceFactory.php', 'App\Models\RelatedInvoice'))->toBeTrue();
     });
 });
 
@@ -114,7 +131,7 @@ it('offers to generate a missing controller model through mod:model', function (
 
 it('does not generate a reference relation', function () {
     $definition = Layouts::definition('ordinary');
-    $definition['relations']['factory']['policy'] = 'reference';
+    $definition['relations']['factory']['mode'] = 'reference';
 
     Workspace::run($definition, function (Workspace $workspace) {
         $workspace->artisan('mod:model', ['name' => 'Invoice', '--factory' => true])

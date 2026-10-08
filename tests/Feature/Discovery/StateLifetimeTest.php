@@ -7,11 +7,11 @@ use Tey\Mod\Discovery\Discovery;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryRegistrar;
 use Tey\Mod\Exceptions\ModException;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Tests\Feature\Discovery\Support\DiscoveryFixture;
 use Tey\Mod\Tests\Feature\Discovery\Support\Sources;
 
-function lifetimeTree(DiscoveryFixture $fx, string $tag): Preset
+function lifetimeTree(DiscoveryFixture $fx, string $tag): CompiledLayout
 {
     $fx->write('app/Providers/'.$tag.'ServiceProvider.php', Sources::provider('App\\Providers', $tag.'ServiceProvider', 'fixture.'.strtolower($tag)))
         ->write('app/Console/Commands/'.$tag.'Report.php', Sources::command('App\\Console\\Commands', $tag.'Report', 'fixture:'.strtolower($tag)))

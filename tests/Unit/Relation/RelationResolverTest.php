@@ -1,11 +1,11 @@
 <?php
 
 use Tey\Mod\Exceptions\UnknownRelation;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\PlacementResolver;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Relation\NameDerivation;
-use Tey\Mod\Relation\RelationPolicy;
+use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Relation\RelationResolver;
 use Tey\Mod\Relation\RelationStatus;
 use Tey\Mod\Relation\ScopeMap;
@@ -18,7 +18,7 @@ it('throws for an undeclared relation and reports an inapplicable one', function
 
     expect(fn () => $relations->resolve($model, 'seeder'))->toThrow(UnknownRelation::class, '[seeder]');
 
-    $wrong = $relations->resolve($model, 'store-request');
+    $wrong = $relations->resolve($model, 'controller-store-request');
 
     expect($wrong->status)->toBe(RelationStatus::Unresolved)
         ->and($wrong->target)->toBeNull()
@@ -31,14 +31,14 @@ it('reports a target that cannot be placed instead of guessing', function () {
 
     // A command has no feature; relating it to a feature kind cannot resolve.
     $definition = Layouts::definition('feature-first');
-    $definition['relations']['owner'] = ['from' => 'command', 'to' => 'model', 'scope' => 'same', 'policy' => 'reference'];
-    $preset = Preset::fromArray($definition);
+    $definition['relations']['owner'] = ['from' => 'command', 'to' => 'model', 'scope' => 'same', 'mode' => 'reference'];
+    $preset = CompiledLayout::fromArray($definition);
     $relations = new RelationResolver($preset, new PlacementResolver($preset));
 
     $resolution = $relations->resolve(place($preset, 'command', 'PruneInvoices'), 'owner');
 
     expect($resolution->isResolved())->toBeFalse()
-        ->and($resolution->reason)->toContain('requires a [feature]');
+        ->and($resolution->reason)->toContain('needs a [feature]');
 });
 
 it('derives names from stems and honours explicit names', function () {
@@ -66,7 +66,15 @@ it('exposes the declared policy on every resolution', function () {
     $relations = new RelationResolver($preset, new PlacementResolver($preset));
     $model = place($preset, 'model', 'Invoice');
 
-    $policies = array_map(fn ($resolution) => [$resolution->relation->id, $resolution->policy()], $relations->resolveAll($model));
+    $policies = array_map(fn ($resolution) => [$resolution->relation->id, $resolution->mode()], $relations->resolveAll($model));
 
-    expect($policies)->toBe([['factory', RelationPolicy::Generate], ['policy', RelationPolicy::Reference]]);
+    expect($policies)->toBe([['factory', RelationMode::Generate], ['policy', RelationMode::Reference]]);
+});
+
+it('maps a missing target dimension from the source stem without replacing an explicit value', function () {
+    $scope = ScopeMap::same(nameDimension: 'operation');
+    expect($scope->apply(PlacementContext::of(['area' => 'Billing']), 'CreateInvoice')->toArray())
+        ->toBe(['area' => 'Billing', 'operation' => 'CreateInvoice'])
+        ->and($scope->apply(PlacementContext::of(['operation' => 'UpdateInvoice']), 'CreateInvoice')->toArray())
+        ->toBe(['operation' => 'UpdateInvoice']);
 });

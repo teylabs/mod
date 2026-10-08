@@ -10,6 +10,7 @@ final readonly class CommandResult
     public function __construct(
         public int $exitCode,
         public string $output,
+        public ?string $basePath = null,
     ) {}
 
     public function assertSuccessful(): self

@@ -5,7 +5,8 @@ namespace Tey\Mod\Discovery;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Testing\Fakes\EventFake;
 use Tey\Mod\Exceptions\InvalidDiscoveryCache;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Support\Path;
 use WeakMap;
 
 /**
@@ -15,6 +16,8 @@ use WeakMap;
  * Bound as an instance in that application's container by DiscoveryRegistrar.
  * Nothing here is static, so two applications in one process never share an
  * inventory or a registration record.
+ *
+ * @internal
  */
 final class Discovery
 {
@@ -32,7 +35,7 @@ final class Discovery
     private WeakMap $dispatchers;
 
     public function __construct(
-        public readonly Preset $preset,
+        public readonly CompiledLayout $preset,
         public readonly DiscoveryOptions $options,
         public readonly string $basePath,
     ) {
@@ -107,10 +110,10 @@ final class Discovery
 
     public function cache(): DiscoveryCache
     {
-        $path = $this->options->cachePath;
+        $path = Path::normalize($this->options->cachePath);
         $absolute = str_starts_with($path, '/') || preg_match('#^[A-Za-z]:[\\\\/]#', $path) === 1
             ? $path
-            : rtrim($this->basePath, '/\\').DIRECTORY_SEPARATOR.$path;
+            : Path::join($this->basePath, $path);
 
         return new DiscoveryCache($absolute);
     }
@@ -251,7 +254,7 @@ final class Discovery
             return false;
         }
 
-        $file = realpath(rtrim($this->basePath, '/\\').DIRECTORY_SEPARATOR.$relativePath);
+        $file = realpath(Path::join($this->basePath, $relativePath));
 
         if ($file === false) {
             return false;
@@ -260,7 +263,7 @@ final class Discovery
         foreach ($directories as $directory) {
             $real = realpath($directory);
 
-            if ($real !== false && str_starts_with($file, rtrim($real, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR)) {
+            if ($real !== false && Path::relative($real, $file) !== null && ! Path::same($real, $file)) {
                 return true;
             }
         }

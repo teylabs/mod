@@ -6,11 +6,11 @@ use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryRegistrar;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\RejectionReason;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Tests\Feature\Discovery\Support\DiscoveryFixture;
 use Tey\Mod\Tests\Feature\Discovery\Support\Sources;
 
-function ordinaryTree(DiscoveryFixture $fx): Preset
+function ordinaryTree(DiscoveryFixture $fx): CompiledLayout
 {
 
     $events = '\\{{ns}}\\App\\Events\\';

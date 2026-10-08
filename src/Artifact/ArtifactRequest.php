@@ -9,6 +9,8 @@ use Tey\Mod\Placement\PlacementContext;
  *
  * Attributes carry caller-supplied inputs that keep resolution pure, such as
  * the timestamp of a migration.
+ *
+ * @internal
  */
 final readonly class ArtifactRequest
 {

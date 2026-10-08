@@ -1,5 +1,9 @@
 <?php
 
+use Illuminate\Foundation\Console\ConfigMakeCommand;
+use Tey\Mod\Commands\ConfigCommand;
+use Tey\Mod\Support\Path;
+
 /*
  * Layout neutrality: the engine has no layout-specific branches. Layout words may appear in prose
  * (docblocks, comments) as examples, never in code: no string literal,
@@ -8,12 +12,23 @@
  */
 
 /**
+ * Whether a file below src is shipped content rather than engine code.
+ */
+function isBuiltInContent(string $relative): bool
+{
+    return str_starts_with($relative, 'Layout/BuiltIn/')
+        || $relative === 'Generation/Starters.php'
+        || str_starts_with($relative, 'Generation/stubs/starters/');
+}
+
+/**
  * Every code token of src, comments and docblocks stripped.
  *
- * src/Layout/BuiltIn is exempt: it is the layouts mod ships, written as data
- * with the public builder, so it necessarily names folders and placeholders.
- * The DDD-vocabulary check below and tests/Unit/VocabularyTest.php still
- * cover it.
+ * The built-in content is exempt: src/Layout/BuiltIn (the layouts mod ships,
+ * written as data with the public builder) and the starters
+ * (src/Generation/Starters.php and src/Generation/stubs/starters), which
+ * necessarily name folders, placeholders and DDD terms. Everything else in
+ * src stays neutral.
  *
  * @return list<array{file: string, line: int, text: string}>
  */
@@ -27,7 +42,7 @@ function engineCodeTokens(bool $withBuiltInLayouts = false): array
             continue;
         }
 
-        if (! $withBuiltInLayouts && str_starts_with(str_replace('\\', '/', substr($file->getPathname(), strlen($root) + 1)), 'Layout/BuiltIn/')) {
+        if (! $withBuiltInLayouts && isBuiltInContent((string) Path::relative($root, $file->getPathname()))) {
             continue;
         }
 
@@ -36,7 +51,7 @@ function engineCodeTokens(bool $withBuiltInLayouts = false): array
                 continue;
             }
 
-            $tokens[] = ['file' => str_replace('\\', '/', substr($file->getPathname(), strlen($root) + 1)), 'line' => $token->line, 'text' => $token->text];
+            $tokens[] = ['file' => (string) Path::relative($root, $file->getPathname()), 'line' => $token->line, 'text' => $token->text];
         }
     }
 
@@ -69,11 +84,25 @@ it('exempts only the built-in layouts from the layout-word check', function () {
         array_unique(array_column(engineCodeTokens(), 'file')),
     );
 
-    expect(array_values($exempt))->toBe(['Layout/BuiltIn/BuiltInLayouts.php']);
+    expect($exempt)->not->toBeEmpty();
+
+    foreach ($exempt as $file) {
+        expect(isBuiltInContent($file))->toBeTrue($file);
+    }
 });
 
 it('names no DDD concept in engine code', function () {
-    expect(codeTokensMatching('/(domain|layer|bounded|aggregate|value-?object|ddd)/i', withBuiltInLayouts: true))->toBe([]);
+    expect(codeTokensMatching('/(domain|layer|bounded|aggregate|value-?object|ddd)/i'))->toBe([]);
+});
+
+it('keeps the ddd vocabulary to the built-in layouts', function () {
+    $hits = codeTokensMatching('/(domain|value-?object|ddd)/i', withBuiltInLayouts: true);
+
+    expect($hits)->not->toBeEmpty();
+
+    foreach ($hits as $hit) {
+        expect(isBuiltInContent(explode(':', $hit)[0]))->toBeTrue($hit);
+    }
 });
 
 it('has no dependency on any layout package', function () {
@@ -97,6 +126,11 @@ it('declares no static properties on any engine class', function () {
         }
 
         $name = 'Tey\\Mod\\'.str_replace(['/', '.php'], ['\\', ''], substr($file->getPathname(), strlen($root) + 1));
+
+        // The optional adapter cannot be loaded on frameworks without its parent.
+        if ($name === ConfigCommand::class && ! class_exists(ConfigMakeCommand::class)) {
+            continue;
+        }
 
         if (! class_exists($name) && ! interface_exists($name) && ! trait_exists($name) && ! enum_exists($name)) {
             throw new RuntimeException("[{$name}] does not autoload from its file.");

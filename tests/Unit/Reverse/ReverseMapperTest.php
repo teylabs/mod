@@ -1,13 +1,13 @@
 <?php
 
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\PlacementContext;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseMatch;
 use Tey\Mod\Reverse\ReverseOutcome;
 use Tey\Mod\Tests\Fixtures\Layouts;
 
-function presetWithOpaqueKind(string $root = 'app'): Preset
+function presetWithOpaqueKind(string $root = 'app'): CompiledLayout
 {
     $definition = Layouts::definition('ordinary');
     $definition['roots']['reports'] = ['namespace' => 'App\\Reports\\', 'path' => 'app/Reports'];
@@ -18,7 +18,7 @@ function presetWithOpaqueKind(string $root = 'app'): Preset
         'place' => fn (string $name, PlacementContext $context): string => 'Reports\\'.strtoupper(substr($name, 0, 1)),
     ];
 
-    return Preset::fromArray($definition);
+    return CompiledLayout::fromArray($definition);
 }
 
 it('places with an opaque rule but reports Unsupported on the way back', function () {
@@ -31,7 +31,7 @@ it('places with an opaque rule but reports Unsupported on the way back', functio
     $match = (new ReverseMapper($preset))->fromClass('App\Reports\Reports\R\RevenueReport');
 
     expect($match->outcome)->toBe(ReverseOutcome::Unsupported)
-        ->and($match->reason)->toContain('kind [report] is placed by a callback');
+        ->and($match->reason)->toContain('file type [report] is placed by a callback');
 });
 
 it('reports Unsupported for everything under an opaque rule root, even what another rule recognises', function () {
@@ -61,4 +61,8 @@ it('exposes the four outcomes explicitly', function () {
 it('never maps a migration from a class name', function () {
     expect((new ReverseMapper(Layouts::ordinary()))->fromClass('CreateInvoicesTable')->outcome)
         ->toBe(ReverseOutcome::NotOwned);
+});
+
+it('says plainly that no rule recognizes a file outside the layout', function () {
+    expect((new ReverseMapper(Layouts::ordinary()))->fromPath('app/Unowned/Thing.php')->reason)->toBe('no declared rule recognizes it');
 });

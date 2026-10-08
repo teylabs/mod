@@ -8,7 +8,8 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
 use Symfony\Component\Console\Output\BufferedOutput;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Support\Path;
 use Tey\Mod\Tests\Fixtures\Layouts;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
 
@@ -34,7 +35,7 @@ final class Workspace
             // mod.preset is the provider's internal test hook for raw definitions.
             config()->set('mod.preset', is_string($layout) ? Layouts::definition($layout) : $layout);
             // Forget any preset resolved earlier; mod:* reads this one when Artisan starts.
-            app()->forgetInstance(Preset::class);
+            app()->forgetInstance(CompiledLayout::class);
 
             return $callback(new self($root));
         });
@@ -50,7 +51,7 @@ final class Workspace
         $output = new BufferedOutput;
         $exitCode = Artisan::call($command, [...$parameters, '--no-interaction' => true], $output);
 
-        return new CommandResult($exitCode, $output->fetch());
+        return new CommandResult($exitCode, $output->fetch(), $this->root->path);
     }
 
     public function read(string $relative): string
@@ -65,14 +66,36 @@ final class Workspace
     }
 
     /**
-     * Whether a generated file refers to a class: imported, or fully qualified
-     * (native factory stubs import the model on newer Laravel, qualify it on 11.x).
+     * Whether a generated file refers to a class: imported, or fully qualified.
      */
     public function references(string $relative, string $fqcn): bool
     {
         $source = $this->read($relative);
 
         return str_contains($source, "use {$fqcn};") || str_contains($source, "\\{$fqcn}");
+    }
+
+    /**
+     * Delete files, and the folders they leave empty, as if they had never
+     * been generated.
+     *
+     * @param  list<string>  $relatives
+     */
+    public function remove(array $relatives): void
+    {
+        foreach ($relatives as $relative) {
+            unlink($this->root->path($relative));
+
+            for ($folder = dirname($relative); $folder !== '.' && $folder !== ''; $folder = dirname($folder)) {
+                $absolute = $this->root->path($folder);
+
+                if (! is_dir($absolute) || (new FilesystemIterator($absolute))->valid()) {
+                    break;
+                }
+
+                rmdir($absolute);
+            }
+        }
     }
 
     public function exists(string $relative): bool
@@ -103,7 +126,7 @@ final class Workspace
 
         /** @var SplFileInfo $item */
         foreach ($items as $item) {
-            $relative = str_replace('\\', '/', substr($item->getPathname(), strlen($this->root->path) + 1));
+            $relative = (string) Path::relative($this->root->path, $item->getPathname());
 
             if ($item->isFile() && ! in_array($relative, ['composer.json', '.tey-mod-owned'], true)) {
                 $files[] = $relative;

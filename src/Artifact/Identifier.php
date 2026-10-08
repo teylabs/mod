@@ -2,6 +2,8 @@
 
 namespace Tey\Mod\Artifact;
 
+use Tey\Mod\Support\Path;
+
 /**
  * Identifier rules shared by names, namespace segments and placement values.
  *
@@ -35,7 +37,7 @@ final class Identifier
      */
     public static function splitNested(string $value): array
     {
-        $parts = array_values(array_filter(explode('/', str_replace('\\', '/', $value)), static fn (string $part): bool => $part !== ''));
+        $parts = array_values(array_filter(explode('/', Path::normalize($value)), static fn (string $part): bool => $part !== ''));
         $basename = (string) array_pop($parts);
 
         return [$parts, $basename];

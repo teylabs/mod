@@ -1,8 +1,8 @@
 <?php
 
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\CollisionDiagnoser;
 use Tey\Mod\Placement\CollisionKind;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Tests\Fixtures\Layouts;
 
 it('diagnoses path and class collisions against what the caller says exists', function () {
@@ -35,7 +35,7 @@ it('finds no collision between duplicate basenames in different slices', functio
 it('finds the collision when two kinds share a folder and a name', function () {
     $definition = Layouts::definition('ordinary');
     $definition['kinds']['report'] = ['shape' => 'class', 'name' => 'as-given', 'root' => 'app', 'segments' => ['Queries'], 'priority' => 1];
-    $preset = Preset::fromArray($definition);
+    $preset = CompiledLayout::fromArray($definition);
 
     $query = place($preset, 'query', 'FindInvoice');
     $report = place($preset, 'report', 'FindInvoice');

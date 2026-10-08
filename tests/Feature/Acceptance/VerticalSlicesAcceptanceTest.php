@@ -1,6 +1,5 @@
 <?php
 
-use Symfony\Component\Console\Exception\CommandNotFoundException;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\RejectionReason;
 use Tey\Mod\Facades\Mod;
@@ -75,8 +74,8 @@ it('runs the whole loop on vertical slices', function () {
         // Relations from the generated handler: its request (same slice) and the request's feature-scoped model.
         $handler = $app->mapPath("app/Billing/{$slice}/Handler.php")->artifact;
         $relations = new RelationResolver($app->preset, new PlacementResolver($app->preset));
-        $request = $relations->resolve($handler ?? throw new RuntimeException('unmapped handler'), 'request');
-        $model = $relations->resolve($request->target ?? throw new RuntimeException('unresolved request'), 'model', "Invoice{$t}");
+        $request = $relations->resolve($handler ?? throw new RuntimeException('unmapped handler'), 'handler-request');
+        $model = $relations->resolve($request->target ?? throw new RuntimeException('unresolved request'), 'request-model', "Invoice{$t}");
 
         expect($request->status)->toBe(RelationStatus::Resolved)
             ->and($request->target->fqcn())->toBe("{$sliceNs}\\Request")
@@ -115,7 +114,7 @@ it('runs the whole loop on vertical slices', function () {
         };
         $assertRegistered();
 
-        $app->artisan('mod:discovery-cache')->assertSuccessful();
+        $app->artisan('mod:cache')->assertSuccessful();
         $app->boot();
 
         expect($app->discovery()->source())->toBe('cache')
@@ -133,14 +132,23 @@ it('refuses, rejects and reports on vertical slices', function () {
         $app->artisan('mod:message', ['name' => 'Command', '--in' => "Billing/{$slice}"])->assertSuccessful();
 
         $app->artisan('mod:message', ['name' => 'Command', '--in' => "Billing/{$slice}"])
-            ->expectsOutputToContain("path collision: app/Billing/{$slice}/Command.php already exists")
+            ->expectsOutputToContain("app/Billing/{$slice}/Command.php already exists.")
+            ->assertSuccessful();
+
+        // Native controllers are feature-scoped and still require a placement.
+        $app->artisan('mod:controller', ['name' => 'Anything'])->expectsOutputToContain('mod:controller needs a feature. Pass --feature=<feature>, --in=<feature>, or prefix the name: <feature>:Anything.')->assertFailed();
+
+        $app->artisan('mod:model', ['name' => "Invoice{$t}", '--in' => "Billing/{$slice}"])->expectsOutputToContain('mod:model does not use a slice in this layout. Leave the slice out.')->assertFailed();
+        // The fix names every value a slice needs, in --in order.
+        $app->artisan('mod:handler', ['name' => 'Handler', '--in' => 'Billing'])
+            ->expectsOutputToContain('mod:handler needs a slice. Pass --feature=<feature> --slice=<slice>, --in=<feature>/<slice>, or prefix the name: <feature>/<slice>:Handler.')
             ->assertFailed();
-
-        // No controller kind in this layout.
-        expect(fn () => $app->artisan('mod:controller', ['name' => 'Anything']))->toThrow(CommandNotFoundException::class);
-
-        $app->artisan('mod:model', ['name' => "Invoice{$t}", '--in' => "Billing/{$slice}"])->expectsOutputToContain('[slice]')->assertFailed();
-        $app->artisan('mod:handler', ['name' => 'Handler', '--in' => 'Billing'])->expectsOutputToContain('[slice]')->assertFailed();
+        $app->artisan('mod:handler', ['name' => 'Handler', '--feature' => 'Billing'])
+            ->expectsOutputToContain('mod:handler needs a slice. Pass --feature=<feature> --slice=<slice>, --in=<feature>/<slice>, or prefix the name: <feature>/<slice>:Handler.')
+            ->assertFailed();
+        $app->artisan('mod:handler', ['name' => 'Handler'])
+            ->expectsOutputToContain('mod:handler needs a feature. Pass --feature=<feature> --slice=<slice>, --in=<feature>/<slice>, or prefix the name: <feature>/<slice>:Handler.')
+            ->assertFailed();
 
         // Excluded root: a real provider in app/Providers is not owned, never registered.
         $app->handWrite("app/Providers/Global{$t}ServiceProvider.php", 'App\Providers', "class Global{$t}ServiceProvider extends \\Illuminate\\Support\\ServiceProvider {}");

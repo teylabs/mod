@@ -36,7 +36,7 @@ it('runs the whole loop on the modules layout', function () {
         $app->artisan('mod:event', ['name' => "Invoice{$t}Paid", ...$in])->assertSuccessful();
         $app->artisan('mod:listener', ['name' => "Send{$t}Receipt", '--event' => "Invoice{$t}Paid", ...$in])->assertSuccessful();
         $app->artisan('mod:command', ['name' => "Prune{$t}Invoices", ...$in])->assertSuccessful();
-        // action, data and query: custom kinds the built-in layout declares as data.
+        // action, dto (through its mod:data alias) and query: kinds Laravel has no generator for.
         $app->artisan('mod:action', ['name' => "Pay{$t}Invoice", ...$in])->assertSuccessful();
         $app->artisan('mod:data', ['name' => "Invoice{$t}Data", ...$in])->assertSuccessful();
         $app->artisan('mod:query', ['name' => "Overdue{$t}Invoices", ...$in])->assertSuccessful();
@@ -49,7 +49,7 @@ it('runs the whole loop on the modules layout', function () {
             "app/Modules/Billing/Actions/Pay{$t}Invoice.php" => ['action', "{$ns}\\Actions\\Pay{$t}Invoice"],
             "app/Modules/Billing/Console/Prune{$t}Invoices.php" => ['command', "{$ns}\\Console\\Prune{$t}Invoices"],
             "app/Modules/Billing/Controllers/Invoice{$t}Controller.php" => ['controller', "{$ns}\\Controllers\\Invoice{$t}Controller"],
-            "app/Modules/Billing/Data/Invoice{$t}Data.php" => ['data', "{$ns}\\Data\\Invoice{$t}Data"],
+            "app/Modules/Billing/Data/Invoice{$t}Data.php" => ['dto', "{$ns}\\Data\\Invoice{$t}Data"],
             "app/Modules/Billing/Database/Factories/Invoice{$t}Factory.php" => ['factory', "{$ns}\\Database\\Factories\\Invoice{$t}Factory"],
             "app/Modules/Billing/Database/Seeders/Invoice{$t}Seeder.php" => ['seeder', "{$ns}\\Database\\Seeders\\Invoice{$t}Seeder"],
             "app/Modules/Billing/Events/Invoice{$t}Paid.php" => ['event', "{$ns}\\Events\\Invoice{$t}Paid"],
@@ -63,7 +63,13 @@ it('runs the whole loop on the modules layout', function () {
         ];
         ksort($generated);
 
-        expect($app->files())->toBe(array_keys($generated))
+        // The DTO's generated base lives outside the module, and the layout owns none of it.
+        $base = "{$app->basesPath()}/Data/DataTransferObject.php";
+        $files = [...array_keys($generated), $base];
+        sort($files);
+
+        expect($app->files())->toBe($files)
+            ->and($app->mapPath($base)->isMatched())->toBeFalse()
             ->and($app->read("app/Modules/Billing/Models/Invoice{$t}.php"))
             ->toContain("HasFactory<\\{$ns}\\Database\\Factories\\Invoice{$t}Factory>")
             ->toContain("return \\{$ns}\\Database\\Factories\\Invoice{$t}Factory::new();")
@@ -75,7 +81,7 @@ it('runs the whole loop on the modules layout', function () {
             $app->assertOwned($path, $kind, $ctx, $fqcn);
         }
 
-        // Hand-written: a listener, and the module routes file (a file kind mod has no generator for).
+        // Hand-written: a listener and a routes file that the layout does not own.
         $hand = $app->handWrite("app/Modules/Billing/Listeners/Audit{$t}Payment.php", "{$ns}\\Listeners", <<<PHP
             use {$ns}\\Events\\Invoice{$t}Paid;
 
@@ -86,7 +92,7 @@ it('runs the whole loop on the modules layout', function () {
             PHP);
         $app->write('app/Modules/Billing/routes/web.php', "<?php\n");
         $app->assertOwned($hand, 'listener', $ctx, "{$ns}\\Listeners\\Audit{$t}Payment");
-        $app->assertOwned('app/Modules/Billing/routes/web.php', 'routes', $ctx);
+        expect($app->mapPath('app/Modules/Billing/routes/web.php')->isMatched())->toBeFalse();
 
         $app->boot();
         $cold = $app->discovery()->inventory();
@@ -97,7 +103,9 @@ it('runs the whole loop on the modules layout', function () {
             ->and($cold->classes(DiscoveryType::Command))->toBe(["{$ns}\\Console\\Prune{$t}Invoices"])
             ->and($cold->classes(DiscoveryType::Listener))->toBe(["{$ns}\\Listeners\\Audit{$t}Payment", "{$ns}\\Listeners\\Send{$t}Receipt"])
             ->and(array_unique(array_map(fn ($entry) => $entry->context, $cold->entries), SORT_REGULAR))->toBe([$ctx])
-            ->and($cold->rejections)->toBe([]);
+            ->and($cold->rejection('app/Modules/Billing/routes/web.php')?->reason)->toBe(RejectionReason::NotOwned)
+            ->and($cold->rejection($base)?->detail)->toContain('inside excluded root')
+            ->and($cold->rejections)->toHaveCount(2);
 
         $assertRegistered = function () use ($app, $t, $ns, $event) {
             expect($app->app()->getProvider("{$ns}\\Providers\\Billing{$t}ServiceProvider"))->not->toBeNull()
@@ -109,7 +117,7 @@ it('runs the whole loop on the modules layout', function () {
         };
         $assertRegistered();
 
-        $app->artisan('mod:discovery-cache')->assertSuccessful();
+        $app->artisan('mod:cache')->assertSuccessful();
         $app->boot();
 
         expect($app->discovery()->source())->toBe('cache')
@@ -126,8 +134,8 @@ it('refuses, rejects and reports on the modules layout', function () {
         $app->artisan('mod:data', ['name' => "Invoice{$t}Data", '--in' => 'Billing'])->assertSuccessful();
 
         $app->artisan('mod:data', ['name' => "Invoice{$t}Data", '--in' => 'Billing'])
-            ->expectsOutputToContain("path collision: app/Modules/Billing/Data/Invoice{$t}Data.php already exists")
-            ->assertFailed();
+            ->expectsOutputToContain("app/Modules/Billing/Data/Invoice{$t}Data.php already exists.")
+            ->assertSuccessful();
 
         // routes is a declared file kind with no generator: deliberately no mod:routes. widget is undeclared.
         expect($app->modCommands())->not->toContain('mod:routes')
@@ -135,7 +143,7 @@ it('refuses, rejects and reports on the modules layout', function () {
             ->and(fn () => $app->artisan('mod:widget', ['name' => 'Anything']))->toThrow(CommandNotFoundException::class);
 
         $app->artisan('mod:model', ['name' => "Invoice{$t}"])
-            ->expectsOutputToContain('requires a [module] placement value; pass it with --in.')
+            ->expectsOutputToContain("mod:model needs a module. Pass --module=<module>, --in=<module>, or prefix the name: <module>:Invoice{$t}.")
             ->assertFailed();
         $app->artisan('mod:model', ['name' => "Billing/Invoice{$t}"])->expectsOutputToContain('--in=<module>')->assertFailed();
 

@@ -1,6 +1,6 @@
 <?php
 
-use Tey\Mod\Exceptions\InvalidArtifactName;
+use Tey\Mod\Exceptions\InvalidName;
 use Tey\Mod\Exceptions\MissingDimension;
 use Tey\Mod\Placement\PlacementResolver;
 use Tey\Mod\Relation\RelationResolver;
@@ -39,12 +39,12 @@ it('places shared infrastructure outside features with its own rule', function (
 
 it('requires the feature for feature kinds', function () {
     expect(fn () => place(Layouts::featureFirst(), 'model', 'Invoice'))
-        ->toThrow(MissingDimension::class, 'requires a [feature] placement value');
+        ->toThrow(MissingDimension::class, 'needs a [feature]');
 });
 
 it('rejects nested names and points at --in', function () {
     expect(fn () => place(Layouts::featureFirst(), 'model', 'Billing/Invoice'))
-        ->toThrow(InvalidArtifactName::class, '--in=<feature>');
+        ->toThrow(InvalidName::class, '--in=<feature>');
 });
 
 it('keeps relations inside the feature', function () {
@@ -54,7 +54,7 @@ it('keeps relations inside the feature', function () {
 
     expect($relations->resolve($model, 'factory')->target?->fqcn())->toBe('App\Features\Billing\Database\Factories\InvoiceFactory')
         ->and($relations->resolve($model, 'policy')->target?->fqcn())->toBe('App\Features\Billing\Policies\InvoicePolicy')
-        ->and($relations->resolve(place($preset, 'controller', 'Invoice', 'Billing'), 'store-request')->target?->fqcn())
+        ->and($relations->resolve(place($preset, 'controller', 'Invoice', 'Billing'), 'controller-store-request')->target?->fqcn())
         ->toBe('App\Features\Billing\Http\Requests\StoreInvoiceRequest');
 });
 

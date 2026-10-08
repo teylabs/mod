@@ -116,20 +116,29 @@ class ControllerCommand extends ControllerMakeCommand implements GeneratorAdapte
             $this->followRelation($relation);
         }
 
-        $store = $this->plannedRelation('store-request')?->target?->fqcn() ?? 'Illuminate\Http\Request';
-        $update = $this->plannedRelation('update-request')?->target?->fqcn() ?? 'Illuminate\Http\Request';
+        $store = $this->plannedRelation('controller-store-request')?->target?->fqcn() ?? 'Illuminate\Http\Request';
+        $update = $this->plannedRelation('controller-update-request')?->target?->fqcn() ?? 'Illuminate\Http\Request';
+
+        $storeName = class_basename($store);
+        $updateName = class_basename($update);
+        $updateImport = $update;
+
+        if ($store !== $update && strcasecmp($storeName, $updateName) === 0) {
+            $updateName = 'Update'.$updateName;
+            $updateImport .= ' as '.$updateName;
+        }
 
         $namespacedRequests = $store.';';
 
         if ($store !== $update) {
-            $namespacedRequests .= PHP_EOL.'use '.$update.';';
+            $namespacedRequests .= PHP_EOL.'use '.$updateImport.';';
         }
 
         return array_merge($replace, [
-            '{{ storeRequest }}' => class_basename($store),
-            '{{storeRequest}}' => class_basename($store),
-            '{{ updateRequest }}' => class_basename($update),
-            '{{updateRequest}}' => class_basename($update),
+            '{{ storeRequest }}' => $storeName,
+            '{{storeRequest}}' => $storeName,
+            '{{ updateRequest }}' => $updateName,
+            '{{updateRequest}}' => $updateName,
             '{{ namespacedStoreRequest }}' => $store,
             '{{namespacedStoreRequest}}' => $store,
             '{{ namespacedUpdateRequest }}' => $update,
