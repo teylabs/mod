@@ -9,6 +9,7 @@ use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\GenerationPlan;
 use Tey\Mod\Relation\RelationResolution;
+use Tey\Mod\Support\Path;
 
 /**
  * Places the class a native GeneratorCommand writes.
@@ -109,7 +110,7 @@ trait PlacesGeneratedClass
         $this->plan = $plan;
         try {
             $nativeDuplicate = ! $force
-                && $this->existingArtifacts()->absolute($plan->primary->path()) === parent::getPath(parent::qualifyClass($this->getNameInput()))
+                && Path::same($this->existingArtifacts()->absolute($plan->primary->path()), parent::getPath(parent::qualifyClass($this->getNameInput())))
                 && $this->alreadyExists($this->getNameInput());
         } finally {
             $this->plan = null;
