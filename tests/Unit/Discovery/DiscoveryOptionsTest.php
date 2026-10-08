@@ -19,23 +19,34 @@ function describeDefinitions(array $definitions): array
 it('discovers the preset kinds named after a type, and migration directories, by default', function (string $layout, array $expected) {
     expect(describeDefinitions((new DiscoveryOptions)->definitionsFor(Layouts::named($layout))))->toBe($expected);
 })->with([
-    'ordinary' => ['ordinary', ['command:command:on', 'listener:listener:on', 'migration:directory:on', 'provider:provider:on']],
-    'feature-first' => ['feature-first', ['command:command:on', 'migration:directory:on', 'provider:provider:on']],
-    'vertical-slices' => ['vertical-slices', ['command:command:on', 'migration:directory:on']],
-    'type-first' => ['type-first', ['migration:directory:on']],
-    'modules' => ['modules', ['migration:directory:on', 'provider:provider:on']],
+    'ordinary' => ['ordinary', ['command:command:on', 'listener:listener:on', 'migration:directory:on', 'model:factory:on', 'model:policy:on', 'provider:provider:on']],
+    'feature-first' => ['feature-first', ['command:command:on', 'migration:directory:on', 'model:factory:on', 'model:policy:on', 'provider:provider:on']],
+    // No model -> policy relation in this layout: no policy pairs.
+    'vertical-slices' => ['vertical-slices', ['command:command:on', 'migration:directory:on', 'model:factory:on']],
+    'type-first' => ['type-first', ['migration:directory:on', 'model:factory:on', 'model:policy:on']],
+    'modules' => ['modules', ['migration:directory:on', 'model:factory:on', 'model:policy:on', 'provider:provider:on']],
 ]);
 
 it('merges host settings over the defaults', function () {
     $options = DiscoveryOptions::fromConfig(['kinds' => ['provider' => false, 'event' => 'listener']]);
 
     expect(describeDefinitions($options->definitionsFor(Layouts::ordinary())))
-        ->toBe(['command:command:on', 'event:listener:on', 'listener:listener:on', 'migration:directory:on', 'provider:provider:off']);
+        ->toBe(['command:command:on', 'event:listener:on', 'listener:listener:on', 'migration:directory:on', 'model:factory:on', 'model:policy:on', 'provider:provider:off']);
 });
 
 it('disables every kind when discovery is off', function () {
     expect(describeDefinitions(DiscoveryOptions::fromConfig(['enabled' => false])->definitionsFor(Layouts::ordinary())))
-        ->toBe(['command:command:off', 'listener:listener:off', 'migration:directory:off', 'provider:provider:off']);
+        ->toBe(['command:command:off', 'listener:listener:off', 'migration:directory:off', 'model:factory:off', 'model:policy:off', 'provider:provider:off']);
+});
+
+it('turns factory and policy pairs off with their switches', function () {
+    expect(describeDefinitions(DiscoveryOptions::fromConfig(['factories' => false])->definitionsFor(Layouts::ordinary())))
+        ->toBe(['command:command:on', 'listener:listener:on', 'migration:directory:on', 'model:factory:off', 'model:policy:on', 'provider:provider:on'])
+        ->and(describeDefinitions(DiscoveryOptions::fromConfig(['policies' => false])->definitionsFor(Layouts::ordinary())))
+        ->toBe(['command:command:on', 'listener:listener:on', 'migration:directory:on', 'model:factory:on', 'model:policy:off', 'provider:provider:on'])
+        ->and(DiscoveryOptions::fromConfig([])->factories)->toBeTrue()
+        ->and(DiscoveryOptions::fromConfig([])->policies)->toBeTrue()
+        ->and(DiscoveryOptions::fromConfig(['factories' => false])->withCandidates(fn () => [])->factories)->toBeFalse();
 });
 
 it('reads the defaults from an empty config', function () {
@@ -59,6 +70,10 @@ it('rejects invalid config with the offending key', function (array $config, str
     [['kinds' => ['provider' => 'middleware']], '[mod.discovery.kinds.provider]: expected provider, command, listener, subscriber, directory or false'],
     [['cache' => ''], '[mod.discovery.cache]'],
     [['on_stale_cache' => 'rebuild'], '[mod.discovery.on_stale_cache]'],
+    [['factories' => 'yes'], '[mod.discovery.factories]: expected a boolean'],
+    [['policies' => 1], '[mod.discovery.policies]: expected a boolean'],
+    // Factory and policy pairs come from the switches, not from a kind mapping.
+    [['kinds' => ['model' => 'factory']], '[mod.discovery.kinds.model]: expected provider, command, listener, subscriber, directory or false'],
 ]);
 
 it('rejects kinds the preset cannot discover', function (array $kinds, string $message) {

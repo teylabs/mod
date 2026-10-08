@@ -3,6 +3,7 @@
 namespace Tey\Mod\Discovery;
 
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
 use ReflectionClass;
 use ReflectionMethod;
@@ -47,6 +48,9 @@ final readonly class Eligibility
                 ? []
                 : sprintf('[%s] has no public subscribe() method taking exactly one parameter', $class),
             DiscoveryType::Directory => sprintf('[%s] is a class; directories are discovered from file kinds', $class),
+            DiscoveryType::Factory, DiscoveryType::Policy => $reflection->isSubclassOf(Model::class)
+                ? []
+                : sprintf('[%s] does not extend %s', $class, Model::class),
         };
     }
 

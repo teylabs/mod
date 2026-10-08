@@ -18,8 +18,23 @@ enum DiscoveryType: string
     /** Directories of a file kind that hold at least one file (migration paths, say). */
     case Directory = 'directory';
 
+    /** An Eloquent model and the factory class the layout relates to it (Model::factory()). */
+    case Factory = 'factory';
+
+    /** An Eloquent model and the policy class the layout relates to it (Gate::policy). */
+    case Policy = 'policy';
+
     public function isClassType(): bool
     {
         return $this !== self::Directory;
+    }
+
+    /**
+     * Whether entries pair a model with the class one of its relations
+     * names; the type's value is the target kind id.
+     */
+    public function isRelationType(): bool
+    {
+        return $this === self::Factory || $this === self::Policy;
     }
 }

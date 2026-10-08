@@ -46,6 +46,23 @@ final readonly class DiscoveryDefinition
         return new self($kindId, DiscoveryType::Directory);
     }
 
+    /**
+     * Models paired with the class their relation to a target kind names
+     * (DiscoveryType::Factory or ::Policy); the kind scanned is the model kind.
+     */
+    public static function related(DiscoveryType $type, string $modelKindId = 'model'): self
+    {
+        return new self($modelKindId, $type);
+    }
+
+    /**
+     * The key a definition is listed under: the kind id, or kind id and type for a relation type.
+     */
+    public function key(): string
+    {
+        return $this->type->isRelationType() ? $this->kindId.'|'.$this->type->value : $this->kindId;
+    }
+
     public function disabled(): self
     {
         return new self($this->kindId, $this->type, false);

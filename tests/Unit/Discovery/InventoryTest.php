@@ -54,3 +54,18 @@ it('refuses malformed data', function (mixed $data) {
     'unknown reason' => [['entries' => [], 'rejections' => [['path' => 'x', 'reason' => 'lost', 'detail' => '', 'kind' => null, 'class' => null, 'candidates' => []]]]],
     'rejection missing kind' => [['entries' => [], 'rejections' => [['path' => 'x', 'reason' => 'not-owned', 'detail' => '', 'class' => null, 'candidates' => []]]]],
 ]);
+
+it('pairs a relation type with its target and keeps other entries in their shape', function () {
+    $pair = new DiscoveredArtifact('model', DiscoveryType::Factory, 'App\\Models\\Post', 'app/Models/Post.php', target: 'Database\\Factories\\PostFactory');
+    $policy = new DiscoveredArtifact('model', DiscoveryType::Policy, 'App\\Models\\Post', 'app/Models/Post.php', target: 'App\\Policies\\PostPolicy');
+    $provider = new DiscoveredArtifact('provider', DiscoveryType::Provider, 'App\\Providers\\AppServiceProvider', 'app/Providers/AppServiceProvider.php');
+    $inventory = new Inventory([$provider, $pair, $policy]);
+
+    expect($inventory->pairs(DiscoveryType::Factory))->toBe(['App\\Models\\Post' => 'Database\\Factories\\PostFactory'])
+        ->and($inventory->pairs(DiscoveryType::Policy))->toBe(['App\\Models\\Post' => 'App\\Policies\\PostPolicy'])
+        ->and($inventory->pairs(DiscoveryType::Provider))->toBe([])
+        ->and($provider->toArray())->not->toHaveKey('target')
+        ->and($pair->toArray()['target'])->toBe('Database\\Factories\\PostFactory')
+        ->and(Inventory::fromArray($inventory->toArray())->equals($inventory))->toBeTrue()
+        ->and(fn () => DiscoveredArtifact::fromArray([...$pair->toArray(), 'target' => 7]))->toThrow(UnexpectedValueException::class);
+});

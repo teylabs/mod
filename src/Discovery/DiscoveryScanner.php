@@ -11,6 +11,7 @@ use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Placement\Root;
 use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Preset\Preset;
+use Tey\Mod\Resolution\ModelRelations;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseMatch;
 use Tey\Mod\Reverse\ReverseOutcome;
@@ -24,7 +25,9 @@ use Tey\Mod\Reverse\ReverseOutcome;
  * dimension folders (minus its `except` folders) as a candidate; eligibility
  * still decides, and such candidates are never reported as rejections.
  * A `directory` definition collects the directories a file kind's template
- * binds that hold at least one file.
+ * binds that hold at least one file. A relation type (factory, policy) pairs
+ * each model the layout owns with the related class that exists; a model
+ * without one is not a rejection.
  *
  * Symlinks are not followed. Files are visited in sorted order, so the
  * inventory is deterministic. The host may replace the file walker with its
@@ -36,6 +39,8 @@ final readonly class DiscoveryScanner
 {
     private ReverseMapper $mapper;
 
+    private ModelRelations $relations;
+
     /**
      * @param  (Closure(Root, string, DiscoveryDefinition): iterable<string>)|null  $candidates
      */
@@ -46,6 +51,7 @@ final readonly class DiscoveryScanner
         private ?Closure $candidates = null,
     ) {
         $this->mapper = new ReverseMapper($preset);
+        $this->relations = new ModelRelations($preset);
     }
 
     /**
@@ -87,10 +93,23 @@ final readonly class DiscoveryScanner
                 continue;
             }
 
-            $anywhere = $rule instanceof TemplateRule && $rule->anywhere() ? $rule : null;
             // A host source may scope candidates per discovered kind, so the walk is cached per root and definition.
             $filesKey = $rule->root()->path.'|'.($this->candidates === null ? '' : $definition->identity());
             $files[$filesKey] ??= $this->files($rule->root(), $definition);
+
+            if ($definition->type->isRelationType()) {
+                foreach ($files[$filesKey] as $path) {
+                    $match = $matches[$path] ??= $this->mapper->fromPath($path);
+
+                    if ($match->outcome === ReverseOutcome::Matched && $match->artifact !== null && $match->artifact->kind->id === $definition->kindId) {
+                        $this->pair($definition, $match->artifact, $path, $entries);
+                    }
+                }
+
+                continue;
+            }
+
+            $anywhere = $rule instanceof TemplateRule && $rule->anywhere() ? $rule : null;
 
             foreach ($files[$filesKey] as $path) {
                 $match = $matches[$path] ??= $this->mapper->fromPath($path);
@@ -164,6 +183,26 @@ final readonly class DiscoveryScanner
         }
 
         $entries[$path.'|'.$definition->type->value] = $result;
+    }
+
+    /**
+     * A model and its related class, when the model is an eligible Eloquent model and the class exists.
+     *
+     * @param  array<string, DiscoveredArtifact>  $entries
+     */
+    private function pair(DiscoveryDefinition $definition, ResolvedArtifact $model, string $path, array &$entries): void
+    {
+        $entry = $this->entry($definition, $model, $path);
+
+        if (! $entry instanceof DiscoveredArtifact) {
+            return;
+        }
+
+        $target = $this->relations->targetOf($model, $definition->type->value);
+
+        if ($target !== null) {
+            $entries[$path.'|'.$definition->type->value] = new DiscoveredArtifact($entry->kindId, $entry->type, $entry->class, $entry->path, $entry->context, [], $target);
+        }
     }
 
     private function entry(DiscoveryDefinition $definition, ResolvedArtifact $artifact, string $path): DiscoveredArtifact|Rejection
