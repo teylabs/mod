@@ -121,8 +121,10 @@ it('generates through the dimension options exactly as through the shorthand', f
 
         foreach ($workspace->files() as $path) {
             $files[$path] = $workspace->read($path);
-            unlink($workspace->root->path($path));
         }
+
+        // Folders too: the second run creates the same new groups as the first.
+        $workspace->remove(array_keys($files));
 
         expect($files)->not->toBeEmpty();
 
@@ -158,9 +160,7 @@ it('generates a migration through the dimension option exactly as through the sh
             $files = $workspace->files();
             $bytes = array_map($workspace->read(...), $files);
 
-            foreach ($files as $path) {
-                unlink($workspace->root->path($path));
-            }
+            $workspace->remove($files);
 
             $result = $workspace->artisan('mod:migration', ['name' => 'create_invoices_table', '--module' => 'Billing'])->assertSuccessful();
 

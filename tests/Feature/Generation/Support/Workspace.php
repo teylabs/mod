@@ -75,6 +75,29 @@ final class Workspace
         return str_contains($source, "use {$fqcn};") || str_contains($source, "\\{$fqcn}");
     }
 
+    /**
+     * Delete files, and the folders they leave empty, as if they had never
+     * been generated.
+     *
+     * @param  list<string>  $relatives
+     */
+    public function remove(array $relatives): void
+    {
+        foreach ($relatives as $relative) {
+            unlink($this->root->path($relative));
+
+            for ($folder = dirname($relative); $folder !== '.' && $folder !== ''; $folder = dirname($folder)) {
+                $absolute = $this->root->path($folder);
+
+                if (! is_dir($absolute) || (new FilesystemIterator($absolute))->valid()) {
+                    break;
+                }
+
+                rmdir($absolute);
+            }
+        }
+    }
+
     public function exists(string $relative): bool
     {
         return file_exists($this->root->path($relative));

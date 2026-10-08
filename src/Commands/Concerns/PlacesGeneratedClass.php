@@ -6,10 +6,12 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\ResolvedArtifact;
+use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\BaseWriter;
 use Tey\Mod\Generation\GeneratedBase;
 use Tey\Mod\Generation\GenerationPlan;
+use Tey\Mod\Generation\GroupFolders;
 use Tey\Mod\Generation\PackageDetector;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Generation\StubChoice;
@@ -147,10 +149,20 @@ trait PlacesGeneratedClass
             $this->plan = null;
         }
 
+        [$refusal, $newGroup] = (new GroupFolders($this->laravel->basePath()))->check($this->layout()->rule($plan->primary->kind->id), $plan->primary);
+
+        if ($refusal !== null) {
+            throw GenerationRefused::because($refusal);
+        }
+
         if (! $nativeDuplicate) {
             $this->refuseCollisions($plan, $force);
             // Bases and stub variants only once the class will really be written.
             $this->prepareStub();
+        }
+
+        if ($newGroup !== null) {
+            $this->components->info($newGroup);
         }
 
         $this->plan = $plan;
