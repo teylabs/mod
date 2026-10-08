@@ -122,7 +122,7 @@ it('refuses, rejects and reports on type-first', function () {
         $app->artisan('mod:model', ['name' => "Invoice{$t}", '--in' => 'Billing'])->assertSuccessful();
 
         $app->artisan('mod:model', ['name' => "Invoice{$t}", '--in' => 'Billing'])
-            ->expectsOutputToContain("path collision: app/Models/Billing/Invoice{$t}.php already exists")
+            ->expectsOutputToContain("app/Models/Billing/Invoice{$t}.php already exists.")
             ->assertSuccessful();
         // The unscoped identity is a different artifact, so it is not a collision.
         $app->artisan('mod:model', ['name' => "Invoice{$t}"])->assertSuccessful();

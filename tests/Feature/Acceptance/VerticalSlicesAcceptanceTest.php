@@ -132,7 +132,7 @@ it('refuses, rejects and reports on vertical slices', function () {
         $app->artisan('mod:message', ['name' => 'Command', '--in' => "Billing/{$slice}"])->assertSuccessful();
 
         $app->artisan('mod:message', ['name' => 'Command', '--in' => "Billing/{$slice}"])
-            ->expectsOutputToContain("path collision: app/Billing/{$slice}/Command.php already exists")
+            ->expectsOutputToContain("app/Billing/{$slice}/Command.php already exists.")
             ->assertSuccessful();
 
         // Native controllers are feature-scoped and still require a placement.

@@ -25,7 +25,7 @@ it('delegates duplicates to the native generator with backslash native paths', f
         $before = $workspace->read('app/Rules/SeparatorRule.php');
         $workspace->artisan('mod:rule', ['name' => 'SeparatorRule'])
             ->expectsOutputToContain('Rule already exists.')
-            ->doesntExpectOutputToContain('Refusing to write')
+            ->doesntExpectOutputToContain('SeparatorRule.php already exists.')
             ->assertSuccessful();
         expect($workspace->read('app/Rules/SeparatorRule.php'))->toBe($before);
         $workspace->artisan('mod:rule', ['name' => 'SeparatorRule', '--force' => true])->assertSuccessful();

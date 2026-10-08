@@ -112,7 +112,7 @@ it('matches native bytes, output, exit codes, duplicate and force behavior', fun
         // These native commands consult the autoloader, which does not own this
         // temporary root. Mod retains its file refusal but matches native exit 0.
         if (in_array($kind, ['exception', 'listener'], true)) {
-            $result->expectsOutputToContain('Refusing to write: path collision:');
+            $result->expectsOutputToContain('.php already exists.');
         } else {
             expect($result->output)->toBe($duplicate->output);
         }
@@ -167,7 +167,7 @@ it('matches native migration bytes, output and exit code', function () {
 
             if (count($nativeFiles) === 1) {
                 // Older native creators reuse the same second; mod preserves its refusal.
-                $duplicate->expectsOutputToContain('Refusing to write: path collision:');
+                $duplicate->expectsOutputToContain('.php already exists.');
             } else {
                 expect($duplicate->output)->toBe($nativeDuplicate->output);
             }

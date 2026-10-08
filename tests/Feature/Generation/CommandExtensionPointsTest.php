@@ -212,7 +212,7 @@ it('lets a host command bring its own preset, kind, placement option and output'
         // The host's shorthand still works without an --in option, and its refusal output is its own.
         $command->trace = [];
         $workspace->artisan('host:model', ['name' => 'Billing:Invoice'])
-            ->expectsOutputToContain('Host says no: Refusing to write: path collision')
+            ->expectsOutputToContain('Host says no: app/Modules/Billing/Models/Invoice.php already exists.')
             ->assertFailed();
 
         expect($command->trace)->toBe(['refused']);

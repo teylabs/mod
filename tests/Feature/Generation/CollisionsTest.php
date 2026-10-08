@@ -12,7 +12,8 @@ it('refuses to overwrite an existing file, and overwrites it with --force', func
         $workspace->write('app/Modules/Billing/Models/Invoice.php', '<?php // mine');
 
         $workspace->artisan('mod:model', ['name' => 'Invoice', '--in' => 'Billing'])
-            ->expectsOutputToContain('Refusing to write: path collision: app/Modules/Billing/Models/Invoice.php already exists')
+            ->expectsOutputToContain('app/Modules/Billing/Models/Invoice.php already exists.')
+            ->doesntExpectOutputToContain('Nothing was written.')
             ->assertSuccessful();
 
         expect($workspace->read('app/Modules/Billing/Models/Invoice.php'))->toBe('<?php // mine');
@@ -31,7 +32,8 @@ it('refuses a class that already exists elsewhere, even with --force', function 
         require $workspace->root->path("app/Legacy/{$basename}.php");
 
         $workspace->artisan('mod:model', ['name' => $basename, '--force' => true])
-            ->expectsOutputToContain("Refusing to write: class collision: {$fqcn} already exists")
+            ->expectsOutputToContain("The class {$fqcn} already exists.")
+            ->expectsOutputToContain('Nothing was written.')
             ->assertFailed();
 
         expect($workspace->exists("app/Models/{$basename}.php"))->toBeFalse();
@@ -43,7 +45,8 @@ it('refuses the whole plan when a related artifact collides', function () {
         $workspace->write('app/Modules/Billing/Database/Factories/InvoiceFactory.php', '<?php // mine');
 
         $workspace->artisan('mod:model', ['name' => 'Invoice', '--in' => 'Billing', '--factory' => true, '--force' => true])
-            ->expectsOutputToContain('Refusing to write: path collision: app/Modules/Billing/Database/Factories/InvoiceFactory.php already exists')
+            ->expectsOutputToContain('app/Modules/Billing/Database/Factories/InvoiceFactory.php already exists.')
+            ->expectsOutputToContain('Nothing was written.')
             ->assertFailed();
 
         // --force covers the primary only; the model was not written either.
@@ -59,7 +62,8 @@ it('refuses related artifacts that collide with each other', function () {
         $workspace->write('app/Modules/Billing/Models/Invoice.php', "<?php\n\nnamespace App\\Modules\\Billing\\Models;\n\nclass Invoice {}\n");
 
         $workspace->artisan('mod:controller', ['name' => 'Invoice', '--in' => 'Billing', '--model' => 'Invoice', '--requests' => true])
-            ->expectsOutputToContain('Refusing to write: path collision: app/Modules/Billing/Requests/StoreInvoiceRequest.php already exists')
+            ->expectsOutputToContain('app/Modules/Billing/Requests/StoreInvoiceRequest.php already exists.')
+            ->expectsOutputToContain('Nothing was written.')
             ->assertFailed();
 
         expect($workspace->files())->toBe(['app/Modules/Billing/Models/Invoice.php']);

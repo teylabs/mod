@@ -119,7 +119,7 @@ it('refuses, rejects and reports on feature-first', function () {
         $app->artisan('mod:provider', ['name' => "Billing{$t}", '--in' => 'Billing'])->assertSuccessful();
 
         $app->artisan('mod:provider', ['name' => "Billing{$t}", '--in' => 'Billing'])
-            ->expectsOutputToContain("path collision: app/Features/Billing/Providers/Billing{$t}ServiceProvider.php already exists")
+            ->expectsOutputToContain("app/Features/Billing/Providers/Billing{$t}ServiceProvider.php already exists.")
             ->assertSuccessful();
 
         $app->artisan('mod:seeder', ['name' => 'Anything'])->expectsOutputToContain('mod:seeder needs a feature.')->assertFailed();

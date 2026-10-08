@@ -127,7 +127,7 @@ it('refuses, rejects and reports on the modules layout', function () {
         $app->artisan('mod:data', ['name' => "Invoice{$t}Data", '--in' => 'Billing'])->assertSuccessful();
 
         $app->artisan('mod:data', ['name' => "Invoice{$t}Data", '--in' => 'Billing'])
-            ->expectsOutputToContain("path collision: app/Modules/Billing/Data/Invoice{$t}Data.php already exists")
+            ->expectsOutputToContain("app/Modules/Billing/Data/Invoice{$t}Data.php already exists.")
             ->assertSuccessful();
 
         // routes is a declared file kind with no generator: deliberately no mod:routes. widget is undeclared.

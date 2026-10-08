@@ -18,14 +18,21 @@ final class GenerationRefused extends ModException
     }
 
     /**
+     * One line per existing file or class. A plan refused for anything but its
+     * own file already existing ends with "Nothing was written.", since none of
+     * its files are.
+     *
      * @param  list<Collision>  $collisions
      */
     public static function collisions(array $collisions, bool $duplicatePrimary = false): self
     {
-        return new self(array_map(
-            static fn (Collision $collision): string => 'Refusing to write: '.$collision->describe().'.',
-            $collisions,
-        ), $duplicatePrimary);
+        $reasons = array_map(static fn (Collision $collision): string => $collision->message(), $collisions);
+
+        if (! $duplicatePrimary) {
+            $reasons[] = 'Nothing was written.';
+        }
+
+        return new self($reasons, $duplicatePrimary);
     }
 
     public static function because(string $reason): self
