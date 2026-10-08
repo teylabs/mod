@@ -1,5 +1,8 @@
 <?php
 
+use Illuminate\Foundation\Console\ConfigMakeCommand;
+use Tey\Mod\Commands\ConfigCommand;
+
 /*
  * Layout neutrality: the engine has no layout-specific branches. Layout words may appear in prose
  * (docblocks, comments) as examples, never in code: no string literal,
@@ -97,6 +100,11 @@ it('declares no static properties on any engine class', function () {
         }
 
         $name = 'Tey\\Mod\\'.str_replace(['/', '.php'], ['\\', ''], substr($file->getPathname(), strlen($root) + 1));
+
+        // The optional adapter cannot be loaded on frameworks without its parent.
+        if ($name === ConfigCommand::class && ! class_exists(ConfigMakeCommand::class)) {
+            continue;
+        }
 
         if (! class_exists($name) && ! interface_exists($name) && ! trait_exists($name) && ! enum_exists($name)) {
             throw new RuntimeException("[{$name}] does not autoload from its file.");
