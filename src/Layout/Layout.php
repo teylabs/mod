@@ -34,7 +34,7 @@ final class Layout
     /** @var array<string, Kind> */
     private array $kinds = [];
 
-    /** @var array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop'}|null, name: string|array<string, string>|null, policy: string|RelationPolicy|null}> */
+    /** @var array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, policy: string|RelationPolicy|null}> */
     private array $relations = [];
 
     /** @var list<string> */
@@ -147,7 +147,7 @@ final class Layout
     /**
      * A relation from one kind to another (mod:model --factory follows `from: 'model', to: 'factory'`).
      *
-     * @param  string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop'}|null  $scope  'same' (default), the placeholders the target keeps, e.g. ['area'], or ['keep' => [...], 'nested' => 'drop'] to drop the source's nested folders
+     * @param  string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null  $scope  'same' (default), the placeholders the target keeps, e.g. ['area'], or ['keep' => [...], 'nested' => 'drop'] to drop the source's nested folders; 'name' => 'operation' fills a missing target dimension from the source stem
      * @param  string|array<string, string>|null  $name  how the target's name derives from the source's: 'explicit' (the caller always names it), or a map of 'strip-suffix' (removed from the source name first), 'prefix' and 'suffix' (added around it); the target kind's own name policy (suffix()/fixed()) still applies afterwards, so a controller→request relation needs no 'Request' suffix when the request kind declares one
      * @param  string|RelationPolicy|null  $policy  'generate' (default), 'reference' or 'none'
      */
@@ -228,7 +228,7 @@ final class Layout
     /**
      * @internal
      *
-     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, Kind>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop'}|null, name: string|array<string, string>|null, policy: string|RelationPolicy|null}>, excluded: list<string>, commands: bool}
+     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, Kind>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, policy: string|RelationPolicy|null}>, excluded: list<string>, commands: bool}
      */
     public function toArray(): array
     {

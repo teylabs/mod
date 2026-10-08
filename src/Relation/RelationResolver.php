@@ -53,7 +53,7 @@ final readonly class RelationResolver
             $target = $this->placement->resolve(new ArtifactRequest(
                 $relation->toKind,
                 implode('/', [...$nested, $targetName]),
-                $relation->scope->apply($source->context),
+                $relation->scope->apply($source->context, $source->name),
                 $attributes,
             ));
         } catch (ModException $exception) {

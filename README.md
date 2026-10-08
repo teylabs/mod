@@ -48,7 +48,9 @@ php artisan vendor:publish --tag=mod-config
 | `type-first` | `app/Models/<Feature?>/...` (the feature folder is optional) | `app/Models/Billing/Invoice.php` |
 | `modules` | `app/Modules/<Module>/...` (flat folders, no `Http/`) | `app/Modules/Billing/Models/Invoice.php` |
 
-Each layout declares only the kinds that make sense for it. For example, `features` has no event or listener kinds until you add them (see below). `php artisan list mod` shows the commands your layout provides.
+All five layouts declare the common native generator kinds, including events, listeners and tests. Tests live under `tests/Feature/<placement>` (`--unit` uses `tests/Unit/<placement>`); config files are declared only by `laravel` and `type-first`, when the native generator is available. Components and views are held to v1. `php artisan list mod` shows the commands your layout provides.
+
+Commands in `features` and `slices` belong to a feature when placement is given and use `app/Console/Commands` when it is omitted. Other kinds still require their declared placement. Slice requests have one fixed `Request` per operation; request companions generate that single request, with no update-request relation. Modules do not declare a routes kind.
 
 ## Generating
 

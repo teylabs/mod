@@ -295,14 +295,14 @@ final class LayoutCompiler
     }
 
     /**
-     * @param  array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop'}|null, name: string|array<string, string>|null, policy: string|RelationPolicy|null}  $relation
+     * @param  array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, policy: string|RelationPolicy|null}  $relation
      * @return array<string, mixed>
      */
     private function relation(array $relation): array
     {
         $scope = $relation['scope'] ?? 'same';
 
-        if (is_array($scope) && ! isset($scope['keep']) && ! array_key_exists('nested', $scope)) {
+        if (is_array($scope) && ! isset($scope['keep']) && ! array_key_exists('nested', $scope) && ! array_key_exists('name', $scope)) {
             $scope = ['keep' => array_values($scope)];
         }
 

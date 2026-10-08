@@ -19,11 +19,12 @@ final readonly class ScopeMap
     private function __construct(
         public ?array $keep,
         public bool $keepNested = true,
+        public ?string $nameDimension = null,
     ) {}
 
-    public static function same(bool $keepNested = true): self
+    public static function same(bool $keepNested = true, ?string $nameDimension = null): self
     {
-        return new self(null, $keepNested);
+        return new self(null, $keepNested, $nameDimension);
     }
 
     /**
@@ -31,14 +32,21 @@ final readonly class ScopeMap
      *
      * @param  list<string>  $dimensions
      */
-    public static function keep(array $dimensions, bool $keepNested = true): self
+    public static function keep(array $dimensions, bool $keepNested = true, ?string $nameDimension = null): self
     {
-        return new self($dimensions, $keepNested);
+        return new self($dimensions, $keepNested, $nameDimension);
     }
 
-    public function apply(PlacementContext $context): PlacementContext
+    /** A named dimension can take the source stem when the source has no value for it. */
+    public function apply(PlacementContext $context, ?string $sourceName = null): PlacementContext
     {
-        return $this->keep === null ? $context : $context->only($this->keep);
+        $mapped = $this->keep === null ? $context : $context->only($this->keep);
+
+        if ($this->nameDimension !== null && $sourceName !== null && ! $mapped->has($this->nameDimension)) {
+            $mapped = $mapped->with($this->nameDimension, $sourceName);
+        }
+
+        return $mapped;
     }
 
     /**

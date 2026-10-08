@@ -1,6 +1,5 @@
 <?php
 
-use Symfony\Component\Console\Exception\CommandNotFoundException;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\RejectionReason;
 use Tey\Mod\Facades\Mod;
@@ -136,8 +135,8 @@ it('refuses, rejects and reports on vertical slices', function () {
             ->expectsOutputToContain("path collision: app/Billing/{$slice}/Command.php already exists")
             ->assertSuccessful();
 
-        // No controller kind in this layout.
-        expect(fn () => $app->artisan('mod:controller', ['name' => 'Anything']))->toThrow(CommandNotFoundException::class);
+        // Native controllers are feature-scoped and still require a placement.
+        $app->artisan('mod:controller', ['name' => 'Anything'])->expectsOutputToContain('[feature]')->assertFailed();
 
         $app->artisan('mod:model', ['name' => "Invoice{$t}", '--in' => "Billing/{$slice}"])->expectsOutputToContain('[slice]')->assertFailed();
         $app->artisan('mod:handler', ['name' => 'Handler', '--in' => 'Billing'])->expectsOutputToContain('[slice]')->assertFailed();

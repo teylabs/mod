@@ -75,7 +75,7 @@ it('runs the whole loop on the modules layout', function () {
             $app->assertOwned($path, $kind, $ctx, $fqcn);
         }
 
-        // Hand-written: a listener, and the module routes file (a file kind mod has no generator for).
+        // Hand-written: a listener and a routes file that the layout does not own.
         $hand = $app->handWrite("app/Modules/Billing/Listeners/Audit{$t}Payment.php", "{$ns}\\Listeners", <<<PHP
             use {$ns}\\Events\\Invoice{$t}Paid;
 
@@ -86,7 +86,7 @@ it('runs the whole loop on the modules layout', function () {
             PHP);
         $app->write('app/Modules/Billing/routes/web.php', "<?php\n");
         $app->assertOwned($hand, 'listener', $ctx, "{$ns}\\Listeners\\Audit{$t}Payment");
-        $app->assertOwned('app/Modules/Billing/routes/web.php', 'routes', $ctx);
+        expect($app->mapPath('app/Modules/Billing/routes/web.php')->isMatched())->toBeFalse();
 
         $app->boot();
         $cold = $app->discovery()->inventory();
@@ -97,7 +97,8 @@ it('runs the whole loop on the modules layout', function () {
             ->and($cold->classes(DiscoveryType::Command))->toBe(["{$ns}\\Console\\Prune{$t}Invoices"])
             ->and($cold->classes(DiscoveryType::Listener))->toBe(["{$ns}\\Listeners\\Audit{$t}Payment", "{$ns}\\Listeners\\Send{$t}Receipt"])
             ->and(array_unique(array_map(fn ($entry) => $entry->context, $cold->entries), SORT_REGULAR))->toBe([$ctx])
-            ->and($cold->rejections)->toBe([]);
+            ->and($cold->rejection('app/Modules/Billing/routes/web.php')?->reason)->toBe(RejectionReason::NotOwned)
+            ->and($cold->rejections)->toHaveCount(1);
 
         $assertRegistered = function () use ($app, $t, $ns, $event) {
             expect($app->app()->getProvider("{$ns}\\Providers\\Billing{$t}ServiceProvider"))->not->toBeNull()

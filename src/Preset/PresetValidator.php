@@ -674,7 +674,7 @@ final class PresetValidator
             return ScopeMap::same();
         }
 
-        if (is_array($definition) && (is_array($definition['keep'] ?? null) || array_key_exists('nested', $definition))) {
+        if (is_array($definition) && (is_array($definition['keep'] ?? null) || array_key_exists('nested', $definition) || array_key_exists('name', $definition))) {
             $nestedValue = $definition['nested'] ?? 'keep';
 
             if (! in_array($nestedValue, ['keep', 'drop'], true)) {
@@ -683,10 +683,18 @@ final class PresetValidator
                 return null;
             }
 
+            $nameDimension = $definition['name'] ?? null;
+
+            if ($nameDimension !== null && (! is_string($nameDimension) || ! isset($dimensions[$nameDimension]))) {
+                $this->issue(PresetIssueCode::UnknownDimension, $subject, 'scope name must identify a declared dimension');
+
+                return null;
+            }
+
             $keepNested = $nestedValue === 'keep';
 
             if (! isset($definition['keep'])) {
-                return ScopeMap::same($keepNested);
+                return ScopeMap::same($keepNested, $nameDimension);
             }
 
             $keep = [];
@@ -700,7 +708,7 @@ final class PresetValidator
                 $keep[] = $name;
             }
 
-            return ScopeMap::keep($keep, $keepNested);
+            return ScopeMap::keep($keep, $keepNested, $nameDimension);
         }
 
         $this->issue(PresetIssueCode::InvalidRelation, $subject, 'scope must be "same" or [\'keep\' => [...], \'nested\' => \'keep\'|\'drop\']');

@@ -181,7 +181,7 @@ it('extends a layout: repeated ids override the given arguments and keep the res
 it('starts a built-in layout from its definition and an unknown name empty', function () {
     $registry = new LayoutRegistry;
 
-    expect($registry->layout('modules')->toArray()['kinds'])->toHaveKey('routes')
+    expect($registry->layout('modules')->toArray()['kinds'])->toHaveKey('model')
         ->and($registry->layout('reporting')->toArray()['kinds'])->toBe([])
         ->and($registry->has('laravel'))->toBeTrue()
         ->and($registry->has('nope'))->toBeFalse()
@@ -308,4 +308,16 @@ it('lets kinds share a command name when the layout registers no commands', func
             ->kind('legacy-model', in: 'Legacy/Models', command: 'host:model')
             ->compile())
         ->toThrow(InvalidLayout::class, 'already used by kind [model]');
+});
+
+it('validates dimensions populated from a relation source name', function () {
+    $layout = (new LayoutRegistry)->layout('operations')
+        ->root('app', 'App\\', 'app')
+        ->kind('controller', in: '{area}/Controllers')
+        ->kind('request', in: '{area}/{operation}', fixed: 'Request')
+        ->relation('request', from: 'controller', to: 'request', scope: ['name' => 'operation']);
+    $preset = $layout->compile();
+    expect($preset->relation('request')->scope->nameDimension)->toBe('operation');
+    $layout->relation('request', scope: ['name' => 'unknown']);
+    expect(fn () => $layout->compile())->toThrow(InvalidLayout::class, 'scope name must identify a declared dimension');
 });

@@ -70,3 +70,11 @@ it('exposes the declared policy on every resolution', function () {
 
     expect($policies)->toBe([['factory', RelationPolicy::Generate], ['policy', RelationPolicy::Reference]]);
 });
+
+it('maps a missing target dimension from the source stem without replacing an explicit value', function () {
+    $scope = ScopeMap::same(nameDimension: 'operation');
+    expect($scope->apply(PlacementContext::of(['area' => 'Billing']), 'CreateInvoice')->toArray())
+        ->toBe(['area' => 'Billing', 'operation' => 'CreateInvoice'])
+        ->and($scope->apply(PlacementContext::of(['operation' => 'UpdateInvoice']), 'CreateInvoice')->toArray())
+        ->toBe(['operation' => 'UpdateInvoice']);
+});

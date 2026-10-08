@@ -25,3 +25,30 @@ it('generates, reverse maps and discovers both fallback and placed commands', fu
             ->and($app->hasArtisanCommand('App\\Areas\\Billing\\Console\\Commands\\Placed'.$tag))->toBeTrue();
     });
 });
+
+it('discovers global and feature commands in the built-in layouts while other kinds stay strict', function (string $layout, string $prefix) {
+    AcceptanceApp::run($layout, function (AcceptanceApp $app) use ($prefix) {
+        $tag = $app->tag;
+        $app->artisan('mod:command', ['name' => 'Global'.$tag])->assertSuccessful();
+        $app->artisan('mod:command', ['name' => 'Billing:Placed'.$tag])->assertSuccessful();
+        $paths = ["app/Console/Commands/Global{$tag}.php", "app/{$prefix}Billing/Console/Commands/Placed{$tag}.php"];
+        foreach ($paths as $index => $path) {
+            $app->write($path, str_replace('command:name', "builtin:{$tag}:{$index}", $app->read($path)));
+        }
+        $globalClass = 'App\\Console\\Commands\\Global'.$tag;
+        $placedClass = 'App\\'.str_replace('/', '\\', $prefix).'Billing\\Console\\Commands\\Placed'.$tag;
+        $app->assertOwned($paths[0], 'command', [], $globalClass);
+        $app->assertOwned($paths[1], 'command', ['feature' => 'Billing'], $placedClass);
+        foreach (['provider', 'middleware'] as $kind) {
+            $app->artisan('mod:'.$kind, ['name' => 'Strict'.$tag])->expectsOutputToContain('[feature]')->assertFailed();
+        }
+        $app->boot();
+        expect($app->hasArtisanCommand($globalClass))->toBeTrue()
+            ->and($app->hasArtisanCommand($placedClass))->toBeTrue();
+        $app->artisan('mod:discovery-cache')->assertSuccessful();
+        $app->boot();
+        expect($app->discovery()->source())->toBe('cache')
+            ->and($app->hasArtisanCommand($globalClass))->toBeTrue()
+            ->and($app->hasArtisanCommand($placedClass))->toBeTrue();
+    });
+})->with([['features', 'Features/'], ['slices', '']]);

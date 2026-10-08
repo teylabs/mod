@@ -103,5 +103,5 @@ it('reports an invalid layout with the call that caused it when mod:* starts', f
     $layout = new LayoutUnderTest('laravel', fn () => Mod::layout('laravel')->kind('job', in: 'jobs:Jobs'));
 
     expect(fn () => AcceptanceApp::run($layout, fn () => null))
-        ->toThrow(InvalidLayout::class, "Layout [laravel] is invalid:\n - ->kind('job'): root [jobs] is not declared (declared: app, factories, seeders, migrations) [unknown-root]");
+        ->toThrow(InvalidLayout::class, "Layout [laravel] is invalid:\n - ->kind('job'): root [jobs] is not declared (declared: app, factories, seeders, migrations, config, tests) [unknown-root]");
 });
