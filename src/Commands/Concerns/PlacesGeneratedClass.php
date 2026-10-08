@@ -71,6 +71,8 @@ trait PlacesGeneratedClass
         $exitCode = self::FAILURE;
 
         try {
+            $this->noteUnusedName();
+
             if ($this->plansEagerly()) {
                 $this->resolvePlan();
             }
@@ -86,6 +88,20 @@ trait PlacesGeneratedClass
             }
 
             $this->plan = $previous;
+        }
+    }
+
+    /**
+     * A kind with a fixed name ignores the name it is given: say so.
+     */
+    private function noteUnusedName(): void
+    {
+        $fixed = $this->fixedName();
+        $raw = $this->rawNameInput();
+        $given = $raw === '' ? '' : $this->shorthand()[1];
+
+        if ($fixed !== null && $given !== '' && $given !== $fixed) {
+            $this->components->info("{$this->getName()} always writes {$fixed}.php; the name [{$given}] is not used.");
         }
     }
 

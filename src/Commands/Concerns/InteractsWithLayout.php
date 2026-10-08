@@ -3,9 +3,11 @@
 namespace Tey\Mod\Commands\Concerns;
 
 use LogicException;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\ArtifactRequest;
+use Tey\Mod\Artifact\NamePolicyKind;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Exceptions\DimensionNotApplicable;
 use Tey\Mod\Exceptions\GenerationRefused;
@@ -82,6 +84,10 @@ trait InteractsWithLayout
         $this->setName($kind->command);
         $this->setAliases($kind->aliases);
         $this->registerPlacementOptions();
+
+        if ($this->fixedName() !== null) {
+            $this->makeNameOptional();
+        }
 
         return $this;
     }
@@ -262,11 +268,32 @@ trait InteractsWithLayout
         $raw = $this->rawNameInput();
         $colon = strpos($raw, ':');
 
-        if ($colon === false) {
-            return [null, $raw];
-        }
+        [$prefix, $name] = $colon === false ? [null, $raw] : [trim(substr($raw, 0, $colon)), trim(substr($raw, $colon + 1))];
 
-        return [trim(substr($raw, 0, $colon)), trim(substr($raw, $colon + 1))];
+        return [$prefix, $name === '' ? ($this->fixedName() ?? '') : $name];
+    }
+
+    /**
+     * The basename every class of the bound kind gets (slices' "Handler"), or null.
+     */
+    protected function fixedName(): ?string
+    {
+        return $this->modKind?->namePolicy->kind === NamePolicyKind::Fixed ? $this->modKind->namePolicy->value : null;
+    }
+
+    /**
+     * A kind with a fixed name needs no name argument.
+     */
+    private function makeNameOptional(): void
+    {
+        $definition = $this->getDefinition();
+
+        $definition->setArguments(array_map(
+            static fn (InputArgument $argument): InputArgument => $argument->getName() === 'name' && $argument->isRequired()
+                ? new InputArgument('name', InputArgument::OPTIONAL, $argument->getDescription())
+                : $argument,
+            array_values($definition->getArguments()),
+        ));
     }
 
     /**
