@@ -1,6 +1,6 @@
 # Extending Mod
 
-A package can build on mod instead of shipping its own generators. When you're done, your package adds kinds and commands to a layout, ships the stubs they start from, and uses another package's base class when it is installed.
+A package can build on mod instead of shipping its own generators. When you're done, your package adds file types and commands to a layout, ships the stubs they start from, and uses another package's base class when it is installed.
 
 ## Writing a Mod Plugin
 
@@ -12,9 +12,9 @@ composer require tey/mod
 
 Everything below goes in that provider. Mod reads it when Artisan starts, so the order of providers doesn't matter.
 
-### Adding Kinds, Commands and Aliases
+### Adding File Types, Commands and Aliases
 
-Extend a built-in layout with `Mod::layout()`. A new kind gets a `mod:<kind>` command; `command:` renames it, `aliases:` adds other names and `label:` sets the noun its output uses:
+Extend a built-in layout with `Mod::layout()`. A new file type gets a `mod:<type>` command; `command:` renames it, `aliases:` adds other names and `label:` sets the noun its output uses:
 
 ```php
 // src/BillingToolsServiceProvider.php
@@ -34,14 +34,14 @@ php artisan mod:query-builder Billing:Payment
 # -> src/Domain/Billing/Builders/PaymentBuilder.php
 ```
 
-- Repeating an existing kind changes only the arguments you pass. Aliases add up: `->kind('dto', aliases: ['mod:payload'])` keeps `mod:data` and the DTO's other aliases.
-- Without `label:`, the output names the kind id in title case (`Builder`). Kinds with a Laravel generator keep Laravel's wording.
-- A command or alias that another kind already uses stops the layout from compiling, with an error naming both kinds.
-- The layout methods are listed in the [README](../README.md#defining-or-extending-a-layout).
+- Repeating an existing file type changes only the arguments you pass. Aliases add up: `->kind('dto', aliases: ['mod:payload'])` keeps `mod:data` and the DTO's other aliases.
+- Without `label:`, the output names the type's id in title case (`Builder`). File types with a Laravel generator keep Laravel's wording.
+- A command or alias that another file type already uses stops the layout from compiling, with an error naming both.
+- The layout methods are listed in [Defining a Layout](layouts.md#defining-a-layout).
 
 ### Registering Stubs
 
-A kind with no Laravel generator starts as a plain class. Register a stub for it:
+A file type with no Laravel generator starts as an empty class. Register a stub for it:
 
 ```php
 use Tey\Mod\Facades\Mod;
@@ -64,12 +64,12 @@ class {{ class }} extends Builder
 }
 ```
 
-`Mod::stubs()->for()` works for any kind, including those with a Laravel generator. The stub that is used is the first that exists:
+`Mod::stubs()->for()` works for any file type, including those with a Laravel generator. The stub that is used is the first that exists:
 
-1. the application's `stubs/mod.<kind>.stub`;
+1. the application's `stubs/mod.<type>.stub`;
 2. the stub registered with `Mod::stubs()->for()` (the last registration wins);
 3. the stub the layout declares (`kind(..., stub: ...)`);
-4. the Laravel generator's stub, or mod's plain class.
+4. the Laravel generator's stub, or mod's empty class.
 
 | Placeholder | Filled with |
 | --- | --- |
@@ -134,14 +134,14 @@ php artisan mod:dto Billing:InvoiceData
 # ->  INFO  DTO [src/Domain/Billing/Data/InvoiceData.php] created successfully.
 ```
 
-- `in:` is a folder below the kind's root, so the base above lands in `src/Domain/Shared/Data`.
+- `in:` is a folder below the file type's root, so the base above lands in `src/Domain/Shared/Data`.
 - The base stub fills `{{ namespace }}` and `{{ class }}`. The application can replace it by publishing `stubs/mod.base.data-transfer-object.stub` (the base's name in kebab-case).
 - Once the file exists, the application owns it: mod never overwrites it, even with `--force`.
 - Stubs must not use mod's own classes, so the generated code runs without mod installed.
 
 ### Swapping a Generator
 
-Replace the command behind a kind with `Mod::generators()->use()`. Extend the adapter it replaces: `GenericClassCommand` for kinds with no Laravel generator, or the matching command such as `ModelCommand`:
+Replace the command behind a file type with `Mod::generators()->use()`. Extend the adapter it replaces: `GenericClassCommand` for file types with no Laravel generator, or the matching command such as `ModelCommand`:
 
 ```php
 // src/Commands/BuilderCommand.php
@@ -168,11 +168,11 @@ use Tey\Mod\Facades\Mod;
 Mod::generators()->use('builder', BuilderCommand::class);
 ```
 
-The protected hooks an adapter offers are listed in the [README](../README.md#building-your-own-generators).
+The protected hooks an adapter offers are listed in [Building Your Own Generators](#building-your-own-generators).
 
 ## Example: A DDD Plugin
 
-The provider below is the shape of [laravel-ddd](https://github.com/teylabs/laravel-ddd) on mod. It keeps laravel-ddd's own config keys for base classes, adds a kind the built-in layout doesn't have, and ships its own stubs:
+The provider below is the shape of [laravel-ddd](https://github.com/teylabs/laravel-ddd) on mod. It keeps laravel-ddd's own config keys for base classes, adds a file type the built-in layout doesn't have, and ships its own stubs:
 
 ```php
 // src/DddServiceProvider.php
@@ -212,3 +212,33 @@ php artisan mod:view-model Billing:ShowInvoice
 # with ddd.base_view_model set to Domain\Shared\ViewModels\ViewModel:
 # ->  INFO  Using the configured base Domain\Shared\ViewModels\ViewModel.
 ```
+
+## Building Your Own Generators
+
+Every `mod:*` command is a subclass of the matching Laravel command, such as `Tey\Mod\Commands\ModelCommand`, `ControllerCommand`, `RequestCommand`, `FactoryCommand` and `MigrationCommand`. A package with its own command catalog can extend these instead of the native commands and override a few protected hooks:
+
+| Hook | Use |
+| --- | --- |
+| `placementInput()` | the placement in `--in` syntax, for example from your own option or prompt |
+| `placementContext()` | the placement context the command resolves against |
+| `placementOptions()` | which placement options the command adds: option name => the dimension it sets, with `null` for `--in`. Return `[]` to add none; related commands then receive the `Group:Name` form |
+| `resolvePreset()`, `kindId()` | the layout and file type, for commands not registered through the layout |
+| `stubDefinition()` | the `Stub` the class is generated from: by default the one registered with `Mod::stubs()`, else the layout's |
+| `collisionPolicy()` | `CollisionPolicy::Refuse` (mod checks every file before writing) or `CollisionPolicy::Native` (the native generator's own check and `--force` decide) |
+| `plansEagerly()`, `resolvePlan()` | plan from inside your own `handle()` |
+| `beforeGeneration(GenerationPlan $plan)`, `afterGeneration(GenerationPlan $plan, int $exitCode)` | run code around generation |
+| `nativePathAllowed()` | on `MigrationCommand`: let `--path` and `--realpath` through |
+| `reportRefusal(ModException $e)`, `reportReference(ResolvedArtifact $target)` | the only places the commands print on their own |
+
+`Preset::dimensions()` lists the layout's dimensions in order, and `Preset::placementOptions()` maps each one to its option name. Every exception mod throws extends `Tey\Mod\Exceptions\ModException`.
+
+## Turning Commands Off
+
+A package or application with its own Artisan commands can keep mod's placement and discovery without the `mod:*` commands:
+
+```php
+// config/mod.php
+'commands' => false,
+```
+
+Or turn them off for one layout with `Mod::layout('mine')->withoutCommands()`. Its file types keep their `command:` names for a host to dispatch by, and several file types may then share one. The discovery cache commands are registered only while the `mod:*` commands and discovery are both on.

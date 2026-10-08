@@ -1,306 +1,467 @@
-# Mod: layout-aware generators and discovery for Laravel
+# Mod — Modular Layouts for Laravel
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/tey/mod.svg?style=flat-square)](https://packagist.org/packages/tey/mod)
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/teylabs/mod/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/teylabs/mod/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![PHPStan](https://img.shields.io/github/actions/workflow/status/teylabs/mod/phpstan.yml?branch=main&label=phpstan&style=flat-square)](https://github.com/teylabs/mod/actions?query=workflow%3APHPStan+branch%3Amain)
+[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/teylabs/mod/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/teylabs/mod/actions?query=workflow%3A%22Fix+PHP+code+style+issues%22+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/tey/mod.svg?style=flat-square)](https://packagist.org/packages/tey/mod)
-[![License](https://img.shields.io/packagist/l/tey/mod.svg?style=flat-square)](LICENSE.md)
 
-Mod lets a Laravel application declare how its code is organised (ordinary Laravel, feature folders, vertical slices, type-first, `app/Modules/<Module>`, domain-driven design, or a layout of your own) and then works within that layout:
+Lightweight toolkit for modular development in Laravel. Choose or extend common layouts like DDD and modular monoliths, or create your own. Laravel's generators, auto-discovery, migrations and factories keep working.
 
-- **Generation.** `mod:*` commands place files where your layout says, using Laravel's own `make:*` generators, so the generated code is exactly what Laravel would write.
-- **Relations.** Related artifacts land in the right place too: a model's factory, a controller's form requests, a listener's event.
-- **Discovery.** Service providers, Artisan commands, event listeners and subscribers anywhere in your layout are found and registered, with a cache for production.
+```bash
+php artisan mod:model Billing:Invoice -mf   # with 'layout' => 'modules'
+```
 
-> Mod is pre-1.0: minor releases may still change the API. The public API is what this README documents; classes and methods marked `@internal` are not part of it.
+```text
+app/Modules/Billing/
+├── Database/
+│   ├── Factories/
+│   │   └── InvoiceFactory.php
+│   └── Migrations/
+│       └── 2026_10_08_120000_create_invoices_table.php
+└── Models/
+    └── Invoice.php
+```
 
-## Requirements
+`php artisan migrate` runs that migration, and `Invoice::factory()` finds that factory.
 
-- PHP 8.3+
-- Laravel 12 or 13
+> [!NOTE]
+> Mod is pre-1.0. Minor releases may change the API until 1.0.
 
+- [Six built-in layouts](#choosing-a-layout), including modular monolith and DDD
+- [Laravel's own generators](#generating) for every file type, writing into your layout
+- [Related files follow](#related-files): a model's factory, migration, policy and form requests land beside it
+- [Auto-discovery](#auto-discovery) of providers, commands, listeners, migrations, factories and policies
+- [Your own file types](#your-own-file-types) in one line
+
+Mod grew out of building [laravel-ddd](https://github.com/teylabs/laravel-ddd). Most of that package turned out to be plumbing that had little to do with DDD: making Laravel's `make:*` generators write outside `app/`, discovering providers, commands and listeners wherever they live, and keeping a model's factory and policy beside it. Mod is that plumbing, rebuilt from those lessons as its own package, for any layout.
 
 ## Installation
 
+Mod requires PHP 8.3+ and Laravel 12 or 13.
+
 ```bash
 composer require tey/mod
-```
-
-Publish the configuration file to choose a layout:
-
-```bash
 php artisan vendor:publish --tag=mod-config
 ```
 
-## Choosing a layout
+## Quick Start
 
-`config/mod.php` names the active layout. Six layouts are built in:
-
-```php
-'layout' => 'modules',
-```
-
-| Layout | Placement | Example: `mod:model Billing:Invoice` |
-| --- | --- | --- |
-| `laravel` (default) | exactly like `make:*` | `mod:model Invoice` → `app/Models/Invoice.php` |
-| `features` | `app/Features/<Feature>/...` | `app/Features/Billing/Models/Invoice.php` |
-| `slices` | `app/<Feature>/<Slice>/...` (fixed basenames such as `Handler`) | `app/Billing/Models/Invoice.php` |
-| `type-first` | `app/Models/<Feature?>/...` (the feature folder is optional) | `app/Models/Billing/Invoice.php` |
-| `modules` | `app/Modules/<Module>/...` (flat folders, no `Http/`) | `app/Modules/Billing/Models/Invoice.php` |
-| `ddd` | `src/Domain/<Domain>/...`; controllers, requests and middleware in `app/Modules/<Domain>/...` | `src/Domain/Billing/Models/Invoice.php` |
-
-All six layouts declare the common native generator kinds, including events, listeners and tests. Tests live under `tests/Feature/<placement>` (`--unit` uses `tests/Unit/<placement>`); config files are declared only by `laravel` and `type-first`, when the native generator is available. Components and views are held to v1. `php artisan list mod` shows the commands your layout provides.
-
-The `ddd` layout uses laravel-ddd's folders, so a laravel-ddd application keeps its structure. It adds four kinds Laravel has no generator for: `mod:dto` (`src/Domain/<Domain>/Data`), `mod:value` (`ValueObjects`), `mod:view-model` (`ViewModels`) and `mod:action` (`Actions`), with laravel-ddd's aliases (`mod:data`, `mod:value-object`, `mod:viewmodel` and so on). Subdomains nest: `mod:model Reporting.Internal:Report` writes `src/Domain/Reporting/Internal/Models/Report.php`. To add a layer such as `src/Infrastructure`, see [docs/layouts.md](docs/layouts.md#adding-a-layer).
-
-Commands in `features` and `slices` belong to a feature when placement is given and use `app/Console/Commands` when it is omitted. Other kinds still require their declared placement. Slice requests have one fixed `Request` per operation; request companions generate that single request, with no update-request relation. Modules do not declare a routes kind.
-
-## Generating
-
-Every kind in the layout gets a `mod:<kind>` command, a thin subclass of the matching `make:*` command. The arguments and options are Laravel's own. The only addition is where the file goes:
-
-```bash
-php artisan mod:model Billing:Invoice --factory
-php artisan mod:controller Billing:InvoiceController
-php artisan mod:migration Billing:create_invoices_table --create=invoices
-```
-
-### Placement
-
-The `laravel` layout puts files exactly where `make:*` does. The other built-in layouts organize your app into groups, such as modules or features, so each generated file also needs to know which group it belongs to.
-
-Each way a layout groups your code is called a **dimension**. The `modules` layout has one dimension: the module. The `slices` layout has two: the feature, and inside it the slice. In a layout's paths, a dimension is written as a **placeholder** such as `{module}`. When you generate a file, you give it a **value** such as `Billing`.
-
-| Layout | Dimensions | A path it uses | A value |
-| --- | --- | --- | --- |
-| `laravel` | none | `app/Models` | none needed |
-| `modules` | module | `app/Modules/{module}/Models` | `Billing` |
-| `features` | feature | `app/Features/{feature}/Models` | `Billing` |
-| `slices` | feature, slice | `app/{feature}/{slice}` | `Billing`, `CreateInvoice` |
-| `type-first` | feature (optional) | `app/Models/{feature?}` | `Billing`, or nothing |
-| `ddd` | domain (one or more folders) | `src/Domain/{domain+}/Models` | `Billing`, or `Reporting.Internal` |
-
-Every placeholder a command's path uses is also an option of that command, with the same name. These three commands do the same thing:
-
-```bash
-php artisan mod:model Invoice --module=Billing
-php artisan mod:model Invoice --in=Billing
-php artisan mod:model Billing:Invoice
-```
-
-- `--module=Billing` names the placeholder you are filling in. It is the easiest to read in scripts.
-- `--in=Billing` takes every value at once, in the layout's order.
-- `Billing:Invoice` is the short form: the value, a colon, then the class name.
-- Use one form at a time. Mixing them is refused.
-
-In the `slices` layout a request lives in a slice, inside a feature. Give both values:
-
-```bash
-php artisan mod:request CreateInvoice --feature=Billing --slice=CreateInvoice
-php artisan mod:request CreateInvoice --in=Billing/CreateInvoice
-php artisan mod:request Billing/CreateInvoice:CreateInvoice
-```
-
-With `--in` and the short form, the values follow the layout's order, feature first, separated by `/`. With the named options the order you type them in doesn't matter. A model in the same layout only reads the feature, so `mod:model` has `--feature` and no `--slice`.
-
-- `{feature?}` is optional. In `type-first`, `mod:model Invoice` writes `app/Models/Invoice.php`, and `mod:model Invoice --feature=Billing` writes `app/Models/Billing/Invoice.php`.
-- `{area+}` takes one or more folders. `--area=Reporting.Internal` and `--area=Reporting/Internal` both write into `.../Reporting/Internal/`.
-- When a layout declares a fallback for a kind, leaving the value out uses the fallback folder instead of refusing.
-
-- Companion options such as `--factory` and `--migration` follow the layout's relations, in every built-in layout. Under `modules`, `mod:model Billing:Invoice --factory --migration` writes `app/Modules/Billing/Database/Factories/InvoiceFactory.php`, with the model's `newFactory()` pointing at it, and a migration in `app/Modules/Billing/Database/Migrations/`.
-- Migrations a layout places outside `database/migrations` are added to the migrator, so `php artisan migrate` runs them (see Discovery).
-- A companion option the layout declares no relation for is refused before anything is written. So is a file that already exists, or a placement value the layout does not use.
-- Every error mod raises extends `Tey\Mod\Exceptions\ModException`.
-- `make:*` is untouched and keeps writing to Laravel's default locations.
-
-### Stub variants
-
-The `ddd` layout's DTOs, view models and actions are starter classes: plain Laravel-style classes to get you running. When a package for them is installed, mod uses it instead:
-
-```bash
-php artisan mod:dto Billing:InvoiceData
-# without spatie/laravel-data:
-# ->  INFO  Created base class Domain\Shared\Data\DataTransferObject [src/Domain/Shared/Data/DataTransferObject.php].
-# ->  INFO  DTO [src/Domain/Billing/Data/InvoiceData.php] created successfully.
-# with spatie/laravel-data installed:
-# ->  INFO  Using spatie/laravel-data (installed).
-```
-
-| Kind | Installed package | Otherwise |
-| --- | --- | --- |
-| `dto` | [spatie/laravel-data](https://github.com/spatie/laravel-data): extends `Spatie\LaravelData\Data` | extends a `DataTransferObject` base with `fromArray()` and `toArray()`, written into your app on first use |
-| `view-model` | [spatie/laravel-view-models](https://github.com/spatie/laravel-view-models): extends `Spatie\ViewModels\ViewModel` | extends a `ViewModel` base, written into your app on first use |
-| `action` | [lorisleiva/laravel-actions](https://github.com/lorisleiva/laravel-actions): `use AsAction;` | a plain class with `handle()` |
-| `value-object` | | a plain class with a constructor |
-
-- A base class written into your app is yours: mod never overwrites it, not even with `--force`. Publish `stubs/mod.base.data-transfer-object.stub` or `stubs/mod.base.view-model.stub` to change its body.
-- To extend your own class instead, set it in `config/mod.php`: `'layouts' => ['ddd' => ['bases' => ['dto' => App\Support\Data::class]]]`. A configured base wins over an installed package.
-- Publish `stubs/mod.<kind>.stub` (for example `stubs/mod.dto.stub`) to replace a stub. It can use `{{ baseImport }}` and `{{ extends }}` for the base mod chose.
-
-## Defining or extending a layout
-
-Define a layout as one fluent chain in any service provider, for example in `AppServiceProvider::boot()`, then select it by name in `config/mod.php`:
-
-```php
-use Tey\Mod\Facades\Mod;
-use Tey\Mod\Layout\Root;
-
-Mod::layout('domains')
-    ->root('domain', 'Domain\\', 'src/Domain', fn (Root $r) => $r
-        ->kind('model', in: '{domain}/Models')
-        ->kind('action', in: '{domain}/Actions'))
-    ->root('app', 'App\\', 'app', fn (Root $r) => $r
-        ->kind('controller', in: 'Modules/{domain}/Controllers', suffix: 'Controller'))
-    ->kind('factory', in: 'domain:{domain}/Database/Factories', suffix: 'Factory')
-    ->relation('factory', from: 'model', to: 'factory')
-    ->exclude('App\\Support\\');
-```
-
-```php
-'layout' => 'domains',
-```
-
-`php artisan mod:model Billing:Invoice --factory` now writes `src/Domain/Billing/Models/Invoice.php` and `src/Domain/Billing/Database/Factories/InvoiceFactory.php`. A `Domain\\` entry in your `composer.json` autoload is up to you.
-
-Calling `Mod::layout()` with an existing name extends that layout. Repeating a kind, root or relation id overrides only the arguments you pass:
-
-```php
-Mod::layout('features')
-    ->kind('event', in: 'Features/{feature}/Events')
-    ->kind('listener', in: 'Features/{feature}/Listeners');
-
-Mod::layout('laravel')->kind('job', in: 'Jobs');
-```
-
-The building blocks:
-
-- `root($name, $namespace, $path, $closure)` maps a namespace to a folder. Kinds declared inside the closure live in that root. A `null` namespace makes a root for plain files.
-- `kind($id, in: ...)` declares an artifact kind and its folder below the root. A `root:` prefix (`domain:{domain}/...`) places it in another root. Without one, the kind uses the enclosing `root()` closure's root, or else the first declared root.
-- Other `kind()` arguments:
-  - `suffix:` (`'Controller'`);
-  - `fixed:` (a fixed basename such as `'Handler'`);
-  - `timestamped: true` (migrations);
-  - `nested: true` (accepts names like `Archived/Invoice`, the same as `make:model Archived/Invoice`);
-  - `command:` (defaults to `mod:<id>`; `false` for none);
-  - `label:` (the noun the command prints, as in `'DTO'` for "DTO [...] created successfully."; Laravel's own generators keep their wording);
-  - `discoverAnywhere: true` with `except: [...]` (see Discovery).
-- `relation($id, from: ..., to: ...)` drives companion options and cross-references, and also takes `scope:`, `name:` and `policy:` (`'generate'`, `'reference'` or `'none'`).
-  - `name:` says how the target's name derives from the source's: `'explicit'` (always named by the caller) or a map of `strip-suffix`, `prefix` and `suffix`, for example `['prefix' => 'Store']`. The target kind's own `suffix:` or `fixed:` still applies afterwards.
-  - `scope: ['nested' => 'drop']` stops the source's nested folders carrying over to the target. By default they do: `Models/Archived/Invoice` relates to `Policies/Archived/InvoicePolicy`.
-- `exclude(...)` marks namespaces or paths inside a declared root that no kind owns: mod never places anything there, does not treat their classes as part of the layout, and discovery skips them.
-- `withoutCommands()` registers no `mod:*` commands for the layout. Its kinds keep their `command:` names for a host to dispatch by, and several kinds may then share one.
-
-A kind with no matching Laravel generator (`action` above) gets a plain class. Put a `stubs/mod.<kind>.stub` in your application to change it. To add a folder such as `src/Infrastructure` to a built-in layout, see [docs/layouts.md](docs/layouts.md#adding-a-layer).
-
-The active layout is checked the first time it is used. Every problem is reported at once, each naming the call that caused it.
-
-### Placeholders
-
-Placeholders in `in:` are the layout's dimensions, in order of first appearance. That order is the order of values in `--in`. Each one is also an option of the commands whose path uses it.
-
-| Placeholder | Meaning | Value |
-| --- | --- | --- |
-| `{feature}` | required folder | `--feature=Billing` or `--in=Billing` |
-| `{feature?}` | optional folder | omit it, or `--feature=Billing` |
-| `{area+}` | one or more folders | `--area=Reporting.Internal` places `.../Reporting/Internal/...` |
-
-### Renaming an option
-
-An option is named after its placeholder. To call it something else, rename it on the layout:
-
-```php
-Mod::layout('modules')->placementOption('area');               // mod:model Invoice --area=Billing
-Mod::layout('slices')->placementOption('operation', '{slice}'); // --feature=Billing --operation=CreateInvoice
-```
-
-With one placeholder, you don't need to say which one. With several, name the placeholder you are renaming.
-
-### When a name is already taken
-
-Some Laravel commands already have an option that could share a placeholder's name. If your layout writes controllers to `Http/Controllers/{model}`, a `--model` option would clash with `make:controller --model`. mod keeps Laravel's option, leaves the placement option out, and logs a warning. `--in` and the short form still work. Rename the placeholder's option to get it back.
-
-## Discovery
-
-Mod discovers the providers, Artisan commands, event listeners and event subscribers your layout places, and registers them with Laravel after every provider has booted. Kinds with the id `provider`, `command`, `listener` or `subscriber` are discovered as that type. Map other kinds in `config/mod.php`:
-
-```php
-'discovery' => [
-    'enabled' => true,
-    'kinds' => ['console' => 'command'],
-    'cache' => 'bootstrap/cache/mod-discovery.php',
-    'on_stale_cache' => 'scan',
-],
-```
-
-- Only classes that really are providers, commands, listeners or subscribers are registered. Everything else is skipped.
-- A kind is discovered in its own folder by default. `discoverAnywhere: true` widens that to every PHP file below the kind's placeholder folders, and `except: ['Tests']` skips folders. Kinds placed by a callback (`using: fn (Kind $k) => $k->place(...)`) are discovered in their own folder only.
-- Listeners and subscribers are registered once, never twice. Whatever Laravel's own event discovery covers (`app/Listeners`, or the paths given to `withEvents()`), its events cache, or a manual `Event::listen()` already holds is left alone.
-- A `subscriber` is a class with a public `subscribe()` taking one parameter, registered through `Event::subscribe()`.
-- Migrations: the folders a timestamped kind such as `migration` places files in are added to Laravel's migrator, so `php artisan migrate` picks them up. Laravel's own `database/migrations` is left to Laravel. To manage them yourself, opt out with `'kinds' => ['migration' => false]`; `Inventory::directories('migration')` still lists the folders.
-
-### Caching
-
-```bash
-php artisan mod:discovery-cache   # also run by php artisan optimize
-php artisan mod:discovery-clear   # also run by php artisan optimize:clear
-```
-
-With a cache present, mod registers from the cache without scanning. A stale cache (the layout or the discovery settings changed since it was written) is ignored: mod scans instead and logs a warning naming `mod:discovery-cache` and `mod:discovery-clear`. Set `'on_stale_cache' => 'fail'` to refuse to boot instead.
-
-Like Laravel's own caches, the discovery cache does not notice new classes. After adding a provider, command or listener while the cache exists, run `php artisan optimize:clear` (or `mod:discovery-clear`).
-
-### Bring your own candidate files
-
-A package can supply the files discovery considers, for example to reuse an existing finder or skip generated folders. Ownership, eligibility, ordering and registration stay with mod. Turn the built-in registration off (`'discovery.enabled' => false`) and register discovery yourself once every provider has booted:
-
-```php
-use Tey\Mod\Discovery\DiscoveryDefinition;
-use Tey\Mod\Discovery\DiscoveryOptions;
-use Tey\Mod\Discovery\DiscoveryRegistrar;
-use Tey\Mod\Placement\Root;
-use Tey\Mod\Preset\Preset;
-
-$this->app->booted(function ($app) {
-    $options = DiscoveryOptions::fromConfig([...config('mod.discovery'), 'enabled' => true])
-        ->withCandidates(fn (Root $root, string $basePath, DiscoveryDefinition $definition): iterable => [
-            // relative .php paths below $root->path
-        ]);
-
-    DiscoveryRegistrar::register($app, $app->make(Preset::class), $options);
-});
-```
-
-The definition tells the source which kind (and discovery type) it is collecting for, so candidates can be scoped per kind.
-
-## Turning commands off
-
-A package or application with its own Artisan commands can keep mod's placement and discovery without the `mod:*` commands:
+Choose a layout in `config/mod.php`:
 
 ```php
 // config/mod.php
-'commands' => false,
+'layout' => 'modules',
 ```
 
-or per layout with `Mod::layout('mine')->withoutCommands()`. The discovery cache commands are registered only while `mod:*` commands and discovery are both on.
+Generate a model with its migration and factory, then migrate:
 
-## Building your own generators
+```bash
+php artisan mod:model Billing:Invoice -mf
+# -> app/Modules/Billing/Models/Invoice.php
+# -> app/Modules/Billing/Database/Factories/InvoiceFactory.php
+# -> app/Modules/Billing/Database/Migrations/2026_10_08_120000_create_invoices_table.php
 
-Every `mod:*` command is a subclass of the matching Laravel command, for example `Tey\Mod\Commands\ModelCommand`, `ControllerCommand`, `RequestCommand`, `FactoryCommand` and `MigrationCommand`. A package with its own command catalog can extend these instead of the native commands and override a few protected hooks:
+php artisan migrate
+# -> runs 2026_10_08_120000_create_invoices_table
+```
 
-- **Placement:**
-  - `placementInput()` returns the placement in `--in` syntax, for example from your own option or prompt;
-  - `placementContext()`;
-  - `placementOptions()` chooses which placement options a generator adds: option name => the dimension it sets, with `null` for `--in`. Return `[]` to add none; child commands then receive the `Group:Name` form. `Preset::dimensions()` lists the layout's dimensions in order, and `Preset::placementOptions()` maps each one to its option name.
-- **Layout and kind:** `resolvePreset()` and `kindId()`, for commands not registered through the layout.
-- **Stubs:** `stubDefinition()` returns the `Stub` the class is generated from (by default the one registered with `Mod::stubs()`, else the layout's).
-- **Collisions:** `collisionPolicy()` returns `CollisionPolicy::Refuse` (mod checks the whole plan before writing) or `CollisionPolicy::Native` (the native generator's own check and `--force` decide).
-- **Lifecycle:**
-  - `plansEagerly()`, with `resolvePlan()` to plan from inside your own `handle()`;
-  - `beforeGeneration(GenerationPlan $plan)` and `afterGeneration(GenerationPlan $plan, int $exitCode)`;
-  - the same hooks exist on `MigrationCommand`, whose `nativePathAllowed()` also lets `--path`/`--realpath` through instead of refusing them.
-- **Output:** `reportRefusal(ModException $e)` and `reportReference(ResolvedArtifact $target)` are the only places the adapters print on their own.
+## Usage
 
-A package can also register stubs and generated bases for any kind (`Mod::stubs()`), swap a kind's generator (`Mod::generators()`), and add kinds, commands and aliases to a built-in layout. See [docs/extending.md](docs/extending.md).
+### Choosing a Layout
+
+Six layouts are built in. The default, `laravel`, places files exactly like `make:*`, so you can install mod first and switch layouts later.
+
+| Layout | Organizes code as | `mod:model Billing:Invoice` writes |
+| --- | --- | --- |
+| `laravel` | Laravel's own folders | `app/Models/Invoice.php` (no `Billing:`) |
+| `modules` | a modular monolith: one folder per module | `app/Modules/Billing/Models/Invoice.php` |
+| `features` | feature folders | `app/Features/Billing/Models/Invoice.php` |
+| `slices` | vertical slices: features, each split into slices | `app/Billing/Models/Invoice.php` |
+| `type-first` | Laravel's folders, with an optional sub-folder | `app/Models/Billing/Invoice.php` |
+| `ddd` | domain-driven design, as in laravel-ddd | `src/Domain/Billing/Models/Invoice.php` |
+
+Each tree below is the result of `php artisan mod:model Billing:Invoice --all` in a fresh app.
+
+<details>
+<summary><code>modules</code></summary>
+
+```text
+app/Modules/Billing/
+├── Controllers/
+│   └── InvoiceController.php
+├── Database/
+│   ├── Factories/
+│   │   └── InvoiceFactory.php
+│   ├── Migrations/
+│   │   └── 2026_10_08_120000_create_invoices_table.php
+│   └── Seeders/
+│       └── InvoiceSeeder.php
+├── Models/
+│   └── Invoice.php
+├── Policies/
+│   └── InvoicePolicy.php
+└── Requests/
+    ├── StoreInvoiceRequest.php
+    └── UpdateInvoiceRequest.php
+```
+
+</details>
+
+<details>
+<summary><code>features</code></summary>
+
+```text
+app/Features/Billing/
+├── Database/
+│   ├── Factories/
+│   │   └── InvoiceFactory.php
+│   ├── Migrations/
+│   │   └── 2026_10_08_120000_create_invoices_table.php
+│   └── Seeders/
+│       └── InvoiceSeeder.php
+├── Http/
+│   ├── Controllers/
+│   │   └── InvoiceController.php
+│   └── Requests/
+│       ├── StoreInvoiceRequest.php
+│       └── UpdateInvoiceRequest.php
+├── Models/
+│   └── Invoice.php
+└── Policies/
+    └── InvoicePolicy.php
+```
+
+</details>
+
+<details>
+<summary><code>slices</code></summary>
+
+A slice holds one operation's classes, each with a fixed name. This tree is the result of `mod:model Billing:Invoice -mf`, then `mod:handler`, `mod:request` and `mod:message` with `--in=Billing/CreateInvoice`:
+
+```text
+app/Billing/
+├── CreateInvoice/
+│   ├── Command.php
+│   ├── Handler.php
+│   └── Request.php
+├── Database/
+│   ├── Factories/
+│   │   └── InvoiceFactory.php
+│   └── Migrations/
+│       └── 2026_10_08_120000_create_invoices_table.php
+└── Models/
+    └── Invoice.php
+```
+
+</details>
+
+<details>
+<summary><code>type-first</code></summary>
+
+```text
+app/
+├── Http/
+│   ├── Controllers/
+│   │   └── Billing/
+│   │       └── InvoiceController.php
+│   └── Requests/
+│       └── Billing/
+│           ├── StoreInvoiceRequest.php
+│           └── UpdateInvoiceRequest.php
+├── Models/
+│   └── Billing/
+│       └── Invoice.php
+└── Policies/
+    └── Billing/
+        └── InvoicePolicy.php
+database/
+├── factories/
+│   └── Billing/
+│       └── InvoiceFactory.php
+├── migrations/
+│   └── Billing/
+│       └── 2026_10_08_120000_create_invoices_table.php
+└── seeders/
+    └── Billing/
+        └── InvoiceSeeder.php
+```
+
+</details>
+
+<details>
+<summary><code>ddd</code></summary>
+
+```text
+app/Modules/Billing/
+├── Controllers/
+│   └── InvoiceController.php
+└── Requests/
+    ├── StoreInvoiceRequest.php
+    └── UpdateInvoiceRequest.php
+src/Domain/Billing/
+├── Database/
+│   ├── Factories/
+│   │   └── InvoiceFactory.php
+│   ├── Migrations/
+│   │   └── 2026_10_08_120000_create_invoices_table.php
+│   └── Seeders/
+│       └── InvoiceSeeder.php
+├── Models/
+│   └── Invoice.php
+└── Policies/
+    └── InvoicePolicy.php
+```
+
+</details>
+
+[docs/layouts.md](docs/layouts.md) lists every folder of every built-in layout.
+
+### Generating
+
+Each file type in your layout has a `mod:*` command. It is Laravel's own `make:*` command underneath, with the same arguments and options, so the generated code is what Laravel would write:
+
+```bash
+php artisan mod:event Billing:InvoicePaid
+# -> app/Modules/Billing/Events/InvoicePaid.php
+
+php artisan mod:listener Billing:SendInvoiceReceipt --event=InvoicePaid
+# -> app/Modules/Billing/Listeners/SendInvoiceReceipt.php (imports App\Modules\Billing\Events\InvoicePaid)
+
+php artisan mod:job Billing:SendInvoice
+# -> app/Modules/Billing/Jobs/SendInvoice.php
+```
+
+`php artisan list mod` shows every command your layout has. `make:*` is untouched and keeps writing to Laravel's default folders.
+
+#### Related Files
+
+Options such as `-m`, `-f`, `--policy`, `--requests` and `--all` create the related files in the same module, as in the trees above. The model links its factory, so `Invoice::factory()` works wherever the factory lives.
+
+`mod:*` checks every file it is about to write before writing any of them. When one already exists, it prints an error and writes nothing.
+
+### Placement
+
+The `laravel` layout puts files where `make:*` does. The other layouts group your code, so each command also needs to know which group a file belongs to.
+
+Each way a layout groups code is a **dimension**. `modules` has one: the module. `slices` has two: the feature, and the slice inside it. A layout's folders show each one as a placeholder, such as `{module}` in `app/Modules/{module}/Models`, and you give it a value, such as `Billing`. These three commands do the same thing:
+
+```bash
+php artisan mod:model Invoice --module=Billing   # an option named after the placeholder
+php artisan mod:model Invoice --in=Billing       # every value at once
+php artisan mod:model Billing:Invoice            # the short form: value, colon, class name
+```
+
+When there are two values, `--in` and the short form take them in order, separated by `/`:
+
+```bash
+php artisan mod:handler Handler --feature=Billing --slice=CreateInvoice
+php artisan mod:handler Handler --in=Billing/CreateInvoice
+# -> app/Billing/CreateInvoice/Handler.php
+```
+
+| Layout | Options | Values |
+| --- | --- | --- |
+| `modules` | `--module` | `Billing` |
+| `features` | `--feature` | `Billing` |
+| `slices` | `--feature`, `--slice` | `Billing`, `CreateInvoice` |
+| `type-first` | `--feature` (optional) | `Billing`, or none for `app/Models/Invoice.php` |
+| `ddd` | `--domain` (one or more folders) | `Billing`, or `Reporting.Internal` for `src/Domain/Reporting/Internal` |
+
+Commands in `features` and `slices` go to `app/Console/Commands` when you leave the value out.
+
+### The DDD Layout
+
+The `ddd` layout uses [laravel-ddd](https://github.com/teylabs/laravel-ddd)'s folders: domain classes in `src/Domain`, and controllers, requests and middleware in `app/Modules`. Add the `Domain` namespace to your `composer.json` autoload first:
+
+```json
+"autoload": {
+    "psr-4": {
+        "App\\": "app/",
+        "Domain\\": "src/Domain/"
+    }
+}
+```
+
+```bash
+composer dump-autoload
+
+php artisan mod:dto Billing:InvoiceData
+# -> src/Domain/Shared/Data/DataTransferObject.php (created once)
+# -> src/Domain/Billing/Data/InvoiceData.php
+
+php artisan mod:action Billing:PayInvoice
+# -> src/Domain/Billing/Actions/PayInvoice.php
+
+php artisan mod:value Billing:Money
+# -> src/Domain/Billing/ValueObjects/Money.php
+```
+
+`mod:view-model` completes the set, and laravel-ddd's command names work as aliases (`mod:data`, `mod:value-object`, `mod:viewmodel`). See [docs/layouts.md](docs/layouts.md#the-ddd-layout) for every folder and for adding a layer such as `src/Infrastructure`.
+
+### Starter Stubs and Stub Variants
+
+DTOs, value objects, view models and actions start as plain Laravel-style classes. When a package for them is installed, mod uses it instead:
+
+| Command | When installed | Otherwise |
+| --- | --- | --- |
+| `mod:dto` | [spatie/laravel-data](https://github.com/spatie/laravel-data): extends `Data` | extends a `DataTransferObject` base with `fromArray()` and `toArray()` |
+| `mod:view-model` | [spatie/laravel-view-models](https://github.com/spatie/laravel-view-models): extends `ViewModel` | extends a `ViewModel` base |
+| `mod:action` | [lorisleiva/laravel-actions](https://github.com/lorisleiva/laravel-actions): `use AsAction;` | a plain class with `handle()` |
+| `mod:value` | | a plain class with a constructor |
+
+```bash
+php artisan mod:dto Billing:InvoiceData
+# ->  INFO  Using spatie/laravel-data (installed).
+```
+
+A base class is written into your app the first time it is needed, and it is yours from then on: mod never overwrites it. To extend a class of your own instead, set it in `config/mod.php` (`'layouts' => ['ddd' => ['bases' => ['dto' => App\Support\Data::class]]]`). To change any generated class, publish `stubs/mod.<type>.stub`, for example `stubs/mod.dto.stub`.
+
+### Auto-Discovery
+
+Providers, Artisan commands, event listeners and event subscribers anywhere your layout places them are registered with Laravel:
+
+```bash
+php artisan mod:command Billing:SendReminders
+php artisan mod:listener Billing:SendInvoiceReceipt --event=InvoicePaid
+
+php artisan event:list --event=InvoicePaid
+# -> App\Modules\Billing\Events\InvoicePaid
+# ->   ⇂ App\Modules\Billing\Listeners\SendInvoiceReceipt@handle
+```
+
+A listener Laravel's own event discovery already registers is never registered twice. [docs/discovery.md](docs/discovery.md) covers what is discovered where.
+
+#### Migrations
+
+Migration folders outside `database/migrations`, such as `app/Modules/Billing/Database/Migrations`, are added to Laravel's migrator. `php artisan migrate`, `migrate:rollback` and `migrate:status` include them.
+
+#### Factories and Policies
+
+A model the layout places finds its factory and its policy by the layout's folders, with no registration:
+
+```php
+use App\Modules\Billing\Models\Invoice;
+use Illuminate\Support\Facades\Gate;
+
+Invoice::factory();                 // App\Modules\Billing\Database\Factories\InvoiceFactory
+Gate::getPolicyFor(Invoice::class); // App\Modules\Billing\Policies\InvoicePolicy
+```
+
+### Your Own File Types
+
+Add a file type to any layout with one line in a service provider:
+
+```php
+// app/Providers/AppServiceProvider.php
+use Tey\Mod\Facades\Mod;
+
+public function boot(): void
+{
+    Mod::layout('modules')->kind('validator', in: 'Modules/{module}/Validators', suffix: 'Validator');
+}
+```
+
+```bash
+php artisan mod:validator Billing:Payment
+# -> app/Modules/Billing/Validators/PaymentValidator.php
+```
+
+It starts as an empty class. To start from your own stub, add `stubs/mod.validator.stub` to your app:
+
+```php
+// stubs/mod.validator.stub
+<?php
+
+namespace {{ namespace }};
+
+class {{ class }}
+{
+    public function rules(): array
+    {
+        return [];
+    }
+}
+```
+
+### Defining a Layout
+
+A layout of your own is one chain in a service provider. Name it in `config/mod.php` with `'layout' => 'domains'`:
+
+```php
+// app/Providers/AppServiceProvider.php
+use Tey\Mod\Facades\Mod;
+use Tey\Mod\Layout\Root;
+
+public function boot(): void
+{
+    Mod::layout('domains')
+        ->root('domain', 'Domain\\', 'src/Domain', fn (Root $root) => $root
+            ->kind('model', in: '{domain}/Models')
+            ->kind('factory', in: '{domain}/Factories', suffix: 'Factory'))
+        ->relation('factory', from: 'model', to: 'factory');
+}
+```
+
+```bash
+php artisan mod:model Billing:Invoice --factory   # after adding Domain\ to composer.json, as in the DDD layout
+# -> src/Domain/Billing/Models/Invoice.php
+# -> src/Domain/Billing/Factories/InvoiceFactory.php
+```
+
+`Mod::layout()` with a built-in name extends that layout instead, as in [Your Own File Types](#your-own-file-types). [docs/layouts.md](docs/layouts.md#defining-a-layout) lists every method and option.
+
+## Configuration
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `layout` | `'laravel'` | The active layout: a built-in name or one you define |
+| `commands` | `true` | Register the `mod:*` commands |
+| `generators` | `[]` | Replace the command behind a file type, by type |
+| `layouts.ddd.bases` | `null` each | The class DTOs, view models and actions extend |
+| `discovery.enabled` | `true` | Register discovered providers, commands, listeners and subscribers |
+| `discovery.kinds` | `[]` | Discover more file types, or `false` to skip one, such as `'migration' => false` |
+| `discovery.cache` | `'bootstrap/cache/mod-discovery.php'` | Where the discovery cache is written |
+| `discovery.on_stale_cache` | `'scan'` | `'scan'` ignores an outdated cache with a warning; `'fail'` stops the app booting |
+| `discovery.factories` | `true` | Find factories for models the layout places |
+| `discovery.policies` | `true` | Find policies for models the layout places |
+
+## Production
+
+`php artisan optimize` caches discovery, and `php artisan optimize:clear` clears it:
+
+```bash
+php artisan mod:discovery-cache   # also run by optimize
+php artisan mod:discovery-clear   # also run by optimize:clear
+```
+
+Like Laravel's own caches, the discovery cache doesn't pick up new classes. Run `php artisan optimize:clear` after adding a provider, command or listener while it exists.
+
+## FAQ
+
+### Can I Add Mod to an Existing App?
+
+Yes. Mod doesn't move or change existing files, and `make:*` keeps working. Start on the `laravel` layout, which places files like `make:*`, and switch layouts when you're ready. Classes already in Laravel's default folders keep working as before.
+
+### Do Folders Outside `app/` Need Autoloading?
+
+Yes. A layout that writes outside `app/`, such as `ddd`'s `src/Domain`, needs a PSR-4 entry in your `composer.json` autoload, as shown in [The DDD Layout](#the-ddd-layout). Run `composer dump-autoload` after adding it.
+
+### How Is This Different from nwidart/laravel-modules or InterNACHI/modular?
+
+| | [nwidart/laravel-modules](https://github.com/nWidart/laravel-modules) | [InterNACHI/modular](https://github.com/InterNACHI/modular) | Mod |
+| --- | --- | --- | --- |
+| Structure | `Modules/<Module>/` | `app-modules/<module>/` | a built-in layout or your own |
+| Per module | config, plus a Composer merge plugin | a `composer.json` | a folder |
+| Generators | `module:make-*` | `make:*` with `--module=` | `mod:*`, built on `make:*` |
+| Discovered | providers | providers, commands, migrations, factories, policies, listeners, Blade components, translations | providers, commands, listeners, subscribers, migrations, factories, policies |
+
+Both are mature. nwidart/laravel-modules also enables and disables modules at runtime and handles per-module assets. InterNACHI/modular also loads Blade components and translations. Mod doesn't load per-module routes, views, translations or assets yet; routes and views are planned. Choose mod to keep a structure you already have, or to use DDD, feature folders or vertical slices instead of one module format.
+
+## Documentation
+
+- [Layouts](docs/layouts.md): every built-in layout's folders, defining a layout, and adding a layer
+- [Discovery](docs/discovery.md): what is discovered where, caching, and supplying your own files
+- [Extending Mod](docs/extending.md): writing a package that adds file types, stubs and commands
 
 ## Testing
 
@@ -316,7 +477,7 @@ See [CHANGELOG](CHANGELOG.md) for what has changed recently.
 
 ## Contributing
 
-Issues and pull requests are welcome on [GitHub](https://github.com/teylabs/mod). Questions and ideas go to [Discussions](https://github.com/teylabs/mod/discussions).
+See [CONTRIBUTING](https://github.com/teylabs/.github/blob/main/CONTRIBUTING.md). Questions and ideas go to [Discussions](https://github.com/teylabs/mod/discussions).
 
 ## Security Vulnerabilities
 
