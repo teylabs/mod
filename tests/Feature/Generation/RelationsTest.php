@@ -131,7 +131,7 @@ it('offers to generate a missing controller model through mod:model', function (
 
 it('does not generate a reference relation', function () {
     $definition = Layouts::definition('ordinary');
-    $definition['relations']['factory']['policy'] = 'reference';
+    $definition['relations']['factory']['mode'] = 'reference';
 
     Workspace::run($definition, function (Workspace $workspace) {
         $workspace->artisan('mod:model', ['name' => 'Invoice', '--factory' => true])

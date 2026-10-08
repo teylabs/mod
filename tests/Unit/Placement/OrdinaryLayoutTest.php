@@ -8,7 +8,7 @@ use Tey\Mod\Exceptions\InvalidPlacementOption;
 use Tey\Mod\Exceptions\UnknownArtifactKind;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\PlacementResolver;
-use Tey\Mod\Relation\RelationPolicy;
+use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Relation\RelationResolver;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseOutcome;
@@ -80,12 +80,12 @@ it('resolves relations across roots', function () {
     expect($factory->isResolved())->toBeTrue()
         ->and($factory->target?->fqcn())->toBe('Database\Factories\InvoiceFactory')
         ->and($factory->target?->path())->toBe('database/factories/InvoiceFactory.php')
-        ->and($factory->policy())->toBe(RelationPolicy::Generate);
+        ->and($factory->mode())->toBe(RelationMode::Generate);
 
     $back = $relations->resolve($factory->target, 'model');
 
     expect($back->target?->fqcn())->toBe('App\Models\Invoice')
-        ->and($back->policy())->toBe(RelationPolicy::Reference);
+        ->and($back->mode())->toBe(RelationMode::Reference);
 
     $controller = place($preset, 'controller', 'Invoice');
     $requests = array_map(

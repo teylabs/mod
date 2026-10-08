@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Placement\PlacementResolver;
 use Tey\Mod\Preset\Preset;
-use Tey\Mod\Relation\RelationPolicy;
+use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Relation\RelationResolver;
 use Tey\Mod\Reverse\ReverseMapper;
 
@@ -88,7 +88,7 @@ final readonly class ModelRelations
         $ids = [];
 
         foreach ($this->preset->relationsFrom(self::MODEL_KIND) as $relation) {
-            if ($relation->toKind === $targetKind && $relation->policy !== RelationPolicy::None && $this->preset->hasKind($targetKind) && $this->preset->kind($targetKind)->isClass()) {
+            if ($relation->toKind === $targetKind && $relation->mode !== RelationMode::None && $this->preset->hasKind($targetKind) && $this->preset->kind($targetKind)->isClass()) {
                 $ids[] = $relation->id;
             }
         }

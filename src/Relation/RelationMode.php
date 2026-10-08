@@ -5,7 +5,7 @@ namespace Tey\Mod\Relation;
 /**
  * What a generator does with a related artifact.
  */
-enum RelationPolicy: string
+enum RelationMode: string
 {
     /** Generate the target when it is missing. */
     case Generate = 'generate';

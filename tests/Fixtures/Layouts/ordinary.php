@@ -26,10 +26,10 @@ return [
         'migration' => ['shape' => 'file', 'name' => 'timestamped', 'command' => 'mod:migration', 'root' => 'migrations', 'segments' => []],
     ],
     'relations' => [
-        'factory' => ['from' => 'model', 'to' => 'factory', 'scope' => 'same', 'policy' => 'generate'],
-        'model' => ['from' => 'factory', 'to' => 'model', 'scope' => 'same', 'policy' => 'reference'],
-        'policy' => ['from' => 'model', 'to' => 'policy', 'scope' => 'same', 'policy' => 'reference'],
-        'store-request' => ['from' => 'controller', 'to' => 'request', 'scope' => 'same', 'name' => ['prefix' => 'Store'], 'policy' => 'generate'],
-        'update-request' => ['from' => 'controller', 'to' => 'request', 'scope' => 'same', 'name' => ['prefix' => 'Update'], 'policy' => 'generate'],
+        'factory' => ['from' => 'model', 'to' => 'factory', 'scope' => 'same', 'mode' => 'generate'],
+        'model' => ['from' => 'factory', 'to' => 'model', 'scope' => 'same', 'mode' => 'reference'],
+        'policy' => ['from' => 'model', 'to' => 'policy', 'scope' => 'same', 'mode' => 'reference'],
+        'store-request' => ['from' => 'controller', 'to' => 'request', 'scope' => 'same', 'name' => ['prefix' => 'Store'], 'mode' => 'generate'],
+        'update-request' => ['from' => 'controller', 'to' => 'request', 'scope' => 'same', 'name' => ['prefix' => 'Update'], 'mode' => 'generate'],
     ],
 ];

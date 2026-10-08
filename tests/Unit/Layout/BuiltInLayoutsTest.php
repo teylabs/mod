@@ -1,7 +1,7 @@
 <?php
 
 use Tey\Mod\Layout\LayoutRegistry;
-use Tey\Mod\Relation\RelationPolicy;
+use Tey\Mod\Relation\RelationMode;
 
 it('ships the common native kinds in every built-in', function (string $name) {
     $preset = (new LayoutRegistry)->compile($name);
@@ -16,7 +16,7 @@ it('ships the common native kinds in every built-in', function (string $name) {
         ->and($preset->roots()['tests']->namespace)->toBe('Tests\\')
         ->and($preset->roots()['tests']->path)->toBe('tests');
     foreach (['factory', 'seeder', 'policy', 'controller', 'migration'] as $relation) {
-        expect($preset->relation($relation)->policy)->toBe(RelationPolicy::Generate);
+        expect($preset->relation($relation)->mode)->toBe(RelationMode::Generate);
     }
 })->with(['laravel', 'features', 'slices', 'type-first', 'modules']);
 

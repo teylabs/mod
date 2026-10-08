@@ -17,7 +17,7 @@ use Tey\Mod\Placement\Segment;
 use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Relation\NameDerivation;
 use Tey\Mod\Relation\Relation;
-use Tey\Mod\Relation\RelationPolicy;
+use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Relation\ScopeMap;
 
 /**
@@ -38,7 +38,7 @@ use Tey\Mod\Relation\ScopeMap;
  *    ]],
  *    'relations'  => ['factory' => [
  *        'from' => 'model', 'to' => 'factory', 'scope' => 'same'|['keep' => ['feature'], 'nested' => 'keep'|'drop'],
- *        'name' => 'explicit'|['strip-suffix' => 'Controller', 'prefix' => 'Store', 'suffix' => 'Request'], 'policy' => 'generate',
+ *        'name' => 'explicit'|['strip-suffix' => 'Controller', 'prefix' => 'Store', 'suffix' => 'Request'], 'mode' => 'generate',
  *    ]],
  *    'placement_options' => ['feature' => 'topic'],   // option name per dimension; default: the dimension in kebab-case
  *  ]
@@ -781,14 +781,14 @@ final class PresetValidator
                 }
             }
 
-            $policyValue = $entry['policy'] ?? null;
-            $policy = is_string($policyValue) ? RelationPolicy::tryFrom($policyValue) : null;
+            $modeValue = $entry['mode'] ?? null;
+            $mode = is_string($modeValue) ? RelationMode::tryFrom($modeValue) : null;
 
             $scope = $this->scope($subject, $entry['scope'] ?? 'same', $dimensions);
             $name = $this->nameDerivation($subject, $entry['name'] ?? null);
 
-            if ($policy === null) {
-                $this->issue(PresetIssueCode::InvalidRelation, $subject, 'policy must be "generate", "reference" or "none"');
+            if ($mode === null) {
+                $this->issue(PresetIssueCode::InvalidRelation, $subject, 'mode must be "generate", "reference" or "none"');
 
                 continue;
             }
@@ -797,7 +797,7 @@ final class PresetValidator
                 continue;
             }
 
-            $relations[$id] = new Relation($id, $from, $to, $scope, $name, $policy);
+            $relations[$id] = new Relation($id, $from, $to, $scope, $name, $mode);
         }
 
         return $relations;

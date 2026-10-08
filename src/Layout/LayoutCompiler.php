@@ -10,7 +10,7 @@ use Tey\Mod\Preset\Preset;
 use Tey\Mod\Preset\PresetIssue;
 use Tey\Mod\Preset\PresetIssueCode;
 use Tey\Mod\Preset\PresetValidator;
-use Tey\Mod\Relation\RelationPolicy;
+use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Support\Path;
 
 /**
@@ -310,7 +310,7 @@ final class LayoutCompiler
     }
 
     /**
-     * @param  array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, policy: string|RelationPolicy|null}  $relation
+     * @param  array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, mode: string|RelationMode|null}  $relation
      * @return array<string, mixed>
      */
     private function relation(array $relation): array
@@ -321,13 +321,13 @@ final class LayoutCompiler
             $scope = ['keep' => array_values($scope)];
         }
 
-        $policy = $relation['policy'] ?? RelationPolicy::Generate;
+        $mode = $relation['mode'] ?? RelationMode::Generate;
 
         $definition = [
             'from' => $relation['from'],
             'to' => $relation['to'],
             'scope' => $scope,
-            'policy' => $policy instanceof RelationPolicy ? $policy->value : $policy,
+            'mode' => $mode instanceof RelationMode ? $mode->value : $mode,
         ];
 
         if ($relation['name'] !== null) {

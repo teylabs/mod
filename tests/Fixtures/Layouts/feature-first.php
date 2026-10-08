@@ -25,9 +25,9 @@ return [
         'command' => ['shape' => 'class', 'name' => 'as-given', 'command' => 'mod:command', 'root' => 'app', 'segments' => ['Console', 'Commands']],
     ],
     'relations' => [
-        'factory' => ['from' => 'model', 'to' => 'factory', 'scope' => 'same', 'policy' => 'generate'],
-        'migration' => ['from' => 'model', 'to' => 'migration', 'scope' => 'same', 'name' => 'explicit', 'policy' => 'generate'],
-        'policy' => ['from' => 'model', 'to' => 'policy', 'scope' => 'same', 'policy' => 'reference'],
-        'store-request' => ['from' => 'controller', 'to' => 'request', 'scope' => 'same', 'name' => ['prefix' => 'Store'], 'policy' => 'generate'],
+        'factory' => ['from' => 'model', 'to' => 'factory', 'scope' => 'same', 'mode' => 'generate'],
+        'migration' => ['from' => 'model', 'to' => 'migration', 'scope' => 'same', 'name' => 'explicit', 'mode' => 'generate'],
+        'policy' => ['from' => 'model', 'to' => 'policy', 'scope' => 'same', 'mode' => 'reference'],
+        'store-request' => ['from' => 'controller', 'to' => 'request', 'scope' => 'same', 'name' => ['prefix' => 'Store'], 'mode' => 'generate'],
     ],
 ];

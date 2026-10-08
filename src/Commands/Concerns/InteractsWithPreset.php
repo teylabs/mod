@@ -24,7 +24,7 @@ use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Preset\Preset;
 use Tey\Mod\Preset\PresetIssue;
 use Tey\Mod\Preset\PresetValidator;
-use Tey\Mod\Relation\RelationPolicy;
+use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Relation\RelationResolution;
 use Tey\Mod\Relation\RelationResolver;
 use Tey\Mod\Reverse\ReverseMapper;
@@ -485,7 +485,7 @@ trait InteractsWithPreset
         $resolutions = [];
 
         foreach ($this->preset()->relationsFrom($source->kind->id) as $relation) {
-            if ($relation->toKind !== $toKind || $relation->policy === RelationPolicy::None) {
+            if ($relation->toKind !== $toKind || $relation->mode === RelationMode::None) {
                 continue;
             }
 
@@ -514,7 +514,7 @@ trait InteractsWithPreset
     {
         $target = $resolution->target ?? throw new LogicException('Only resolved relations can be followed.');
 
-        if ($resolution->policy() !== RelationPolicy::Generate) {
+        if ($resolution->mode() !== RelationMode::Generate) {
             $this->reportReference($target);
 
             return;

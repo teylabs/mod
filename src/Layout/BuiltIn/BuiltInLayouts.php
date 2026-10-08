@@ -162,11 +162,11 @@ final readonly class BuiltInLayouts
                 ->kind('test', in: 'Feature/{feature}/{slice?}'));
 
         $this->companions($layout, singleRequest: true)
-            ->relation('factory-model', from: 'factory', to: 'model', policy: 'reference')
+            ->relation('factory-model', from: 'factory', to: 'model', mode: 'reference')
             ->relation('store-request', scope: ['keep' => ['feature'], 'name' => 'slice'])
             ->relation('model-store-request', scope: ['keep' => ['feature'], 'name' => 'slice'])
             ->relation('request', from: 'handler', to: 'request')
-            ->relation('model', from: 'request', to: 'model', scope: ['feature'], name: 'explicit', policy: 'reference');
+            ->relation('model', from: 'request', to: 'model', scope: ['feature'], name: 'explicit', mode: 'reference');
 
         return $layout
             ->exclude('App\\Http\\', 'App\\Providers\\', 'App\\Support\\');
@@ -315,8 +315,8 @@ final readonly class BuiltInLayouts
             ->relation('policy', from: 'model', to: 'policy')
             ->relation('controller', from: 'model', to: 'controller')
             ->relation('migration', from: 'model', to: 'migration', name: 'explicit')
-            ->relation('model', from: 'factory', to: 'model', policy: 'reference')
-            ->relation('event', from: 'listener', to: 'event', name: 'explicit', policy: 'reference')
+            ->relation('model', from: 'factory', to: 'model', mode: 'reference')
+            ->relation('event', from: 'listener', to: 'event', name: 'explicit', mode: 'reference')
             ->relation('store-request', from: 'controller', to: 'request', name: ['prefix' => 'Store'])
             ->relation('model-store-request', from: 'model', to: 'request', name: ['prefix' => 'Store']);
 

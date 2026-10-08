@@ -4,7 +4,7 @@ namespace Tey\Mod\Relation;
 
 /**
  * A named edge from one artifact kind to another, with explicit scope mapping,
- * name derivation and generation policy.
+ * name derivation and generation mode.
  */
 final readonly class Relation
 {
@@ -14,6 +14,6 @@ final readonly class Relation
         public string $toKind,
         public ScopeMap $scope,
         public NameDerivation $name,
-        public RelationPolicy $policy,
+        public RelationMode $mode,
     ) {}
 }

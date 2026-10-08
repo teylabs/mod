@@ -8,7 +8,7 @@ use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Preset\Preset;
-use Tey\Mod\Relation\RelationPolicy;
+use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Support\Path;
 
 /**
@@ -38,7 +38,7 @@ final class Layout
     /** @var array<string, Kind> */
     private array $kinds = [];
 
-    /** @var array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, policy: string|RelationPolicy|null}> */
+    /** @var array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, mode: string|RelationMode|null}> */
     private array $relations = [];
 
     /** @var list<string> */
@@ -175,7 +175,7 @@ final class Layout
      *
      * @param  string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null  $scope  'same' (default), the placeholders the target keeps, e.g. ['area'], or ['keep' => [...], 'nested' => 'drop'] to drop the source's nested folders; 'name' => 'operation' fills a missing target dimension from the source stem
      * @param  string|array<string, string>|null  $name  how the target's name derives from the source's: 'explicit' (the caller always names it), or a map of 'strip-suffix' (removed from the source name first), 'prefix' and 'suffix' (added around it); the target kind's own name policy (suffix()/fixed()) still applies afterwards, so a controller→request relation needs no 'Request' suffix when the request kind declares one
-     * @param  string|RelationPolicy|null  $policy  'generate' (default), 'reference' or 'none'
+     * @param  string|RelationMode|null  $mode  'generate' (default), 'reference' or 'none'
      */
     public function relation(
         string $id,
@@ -183,18 +183,18 @@ final class Layout
         ?string $to = null,
         string|array|null $scope = null,
         string|array|null $name = null,
-        string|RelationPolicy|null $policy = null,
+        string|RelationMode|null $mode = null,
     ): self {
         $this->guard();
 
-        $relation = $this->relations[$id] ?? ['from' => null, 'to' => null, 'scope' => null, 'name' => null, 'policy' => null];
+        $relation = $this->relations[$id] ?? ['from' => null, 'to' => null, 'scope' => null, 'name' => null, 'mode' => null];
 
         $this->relations[$id] = [
             'from' => $from ?? $relation['from'],
             'to' => $to ?? $relation['to'],
             'scope' => $scope ?? $relation['scope'],
             'name' => $name ?? $relation['name'],
-            'policy' => $policy ?? $relation['policy'],
+            'mode' => $mode ?? $relation['mode'],
         ];
 
         return $this;
@@ -305,7 +305,7 @@ final class Layout
     /**
      * @internal
      *
-     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, Kind>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, policy: string|RelationPolicy|null}>, excluded: list<string>, commands: bool, placement_options: array<string, string>}
+     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, Kind>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, mode: string|RelationMode|null}>, excluded: list<string>, commands: bool, placement_options: array<string, string>}
      */
     public function toArray(): array
     {

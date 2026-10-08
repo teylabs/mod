@@ -6,7 +6,7 @@ use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Placement\Collision;
 use Tey\Mod\Placement\CollisionDiagnoser;
 use Tey\Mod\Placement\CollisionKind;
-use Tey\Mod\Relation\RelationPolicy;
+use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Relation\RelationResolution;
 
 /**
@@ -34,7 +34,7 @@ final readonly class GenerationPlan
         $targets = [];
 
         foreach ($this->relations as $resolution) {
-            if ($resolution->target !== null && $resolution->policy() === RelationPolicy::Generate) {
+            if ($resolution->target !== null && $resolution->mode() === RelationMode::Generate) {
                 $targets[] = $resolution->target;
             }
         }

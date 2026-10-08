@@ -23,7 +23,7 @@ it('accepts all five layouts', function (string $layout) {
 it('reports every issue at once and throws them together', function () {
     $definition = Layouts::definition('ordinary');
     $definition['kinds']['Model'] = ['shape' => 'class', 'root' => 'app', 'segments' => ['Models']];
-    $definition['relations']['bogus'] = ['from' => 'model', 'to' => 'repository', 'scope' => 'same', 'policy' => 'generate'];
+    $definition['relations']['bogus'] = ['from' => 'model', 'to' => 'repository', 'scope' => 'same', 'mode' => 'generate'];
 
     $exception = null;
 
@@ -113,7 +113,7 @@ it('detects malformed kinds, relations and the commands flag', function () {
     expect(issuesFor(fn (array &$d) => $d['kinds']['model']['name'] = ['prefix' => 'X']))->toBe(['invalid-kind']);
     expect(issuesFor(fn (array &$d) => $d['kinds']['migration']['shape'] = 'class'))->toBe(['invalid-kind']);
     expect(issuesFor(fn (array &$d) => $d['kinds']['model']['place'] = 'not a closure'))->toBe(['invalid-kind']);
-    expect(issuesFor(fn (array &$d) => $d['relations']['factory']['policy'] = 'maybe'))->toBe(['invalid-relation']);
+    expect(issuesFor(fn (array &$d) => $d['relations']['factory']['mode'] = 'maybe'))->toBe(['invalid-relation']);
     expect(issuesFor(fn (array &$d) => $d['relations']['factory']['scope'] = 'everything'))->toBe(['invalid-relation']);
     expect(issuesFor(fn (array &$d) => $d['relations']['factory']['name'] = ['prefix' => '']))->toBe(['invalid-relation']);
     expect(issuesFor(fn (array &$d) => $d['dimensions'] = ['Feature']))->toBe(['invalid-dimension']);

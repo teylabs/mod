@@ -7,7 +7,7 @@ use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryRegistrar;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Preset\Preset;
-use Tey\Mod\Relation\RelationPolicy;
+use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Resolution\ModelConventions;
 use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
 use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
@@ -41,7 +41,7 @@ function generateModelWithRelations(AcceptanceApp $app, string $name): array
     }
 
     // --policy generates the policy where the relation generates it; a reference relation only names it.
-    $generates = $policyRelation?->policy === RelationPolicy::Generate;
+    $generates = $policyRelation?->mode === RelationMode::Generate;
     $app->artisan('mod:model', ['name' => $name, '--factory' => true, '--policy' => $generates, ...$in])->assertSuccessful();
 
     $source = $app->read((string) $model->path());

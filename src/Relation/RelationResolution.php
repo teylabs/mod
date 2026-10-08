@@ -29,8 +29,8 @@ final readonly class RelationResolution
         return $this->status === RelationStatus::Resolved;
     }
 
-    public function policy(): RelationPolicy
+    public function mode(): RelationMode
     {
-        return $this->relation->policy;
+        return $this->relation->mode;
     }
 }

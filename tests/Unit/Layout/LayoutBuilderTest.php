@@ -11,7 +11,7 @@ use Tey\Mod\Layout\Root;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Preset\Preset;
-use Tey\Mod\Relation\RelationPolicy;
+use Tey\Mod\Relation\RelationMode;
 
 /**
  * A DDD-like layout, as one chain.
@@ -65,7 +65,7 @@ it('compiles a DDD-like layout from one chain with nested closures', function ()
         ->and(place($preset, 'action', 'PayInvoice', 'Billing')->path())->toBe('src/Domain/Billing/Actions/PayInvoice.php')
         ->and(place($preset, 'controller', 'Invoice', 'Billing')->fqcn())->toBe('App\\Modules\\Billing\\Controllers\\InvoiceController')
         ->and(place($preset, 'factory', 'Invoice', 'Billing')->fqcn())->toBe('Domain\\Billing\\Database\\Factories\\InvoiceFactory')
-        ->and($preset->relation('factory')->policy)->toBe(RelationPolicy::Generate)
+        ->and($preset->relation('factory')->mode)->toBe(RelationMode::Generate)
         ->and($preset->excludedRoots()[0]->namespace)->toBe('App\\Support\\')
         ->and($preset->excludedRoots()[0]->path)->toBe('app/Support');
 });
@@ -124,14 +124,14 @@ it('maps relation arguments onto the core relation', function () {
         ->kind('request', in: '{team}/{useCase}', fixed: 'Request')
         ->kind('model', in: '{team}/Models')
         ->relation('request', from: 'handler', to: 'request')
-        ->relation('model', from: 'request', to: 'model', scope: ['team'], name: 'explicit', policy: RelationPolicy::Reference)
-        ->relation('store', from: 'handler', to: 'request', name: ['prefix' => 'Store'], policy: 'none')
+        ->relation('model', from: 'request', to: 'model', scope: ['team'], name: 'explicit', mode: RelationMode::Reference)
+        ->relation('store', from: 'handler', to: 'request', name: ['prefix' => 'Store'], mode: 'none')
         ->compile();
 
-    expect($preset->relation('request')->policy)->toBe(RelationPolicy::Generate)
-        ->and($preset->relation('model')->policy)->toBe(RelationPolicy::Reference)
+    expect($preset->relation('request')->mode)->toBe(RelationMode::Generate)
+        ->and($preset->relation('model')->mode)->toBe(RelationMode::Reference)
         ->and($preset->relation('model')->scope->apply(PlacementContext::of(['team' => 'Billing', 'useCase' => 'Pay']))->toArray())->toBe(['team' => 'Billing'])
-        ->and($preset->relation('store')->policy)->toBe(RelationPolicy::None);
+        ->and($preset->relation('store')->mode)->toBe(RelationMode::None);
 });
 
 it('resolves exclusions given as namespaces or paths against the declared roots', function () {
@@ -163,7 +163,7 @@ it('extends a layout: repeated ids override the given arguments and keep the res
         ->kind('controller', in: 'Http/{domain}/Controllers')
         ->kind('query', in: '{domain}/Queries')
         ->root('app', 'App\\', 'application')
-        ->relation('factory', policy: 'reference')
+        ->relation('factory', mode: 'reference')
         ->exclude('App\\Support\\', 'App\\UI\\');
 
     $preset = $registry->compile('domains');
@@ -174,7 +174,7 @@ it('extends a layout: repeated ids override the given arguments and keep the res
         ->and(place($preset, 'controller', 'Invoice', 'Billing')->path())->toBe('application/Http/Billing/Controllers/InvoiceController.php')
         ->and(place($preset, 'query', 'Overdue', 'Billing')->fqcn())->toBe('Domain\\Billing\\Queries\\Overdue')
         ->and($preset->relation('factory')->fromKind)->toBe('model')
-        ->and($preset->relation('factory')->policy)->toBe(RelationPolicy::Reference)
+        ->and($preset->relation('factory')->mode)->toBe(RelationMode::Reference)
         ->and(count($preset->excludedRoots()))->toBe(2);
 });
 
