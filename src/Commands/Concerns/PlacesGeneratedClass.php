@@ -285,7 +285,8 @@ trait PlacesGeneratedClass
         $stub = parent::replaceClass($stub, $name);
         $base = $this->modStub?->base;
         $short = $base !== null ? class_basename($base) : '';
-        $import = $base !== null ? PHP_EOL.'use '.$base.';'.PHP_EOL : '';
+        // "\n", not PHP_EOL: generated PHP is LF on every OS, like the stubs.
+        $import = $base !== null ? "\nuse {$base};\n" : '';
         $extends = $base !== null ? ' extends '.$short : '';
 
         return str_replace(

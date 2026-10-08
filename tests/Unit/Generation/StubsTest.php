@@ -267,3 +267,16 @@ it('declares dto, view-model and value-object in the modules layout', function (
         ->and($preset->kind('view-model')->command)->toBe('mod:view-model')
         ->and($preset->hasKind('data'))->toBeFalse();
 });
+
+it('fills stub placeholders with LF line endings on every OS', function () {
+    // Generated PHP is LF everywhere; PHP_EOL would write CRLF on Windows.
+    // ControllerCommand keeps PHP_EOL where Laravel's own controller generator uses it.
+    foreach (['src/Commands/Concerns/PlacesGeneratedClass.php', 'src/Generation/BaseWriter.php', 'src/Commands/GenericClassCommand.php', 'src/Commands/BasesCommand.php'] as $file) {
+        $constants = array_filter(
+            PhpToken::tokenize((string) file_get_contents(dirname(__DIR__, 3).'/'.$file)),
+            static fn (PhpToken $token): bool => $token->is(T_STRING) && $token->text === 'PHP_EOL',
+        );
+
+        expect($constants)->toBe([], $file);
+    }
+});
