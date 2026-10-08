@@ -17,6 +17,8 @@ final class Kind
 
     private ?string $root = null;
 
+    private ?string $fallback = null;
+
     /** @var 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null */
     private string|array|null $name = null;
 
@@ -51,6 +53,14 @@ final class Kind
     public function in(string $path): self
     {
         $this->in = $path;
+
+        return $this;
+    }
+
+    /** Place here under the same root when no placement is supplied. */
+    public function fallback(string $path): self
+    {
+        $this->fallback = $path;
 
         return $this;
     }
@@ -176,12 +186,13 @@ final class Kind
     /**
      * @internal
      *
-     * @return array{in: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: (Closure(string, PlacementContext): string)|null, reads: list<string>}
+     * @return array{in: ?string, fallback: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: (Closure(string, PlacementContext): string)|null, reads: list<string>}
      */
     public function toArray(): array
     {
         return [
             'in' => $this->in,
+            'fallback' => $this->fallback,
             'root' => $this->root,
             'name' => $this->name,
             'file' => $this->file,

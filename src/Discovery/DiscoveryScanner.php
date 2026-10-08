@@ -76,10 +76,12 @@ final readonly class DiscoveryScanner
             if ($definition->type === DiscoveryType::Directory) {
                 if ($rule instanceof TemplateRule) {
                     foreach ($this->directories($rule->root()->path) as $directory) {
-                        $context = $rule->recogniseDirectory($directory);
+                        foreach ($rule->variants() as $variant) {
+                            $context = $variant->recogniseDirectory($directory);
 
-                        if ($context !== null) {
-                            $entries[$directory.'|directory'] = new DiscoveredArtifact($definition->kindId, DiscoveryType::Directory, '', $directory, $context->toArray());
+                            if ($context !== null) {
+                                $entries[$directory.'|directory'] = new DiscoveredArtifact($definition->kindId, DiscoveryType::Directory, '', $directory, $context->toArray());
+                            }
                         }
                     }
                 }

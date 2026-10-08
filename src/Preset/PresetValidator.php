@@ -378,14 +378,16 @@ final class PresetValidator
             }
 
             if ($rule instanceof TemplateRule) {
-                $pattern = $rule->pattern().'|'.$policy->describe().'|'.$priority;
+                foreach ($rule->variants() as $variant) {
+                    $pattern = $variant->pattern().'|'.$policy->describe().'|'.$priority;
 
-                if (isset($patterns[$pattern])) {
-                    $this->issue(PresetIssueCode::DuplicatePlacementPattern, $subject, "places exactly like kind [{$patterns[$pattern]}] with the same priority; reverse mapping could never tell them apart");
+                    if (isset($patterns[$pattern])) {
+                        $this->issue(PresetIssueCode::DuplicatePlacementPattern, $subject, "places exactly like kind [{$patterns[$pattern]}] with the same priority; reverse mapping could never tell them apart");
 
-                    continue;
+                        continue 2;
+                    }
+                    $patterns[$pattern] = $id;
                 }
-                $patterns[$pattern] = $id;
             }
 
             $kinds[$id] = new ArtifactKind($id, $shape, $policy, $command);
@@ -436,6 +438,12 @@ final class PresetValidator
         $place = $entry['place'] ?? null;
 
         if ($place !== null) {
+            if (isset($entry['fallback'])) {
+                $this->issue(PresetIssueCode::InvalidFallback, $subject, 'fallback needs a declarative placement, not a callback');
+
+                return null;
+            }
+
             if (! $place instanceof Closure) {
                 $this->issue(PresetIssueCode::InvalidKind, $subject, 'place must be a Closure');
 
@@ -505,7 +513,22 @@ final class PresetValidator
             $parsed[] = $segment;
         }
 
-        return new TemplateRule($id, $root, $parsed, $priority, $nested, $anywhere, $except);
+        $fallback = null;
+
+        if (isset($entry['fallback'])) {
+            $path = $entry['fallback'];
+
+            if (! is_string($path) || ($path !== '' && preg_match('#^[A-Za-z_][A-Za-z0-9_.-]*(/[A-Za-z_][A-Za-z0-9_.-]*)*$#', $path) !== 1)) {
+                $this->issue(PresetIssueCode::InvalidFallback, $subject, 'fallback must be a relative folder path under the same root, without placeholders');
+
+                return null;
+            }
+
+            $folders = $path === '' ? [] : array_map(Segment::parse(...), explode('/', $path));
+            $fallback = new TemplateRule($id, $root, $folders, $priority - 1, $nested);
+        }
+
+        return new TemplateRule($id, $root, $parsed, $priority, $nested, $anywhere, $except, $fallback);
     }
 
     /**

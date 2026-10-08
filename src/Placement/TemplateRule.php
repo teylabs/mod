@@ -42,7 +42,17 @@ final readonly class TemplateRule implements PlacementRule
         private bool $nested = false,
         private bool $anywhere = false,
         private array $except = [],
+        private ?self $fallback = null,
     ) {}
+
+    /** @return list<self> */
+    public function variants(): array
+    {
+        return $this->fallback === null ? [$this] : [
+            new self($this->kindId, $this->root, $this->segments, $this->priority, $this->nested, $this->anywhere, $this->except),
+            $this->fallback,
+        ];
+    }
 
     public function kindId(): string
     {
@@ -114,6 +124,14 @@ final readonly class TemplateRule implements PlacementRule
 
     public function place(ArtifactKind $kind, string $name, PlacementContext $context, array $attributes): ResolvedArtifact
     {
+        if ($context->isEmpty() && $this->fallback !== null) {
+            foreach ($this->segments as $segment) {
+                if ($segment->dimension !== null && $segment->required) {
+                    return $this->fallback->place($kind, $name, $context, $attributes);
+                }
+            }
+        }
+
         $nested = [];
 
         if (Identifier::isNested($name)) {
@@ -185,6 +203,16 @@ final readonly class TemplateRule implements PlacementRule
 
     public function recognise(ArtifactKind $kind, string $subject, bool $isPath): array
     {
+        if ($this->fallback !== null) {
+            $matches = [];
+
+            foreach ($this->variants() as $rule) {
+                array_push($matches, ...$rule->recognise($kind, $subject, $isPath));
+            }
+
+            return $matches;
+        }
+
         $parts = $this->parts($kind, $subject, $isPath);
 
         if ($parts === null) {

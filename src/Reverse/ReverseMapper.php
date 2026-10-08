@@ -5,6 +5,7 @@ namespace Tey\Mod\Reverse;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Placement\OpaquePlacementRule;
 use Tey\Mod\Placement\Root;
+use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Preset\Preset;
 
 /**
@@ -40,6 +41,7 @@ final readonly class ReverseMapper
         /** @var list<ResolvedArtifact> $candidates */
         $candidates = [];
         $opaque = [];
+        $ranked = [];
 
         foreach ($this->preset->rules() as $rule) {
             if ($rule instanceof OpaquePlacementRule) {
@@ -50,7 +52,12 @@ final readonly class ReverseMapper
                 continue;
             }
 
-            $candidates = [...$candidates, ...$rule->recognise($this->preset->kind($rule->kindId()), $subject, $isPath)];
+            foreach ($rule instanceof TemplateRule ? $rule->variants() : [$rule] as $variant) {
+                foreach ($variant->recognise($this->preset->kind($rule->kindId()), $subject, $isPath) as $candidate) {
+                    $candidates[] = $candidate;
+                    $ranked[$variant->priority()][] = $candidate;
+                }
+            }
         }
 
         if ($opaque !== []) {
@@ -60,18 +67,12 @@ final readonly class ReverseMapper
             ));
         }
 
-        if ($candidates === []) {
+        if ($ranked === []) {
             return ReverseMatch::notOwned('no declared rule recognises it');
         }
 
         if (count($candidates) === 1) {
             return ReverseMatch::matched($candidates[0]);
-        }
-
-        $ranked = [];
-
-        foreach ($candidates as $candidate) {
-            $ranked[$this->preset->rule($candidate->kind->id)->priority()][] = $candidate;
         }
 
         $top = $ranked[max(array_keys($ranked))];

@@ -33,7 +33,7 @@ final readonly class PresetFingerprint
                 $kind->shape->value,
                 $kind->namePolicy->describe(),
                 $kind->command,
-                $rule instanceof TemplateRule ? $rule->pattern() : 'opaque|'.$describeRoot($rule->root()),
+                $rule instanceof TemplateRule ? array_map(static fn (TemplateRule $variant): array => [$variant->pattern(), $variant->priority()], $rule->variants()) : 'opaque|'.$describeRoot($rule->root()),
                 $rule->priority(),
                 $rule->dimensions(),
             ];

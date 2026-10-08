@@ -89,10 +89,15 @@ final class Layout
         ?bool $discoverAnywhere = null,
         ?array $except = null,
         ?Closure $using = null,
+        ?string $fallback = null,
     ): self {
         $this->guard();
 
         $kind = $this->kinds[$id] ??= new Kind($id);
+
+        if ($fallback !== null) {
+            $kind->fallback($fallback);
+        }
 
         if ($in !== null) {
             $kind->in($in);

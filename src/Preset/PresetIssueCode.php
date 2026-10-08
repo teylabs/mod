@@ -10,6 +10,7 @@ enum PresetIssueCode: string
     case InvalidShape = 'invalid-shape';
     case DuplicateKind = 'duplicate-kind';
     case DuplicateCommandName = 'duplicate-command-name';
+    case InvalidFallback = 'invalid-fallback';
     case InvalidKind = 'invalid-kind';
     case UnknownRoot = 'unknown-root';
     case InvalidRoot = 'invalid-root';
