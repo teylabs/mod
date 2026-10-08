@@ -20,4 +20,5 @@ The first release.
 - Factories and policies of models the layout places are found without `newFactory()` or `Gate::policy()`.
 - A discovery cache, written by `php artisan optimize` (`mod:discovery-cache`) and cleared by `optimize:clear` (`mod:discovery-clear`).
 - APIs for packages built on mod: registering stubs and stub variants (`Mod::stubs()`), swapping a file type's command (`Mod::generators()`), extending the generator commands, supplying discovery candidates, and turning the `mod:*` commands off.
+- A Laravel Boost guideline and `mod-development` skill, so AI agents follow your layout and use the `mod:*` generators.
 - Support for PHP 8.3+ and Laravel 12 and 13.

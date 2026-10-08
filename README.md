@@ -46,6 +46,10 @@ composer require tey/mod
 php artisan vendor:publish --tag=mod-config
 ```
 
+### Laravel Boost
+
+Mod ships a [Laravel Boost](https://laravel.com/docs/boost) guideline and a `mod-development` skill, so AI agents check your layout and place files with `mod:*` generators. With Boost installed in your app, run `php artisan boost:install`, choose `tey/mod` among the third-party packages, and select its guideline and skill. Run `php artisan boost:update` after updating mod.
+
 ## Quick Start
 
 Choose a layout in `config/mod.php`:
