@@ -62,8 +62,23 @@ php artisan mod:controller Billing:InvoiceController
 php artisan mod:migration Billing:create_invoices_table --create=invoices
 ```
 
-- `Billing:Invoice` is shorthand for `Invoice --in=Billing`. The text before the first colon is the placement, and the rest is the class name. Giving both the prefix and `--in` is refused, as is a prefix on a layout without placement groups.
-- With two placeholders (`slices`: `{feature}/{slice}`), separate the values with `/`: `--in=Billing/CreateInvoice`.
+### Placement
+
+Each placeholder the kind's path uses is also an option of its command, named after the placeholder. These three are the same:
+
+```bash
+php artisan mod:model Invoice --module=Billing
+php artisan mod:model Invoice --in=Billing
+php artisan mod:model Billing:Invoice
+```
+
+- Use one form at a time; mixing them is refused.
+- `--in` takes every value in the layout's order, separated by `/`. Dimension options combine the same way: under `slices`, `--feature=Billing --slice=CreateInvoice` is `--in=Billing/CreateInvoice`.
+- In `Billing:Invoice`, the text before the first colon is the placement and the rest is the class name. A prefix on a layout without placement groups is refused.
+- A `{group+}` value spans folders: `--group=Billing.Invoicing` or `--group=Billing/Invoicing`.
+- Rename an option on the layout: `Mod::layout('modules')->placementOption('area')` gives `--area=`, and `->placementOption('topic', '{feature}')` renames one placeholder of several.
+- An option that would shadow one of the command's own, such as a `{model}` placeholder on `mod:controller` (which has `--model`), is left out and logged as a warning; `--in` and the prefix still work. Rename it with `->placementOption()`.
+
 - Companion options such as `--factory` and `--migration` follow the layout's relations, in every built-in layout. Under `modules`, `mod:model Billing:Invoice --factory --migration` writes `app/Modules/Billing/Database/Factories/InvoiceFactory.php`, with the model's `newFactory()` pointing at it, and a migration in `app/Modules/Billing/Database/Migrations/`.
 - Migrations a layout places outside `database/migrations` are added to the migrator, so `php artisan migrate` runs them (see Discovery).
 - A companion option the layout declares no relation for is refused before anything is written. So is a file that already exists, or a placement value the layout does not use.
@@ -207,7 +222,7 @@ Every `mod:*` command is a subclass of the matching Laravel command, for example
 - **Placement:**
   - `placementInput()` returns the placement in `--in` syntax, for example from your own option or prompt;
   - `placementContext()`;
-  - `placementOptionName()` returns `null` to add no `--in` option, in which case child commands receive the `Group:Name` form.
+  - `placementOptions()` returns the placement options to add, option name => the dimension it sets (`null` for `--in`). Return `[]` to add none, in which case child commands receive the `Group:Name` form.
 - **Layout and kind:** `resolvePreset()` and `kindId()`, for commands not registered through the layout.
 - **Collisions:** `collisionPolicy()` returns `CollisionPolicy::Refuse` (mod checks the whole plan before writing) or `CollisionPolicy::Native` (the native generator's own check and `--force` decide).
 - **Lifecycle:**
