@@ -46,7 +46,7 @@ In `modules`, everything a module needs (models, migrations, factories, policies
 
 ## Stubs and Base Classes
 
-- `mod:dto` (alias `mod:data`), `mod:view-model`, `mod:value` and `mod:action` start from starter stubs in any layout that has those types (`modules` and `ddd` have all four).
+- `mod:dto` (alias `mod:data`), `mod:view-model`, `mod:value-object` (alias `mod:value`) and `mod:action` start from starter stubs in any layout that has those types (`modules` and `ddd` have all four).
 - When `spatie/laravel-data`, `spatie/laravel-view-models` or `lorisleiva/laravel-actions` is installed, the matching command uses it. Don't install them only because an example mentions them.
 - Otherwise DTOs and view models extend a base class that mod writes into the application once: `App\Support\Data\DataTransferObject` and `App\Support\ViewModels\ViewModel` under `bases_path` (default `app/Support`); in `ddd`, `src/Domain/Shared`. Mod never overwrites an existing base. `php artisan mod:bases` writes missing bases and changes nothing on a second run.
 - `config/mod.php` `'bases' => ['dto' => App\Support\Data::class]` makes a type extend the application's own class.

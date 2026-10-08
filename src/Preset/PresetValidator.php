@@ -106,6 +106,7 @@ final class PresetValidator
             return null;
         }
 
+        $kinds = $this->withDashFreeAliases($kinds);
         $stubs = [];
 
         foreach (is_array($definition['kinds'] ?? null) ? $definition['kinds'] : [] as $id => $entry) {
@@ -891,5 +892,43 @@ final class PresetValidator
     private function issue(PresetIssueCode $code, string $subject, string $message): void
     {
         $this->issues[] = new PresetIssue($code, $subject, $message);
+    }
+
+    /**
+     * Every hyphenated command and alias also answers without its dashes
+     * (mod:view-model as mod:viewmodel), unless that name is already a
+     * command or alias: the real one wins.
+     *
+     * @param  array<string, ArtifactKind>  $kinds
+     * @return array<string, ArtifactKind>
+     */
+    private function withDashFreeAliases(array $kinds): array
+    {
+        $taken = [];
+
+        foreach ($kinds as $kind) {
+            foreach ($kind->command === null ? [] : [$kind->command, ...$kind->aliases] as $name) {
+                $taken[$name] = true;
+            }
+        }
+
+        foreach ($kinds as $id => $kind) {
+            $extra = [];
+
+            foreach ($kind->command === null ? [] : [$kind->command, ...$kind->aliases] as $name) {
+                $dashFree = str_replace('-', '', $name);
+
+                if ($dashFree !== $name && ! isset($taken[$dashFree])) {
+                    $extra[] = $dashFree;
+                    $taken[$dashFree] = true;
+                }
+            }
+
+            if ($extra !== []) {
+                $kinds[$id] = new ArtifactKind($kind->id, $kind->shape, $kind->namePolicy, $kind->command, [...$kind->aliases, ...$extra], $kind->label);
+            }
+        }
+
+        return $kinds;
     }
 }

@@ -186,8 +186,8 @@ it('keeps the stub a layout declares on the compiled preset', function () {
 it('declares the ddd kinds with laravel-ddd command names and aliases', function () {
     $preset = (new LayoutRegistry)->compile('ddd');
 
-    expect([$preset->kind('dto')->command, $preset->kind('dto')->aliases])->toBe(['mod:dto', ['mod:data-transfer-object', 'mod:datatransferobject', 'mod:data']])
-        ->and([$preset->kind('value-object')->command, $preset->kind('value-object')->aliases])->toBe(['mod:value', ['mod:value-object', 'mod:valueobject']])
+    expect([$preset->kind('dto')->command, $preset->kind('dto')->aliases])->toBe(['mod:dto', ['mod:data-transfer-object', 'mod:data', 'mod:datatransferobject']])
+        ->and([$preset->kind('value-object')->command, $preset->kind('value-object')->aliases])->toBe(['mod:value-object', ['mod:value', 'mod:valueobject']])
         ->and([$preset->kind('view-model')->command, $preset->kind('view-model')->aliases])->toBe(['mod:view-model', ['mod:viewmodel']])
         ->and($preset->kind('action')->command)->toBe('mod:action')
         ->and($preset->placementOptions())->toBe(['domain' => 'domain'])
@@ -262,7 +262,7 @@ it('declares dto, view-model and value-object in the modules layout', function (
     $preset = (new LayoutRegistry)->compile('modules');
 
     expect([$preset->kind('dto')->command, $preset->kind('dto')->aliases, $preset->kind('dto')->label])->toBe(['mod:dto', ['mod:data'], 'DTO'])
-        ->and($preset->kind('value-object')->command)->toBe('mod:value')
+        ->and($preset->kind('value-object')->command)->toBe('mod:value-object')
         ->and($preset->kind('view-model')->command)->toBe('mod:view-model')
         ->and($preset->hasKind('data'))->toBeFalse();
 });
@@ -279,3 +279,30 @@ it('fills stub placeholders with LF line endings on every OS', function () {
         expect($constants)->toBe([], $file);
     }
 });
+
+it('gives every hyphenated command and alias a dash-free alias, unless the name is taken', function () {
+    $preset = (new Layout('dashes'))
+        ->root('app', 'App\\', 'app', fn (Root $root) => $root
+            ->kind('api-resource', in: 'Resources')
+            ->kind('job-middleware', in: 'Jobs/Middleware')
+            ->kind('report-builder', in: 'Reports', aliases: ['mod:report-maker'])
+            ->kind('jobmiddleware', in: 'Other'))
+        ->compile();
+
+    expect($preset->kind('api-resource')->aliases)->toBe(['mod:apiresource'])
+        // mod:jobmiddleware is the command of another file type: the real command wins.
+        ->and($preset->kind('job-middleware')->aliases)->toBe([])
+        ->and($preset->kind('jobmiddleware')->command)->toBe('mod:jobmiddleware')
+        ->and($preset->kind('report-builder')->aliases)->toBe(['mod:report-maker', 'mod:reportbuilder', 'mod:reportmaker'])
+        ->and((new LayoutRegistry)->compile('laravel')->kind('job-middleware')->aliases)->toBe(['mod:jobmiddleware'])
+        ->and((new LayoutRegistry)->compile('laravel')->kind('model')->aliases)->toBe([]);
+});
+
+it('declares the same dto, value-object and view-model commands in modules and ddd', function (string $layout) {
+    $preset = (new LayoutRegistry)->compile($layout);
+
+    expect($preset->kind('dto')->command)->toBe('mod:dto')
+        ->and($preset->kind('dto')->aliases)->toContain('mod:data')
+        ->and([$preset->kind('value-object')->command, $preset->kind('value-object')->aliases])->toBe(['mod:value-object', ['mod:value', 'mod:valueobject']])
+        ->and([$preset->kind('view-model')->command, $preset->kind('view-model')->aliases])->toBe(['mod:view-model', ['mod:viewmodel']]);
+})->with(['modules', 'ddd']);

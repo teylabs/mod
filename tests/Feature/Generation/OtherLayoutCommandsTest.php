@@ -29,7 +29,7 @@ it('lists every layout that has the command, aliases included', function () {
         expect($workspace->artisan('mod:query', ['name' => 'Overdue'])->output)
             ->toContain('mod:query is not a command of the laravel layout. The features, slices, type-first and modules layouts have it.')
             ->and($workspace->artisan('mod:valueobject', ['name' => 'Money'])->output)
-            ->toContain('mod:valueobject is not a command of the laravel layout. The ddd layout has it.');
+            ->toContain('mod:valueobject is not a command of the laravel layout. The modules and ddd layouts have it.');
     });
 });
 
