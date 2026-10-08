@@ -56,9 +56,27 @@ trait PlacesGeneratedClass
         return $kind->isClass();
     }
 
-    protected function configure(): void
+    /**
+     * Add --in once the native definition is built, whichever way the command
+     * declares it: $name and getOptions(), or $signature (Laravel 13.24+).
+     * Not configure(), which Symfony Console 7 leaves untyped and 8 declares
+     * void, so no override of it could match both for subclasses.
+     *
+     * @return void
+     */
+    protected function specifyParameters()
     {
-        parent::configure();
+        parent::specifyParameters();
+
+        $this->registerPlacementOptions();
+    }
+
+    /**
+     * @return void
+     */
+    protected function configureUsingFluentDefinition()
+    {
+        parent::configureUsingFluentDefinition();
 
         $this->registerPlacementOptions();
     }
@@ -363,7 +381,12 @@ trait PlacesGeneratedClass
         return is_file($published) ? $published : $choice?->file;
     }
 
-    protected function getStub(): string
+    /**
+     * Untyped, as Laravel declares it, so subclasses can override it either way.
+     *
+     * @return string
+     */
+    protected function getStub()
     {
         return $this->modStubFile() ?? parent::getStub();
     }

@@ -50,9 +50,27 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
         return ! $kind->isClass() && $kind->namePolicy->kind === NamePolicyKind::Timestamped;
     }
 
-    protected function configure(): void
+    /**
+     * Add --in once the native definition is built, whichever way the command
+     * declares it: $name and getOptions(), or $signature (Laravel 13.24+).
+     * Not configure(), which Symfony Console 7 leaves untyped and 8 declares
+     * void, so no override of it could match both for subclasses.
+     *
+     * @return void
+     */
+    protected function specifyParameters()
     {
-        parent::configure();
+        parent::specifyParameters();
+
+        $this->registerPlacementOptions();
+    }
+
+    /**
+     * @return void
+     */
+    protected function configureUsingFluentDefinition()
+    {
+        parent::configureUsingFluentDefinition();
 
         $this->registerPlacementOptions();
     }
