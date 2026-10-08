@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Console\ConfigMakeCommand;
 use Tey\Mod\Commands\ConfigCommand;
+use Tey\Mod\Support\Path;
 
 /*
  * Layout neutrality: the engine has no layout-specific branches. Layout words may appear in prose
@@ -30,7 +31,7 @@ function engineCodeTokens(bool $withBuiltInLayouts = false): array
             continue;
         }
 
-        if (! $withBuiltInLayouts && str_starts_with(str_replace('\\', '/', substr($file->getPathname(), strlen($root) + 1)), 'Layout/BuiltIn/')) {
+        if (! $withBuiltInLayouts && str_starts_with((string) Path::relative($root, $file->getPathname()), 'Layout/BuiltIn/')) {
             continue;
         }
 
@@ -39,7 +40,7 @@ function engineCodeTokens(bool $withBuiltInLayouts = false): array
                 continue;
             }
 
-            $tokens[] = ['file' => str_replace('\\', '/', substr($file->getPathname(), strlen($root) + 1)), 'line' => $token->line, 'text' => $token->text];
+            $tokens[] = ['file' => (string) Path::relative($root, $file->getPathname()), 'line' => $token->line, 'text' => $token->text];
         }
     }
 

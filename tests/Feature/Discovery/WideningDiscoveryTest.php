@@ -7,6 +7,7 @@ use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\RejectionReason;
 use Tey\Mod\Placement\Root;
 use Tey\Mod\Preset\Preset;
+use Tey\Mod\Support\Path;
 use Tey\Mod\Tests\Feature\Discovery\Support\DiscoveryFixture;
 use Tey\Mod\Tests\Feature\Discovery\Support\Sources;
 
@@ -135,10 +136,10 @@ it('takes candidate files from a host source and keeps ownership, eligibility an
     $seen = [];
     $options = groupedOptions()->withCandidates(function (Root $root, string $basePath, DiscoveryDefinition $definition) use (&$seen): iterable {
         $seen[] = $root->path.'|'.$definition->kindId;
-        $base = rtrim($basePath, '/').'/'.$root->path;
+        $base = Path::join($basePath, $root->path);
 
         foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($base, FilesystemIterator::SKIP_DOTS)) as $file) {
-            $pathname = str_replace('\\', '/', $file->getPathname());
+            $pathname = Path::normalize($file->getPathname());
 
             if (! $file->isFile() || str_contains($pathname, '/Support/')) {
                 continue; // the host skips its Support subtrees
@@ -148,7 +149,7 @@ it('takes candidate files from a host source and keeps ownership, eligibility an
                 continue; // and scopes candidates per discovered kind: no console files for the command kind
             }
 
-            yield $root->path.'/'.substr($pathname, strlen($base) + 1);
+            yield Path::join($root->path, (string) Path::relative($base, $pathname));
         }
 
         yield 'src/Billing/Providers/BillingProvider.php'; // duplicates collapse

@@ -1,0 +1,42 @@
+<?php
+
+namespace Pest;
+
+/**
+ * @template TValue
+ *
+ * @property Expectations\OppositeExpectation $not
+ * @property Expectations\EachExpectation $each
+ * @property Arch\PendingArchExpectation $classes
+ * @property Arch\PendingArchExpectation $traits
+ * @property Arch\PendingArchExpectation $interfaces
+ * @property Arch\PendingArchExpectation $enums
+ *
+ * @mixin Mixins\Expectation<TValue>
+ * @mixin Arch\PendingArchExpectation
+ *
+ * @method $this toEqualPath(string $expected)
+ * @method $this toContainPath(string $expected)
+ * @method $this toBeValidPhp()
+ * @method $this toHaveGenerated(string $path, ?string $namespace = null)
+ */
+final class Expectation {}
+
+namespace Pest\Arch;
+
+class PendingArchExpectation {}
+
+namespace Pest\Mixins;
+
+/**
+ * @template TValue
+ *
+ * @mixin \Pest\Expectation<TValue>
+ */
+class Expectation {}
+
+namespace Pest\Expectations;
+
+class OppositeExpectation {}
+
+class EachExpectation {}

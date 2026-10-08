@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Foundation\Console\ConfigMakeCommand;
 use Illuminate\Support\Str;
+use Tey\Mod\Support\Path;
 use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
 
 /** @return array<string, string> */
@@ -90,11 +91,13 @@ it('generates and autoloads every declared built-in kind at its table location',
                 $options['--phpunit'] = true;
             }
             $before = glob($app->root->path($folder).'/*.php') ?: [];
-            $app->artisan('mod:'.$kind, $options)->assertSuccessful();
+            $result = $app->artisan('mod:'.$kind, $options)->assertSuccessful();
             $files = array_values(array_diff(glob($app->root->path($folder).'/*.php') ?: [], $before));
             expect($files)->toHaveCount(1, "{$layout}: {$kind} in {$folder}");
             $file = $files[0];
             $contents = (string) file_get_contents($file);
+            preg_match('/namespace ([^;]+);/', $contents, $declaredNamespace);
+            expect($result)->toHaveGenerated((string) Path::relative($app->root->path, $file), namespace: $declaredNamespace[1] ?? null);
             if ($kind === 'migration') {
                 expect(require $file)->toBeInstanceOf(Migration::class);
             } elseif ($kind === 'config') {
@@ -117,9 +120,9 @@ it('generates and autoloads every declared built-in kind at its table location',
         if ($layout !== 'laravel') {
             $options['--in'] = $group;
         }
-        $app->artisan('mod:test', $options)->assertSuccessful();
+        $unitResult = $app->artisan('mod:test', $options)->assertSuccessful();
         $unitFolder = str_replace('/Feature', '/Unit', builtInFolders($layout, $group, '')['test']);
-        expect(is_file($app->root->path(rtrim($unitFolder, '/').'/'.$unit.'.php')))->toBeTrue();
+        expect($unitResult)->toHaveGenerated(rtrim($unitFolder, '/').'/'.$unit.'.php');
     });
 })->with(['laravel', 'features', 'slices', 'type-first', 'modules']);
 
@@ -139,9 +142,14 @@ it('generates model companions including policy alone in every built-in', functi
             expect(is_file($app->root->path($requestFolder.'/'.$request.'.php')))->toBeTrue("{$layout}: {$request}");
         }
         expect($app->migration($folders['migration'], 'create_'.Str::snake(Str::pluralStudly($name)).'_table'))->toBeString();
+        foreach ($app->files() as $file) {
+            expect($app->root->path($file))->toBeValidPhp();
+        }
         $alone = 'PolicyOnly'.$app->tag;
         $before = $app->files();
-        $app->artisan('mod:model', ['name' => $alone, '--policy' => true, ...$placement])->assertSuccessful();
+        $policyResult = $app->artisan('mod:model', ['name' => $alone, '--policy' => true, ...$placement])->assertSuccessful();
+        expect($policyResult)->toHaveGenerated($folders['model'].'/'.$alone.'.php');
+        expect($app->root->path($folders['policy'].'/'.$alone.'Policy.php'))->toBeValidPhp();
         expect(array_values(array_diff($app->files(), $before)))->toEqualCanonicalizing([
             $folders['model'].'/'.$alone.'.php', $folders['policy'].'/'.$alone.'Policy.php',
         ]);
@@ -157,7 +165,7 @@ it('generates standalone model request companions in every built-in', function (
         $folder = $layout === 'slices' ? "app/{$group}/{$name}" : builtInFolders($layout, $group, '')['request'];
         $requests = $layout === 'slices' ? ['Request'] : ['Store'.$name.'Request', 'Update'.$name.'Request'];
         foreach ($requests as $request) {
-            expect(is_file($app->root->path($folder.'/'.$request.'.php')))->toBeTrue();
+            expect($app->root->path($folder.'/'.$request.'.php'))->toBeValidPhp();
         }
         if ($layout === 'slices') {
             expect(array_keys($app->preset->relations()))->not->toContain('update-request', 'model-update-request');

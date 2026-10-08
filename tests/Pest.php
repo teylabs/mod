@@ -13,6 +13,8 @@ use Tey\Mod\Tests\TestCase;
  * by the test that created it. Anything still alive after a test is cleaned up
  * and the test is failed.
  */
+require_once __DIR__.'/Expectations.php';
+
 uses(TestCase::class)
     ->afterEach(function () {
         $leaked = OwnedAppRoot::destroyAll();

@@ -18,6 +18,7 @@ use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Preset\Preset;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseMatch;
+use Tey\Mod\Support\Path;
 use Tey\Mod\Tests\Feature\Generation\Support\CommandResult;
 use Tey\Mod\Tests\Support\AppServiceProvider;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
@@ -134,7 +135,7 @@ final class AcceptanceApp
         $output = new BufferedOutput;
         $exitCode = $this->app()->make(Kernel::class)->call($command, [...$parameters, '--no-interaction' => true], $output);
 
-        return new CommandResult($exitCode, $output->fetch());
+        return new CommandResult($exitCode, $output->fetch(), $this->root->path);
     }
 
     /**
@@ -232,7 +233,7 @@ final class AcceptanceApp
     }
 
     /**
-     * Every file under app/, database/ and src/, relative to the root, sorted.
+     * Every file under app/, database/, src/, tests/ and config/, relative to the root, sorted.
      *
      * @return list<string>
      */
@@ -240,7 +241,7 @@ final class AcceptanceApp
     {
         $files = [];
 
-        foreach (['app', 'database', 'src'] as $top) {
+        foreach (['app', 'database', 'src', 'tests', 'config'] as $top) {
             if (! is_dir($this->root->path($top))) {
                 continue;
             }
@@ -250,7 +251,7 @@ final class AcceptanceApp
             /** @var SplFileInfo $item */
             foreach ($items as $item) {
                 if ($item->isFile()) {
-                    $files[] = str_replace('\\', '/', substr($item->getPathname(), strlen($this->root->path) + 1));
+                    $files[] = (string) Path::relative($this->root->path, $item->getPathname());
                 }
             }
         }
@@ -314,7 +315,7 @@ final class AcceptanceApp
         return function (string $class) use ($map): void {
             foreach ($map as $namespace => $path) {
                 if (str_starts_with($class, $namespace)) {
-                    $file = $this->root->path($path.'/'.str_replace('\\', '/', substr($class, strlen($namespace))).'.php');
+                    $file = $this->root->path(Path::join($path, Path::normalize(substr($class, strlen($namespace))).'.php'));
 
                     if (is_file($file)) {
                         require $file;

@@ -5,6 +5,7 @@ use Illuminate\Contracts\Foundation\Application;
 use Pest\TestSuite;
 use Tey\Mod\Discovery\Discovery;
 use Tey\Mod\Discovery\DiscoveryType;
+use Tey\Mod\Support\Path;
 use Tey\Mod\Tests\Fixtures\Layouts;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
 use Tey\Mod\Tests\TestCase;
@@ -47,7 +48,7 @@ it('generates into a module, discovers it on a fresh boot and replays it from th
         };
 
         $autoload = static function (string $class) use ($root): void {
-            if (str_starts_with($class, 'App\\') && is_file($file = $root->path('app/'.str_replace('\\', '/', substr($class, 4)).'.php'))) {
+            if (str_starts_with($class, 'App\\') && is_file($file = $root->path(Path::join('app', Path::normalize(substr($class, 4)).'.php')))) {
                 require $file;
             }
         };

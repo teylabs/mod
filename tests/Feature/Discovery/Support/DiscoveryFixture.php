@@ -7,6 +7,7 @@ use Illuminate\Contracts\Foundation\Application;
 use Pest\TestSuite;
 use RuntimeException;
 use Tey\Mod\Preset\Preset;
+use Tey\Mod\Support\Path;
 use Tey\Mod\Tests\Fixtures\Layouts;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
 use Tey\Mod\Tests\TestCase;
@@ -182,7 +183,7 @@ final class DiscoveryFixture
         $this->autoloader = static function (string $class) use ($map, $base): void {
             foreach ($map as $prefix => $path) {
                 if (str_starts_with($class, $prefix)) {
-                    $file = $base.'/'.$path.'/'.str_replace('\\', '/', substr($class, strlen($prefix))).'.php';
+                    $file = Path::join($base, $path, Path::normalize(substr($class, strlen($prefix))).'.php');
 
                     if (is_file($file)) {
                         require $file;

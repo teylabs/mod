@@ -3,3 +3,5 @@ parameters:
     paths:
         - tests
     tmpDir: build/phpstan-tests
+    stubFiles:
+        - tests/Support/PestExpectations.stub
