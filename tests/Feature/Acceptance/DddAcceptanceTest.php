@@ -152,3 +152,15 @@ it('uses the optional packages when they are installed', function () {
             ->and(is_file($app->root->path('src/Domain/Shared/ViewModels/ViewModel.php')))->toBeFalse();
     });
 });
+
+it('names providers as given, like laravel-ddd 3.x ddd:provider and make:provider', function () {
+    AcceptanceApp::run('ddd', function (AcceptanceApp $app) {
+        $t = $app->tag;
+        $app->boot();
+
+        expect($app->artisan('mod:provider', ['name' => "Billing:Billing{$t}"]))
+            ->toHaveGenerated("src/Domain/Billing/Providers/Billing{$t}.php", 'Domain\\Billing\\Providers')
+            ->and($app->artisan('mod:provider', ['name' => "Billing:Invoicing{$t}ServiceProvider"]))
+            ->toHaveGenerated("src/Domain/Billing/Providers/Invoicing{$t}ServiceProvider.php", 'Domain\\Billing\\Providers');
+    });
+});

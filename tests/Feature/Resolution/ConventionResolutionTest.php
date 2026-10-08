@@ -144,6 +144,20 @@ it('registers nothing when factories and policies are turned off', function () {
     });
 });
 
+it('turns factory and policy lookup off with discovery, which they read', function () {
+    AcceptanceApp::run('modules', function (AcceptanceApp $app) {
+        $app->boot();
+        $classes = generateModelWithRelations($app, "Invoice{$app->tag}");
+        Factory::flushState();
+
+        $app->boot(['enabled' => false]);
+
+        expect(ModelConventions::current())->toBeNull()
+            ->and(Gate::policies())->not->toHaveKey($classes['model'])
+            ->and(fn () => call_user_func([$classes['model'], 'factory']))->toThrow(Error::class, 'Database\\Factories\\');
+    });
+});
+
 it('leaves a policy the application registered itself in place', function () {
     $own = new class {};
     // The application's own Gate::policy() call, in its AppServiceProvider::boot().
