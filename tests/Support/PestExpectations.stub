@@ -17,6 +17,7 @@ namespace Pest;
  *
  * @method $this toEqualPath(string $expected)
  * @method $this toContainPath(string $expected)
+ * @method $this toContainCreated(string $label, string $path)
  * @method $this toBeValidPhp()
  * @method $this toHaveGenerated(string $path, ?string $namespace = null)
  */

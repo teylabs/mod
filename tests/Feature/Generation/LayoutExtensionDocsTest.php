@@ -69,7 +69,7 @@ it('adds a kind with an alias, its stub and a swapped generator from a plugin', 
         $builder = $workspace->artisan('mod:builder', ['name' => 'Knowledge:Document']);
 
         expect($builder)->toHaveGenerated('src/Domain/Knowledge/Builders/DocumentBuilder.php', "{$ns}\\Knowledge\\Builders")
-            ->and($builder->output)->toContain('Query builder [src/Domain/Knowledge/Builders/DocumentBuilder.php] created successfully.')
+            ->and($builder->output)->toContainCreated('Query builder', 'src/Domain/Knowledge/Builders/DocumentBuilder.php')
             ->and($builder->output)->toContain('Add a newEloquentBuilder() method to the model to use it.')
             ->and($workspace->read('src/Domain/Knowledge/Builders/DocumentBuilder.php'))->toContain('class DocumentBuilder extends Builder')
             ->and($workspace->artisan('mod:query-builder', ['name' => 'Knowledge:Chunk']))

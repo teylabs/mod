@@ -219,11 +219,11 @@ it('names each ddd kind in its output with its label', function () {
         isolatedDomainNamespace();
         installedPackages();
 
-        expect($workspace->artisan('mod:dto', ['name' => 'Billing:InvoiceData'])->output)->toContain('DTO [src/Domain/Billing/Data/InvoiceData.php] created successfully.')
-            ->and($workspace->artisan('mod:value', ['name' => 'Billing:Money'])->output)->toContain('Value object [src/Domain/Billing/ValueObjects/Money.php] created successfully.')
-            ->and($workspace->artisan('mod:view-model', ['name' => 'Billing:ShowInvoice'])->output)->toContain('View model [src/Domain/Billing/ViewModels/ShowInvoice.php] created successfully.')
-            ->and($workspace->artisan('mod:action', ['name' => 'Billing:PayInvoice'])->output)->toContain('Action [src/Domain/Billing/Actions/PayInvoice.php] created successfully.')
-            ->and($workspace->artisan('mod:model', ['name' => 'Billing:Invoice'])->output)->toContain('Model [src/Domain/Billing/Models/Invoice.php] created successfully.')
+        expect($workspace->artisan('mod:dto', ['name' => 'Billing:InvoiceData'])->output)->toContainCreated('DTO', 'src/Domain/Billing/Data/InvoiceData.php')
+            ->and($workspace->artisan('mod:value', ['name' => 'Billing:Money'])->output)->toContainCreated('Value object', 'src/Domain/Billing/ValueObjects/Money.php')
+            ->and($workspace->artisan('mod:view-model', ['name' => 'Billing:ShowInvoice'])->output)->toContainCreated('View model', 'src/Domain/Billing/ViewModels/ShowInvoice.php')
+            ->and($workspace->artisan('mod:action', ['name' => 'Billing:PayInvoice'])->output)->toContainCreated('Action', 'src/Domain/Billing/Actions/PayInvoice.php')
+            ->and($workspace->artisan('mod:model', ['name' => 'Billing:Invoice'])->output)->toContainCreated('Model', 'src/Domain/Billing/Models/Invoice.php')
             ->and(Artisan::all()['mod:dto']->getDescription())->toBe('Create a new DTO class')
             ->and(Artisan::all()['mod:value']->getDescription())->toBe('Create a new value object class');
     });
@@ -234,7 +234,7 @@ it('keeps the title-cased kind id for a kind without a label', function () {
         config()->set('mod.layout', 'ddd');
         Mod::layout('ddd')->kind('builder', in: '{domain+}/Builders', suffix: 'Builder');
 
-        expect($workspace->artisan('mod:builder', ['name' => 'Billing:Invoice'])->output)->toContain('Builder [src/Domain/Billing/Builders/InvoiceBuilder.php] created successfully.');
+        expect($workspace->artisan('mod:builder', ['name' => 'Billing:Invoice'])->output)->toContainCreated('Builder', 'src/Domain/Billing/Builders/InvoiceBuilder.php');
     });
 });
 

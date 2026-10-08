@@ -76,7 +76,7 @@ it('gives every built-in layout the starters, adding kinds where the layout has 
 
         expect($dto)->toHaveGenerated("{$kinds['dto'][0]}/InvoiceData.php", $kinds['dto'][1])
             ->and($dto->output)->toContain("Created base class {$basesNamespace}\\Data\\DataTransferObject [{$bases}/Data/DataTransferObject.php].")
-            ->and($dto->output)->toContain("DTO [{$kinds['dto'][0]}/InvoiceData.php] created successfully.")
+            ->and($dto->output)->toContainCreated('DTO', "{$kinds['dto'][0]}/InvoiceData.php")
             ->and($workspace->read("{$kinds['dto'][0]}/InvoiceData.php"))->toContain("use {$basesNamespace}\\Data\\DataTransferObject;\n\nclass InvoiceData extends DataTransferObject\n")
             ->and($workspace->root->path("{$bases}/Data/DataTransferObject.php"))->toBeValidPhp()
             ->and($viewModel)->toHaveGenerated("{$kinds['view-model'][0]}/ShowInvoice.php", $kinds['view-model'][1])
@@ -233,7 +233,7 @@ it('gives a kind of another id a starter through stub:', function () {
 
         $result = $workspace->artisan('mod:payload', ['name' => 'Billing:InvoicePayload']);
 
-        expect($result->output)->toContain('DTO [app/Modules/Billing/Payloads/InvoicePayload.php] created successfully.')
+        expect($result->output)->toContainCreated('DTO', 'app/Modules/Billing/Payloads/InvoicePayload.php')
             ->and($workspace->read('app/Modules/Billing/Payloads/InvoicePayload.php'))->toContain("use {$basesNamespace}\\Data\\DataTransferObject;");
     });
 });

@@ -21,6 +21,21 @@ expect()->extend('toContainPath', function (string $expected) {
     return $this;
 });
 
+/*
+ * "<Label> [<path>] created successfully." for a file below the application:
+ * make:* prints the path relative on Unix and absolute on Windows (Laravel
+ * only strips "<base path>/"), so the base path may precede it, with either
+ * separator.
+ */
+expect()->extend('toContainCreated', function (string $label, string $path) {
+    $actual = $this->value;
+    Assert::assertIsString($actual);
+    $pattern = '#'.preg_quote($label, '#').' \[(?:[^\]]*/)?'.preg_quote(Path::normalize($path), '#').'\] created successfully\.#';
+    Assert::assertMatchesRegularExpression($pattern, str_replace('\\', '/', $actual), "Expected \"{$label} [{$path}] created successfully.\" in:\n{$actual}");
+
+    return $this;
+});
+
 expect()->extend('toBeValidPhp', function () {
     $path = $this->value;
     Assert::assertIsString($path);
