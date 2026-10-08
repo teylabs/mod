@@ -4,8 +4,8 @@ namespace Tey\Mod\Generation;
 
 use Illuminate\Filesystem\Filesystem;
 use Tey\Mod\Exceptions\InvalidGeneratorSetup;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\Root;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Support\Path;
 
 /**
@@ -36,7 +36,7 @@ final readonly class BaseWriter
      *
      * @return array{fqcn: string, path: string}
      */
-    public function locate(GeneratedBase $base, Preset $preset, string $kindId): array
+    public function locate(GeneratedBase $base, CompiledLayout $preset, string $kindId): array
     {
         [$namespace, $path] = $base->inKindRoot
             ? $this->kindRoot($preset, $kindId)
@@ -89,7 +89,7 @@ final readonly class BaseWriter
     /**
      * @return array{string, string}
      */
-    private function kindRoot(Preset $preset, string $kindId): array
+    private function kindRoot(CompiledLayout $preset, string $kindId): array
     {
         $root = $preset->rule($kindId)->root();
 
@@ -102,7 +102,7 @@ final readonly class BaseWriter
      *
      * @return array{string, string}
      */
-    private function basesFolder(Preset $preset): array
+    private function basesFolder(CompiledLayout $preset): array
     {
         $path = Root::normalisePath($this->basesPath);
         $best = null;

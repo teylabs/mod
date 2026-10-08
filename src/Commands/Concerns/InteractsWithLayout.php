@@ -15,13 +15,13 @@ use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\CollisionPolicy;
 use Tey\Mod\Generation\ExistingArtifacts;
 use Tey\Mod\Generation\GenerationPlan;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\Collision;
 use Tey\Mod\Placement\CollisionDiagnoser;
 use Tey\Mod\Placement\CollisionKind;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\PlacementResolver;
 use Tey\Mod\Placement\TemplateRule;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Preset\PresetIssue;
 use Tey\Mod\Preset\PresetValidator;
 use Tey\Mod\Relation\RelationMode;
@@ -38,7 +38,7 @@ use Tey\Mod\Reverse\ReverseMapper;
  * Everything a host package needs to build its own generator on top of an
  * adapter is a protected hook here:
  *
- *  - resolvePreset() / kindId(): which preset and kind this invocation is
+ *  - resolveLayout() / kindId(): which preset and kind this invocation is
  *    for, when the command is not bound through forKind() (a host may
  *    resolve them per invocation from its own configuration).
  *  - placementInput() / placementContext(): where the placement comes from.
@@ -58,9 +58,9 @@ use Tey\Mod\Reverse\ReverseMapper;
  * here are helpers the adapters share; a subclass may call them, but their
  * signatures may change between minor releases.
  */
-trait InteractsWithPreset
+trait InteractsWithLayout
 {
-    private ?Preset $modPreset = null;
+    private ?CompiledLayout $modLayout = null;
 
     private ?ArtifactKind $modKind = null;
 
@@ -70,13 +70,13 @@ trait InteractsWithPreset
     /** @var array<string, PresetIssue> dimension → why its option was left out */
     private array $modPlacementIssues = [];
 
-    public function forKind(Preset $preset, ArtifactKind $kind): static
+    public function forKind(CompiledLayout $preset, ArtifactKind $kind): static
     {
         if ($kind->command === null) {
             throw new LogicException("File type [{$kind->id}] declares no command name.");
         }
 
-        $this->modPreset = $preset;
+        $this->modLayout = $preset;
         $this->modKind = $kind;
 
         $this->setName($kind->command);
@@ -99,11 +99,11 @@ trait InteractsWithPreset
 
     /**
      * The preset this invocation generates against. Bound by forKind(), or
-     * resolved by the host through resolvePreset().
+     * resolved by the host through resolveLayout().
      */
-    protected function preset(): Preset
+    protected function layout(): CompiledLayout
     {
-        return $this->modPreset ??= $this->resolvePreset();
+        return $this->modLayout ??= $this->resolveLayout();
     }
 
     /**
@@ -112,15 +112,15 @@ trait InteractsWithPreset
      */
     protected function kind(): ArtifactKind
     {
-        return $this->modKind ?? $this->preset()->kind($this->kindId());
+        return $this->modKind ?? $this->layout()->kind($this->kindId());
     }
 
     /**
      * Hook: the preset when the command was not bound through forKind().
      */
-    protected function resolvePreset(): Preset
+    protected function resolveLayout(): CompiledLayout
     {
-        throw new LogicException(static::class.' is not bound to a file type of the layout; bind it with forKind() or override resolvePreset().');
+        throw new LogicException(static::class.' is not bound to a file type of the layout; bind it with forKind() or override resolveLayout().');
     }
 
     /**
@@ -150,7 +150,7 @@ trait InteractsWithPreset
             return $options;
         }
 
-        $names = $this->preset()->placementOptions();
+        $names = $this->layout()->placementOptions();
 
         foreach ($this->kindDimensions() as $dimension) {
             if (! isset($this->modPlacementIssues[$dimension])) {
@@ -192,7 +192,7 @@ trait InteractsWithPreset
                 }
             }
 
-            $this->modPlacementIssues = (new PresetValidator)->placementOptionCollisions($this->preset(), $this->kind(), $taken);
+            $this->modPlacementIssues = (new PresetValidator)->placementOptionCollisions($this->layout(), $this->kind(), $taken);
         }
 
         foreach ($this->placementOptions() as $option => $dimension) {
@@ -212,15 +212,15 @@ trait InteractsWithPreset
      */
     private function kindDimensions(): array
     {
-        $reads = $this->preset()->rule($this->kind()->id)->dimensions();
+        $reads = $this->layout()->rule($this->kind()->id)->dimensions();
 
-        return array_values(array_filter($this->preset()->dimensionNames(), static fn (string $name): bool => in_array($name, $reads, true)));
+        return array_values(array_filter($this->layout()->dimensionNames(), static fn (string $name): bool => in_array($name, $reads, true)));
     }
 
     private function placementOptionDescription(?string $dimension): string
     {
         if ($dimension !== null) {
-            foreach ($this->preset()->dimensions() as $declared) {
+            foreach ($this->layout()->dimensions() as $declared) {
                 if ($declared->name === $dimension && $declared->multi) {
                     return "Place in this {$dimension}, nested folders separated by \".\" or \"/\" (same as --in)";
                 }
@@ -229,13 +229,13 @@ trait InteractsWithPreset
             return "Place in this {$dimension} (same as --in)";
         }
 
-        $dimensions = $this->modPreset?->dimensionNames() ?? [];
+        $dimensions = $this->modLayout?->dimensionNames() ?? [];
 
         if ($dimensions === []) {
             return 'Placement (this layout takes none)';
         }
 
-        $multi = array_filter($this->preset()->dimensions(), static fn ($declared): bool => $declared->multi) !== [];
+        $multi = array_filter($this->layout()->dimensions(), static fn ($declared): bool => $declared->multi) !== [];
 
         return 'The '.implode(' and ', $dimensions).' to place in. Every value in the layout\'s order, separated by "/"'
             .($multi ? ' (a value spanning folders separates them with ".")' : '')
@@ -315,7 +315,7 @@ trait InteractsWithPreset
             return $this->dimensionPlacement($given);
         }
 
-        if ($prefix !== null && $this->preset()->dimensionNames() === []) {
+        if ($prefix !== null && $this->layout()->dimensionNames() === []) {
             throw GenerationRefused::because(sprintf(
                 'Layout [%s] takes no placement; drop the [%s:] prefix.',
                 $this->layoutName(),
@@ -341,7 +341,7 @@ trait InteractsWithPreset
         $values = [];
         $missing = null;
 
-        foreach ($this->preset()->dimensions() as $dimension) {
+        foreach ($this->layout()->dimensions() as $dimension) {
             if (! isset($given[$dimension->name])) {
                 $missing ??= $dimension->name;
 
@@ -351,7 +351,7 @@ trait InteractsWithPreset
             [$option, $value] = $given[$dimension->name];
 
             if ($missing !== null) {
-                throw InvalidPlacementOption::skipped($option, $this->preset()->placementOptions()[$missing], $this->preset()->dimensionNames());
+                throw InvalidPlacementOption::skipped($option, $this->layout()->placementOptions()[$missing], $this->layout()->dimensionNames());
             }
 
             if ($dimension->multi) {
@@ -371,7 +371,7 @@ trait InteractsWithPreset
      */
     protected function placementContext(): PlacementContext
     {
-        return PlacementContext::fromOption($this->placementInput() ?? '', $this->preset());
+        return PlacementContext::fromOption($this->placementInput() ?? '', $this->layout());
     }
 
     /**
@@ -397,7 +397,7 @@ trait InteractsWithPreset
      */
     protected function resolveArtifact(string $kindId, string $name, PlacementContext $context, array $attributes = []): ResolvedArtifact
     {
-        return (new PlacementResolver($this->preset()))->resolve(ArtifactRequest::for($kindId, $name, $context, $attributes));
+        return (new PlacementResolver($this->layout()))->resolve(ArtifactRequest::for($kindId, $name, $context, $attributes));
     }
 
     /**
@@ -417,11 +417,11 @@ trait InteractsWithPreset
             return ltrim($name, '\\');
         }
 
-        if (! $this->preset()->hasKind($kindId)) {
+        if (! $this->layout()->hasKind($kindId)) {
             throw GenerationRefused::because("The layout has no [{$kindId}] file type to place [{$name}]; pass its fully qualified class name.");
         }
 
-        $context = $this->placementContext()->only($this->preset()->rule($kindId)->dimensions());
+        $context = $this->placementContext()->only($this->layout()->rule($kindId)->dimensions());
 
         return (string) $this->resolveArtifact($kindId, $name, $context)->fqcn();
     }
@@ -431,7 +431,7 @@ trait InteractsWithPreset
      */
     protected function ownedPathOf(string $fqcn): ?string
     {
-        $match = (new ReverseMapper($this->preset()))->fromClass($fqcn);
+        $match = (new ReverseMapper($this->layout()))->fromClass($fqcn);
 
         return $match->isMatched() && $match->artifact !== null ? $match->artifact->path() : null;
     }
@@ -456,7 +456,7 @@ trait InteractsWithPreset
      */
     protected function generateOwnedClass(string $fqcn, string $kindId): void
     {
-        $match = (new ReverseMapper($this->preset()))->fromClass($fqcn);
+        $match = (new ReverseMapper($this->layout()))->fromClass($fqcn);
         $artifact = $match->isMatched() ? $match->artifact : null;
 
         if ($artifact === null || $artifact->kind->id !== $kindId || $artifact->kind->command === null) {
@@ -481,10 +481,10 @@ trait InteractsWithPreset
      */
     protected function relationsTo(ResolvedArtifact $source, string $toKind, ?string $name = null, array $attributes = [], bool $required = true): array
     {
-        $resolver = new RelationResolver($this->preset(), new PlacementResolver($this->preset()));
+        $resolver = new RelationResolver($this->layout(), new PlacementResolver($this->layout()));
         $resolutions = [];
 
-        foreach ($this->preset()->relationsFrom($source->kind->id) as $relation) {
+        foreach ($this->layout()->relationsFrom($source->kind->id) as $relation) {
             if ($relation->toKind !== $toKind || $relation->mode === RelationMode::None) {
                 continue;
             }
@@ -520,7 +520,7 @@ trait InteractsWithPreset
             return;
         }
 
-        $command = $this->preset()->kind($target->kind->id)->command;
+        $command = $this->layout()->kind($target->kind->id)->command;
 
         if ($command === null) {
             throw GenerationRefused::because("File type [{$target->kind->id}] has no command to generate [{$target->describe()}].");
@@ -568,7 +568,7 @@ trait InteractsWithPreset
         $values = [];
         $gap = false;
 
-        foreach ($this->preset()->dimensions() as $dimension) {
+        foreach ($this->layout()->dimensions() as $dimension) {
             $value = $context->get($dimension->name);
 
             if ($value === null) {
@@ -698,7 +698,7 @@ trait InteractsWithPreset
      */
     private function requiredDimensions(): array
     {
-        $rule = $this->preset()->rule($this->kind()->id);
+        $rule = $this->layout()->rule($this->kind()->id);
 
         if (! $rule instanceof TemplateRule) {
             return [];

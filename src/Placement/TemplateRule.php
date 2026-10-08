@@ -11,6 +11,7 @@ use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Exceptions\DimensionNotApplicable;
 use Tey\Mod\Exceptions\InvalidArtifactName;
 use Tey\Mod\Exceptions\MissingDimension;
+use Tey\Mod\Layout\CompiledLayout;
 
 /**
  * A declarative placement: root + ordered segments + the kind's name policy.
@@ -26,7 +27,7 @@ use Tey\Mod\Exceptions\MissingDimension;
  * every file below its bound dimension folders, minus the `except` folders;
  * that widening is for discovery only and never reaches reverse mapping.
  *
- * @internal placement machinery behind Preset::rule(); build layouts with Mod::layout().
+ * @internal placement machinery behind CompiledLayout::rule(); build layouts with Mod::layout().
  */
 final readonly class TemplateRule implements PlacementRule
 {

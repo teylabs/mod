@@ -8,7 +8,7 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
 use Symfony\Component\Console\Output\BufferedOutput;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Support\Path;
 use Tey\Mod\Tests\Fixtures\Layouts;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
@@ -35,7 +35,7 @@ final class Workspace
             // mod.preset is the provider's internal test hook for raw definitions.
             config()->set('mod.preset', is_string($layout) ? Layouts::definition($layout) : $layout);
             // Forget any preset resolved earlier; mod:* reads this one when Artisan starts.
-            app()->forgetInstance(Preset::class);
+            app()->forgetInstance(CompiledLayout::class);
 
             return $callback(new self($root));
         });

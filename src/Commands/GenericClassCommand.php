@@ -8,7 +8,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Commands\Concerns\PlacesGeneratedClass;
 use Tey\Mod\Generation\GeneratorAdapter;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 
 /**
  * The declarative generator for class kinds Laravel has no make:* for
@@ -29,7 +29,7 @@ class GenericClassCommand extends GeneratorCommand implements GeneratorAdapter
 
     protected $type = 'Class';
 
-    public function forKind(Preset $preset, ArtifactKind $kind): static
+    public function forKind(CompiledLayout $preset, ArtifactKind $kind): static
     {
         $this->bindKind($preset, $kind);
 

@@ -28,7 +28,7 @@ class TestCommand extends TestMakeCommand implements GeneratorAdapter
         }
 
         $primary = $plan->primary;
-        $root = $this->preset()->rule($this->kind()->id)->root();
+        $root = $this->layout()->rule($this->kind()->id)->root();
         $segments = explode('/', (string) $root->pathRemainder($primary->path()));
         $segments[0] = class_basename($this->getDefaultNamespace($this->rootNamespace()));
         $file = array_pop($segments);

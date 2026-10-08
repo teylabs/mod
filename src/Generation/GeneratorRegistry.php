@@ -65,7 +65,7 @@ use Tey\Mod\Commands\SeederCommand;
 use Tey\Mod\Commands\TestCommand;
 use Tey\Mod\Commands\TraitCommand;
 use Tey\Mod\Exceptions\InvalidGeneratorSetup;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 
 /**
  * Which adapter generates which kind. Kinds stay preset data: the registry is
@@ -206,7 +206,7 @@ final class GeneratorRegistry
      *
      * @return list<GeneratorAdapter&Command>
      */
-    public function commands(Preset $preset, Container $container): array
+    public function commands(CompiledLayout $preset, Container $container): array
     {
         $commands = [];
 

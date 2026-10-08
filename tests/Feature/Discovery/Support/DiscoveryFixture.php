@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Contracts\Foundation\Application;
 use Pest\TestSuite;
 use RuntimeException;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Support\Path;
 use Tey\Mod\Tests\Fixtures\Layouts;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
@@ -63,15 +63,15 @@ final class DiscoveryFixture
      *
      * @param  array<string, mixed>  $definition
      */
-    public function preset(array $definition): Preset
+    public function preset(array $definition): CompiledLayout
     {
         $definition = $this->prefixed($definition);
         $this->autoload($definition);
 
-        return Preset::fromArray($definition);
+        return CompiledLayout::fromArray($definition);
     }
 
-    public function layout(string $name): Preset
+    public function layout(string $name): CompiledLayout
     {
         return $this->preset(Layouts::definition($name));
     }

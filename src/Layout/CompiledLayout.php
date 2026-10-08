@@ -1,25 +1,26 @@
 <?php
 
-namespace Tey\Mod\Preset;
+namespace Tey\Mod\Layout;
 
 use Tey\Mod\Artifact\ArtifactKind;
-use Tey\Mod\Exceptions\InvalidPreset;
+use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Exceptions\UnknownArtifactKind;
 use Tey\Mod\Exceptions\UnknownRelation;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Placement\Dimension;
 use Tey\Mod\Placement\PlacementRule;
 use Tey\Mod\Placement\Root;
+use Tey\Mod\Preset\PresetValidator;
 use Tey\Mod\Relation\Relation;
 
 /**
  * A coherent, validated set of roots, dimensions, kinds, placement rules and relations.
  *
- * Build one with Preset::fromArray() (the provisional internal definition
+ * Build one with CompiledLayout::fromArray() (the provisional internal definition
  * format, see PresetValidator) or the constructor. Immutable; hold as many
  * as you like side by side.
  */
-final readonly class Preset
+final readonly class CompiledLayout
 {
     /**
      * @param  array<string, Root>  $roots  keyed by root name
@@ -48,7 +49,7 @@ final readonly class Preset
      *
      * @param  array<string, mixed>  $definition
      *
-     * @throws InvalidPreset
+     * @throws InvalidLayout
      */
     public static function fromArray(array $definition): self
     {

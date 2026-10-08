@@ -1,7 +1,7 @@
 <?php
 
-use Tey\Mod\Exceptions\InvalidPreset;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Exceptions\InvalidLayout;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Preset\PresetValidator;
 use Tey\Mod\Tests\Fixtures\Layouts;
 
@@ -28,14 +28,14 @@ it('reports every issue at once and throws them together', function () {
     $exception = null;
 
     try {
-        Preset::fromArray($definition);
-    } catch (InvalidPreset $caught) {
+        CompiledLayout::fromArray($definition);
+    } catch (InvalidLayout $caught) {
         $exception = $caught;
     }
 
-    expect($exception)->toBeInstanceOf(InvalidPreset::class)
+    expect($exception)->toBeInstanceOf(InvalidLayout::class)
         ->and($exception?->codes())->toBe(['invalid-kind', 'unknown-relation-target'])
-        ->and($exception?->getMessage())->toContain('[unknown-relation-target] relations.bogus');
+        ->and($exception?->getMessage())->toContain(' - relations.bogus: ')->toContain('[unknown-relation-target]');
 });
 
 it('detects duplicate kinds', function () {
@@ -127,7 +127,7 @@ it('carries the commands flag for the host', function () {
     $definition = Layouts::definition('ordinary');
     $definition['commands'] = false;
 
-    expect(Preset::fromArray($definition)->commandsEnabled())->toBeFalse();
+    expect(CompiledLayout::fromArray($definition)->commandsEnabled())->toBeFalse();
 });
 
 it('exposes kinds, rules and relations by id', function () {

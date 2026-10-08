@@ -4,8 +4,8 @@ namespace Tey\Mod\Resolution;
 
 use Illuminate\Database\Eloquent\Model;
 use Tey\Mod\Artifact\ResolvedArtifact;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\PlacementResolver;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Relation\RelationResolver;
 use Tey\Mod\Reverse\ReverseMapper;
@@ -26,7 +26,7 @@ final readonly class ModelRelations
 
     private ReverseMapper $mapper;
 
-    public function __construct(private Preset $preset)
+    public function __construct(private CompiledLayout $preset)
     {
         $this->relations = new RelationResolver($preset, new PlacementResolver($preset));
         $this->mapper = new ReverseMapper($preset);

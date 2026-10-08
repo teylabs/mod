@@ -2,7 +2,7 @@
 
 use Tey\Mod\Discovery\DiscoveryDefinition;
 use Tey\Mod\Discovery\PresetFingerprint;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Tests\Fixtures\Layouts;
 
 it('is stable for equal presets built separately', function (string $layout) {
@@ -18,7 +18,7 @@ it('differs between the five layouts', function () {
 it('changes when anything that decides ownership changes', function (Closure $change) {
     $definition = Layouts::definition('modules');
 
-    expect(PresetFingerprint::of(Preset::fromArray($change($definition))))->not->toBe(PresetFingerprint::of(Layouts::modules()));
+    expect(PresetFingerprint::of(CompiledLayout::fromArray($change($definition))))->not->toBe(PresetFingerprint::of(Layouts::modules()));
 })->with([
     'segment' => [function (array $d) {
         $d['kinds']['provider']['segments'] = ['Modules', '{module}', 'Bootstrap'];

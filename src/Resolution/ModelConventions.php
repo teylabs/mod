@@ -10,7 +10,7 @@ use ReflectionFunction;
 use ReflectionProperty;
 use Tey\Mod\Discovery\Discovery;
 use Tey\Mod\Discovery\DiscoveryType;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 use WeakReference;
 
 /**
@@ -130,7 +130,7 @@ final class ModelConventions
             ? $app->make(Discovery::class)->inventory()->pairs(DiscoveryType::Factory)
             : [];
 
-        $this->relations ??= new ModelRelations($app->make(Preset::class));
+        $this->relations ??= new ModelRelations($app->make(CompiledLayout::class));
         $factory = $this->inventory[$model] ?? $this->relations->targetOfClass($model, DiscoveryType::Factory->value);
 
         return $this->resolved[$model] = $factory !== null && is_a($factory, Factory::class, true) ? $factory : null;

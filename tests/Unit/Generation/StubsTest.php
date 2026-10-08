@@ -2,16 +2,15 @@
 
 use Illuminate\Support\ServiceProvider;
 use Tey\Mod\Exceptions\InvalidLayout;
-use Tey\Mod\Exceptions\InvalidPreset;
 use Tey\Mod\Generation\GeneratedBase;
 use Tey\Mod\Generation\PackageDetector;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Layout\BuiltIn\Starters;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Layout\Root;
-use Tey\Mod\Preset\Preset;
 
 /**
  * Every stub file mod ships.
@@ -169,9 +168,9 @@ it('compiles kind aliases and refuses an alias that is already a command name', 
         'kinds' => ['record' => ['shape' => 'class', 'root' => 'app', 'segments' => ['Records'], 'aliases' => ['mod:records']]],
     ];
 
-    expect(fn () => Preset::fromArray([...$definition, 'kinds' => ['record' => [...$definition['kinds']['record'], 'aliases' => 'mod:records']]]))
-        ->toThrow(InvalidPreset::class, 'aliases must be a list of command names')
-        ->and(fn () => Preset::fromArray($definition))->toThrow(InvalidPreset::class, 'aliases need a command to stand for');
+    expect(fn () => CompiledLayout::fromArray([...$definition, 'kinds' => ['record' => [...$definition['kinds']['record'], 'aliases' => 'mod:records']]]))
+        ->toThrow(InvalidLayout::class, 'aliases must be a list of command names')
+        ->and(fn () => CompiledLayout::fromArray($definition))->toThrow(InvalidLayout::class, 'aliases need a command to stand for');
 });
 
 it('keeps the stub a layout declares on the compiled preset', function () {
@@ -212,7 +211,7 @@ it('compiles a kind label and refuses an empty one', function () {
         'kinds' => ['record' => ['shape' => 'class', 'root' => 'app', 'segments' => ['Records'], 'label' => ' ']],
     ];
 
-    expect(fn () => Preset::fromArray($definition))->toThrow(InvalidPreset::class, 'label must be a non-empty string');
+    expect(fn () => CompiledLayout::fromArray($definition))->toThrow(InvalidLayout::class, 'label must be a non-empty string');
 });
 
 it('maps each starter to the kind ids it applies to, and no other', function () {

@@ -2,7 +2,7 @@
 
 namespace Tey\Mod\Tests\Fixtures;
 
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 
 /**
  * The five proof layouts as provisional preset definitions. Fresh instances
@@ -12,34 +12,34 @@ final class Layouts
 {
     public const NAMES = ['ordinary', 'feature-first', 'vertical-slices', 'type-first', 'modules'];
 
-    public static function ordinary(): Preset
+    public static function ordinary(): CompiledLayout
     {
-        return Preset::fromArray(self::definition('ordinary'));
+        return CompiledLayout::fromArray(self::definition('ordinary'));
     }
 
-    public static function featureFirst(): Preset
+    public static function featureFirst(): CompiledLayout
     {
-        return Preset::fromArray(self::definition('feature-first'));
+        return CompiledLayout::fromArray(self::definition('feature-first'));
     }
 
-    public static function verticalSlices(): Preset
+    public static function verticalSlices(): CompiledLayout
     {
-        return Preset::fromArray(self::definition('vertical-slices'));
+        return CompiledLayout::fromArray(self::definition('vertical-slices'));
     }
 
-    public static function typeFirst(): Preset
+    public static function typeFirst(): CompiledLayout
     {
-        return Preset::fromArray(self::definition('type-first'));
+        return CompiledLayout::fromArray(self::definition('type-first'));
     }
 
-    public static function modules(): Preset
+    public static function modules(): CompiledLayout
     {
-        return Preset::fromArray(self::definition('modules'));
+        return CompiledLayout::fromArray(self::definition('modules'));
     }
 
-    public static function named(string $name): Preset
+    public static function named(string $name): CompiledLayout
     {
-        return Preset::fromArray(self::definition($name));
+        return CompiledLayout::fromArray(self::definition($name));
     }
 
     /**

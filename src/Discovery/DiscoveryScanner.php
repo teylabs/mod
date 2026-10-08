@@ -8,9 +8,9 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
 use Tey\Mod\Artifact\ResolvedArtifact;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\Root;
 use Tey\Mod\Placement\TemplateRule;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Resolution\ModelRelations;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseMatch;
@@ -46,7 +46,7 @@ final readonly class DiscoveryScanner
      * @param  (Closure(Root, string, DiscoveryDefinition): iterable<string>)|null  $candidates
      */
     public function __construct(
-        private Preset $preset,
+        private CompiledLayout $preset,
         private string $basePath,
         private Eligibility $eligibility = new Eligibility,
         private ?Closure $candidates = null,

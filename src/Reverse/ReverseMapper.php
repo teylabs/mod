@@ -3,10 +3,10 @@
 namespace Tey\Mod\Reverse;
 
 use Tey\Mod\Artifact\ResolvedArtifact;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\OpaquePlacementRule;
 use Tey\Mod\Placement\Root;
 use Tey\Mod\Placement\TemplateRule;
-use Tey\Mod\Preset\Preset;
 
 /**
  * Maps an existing class or file back to the artifact a preset would own.
@@ -16,7 +16,7 @@ use Tey\Mod\Preset\Preset;
  */
 final readonly class ReverseMapper
 {
-    public function __construct(private Preset $preset) {}
+    public function __construct(private CompiledLayout $preset) {}
 
     public function fromClass(string $fqcn): ReverseMatch
     {

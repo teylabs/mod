@@ -3,7 +3,7 @@
 namespace Tey\Mod\Preset;
 
 /**
- * @internal a problem the validator found; surfaces through InvalidLayout / InvalidPreset messages.
+ * @internal a problem the validator found; surfaces through InvalidLayout / InvalidLayout messages.
  */
 final readonly class PresetIssue
 {

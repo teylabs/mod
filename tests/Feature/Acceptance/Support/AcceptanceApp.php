@@ -17,9 +17,9 @@ use Tey\Mod\Facades\Mod;
 use Tey\Mod\Generation\GeneratorRegistry;
 use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Layout\BuiltIn\Starters;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\ModManager;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseMatch;
 use Tey\Mod\Support\Path;
@@ -41,7 +41,7 @@ use Tey\Mod\Tests\TestCase;
  */
 final class AcceptanceApp
 {
-    public readonly Preset $preset;
+    public readonly CompiledLayout $preset;
 
     public readonly string $tag;
 
@@ -114,7 +114,7 @@ final class AcceptanceApp
             }
         });
 
-        if ($this->app->make(Preset::class) != $this->preset) {
+        if ($this->app->make(CompiledLayout::class) != $this->preset) {
             throw new RuntimeException("The booted application compiled layout [{$this->layout}] differently from the test's expectation.");
         }
 
@@ -287,7 +287,7 @@ final class AcceptanceApp
      * Mod::layout() calls, run on a scratch registry, so tests can place and
      * map artifacts before booting.
      */
-    private function expectedPreset(): Preset
+    private function expectedPreset(): CompiledLayout
     {
         $registry = new LayoutRegistry;
         Mod::swap(new ModManager($registry, new StubRegistry, new GeneratorRegistry));

@@ -4,9 +4,9 @@ use Tey\Mod\Artifact\ArtifactRequest;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Generation\PackageDetector;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\PlacementResolver;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
 use Tey\Mod\Tests\TestCase;
 
@@ -35,7 +35,7 @@ uses(PHPUnit\Framework\TestCase::class)->in('Unit');
  *
  * @param  array<string, string|int|float|bool|null>  $attributes
  */
-function place(Preset $preset, string $kind, string $name, string $in = '', array $attributes = []): ResolvedArtifact
+function place(CompiledLayout $preset, string $kind, string $name, string $in = '', array $attributes = []): ResolvedArtifact
 {
     return (new PlacementResolver($preset))->resolve(
         ArtifactRequest::for($kind, $name, PlacementContext::fromOption($in, $preset), $attributes),

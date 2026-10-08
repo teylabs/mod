@@ -12,7 +12,7 @@ use Illuminate\Foundation\Support\Providers\EventServiceProvider;
 use ReflectionClass;
 use Tey\Mod\Artifact\NamePolicyKind;
 use Tey\Mod\Exceptions\ModException;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Resolution\ModelConventions;
 use Tey\Mod\Support\Path;
 use WeakReference;
@@ -30,7 +30,7 @@ use WeakReference;
  */
 final class DiscoveryRegistrar
 {
-    public static function register(Application $app, Preset $preset, ?DiscoveryOptions $options = null): Discovery
+    public static function register(Application $app, CompiledLayout $preset, ?DiscoveryOptions $options = null): Discovery
     {
         $options ??= new DiscoveryOptions;
         $discovery = new Discovery($preset, $options, $app->basePath());
@@ -154,7 +154,7 @@ final class DiscoveryRegistrar
      * layout) join the migrator's paths, so `php artisan migrate` sees them;
      * the application's default database/migrations is Laravel's own.
      */
-    private static function loadMigrationDirectories(Application $app, Preset $preset, Inventory $inventory): void
+    private static function loadMigrationDirectories(Application $app, CompiledLayout $preset, Inventory $inventory): void
     {
         $default = realpath($app->databasePath('migrations'));
         $directories = [];

@@ -5,8 +5,8 @@ namespace Tey\Mod\Relation;
 use Tey\Mod\Artifact\ArtifactRequest;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Exceptions\ModException;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\PlacementResolver;
-use Tey\Mod\Preset\Preset;
 
 /**
  * Resolves a relation from an already resolved source artifact to its target identity.
@@ -18,7 +18,7 @@ use Tey\Mod\Preset\Preset;
 final readonly class RelationResolver
 {
     public function __construct(
-        private Preset $preset,
+        private CompiledLayout $preset,
         private PlacementResolver $placement,
     ) {}
 

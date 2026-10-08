@@ -2,8 +2,10 @@
 
 namespace Tey\Mod;
 
+use Illuminate\Container\Container;
 use Tey\Mod\Generation\GeneratorRegistry;
 use Tey\Mod\Generation\StubRegistry;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
 
@@ -17,7 +19,17 @@ final readonly class ModManager
         private LayoutRegistry $layouts,
         private StubRegistry $stubs,
         private GeneratorRegistry $generators,
+        private ?Container $container = null,
     ) {}
+
+    /**
+     * The active layout (config `mod.layout`), compiled: its kinds, roots,
+     * dimensions and placement options.
+     */
+    public function current(): CompiledLayout
+    {
+        return ($this->container ?? Container::getInstance())->make(CompiledLayout::class);
+    }
 
     /**
      * Define a layout, or extend a built-in or defined one.

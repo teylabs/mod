@@ -6,8 +6,9 @@ use Closure;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\IdentityShape;
 use Tey\Mod\Artifact\NamePolicy;
-use Tey\Mod\Exceptions\InvalidPreset;
+use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Generation\Stub;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\Dimension;
 use Tey\Mod\Placement\OpaquePlacementRule;
 use Tey\Mod\Placement\PlacementContext;
@@ -66,14 +67,14 @@ final class PresetValidator
     /**
      * @param  array<string, mixed>  $definition
      *
-     * @throws InvalidPreset
+     * @throws InvalidLayout
      */
-    public function compile(array $definition): Preset
+    public function compile(array $definition): CompiledLayout
     {
         $preset = $this->build($definition);
 
         if ($this->issues !== [] || $preset === null) {
-            throw new InvalidPreset($this->issues);
+            throw new InvalidLayout(null, $this->issues);
         }
 
         return $preset;
@@ -82,7 +83,7 @@ final class PresetValidator
     /**
      * @param  array<string, mixed>  $definition
      */
-    private function build(array $definition): ?Preset
+    private function build(array $definition): ?CompiledLayout
     {
         $this->issues = [];
 
@@ -113,7 +114,7 @@ final class PresetValidator
             }
         }
 
-        return new Preset($roots, array_values($dimensions), $kinds, $rules, $relations, $excluded, $commands, $placementOptions, $stubs);
+        return new CompiledLayout($roots, array_values($dimensions), $kinds, $rules, $relations, $excluded, $commands, $placementOptions, $stubs);
     }
 
     /**
@@ -623,7 +624,7 @@ final class PresetValidator
      * @param  list<string>  $taken  option names and shortcuts the command defines
      * @return array<string, PresetIssue> dimension name → issue
      */
-    public function placementOptionCollisions(Preset $preset, ArtifactKind $kind, array $taken): array
+    public function placementOptionCollisions(CompiledLayout $preset, ArtifactKind $kind, array $taken): array
     {
         $issues = [];
         $options = $preset->placementOptions();

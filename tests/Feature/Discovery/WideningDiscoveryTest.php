@@ -5,8 +5,8 @@ use Tey\Mod\Discovery\DiscoveryDefinition;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\RejectionReason;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\Root;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Support\Path;
 use Tey\Mod\Tests\Feature\Discovery\Support\DiscoveryFixture;
 use Tey\Mod\Tests\Feature\Discovery\Support\Sources;
@@ -15,7 +15,7 @@ use Tey\Mod\Tests\Feature\Discovery\Support\Sources;
  * Discover-anywhere with except, directories, subscribers and a
  * host-supplied candidate-file source, end to end on a grouped layout.
  */
-function groupedTree(DiscoveryFixture $fx): Preset
+function groupedTree(DiscoveryFixture $fx): CompiledLayout
 {
     $definition = [
         'roots' => ['src' => ['namespace' => 'Src\\', 'path' => 'src']],

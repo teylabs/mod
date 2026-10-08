@@ -5,8 +5,8 @@ namespace Tey\Mod\Discovery;
 use Closure;
 use Tey\Mod\Artifact\NamePolicyKind;
 use Tey\Mod\Exceptions\InvalidDiscoveryConfig;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\Root;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Resolution\ModelRelations;
 
 /**
@@ -138,7 +138,7 @@ final readonly class DiscoveryOptions
      *
      * @throws InvalidDiscoveryConfig
      */
-    public function definitionsFor(Preset $preset): array
+    public function definitionsFor(CompiledLayout $preset): array
     {
         /** @var array<string, DiscoveryDefinition> $definitions */
         $definitions = [];

@@ -3,8 +3,8 @@
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Layout\BuiltIn\Starters;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\Root;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 
@@ -91,7 +91,7 @@ it('gives every built-in layout the starters, adding kinds where the layout has 
             ->and($workspace->read("{$kinds['action'][0]}/PayInvoice.php"))->toContain('public function handle(): void');
 
         // The bases are nobody's group or class.
-        $mapper = new ReverseMapper(app(Preset::class));
+        $mapper = new ReverseMapper(app(CompiledLayout::class));
 
         expect($mapper->fromPath("{$bases}/Data/DataTransferObject.php")->isMatched())->toBeFalse()
             ->and($mapper->fromPath("{$bases}/ViewModels/ViewModel.php")->isMatched())->toBeFalse();
@@ -129,7 +129,7 @@ it('places bases in app/UI when mod.bases_path says so', function () {
             ->toContain("use App\\UI\\ViewModels\\ViewModel;\n\nclass ShowInvoice extends ViewModel\n");
 
         // modules excludes App\UI\ already; a slices app would otherwise take UI for a feature.
-        expect((new ReverseMapper(app(Preset::class)))->fromPath('app/UI/ViewModels/ViewModel.php')->isMatched())->toBeFalse();
+        expect((new ReverseMapper(app(CompiledLayout::class)))->fromPath('app/UI/ViewModels/ViewModel.php')->isMatched())->toBeFalse();
     });
 });
 
@@ -139,7 +139,7 @@ it('never takes a bases folder for a feature in slices', function () {
         config()->set('mod.bases_path', 'app/UI');
         Mod::layout('slices')->kind('view-model', in: '{feature}/ViewModels');
 
-        $mapper = new ReverseMapper(app(Preset::class));
+        $mapper = new ReverseMapper(app(CompiledLayout::class));
 
         expect($mapper->fromPath('app/UI/ViewModels/ViewModel.php')->isMatched())->toBeFalse()
             ->and($mapper->fromPath('app/Billing/ViewModels/ShowInvoice.php')->isMatched())->toBeTrue();
@@ -151,7 +151,7 @@ it('leaves the rest of the bases folder to the layout', function () {
         config()->set('mod.layout', 'type-first');
         Mod::layout('type-first')->kind('dto', in: 'Data/{feature?}');
 
-        $mapper = new ReverseMapper(app(Preset::class));
+        $mapper = new ReverseMapper(app(CompiledLayout::class));
 
         // Only the folders bases go in are excluded, not app/Support itself.
         expect($mapper->fromPath('app/Support/Data/DataTransferObject.php')->isMatched())->toBeFalse()

@@ -20,8 +20,8 @@ use Tey\Mod\Generation\ModMigrationCreator;
 use Tey\Mod\Generation\PackageDetector;
 use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Layout\BuiltIn\Starters;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\LayoutRegistry;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Resolution\ModelConventions;
 
 class ModServiceProvider extends ServiceProvider
@@ -44,7 +44,7 @@ class ModServiceProvider extends ServiceProvider
         // The active layout compiles on first use, after every provider has booted
         // (Artisan::starting, the booted callback below), so Mod::layout() calls in
         // any provider's register() or boot() apply.
-        $this->app->singleton(Preset::class, function (Application $app): Preset {
+        $this->app->singleton(CompiledLayout::class, function (Application $app): CompiledLayout {
             return $this->activeLayout($app);
         });
 
@@ -66,7 +66,7 @@ class ModServiceProvider extends ServiceProvider
 
             DiscoveryRegistrar::register(
                 $app,
-                $app->make(Preset::class),
+                $app->make(CompiledLayout::class),
                 DiscoveryOptions::fromConfig((array) $app->make('config')->get('mod.discovery', [])),
             );
         });
@@ -111,14 +111,14 @@ class ModServiceProvider extends ServiceProvider
      * The layout `mod.layout` names. `mod.preset`, a raw internal preset
      * definition, is an undocumented test hook that wins when set.
      */
-    private function activeLayout(Application $app): Preset
+    private function activeLayout(Application $app): CompiledLayout
     {
         $config = $app->make('config');
         $definition = $config->get('mod.preset');
 
         if (is_array($definition)) {
             /** @var array<string, mixed> $definition */
-            return Preset::fromArray($definition);
+            return CompiledLayout::fromArray($definition);
         }
 
         $name = $config->get('mod.layout', 'laravel');
@@ -195,7 +195,7 @@ class ModServiceProvider extends ServiceProvider
             return;
         }
 
-        $preset = $this->app->make(Preset::class);
+        $preset = $this->app->make(CompiledLayout::class);
 
         if (! $preset->commandsEnabled()) {
             return;
@@ -226,7 +226,7 @@ class ModServiceProvider extends ServiceProvider
             return;
         }
 
-        $preset = $this->app->make(Preset::class);
+        $preset = $this->app->make(CompiledLayout::class);
 
         if (! $preset->commandsEnabled()) {
             return;

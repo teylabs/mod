@@ -3,7 +3,7 @@
 namespace Tey\Mod\Preset;
 
 /**
- * @internal issue codes of the validator; surfaces through InvalidLayout / InvalidPreset messages.
+ * @internal issue codes of the validator; surfaces through InvalidLayout / InvalidLayout messages.
  */
 enum PresetIssueCode: string
 {

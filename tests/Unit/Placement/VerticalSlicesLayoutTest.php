@@ -2,8 +2,8 @@
 
 use Tey\Mod\Exceptions\DimensionNotApplicable;
 use Tey\Mod\Exceptions\MissingDimension;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\PlacementResolver;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Relation\RelationResolver;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseOutcome;
@@ -120,7 +120,7 @@ it('resolves the ambiguity with a declared priority', function () {
     $definition = Layouts::definition('vertical-slices');
     $definition['kinds']['model']['priority'] = 10;
 
-    $match = (new ReverseMapper(Preset::fromArray($definition)))->fromClass('App\Billing\Models\Request');
+    $match = (new ReverseMapper(CompiledLayout::fromArray($definition)))->fromClass('App\Billing\Models\Request');
 
     expect($match->outcome)->toBe(ReverseOutcome::Matched)
         ->and($match->artifact?->kind->id)->toBe('model')
@@ -131,7 +131,7 @@ it('shows the trap an exclusion closes: without it the declared rule matches App
     $definition = Layouts::definition('vertical-slices');
     $definition['excluded'] = [];
 
-    $match = (new ReverseMapper(Preset::fromArray($definition)))->fromClass('App\Http\Requests\Request');
+    $match = (new ReverseMapper(CompiledLayout::fromArray($definition)))->fromClass('App\Http\Requests\Request');
 
     expect($match->outcome)->toBe(ReverseOutcome::Matched)
         ->and($match->artifact?->context->toArray())->toBe(['feature' => 'Http', 'slice' => 'Requests']);

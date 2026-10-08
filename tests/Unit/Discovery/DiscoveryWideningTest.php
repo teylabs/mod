@@ -5,13 +5,13 @@ use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\PresetFingerprint;
 use Tey\Mod\Exceptions\InvalidDiscoveryConfig;
-use Tey\Mod\Exceptions\InvalidPreset;
+use Tey\Mod\Exceptions\InvalidLayout;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Layout\Root;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\TemplateRule;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseOutcome;
 
@@ -19,7 +19,7 @@ use Tey\Mod\Reverse\ReverseOutcome;
  * Discover-anywhere, directory discovery and subscribers at the
  * preset level: the pure parts (recognition, definitions, fingerprints).
  */
-function anywhereLayout(): Preset
+function anywhereLayout(): CompiledLayout
 {
     return (new Layout('anywhere'))
         ->root('src', 'Src\\', 'src', fn (Root $r) => $r
@@ -110,13 +110,13 @@ it('refuses anywhere on a callback kind', function () {
         'place' => fn (string $name, PlacementContext $context): string => 'Providers',
     ]]];
 
-    expect(fn () => Preset::fromArray($callback))->toThrow(InvalidPreset::class, 'declarative placement');
+    expect(fn () => CompiledLayout::fromArray($callback))->toThrow(InvalidLayout::class, 'declarative placement');
 
     $exceptOnly = ['roots' => ['src' => ['namespace' => 'Src\\', 'path' => 'src']], 'kinds' => ['provider' => [
         'shape' => 'class', 'root' => 'src', 'segments' => ['Providers'], 'except' => ['Tests'],
     ]]];
 
-    expect(fn () => Preset::fromArray($exceptOnly))->toThrow(InvalidPreset::class, 'except needs discover');
+    expect(fn () => CompiledLayout::fromArray($exceptOnly))->toThrow(InvalidLayout::class, 'except needs discover');
 });
 
 it('skips the excluded folders below the dimension folders of every built-in shape', function (string $layout, string $found, array $context, string $excluded, string $outside) {

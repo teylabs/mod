@@ -5,7 +5,6 @@ namespace Tey\Mod\Layout;
 use Tey\Mod\Exceptions\InvalidGeneratorSetup;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Layout\BuiltIn\BuiltInLayouts;
-use Tey\Mod\Preset\Preset;
 
 /**
  * The application's layouts by name: the built-in ones, extended or not,
@@ -75,7 +74,7 @@ final class LayoutRegistry
      *
      * @throws InvalidLayout
      */
-    public function compile(string $name): Preset
+    public function compile(string $name): CompiledLayout
     {
         if (! $this->has($name)) {
             throw new InvalidGeneratorSetup(sprintf(

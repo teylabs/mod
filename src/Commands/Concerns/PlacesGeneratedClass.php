@@ -39,7 +39,7 @@ use Tey\Mod\Support\Path;
  */
 trait PlacesGeneratedClass
 {
-    use InteractsWithPreset;
+    use InteractsWithLayout;
 
     private ?GenerationPlan $plan = null;
 
@@ -250,7 +250,7 @@ trait PlacesGeneratedClass
     {
         $kind = $this->kind()->id;
 
-        return $this->laravel->make(StubRegistry::class)->resolve($kind, $this->preset()->stub($kind));
+        return $this->laravel->make(StubRegistry::class)->resolve($kind, $this->layout()->stub($kind));
     }
 
     /**
@@ -337,7 +337,7 @@ trait PlacesGeneratedClass
     private function ensureBase(GeneratedBase $base): string
     {
         $writer = $this->laravel->make(BaseWriter::class);
-        $location = $writer->locate($base, $this->preset(), $this->kind()->id);
+        $location = $writer->locate($base, $this->layout(), $this->kind()->id);
 
         if ($writer->ensure($base, $location)) {
             $this->components->info("Created base class {$location['fqcn']} [{$location['path']}].");

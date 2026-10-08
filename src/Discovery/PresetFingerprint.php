@@ -2,9 +2,9 @@
 
 namespace Tey\Mod\Discovery;
 
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\Root;
 use Tey\Mod\Placement\TemplateRule;
-use Tey\Mod\Preset\Preset;
 
 /**
  * A digest of everything in a preset that decides ownership: roots,
@@ -18,7 +18,7 @@ use Tey\Mod\Preset\Preset;
  */
 final readonly class PresetFingerprint
 {
-    public static function of(Preset $preset): string
+    public static function of(CompiledLayout $preset): string
     {
         $describeRoot = static fn (Root $root): string => ($root->namespace ?? '').'|'.$root->path;
 

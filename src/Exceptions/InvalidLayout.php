@@ -12,9 +12,9 @@ final class InvalidLayout extends ModException
     /**
      * @param  list<PresetIssue>  $issues
      */
-    public function __construct(public readonly string $layout, public readonly array $issues)
+    public function __construct(public readonly ?string $layout, public readonly array $issues)
     {
-        parent::__construct("Layout [{$layout}] is invalid:\n".implode("\n", array_map(
+        parent::__construct(($layout === null ? 'The layout definition is invalid' : "Layout [{$layout}] is invalid").":\n".implode("\n", array_map(
             static fn (PresetIssue $issue): string => " - {$issue->subject}: {$issue->message} [{$issue->code->value}]",
             $issues,
         )));

@@ -6,7 +6,7 @@ use Illuminate\Console\Command;
 use Tey\Mod\Generation\BaseWriter;
 use Tey\Mod\Generation\PackageDetector;
 use Tey\Mod\Generation\StubRegistry;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 
 /**
  * mod:bases: write every base class the layout's file types can extend that
@@ -24,7 +24,7 @@ class BasesCommand extends Command
         .'not only the ones your classes already use. Run it after copying files from another application. '
         .'An existing base is never overwritten; a file type that extends a configured base (mod.bases) or an installed package needs none.';
 
-    public function handle(Preset $preset, StubRegistry $stubs, PackageDetector $detector, BaseWriter $writer): int
+    public function handle(CompiledLayout $preset, StubRegistry $stubs, PackageDetector $detector, BaseWriter $writer): int
     {
         $config = $this->laravel->make('config');
         $bases = [];

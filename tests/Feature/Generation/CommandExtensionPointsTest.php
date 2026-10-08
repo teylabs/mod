@@ -10,8 +10,8 @@ use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\CollisionPolicy;
 use Tey\Mod\Generation\GenerationPlan;
 use Tey\Mod\Generation\ModMigrationCreator;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\PlacementContext;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Fixtures\Layouts;
 
@@ -110,7 +110,7 @@ final class HostModelCommand extends ModelCommand
     /** @var list<string> */
     public array $trace = [];
 
-    public ?Preset $hostPreset = null;
+    public ?CompiledLayout $hostPreset = null;
 
     public CollisionPolicy $policy = CollisionPolicy::Refuse;
 
@@ -136,7 +136,7 @@ final class HostModelCommand extends ModelCommand
         return [];
     }
 
-    protected function resolvePreset(): Preset
+    protected function resolveLayout(): CompiledLayout
     {
         return $this->hostPreset ?? throw new LogicException('no host preset');
     }
@@ -196,7 +196,7 @@ final class HostModelCommand extends ModelCommand
 it('lets a host command bring its own preset, kind, placement option and output', function () {
     Workspace::run('modules', function (Workspace $workspace) {
         $command = new HostModelCommand(app('files'));
-        $command->hostPreset = Preset::fromArray(Layouts::definition('modules'));
+        $command->hostPreset = CompiledLayout::fromArray(Layouts::definition('modules'));
         $command->setLaravel(app());
         app(Kernel::class)->registerCommand($command);
 
@@ -224,7 +224,7 @@ it('lets a host plan lazily from inside handle() and leave collisions to the nat
         $workspace->write('app/Modules/Billing/Models/Invoice.php', '<?php // mine');
 
         $command = new HostModelCommand(app('files'));
-        $command->hostPreset = Preset::fromArray(Layouts::definition('modules'));
+        $command->hostPreset = CompiledLayout::fromArray(Layouts::definition('modules'));
         $command->policy = CollisionPolicy::Native;
         $command->eager = false;
         $command->setLaravel(app());
@@ -251,7 +251,7 @@ it('lets a host plan lazily from inside handle() and leave collisions to the nat
 it('passes placement to child commands through the host shorthand when there is no --in option', function () {
     Workspace::run('modules', function (Workspace $workspace) {
         $command = new HostModelCommand(app('files'));
-        $command->hostPreset = Preset::fromArray(Layouts::definition('modules'));
+        $command->hostPreset = CompiledLayout::fromArray(Layouts::definition('modules'));
         $command->setLaravel(app());
         app(Kernel::class)->registerCommand($command);
 
@@ -279,9 +279,9 @@ final class HostMigrationCommand extends MigrationCommand
         $this->setName('host:migration');
     }
 
-    protected function resolvePreset(): Preset
+    protected function resolveLayout(): CompiledLayout
     {
-        return Preset::fromArray(Layouts::definition('modules'));
+        return CompiledLayout::fromArray(Layouts::definition('modules'));
     }
 
     protected function kindId(): string

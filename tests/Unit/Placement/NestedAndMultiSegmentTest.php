@@ -4,12 +4,12 @@ use Tey\Mod\Artifact\ArtifactRequest;
 use Tey\Mod\Exceptions\InvalidArtifactName;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Exceptions\InvalidPlacementOption;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\Root;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\PlacementResolver;
 use Tey\Mod\Placement\Segment;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Relation\RelationResolver;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseOutcome;
@@ -18,7 +18,7 @@ use Tey\Mod\Reverse\ReverseOutcome;
  * Nested names (`nested: true`) and multi-segment placeholders
  * (`{group+}`), on a layout with a nested group folder chain.
  */
-function groupedLayout(): Preset
+function groupedLayout(): CompiledLayout
 {
     return (new Layout('grouped'))
         ->root('app', 'App\\', 'app', fn (Root $r) => $r

@@ -5,7 +5,7 @@ use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryRegistrar;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\RejectionReason;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Tests\Feature\Discovery\Support\DiscoveryFixture;
 use Tey\Mod\Tests\Feature\Discovery\Support\Sources;
 
@@ -13,7 +13,7 @@ use Tey\Mod\Tests\Feature\Discovery\Support\Sources;
  * The Command-message trap: a slice's application message is a class named
  * Command. It must never become an Artisan command.
  */
-function slicesTree(DiscoveryFixture $fx): Preset
+function slicesTree(DiscoveryFixture $fx): CompiledLayout
 {
     $message = 'public function __construct(public string $customer = "") {}';
 

@@ -6,9 +6,9 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Log;
 use Tey\Mod\Commands\ControllerCommand;
 use Tey\Mod\Generation\GeneratorRegistry;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Layout\Root;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 
 /*
@@ -22,7 +22,7 @@ use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
  *
  * @return array<string, string> option => dimension
  */
-function dimensionOptionsOf(Preset $preset, string $kindId): array
+function dimensionOptionsOf(CompiledLayout $preset, string $kindId): array
 {
     $reads = $preset->rule($kindId)->dimensions();
     $options = [];
@@ -41,7 +41,7 @@ function dimensionOptionsOf(Preset $preset, string $kindId): array
  *
  * @return array<string, string> dimension => value
  */
-function dimensionValues(Preset $preset): array
+function dimensionValues(CompiledLayout $preset): array
 {
     $values = [];
 

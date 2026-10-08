@@ -4,13 +4,13 @@ use Tey\Mod\Artifact\IdentityShape;
 use Tey\Mod\Exceptions\InvalidGeneratorSetup;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Exceptions\ModException;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\Kind;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Layout\Root;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\TemplateRule;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Relation\RelationMode;
 
 /**
@@ -277,7 +277,7 @@ it('reports a relation to a broken kind once, on the kind', function () {
 it('compiles a fresh preset each time', function () {
     $layout = (new Layout('fresh'))->root('app', 'App\\', 'app')->kind('model', in: 'Models');
 
-    expect($layout->compile())->toBeInstanceOf(Preset::class)
+    expect($layout->compile())->toBeInstanceOf(CompiledLayout::class)
         ->and($layout->compile())->not->toBe($layout->compile());
 });
 

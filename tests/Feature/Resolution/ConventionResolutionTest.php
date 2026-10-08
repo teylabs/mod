@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Gate;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryRegistrar;
 use Tey\Mod\Discovery\DiscoveryType;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Resolution\ModelConventions;
 use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
@@ -168,7 +168,7 @@ it('resolves factories and policies for a host that registers discovery itself',
         Factory::flushState();
 
         $application = $app->boot(['enabled' => false]);
-        DiscoveryRegistrar::register($application, $application->make(Preset::class), DiscoveryOptions::fromConfig([...(array) config('mod.discovery'), 'enabled' => true]));
+        DiscoveryRegistrar::register($application, $application->make(CompiledLayout::class), DiscoveryOptions::fromConfig([...(array) config('mod.discovery'), 'enabled' => true]));
 
         expect(Gate::policies())->toHaveKey($classes['model'])
             ->and(modelFactory($classes['model']))->toBeInstanceOf($classes['factory']);

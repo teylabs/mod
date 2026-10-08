@@ -4,7 +4,7 @@ use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryRegistrar;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\RejectionReason;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Tests\Feature\Discovery\Support\DiscoveryFixture;
 use Tey\Mod\Tests\Feature\Discovery\Support\Sources;
 use Tey\Mod\Tests\Fixtures\Layouts;
@@ -13,7 +13,7 @@ use Tey\Mod\Tests\Fixtures\Layouts;
  * The modules layout (app/Modules/<Module>), extended with two module-owned kinds
  * whose ids are not the default type names: discovery follows host settings.
  */
-function modulesTree(DiscoveryFixture $fx): Preset
+function modulesTree(DiscoveryFixture $fx): CompiledLayout
 {
     $definition = Layouts::definition('modules');
     $definition['kinds']['subscriber'] = ['shape' => 'class', 'name' => 'as-given', 'root' => 'app', 'segments' => ['Modules', '{module}', 'Listeners']];

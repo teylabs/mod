@@ -11,12 +11,12 @@ use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryRegistrar;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Exceptions\InvalidDiscoveryCache;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Tests\Feature\Discovery\Support\DiscoveryFixture;
 use Tey\Mod\Tests\Feature\Discovery\Support\Sources;
 use Tey\Mod\Tests\Fixtures\Layouts;
 
-function cacheTree(DiscoveryFixture $fx): Preset
+function cacheTree(DiscoveryFixture $fx): CompiledLayout
 {
     $fx->write('app/Providers/BillingServiceProvider.php', Sources::provider('App\\Providers', 'BillingServiceProvider', 'fixture.billing'))
         ->write('app/Console/Commands/SendInvoices.php', Sources::command('App\\Console\\Commands', 'SendInvoices', 'fixture:send-invoices'))
@@ -31,7 +31,7 @@ function cacheTree(DiscoveryFixture $fx): Preset
 /**
  * @param  array<string, mixed>  $config
  */
-function discoveryFor(DiscoveryFixture $fx, Preset $preset, array $config = []): Discovery
+function discoveryFor(DiscoveryFixture $fx, CompiledLayout $preset, array $config = []): Discovery
 {
     return new Discovery($preset, DiscoveryOptions::fromConfig($config), $fx->path());
 }

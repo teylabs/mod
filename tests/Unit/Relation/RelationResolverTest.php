@@ -1,9 +1,9 @@
 <?php
 
 use Tey\Mod\Exceptions\UnknownRelation;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\PlacementResolver;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Relation\NameDerivation;
 use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Relation\RelationResolver;
@@ -32,7 +32,7 @@ it('reports a target that cannot be placed instead of guessing', function () {
     // A command has no feature; relating it to a feature kind cannot resolve.
     $definition = Layouts::definition('feature-first');
     $definition['relations']['owner'] = ['from' => 'command', 'to' => 'model', 'scope' => 'same', 'mode' => 'reference'];
-    $preset = Preset::fromArray($definition);
+    $preset = CompiledLayout::fromArray($definition);
     $relations = new RelationResolver($preset, new PlacementResolver($preset));
 
     $resolution = $relations->resolve(place($preset, 'command', 'PruneInvoices'), 'owner');

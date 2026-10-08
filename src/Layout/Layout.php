@@ -7,7 +7,6 @@ use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Generation\StubRegistry;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Support\Path;
 
@@ -260,7 +259,7 @@ final class Layout
     /**
      * @throws InvalidLayout
      */
-    public function compile(): Preset
+    public function compile(): CompiledLayout
     {
         return (new LayoutCompiler($this))->compile();
     }

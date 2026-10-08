@@ -1,11 +1,10 @@
 <?php
 
 use Tey\Mod\Exceptions\InvalidLayout;
-use Tey\Mod\Exceptions\InvalidPreset;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Layout\Root;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Preset\PresetIssueCode;
 use Tey\Mod\Preset\PresetValidator;
 
@@ -88,9 +87,9 @@ it('validates placement options in the internal definition', function () {
         'kinds' => ['model' => ['shape' => 'class', 'root' => 'app', 'segments' => ['{module}']]],
     ];
 
-    expect(Preset::fromArray([...$definition, 'placement_options' => ['module' => 'area']])->placementOptions())->toBe(['module' => 'area'])
-        ->and(fn () => Preset::fromArray([...$definition, 'placement_options' => ['feature' => 'area']]))->toThrow(InvalidPreset::class, 'names no declared dimension')
-        ->and(fn () => Preset::fromArray([...$definition, 'placement_options' => 'area']))->toThrow(InvalidPreset::class, 'must be a map');
+    expect(CompiledLayout::fromArray([...$definition, 'placement_options' => ['module' => 'area']])->placementOptions())->toBe(['module' => 'area'])
+        ->and(fn () => CompiledLayout::fromArray([...$definition, 'placement_options' => ['feature' => 'area']]))->toThrow(InvalidLayout::class, 'names no declared dimension')
+        ->and(fn () => CompiledLayout::fromArray([...$definition, 'placement_options' => 'area']))->toThrow(InvalidLayout::class, 'must be a map');
 });
 
 it('reports a placement option that collides with an option of the generating command', function () {

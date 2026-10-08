@@ -5,7 +5,7 @@ namespace Tey\Mod\Discovery;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Testing\Fakes\EventFake;
 use Tey\Mod\Exceptions\InvalidDiscoveryCache;
-use Tey\Mod\Preset\Preset;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Support\Path;
 use WeakMap;
 
@@ -33,7 +33,7 @@ final class Discovery
     private WeakMap $dispatchers;
 
     public function __construct(
-        public readonly Preset $preset,
+        public readonly CompiledLayout $preset,
         public readonly DiscoveryOptions $options,
         public readonly string $basePath,
     ) {

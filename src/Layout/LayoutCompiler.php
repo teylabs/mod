@@ -6,7 +6,6 @@ use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Placement\Root as PlacementRoot;
 use Tey\Mod\Placement\Segment;
-use Tey\Mod\Preset\Preset;
 use Tey\Mod\Preset\PresetIssue;
 use Tey\Mod\Preset\PresetIssueCode;
 use Tey\Mod\Preset\PresetValidator;
@@ -34,7 +33,7 @@ final class LayoutCompiler
     /**
      * @throws InvalidLayout
      */
-    public function compile(): Preset
+    public function compile(): CompiledLayout
     {
         $this->issues = [];
         $chain = $this->layout->toArray();
@@ -91,7 +90,7 @@ final class LayoutCompiler
             throw new InvalidLayout($this->layout->name, $this->issues);
         }
 
-        return Preset::fromArray($definition);
+        return CompiledLayout::fromArray($definition);
     }
 
     /**
