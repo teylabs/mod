@@ -66,7 +66,7 @@ final class Kind
     }
 
     /** Place here under the same root when no placement is supplied. */
-    public function fallback(string $path): self
+    public function ungrouped(string $path): self
     {
         $this->fallback = $path;
 
@@ -177,15 +177,17 @@ final class Kind
     }
 
     /**
-     * Discover this kind anywhere below its dimension folders, not only in
-     * its own folder (eligibility still decides), skipping the given folders.
+     * Where discovery looks for this kind's classes: 'folder' (its own folder,
+     * the default) or 'anywhere' below its dimension folders, skipping the
+     * given folders (eligibility still decides).
      *
+     * @param  string  $where  'folder' or 'anywhere'
      * @param  list<string>  $except  folders relative to the dimension folder, e.g. ['Tests', 'Database/Migrations']
      */
-    public function discoverAnywhere(array $except = []): self
+    public function discover(string $where, array $except = []): self
     {
-        $this->discover = 'anywhere';
-        $this->except = $except;
+        $this->discover = $where === 'anywhere' ? 'anywhere' : null;
+        $this->except = $where === 'anywhere' ? $except : null;
 
         return $this;
     }

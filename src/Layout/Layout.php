@@ -77,14 +77,17 @@ final class Layout
     /**
      * An artifact kind. `in:` is its path below the root ("Http/Controllers/{area?}",
      * or "root:Path" for another root); the generating command defaults to mod:<id>.
-     * `nested: true` accepts nested names ("Billing/Invoice"); `discoverAnywhere: true`
-     * (with `except: [...]`) widens discovery to every file below the kind's
-     * dimension folders. A `{name+}` placeholder spans one or more folders.
+     * `nested: true` accepts nested names ("Billing/Invoice"); `discover: 'anywhere'`
+     * (with `discoverExcept: [...]`) widens discovery to every file below the
+     * kind's dimension folders, and `discover: 'folder'` (the default) keeps it
+     * to the kind's own folder. `ungrouped:` is where the kind goes when no
+     * placement is given. A `{name+}` placeholder spans one or more folders.
      * `aliases:` gives the command other names; `stub:` the stub its classes
      * are generated from (with variants and a base, see Stub); `label:` the
      * noun its command prints ("DTO [...] created successfully.").
      *
-     * @param  list<string>|null  $except  folders discovery skips, relative to the dimension folder
+     * @param  string|null  $discover  where discovery looks for the kind's classes: 'folder' or 'anywhere'
+     * @param  list<string>|null  $discoverExcept  folders discovery skips, relative to the dimension folder
      * @param  (Closure(Kind): mixed)|null  $using  for what the named arguments do not cover
      * @param  list<string>|null  $aliases  other names for the kind's command
      */
@@ -97,10 +100,10 @@ final class Layout
         string|false|null $command = null,
         ?int $priority = null,
         ?bool $nested = null,
-        ?bool $discoverAnywhere = null,
-        ?array $except = null,
+        ?string $discover = null,
+        ?array $discoverExcept = null,
         ?Closure $using = null,
-        ?string $fallback = null,
+        ?string $ungrouped = null,
         ?array $aliases = null,
         ?Stub $stub = null,
         ?string $label = null,
@@ -109,8 +112,8 @@ final class Layout
 
         $kind = $this->kinds[$id] ??= new Kind($id);
 
-        if ($fallback !== null) {
-            $kind->fallback($fallback);
+        if ($ungrouped !== null) {
+            $kind->ungrouped($ungrouped);
         }
 
         if ($in !== null) {
@@ -143,12 +146,16 @@ final class Layout
             $kind->nested($nested);
         }
 
-        if ($discoverAnywhere !== null || $except !== null) {
-            if ($discoverAnywhere === false) {
-                throw new ModException("File type [{$id}]: discoverAnywhere cannot be false; leave it out to discover the file type in its own folder only.");
-            }
+        if ($discover !== null && ! in_array($discover, ['folder', 'anywhere'], true)) {
+            throw new ModException("File type [{$id}]: discover must be 'folder' or 'anywhere'.");
+        }
 
-            $kind->discoverAnywhere($except ?? []);
+        if ($discoverExcept !== null && $discover !== 'anywhere') {
+            throw new ModException("File type [{$id}]: discoverExcept needs discover: 'anywhere'.");
+        }
+
+        if ($discover !== null) {
+            $kind->discover($discover, $discoverExcept ?? []);
         }
 
         if ($aliases !== null) {

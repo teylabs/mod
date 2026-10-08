@@ -22,7 +22,8 @@ final readonly class Root
     ) {}
 
     /**
-     * @param  list<string>|null  $except
+     * @param  string|null  $discover  'folder' or 'anywhere'
+     * @param  list<string>|null  $discoverExcept
      * @param  (Closure(Kind): mixed)|null  $using
      * @param  list<string>|null  $aliases
      */
@@ -35,21 +36,21 @@ final readonly class Root
         string|false|null $command = null,
         ?int $priority = null,
         ?bool $nested = null,
-        ?bool $discoverAnywhere = null,
-        ?array $except = null,
+        ?string $discover = null,
+        ?array $discoverExcept = null,
         ?Closure $using = null,
-        ?string $fallback = null,
+        ?string $ungrouped = null,
         ?array $aliases = null,
         ?Stub $stub = null,
         ?string $label = null,
     ): self {
-        $this->layout->kind($id, $in, $suffix, $fixed, $timestamped, $command, $priority, $nested, $discoverAnywhere, $except, function (Kind $kind) use ($using): void {
+        $this->layout->kind($id, $in, $suffix, $fixed, $timestamped, $command, $priority, $nested, $discover, $discoverExcept, function (Kind $kind) use ($using): void {
             $kind->withinRoot($this->name);
 
             if ($using !== null) {
                 $using($kind);
             }
-        }, $fallback, $aliases, $stub, $label);
+        }, $ungrouped, $aliases, $stub, $label);
 
         return $this;
     }

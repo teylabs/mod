@@ -281,17 +281,32 @@ it('compiles a fresh preset each time', function () {
         ->and($layout->compile())->not->toBe($layout->compile());
 });
 
-it('takes discoverAnywhere as a boolean and refuses false', function () {
+it('takes discover: anywhere or folder, with discoverExcept only for anywhere', function () {
     $preset = (new Layout('anywhere'))->root('app', 'App\\', 'app')
-        ->kind('provider', in: 'Providers', discoverAnywhere: true, except: ['Tests'])
+        ->kind('provider', in: 'Providers', discover: 'anywhere', discoverExcept: ['Tests'])
+        ->kind('listener', in: 'Listeners', discover: 'folder')
         ->compile();
-    $rule = $preset->rule('provider');
-    assert($rule instanceof TemplateRule);
+    $provider = $preset->rule('provider');
+    $listener = $preset->rule('listener');
+    assert($provider instanceof TemplateRule && $listener instanceof TemplateRule);
 
-    expect($rule->anywhere())->toBeTrue()
-        ->and($rule->except())->toBe(['Tests'])
-        ->and(fn () => (new Layout('no'))->root('app', 'App\\', 'app')->kind('provider', in: 'Providers', discoverAnywhere: false))
-        ->toThrow(ModException::class, 'discoverAnywhere cannot be false; leave it out to discover the file type in its own folder only');
+    expect($provider->anywhere())->toBeTrue()
+        ->and($provider->except())->toBe(['Tests'])
+        ->and($listener->anywhere())->toBeFalse()
+        ->and(fn () => (new Layout('no'))->root('app', 'App\\', 'app')->kind('provider', in: 'Providers', discover: 'everywhere'))
+        ->toThrow(ModException::class, "File type [provider]: discover must be 'folder' or 'anywhere'.")
+        ->and(fn () => (new Layout('no'))->root('app', 'App\\', 'app')->kind('provider', in: 'Providers', discoverExcept: ['Tests']))
+        ->toThrow(ModException::class, "File type [provider]: discoverExcept needs discover: 'anywhere'.");
+
+    // Back to its own folder.
+    $back = (new Layout('back'))->root('app', 'App\\', 'app')
+        ->kind('provider', in: 'Providers', discover: 'anywhere', discoverExcept: ['Tests'])
+        ->kind('provider', discover: 'folder')
+        ->compile()
+        ->rule('provider');
+    assert($back instanceof TemplateRule);
+
+    expect($back->anywhere())->toBeFalse();
 });
 
 it('lets kinds share a command name when the layout registers no commands', function () {

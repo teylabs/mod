@@ -5,7 +5,6 @@ use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\PresetFingerprint;
 use Tey\Mod\Exceptions\InvalidDiscoveryConfig;
-use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Exceptions\InvalidPreset;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
@@ -24,8 +23,8 @@ function anywhereLayout(): Preset
 {
     return (new Layout('anywhere'))
         ->root('src', 'Src\\', 'src', fn (Root $r) => $r
-            ->kind('provider', in: '{group+}/Providers', suffix: 'Provider', discoverAnywhere: true, except: ['Tests', 'Database/Migrations'])
-            ->kind('subscriber', in: '{group+}/Listeners', discoverAnywhere: true)
+            ->kind('provider', in: '{group+}/Providers', suffix: 'Provider', discover: 'anywhere', discoverExcept: ['Tests', 'Database/Migrations'])
+            ->kind('subscriber', in: '{group+}/Listeners', discover: 'anywhere')
             ->kind('model', in: '{group+}/Models')
             ->kind('migration', in: '{group+}/Database/Migrations', timestamped: true))
         ->compile();
@@ -96,7 +95,7 @@ it('refuses directory discovery of a class kind and class discovery of a file ki
 it('fingerprints nested, anywhere and multi-segment rules distinctly', function () {
     $plain = (new Layout('a'))->root('src', 'Src\\', 'src')->kind('provider', in: '{group}/Providers')->compile();
     $nested = (new Layout('b'))->root('src', 'Src\\', 'src')->kind('provider', in: '{group}/Providers', nested: true)->compile();
-    $anywhere = (new Layout('c'))->root('src', 'Src\\', 'src')->kind('provider', in: '{group}/Providers', discoverAnywhere: true, except: ['Tests'])->compile();
+    $anywhere = (new Layout('c'))->root('src', 'Src\\', 'src')->kind('provider', in: '{group}/Providers', discover: 'anywhere', discoverExcept: ['Tests'])->compile();
     $multi = (new Layout('d'))->root('src', 'Src\\', 'src')->kind('provider', in: '{group+}/Providers')->compile();
 
     $prints = array_map(PresetFingerprint::of(...), [$plain, $nested, $anywhere, $multi]);
@@ -104,9 +103,7 @@ it('fingerprints nested, anywhere and multi-segment rules distinctly', function 
     expect(count(array_unique($prints)))->toBe(4);
 });
 
-it('refuses except without anywhere and anywhere on a callback kind', function () {
-    expect(fn () => (new Layout('x'))->root('src', 'Src\\', 'src')->kind('provider', in: 'Providers', except: ['Tests'])->compile())
-        ->not->toThrow(InvalidLayout::class, 'except implies anywhere through the builder');
+it('refuses anywhere on a callback kind', function () {
 
     $callback = ['roots' => ['src' => ['namespace' => 'Src\\', 'path' => 'src']], 'kinds' => ['provider' => [
         'shape' => 'class', 'root' => 'src', 'discover' => 'anywhere',
@@ -124,7 +121,7 @@ it('refuses except without anywhere and anywhere on a callback kind', function (
 
 it('skips the excluded folders below the dimension folders of every built-in shape', function (string $layout, string $found, array $context, string $excluded, string $outside) {
     $registry = new LayoutRegistry;
-    $registry->layout($layout)->kind('provider', discoverAnywhere: true, except: ['Tests']);
+    $registry->layout($layout)->kind('provider', discover: 'anywhere', discoverExcept: ['Tests']);
     $preset = $registry->compile($layout);
     $rule = $preset->rule('provider');
     assert($rule instanceof TemplateRule);

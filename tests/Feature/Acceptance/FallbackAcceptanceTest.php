@@ -8,7 +8,7 @@ use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 it('generates, reverse maps and discovers both fallback and placed commands', function () {
     $layout = new LayoutUnderTest('fallback', fn () => Mod::layout('fallback')
         ->root('app', 'App\\', 'app', fn (Root $root) => $root
-            ->kind('command', in: 'Areas/{area}/Console/Commands', fallback: 'Console/Commands')));
+            ->kind('command', in: 'Areas/{area}/Console/Commands', ungrouped: 'Console/Commands')));
     AcceptanceApp::run($layout, function (AcceptanceApp $app) {
         $tag = $app->tag;
         $app->artisan('mod:command', ['name' => 'Global'.$tag])->assertSuccessful();

@@ -496,7 +496,7 @@ final class PresetValidator
 
         if ($place !== null) {
             if (isset($entry['fallback'])) {
-                $this->issue(PresetIssueCode::InvalidFallback, $subject, 'fallback needs a declarative placement, not a callback');
+                $this->issue(PresetIssueCode::InvalidFallback, $subject, 'ungrouped needs a declarative placement, not a callback');
 
                 return null;
             }
@@ -576,7 +576,7 @@ final class PresetValidator
             $path = $entry['fallback'];
 
             if (! is_string($path) || ($path !== '' && preg_match('#^[A-Za-z_][A-Za-z0-9_.-]*(/[A-Za-z_][A-Za-z0-9_.-]*)*$#', $path) !== 1)) {
-                $this->issue(PresetIssueCode::InvalidFallback, $subject, 'fallback must be a relative folder path under the same root, without placeholders');
+                $this->issue(PresetIssueCode::InvalidFallback, $subject, 'ungrouped must be a relative folder path under the same root, without placeholders');
 
                 return null;
             }
