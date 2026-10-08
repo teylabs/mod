@@ -90,7 +90,7 @@ function expectResolution(array $classes): void
 }
 
 it('resolves factories and policies by convention on every built-in layout', function (string $layout) {
-    AcceptanceApp::run($layout, function (AcceptanceApp $app) use ($layout) {
+    AcceptanceApp::run($layout, function (AcceptanceApp $app) {
         $app->boot();
         $classes = generateModelWithRelations($app, "Invoice{$app->tag}");
 
