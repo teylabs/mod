@@ -1,15 +1,19 @@
 {
     "name": "tey/mod",
-    "description": "A layout-neutral generation and discovery engine for Laravel applications.",
+    "description": "Lightweight toolkit for modular development in Laravel. Choose or extend common layouts like DDD and modular monoliths, or create your own.",
     "keywords": [
-        "tey",
         "laravel",
-        "mod",
         "modules",
-        "layout",
+        "modular",
+        "modular-monolith",
+        "feature-folders",
+        "vertical-slices",
+        "ddd",
+        "domain-driven-design",
         "generators",
-        "scaffolding",
-        "discovery"
+        "artisan",
+        "auto-discovery",
+        "scaffolding"
     ],
     "homepage": "https://github.com/teylabs/mod",
     "license": "MIT",
