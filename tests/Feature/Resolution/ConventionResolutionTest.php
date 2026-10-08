@@ -94,7 +94,8 @@ it('resolves factories and policies by convention on every built-in layout', fun
         $app->boot();
         $classes = generateModelWithRelations($app, "Invoice{$app->tag}");
 
-        expect($classes['policy'] === null)->toBe($layout === 'slices');
+        // Every built-in relates its model to a policy.
+        expect($classes['policy'])->not->toBeNull();
 
         // No cache: a cold scan pairs the model.
         $app->boot();
