@@ -584,7 +584,7 @@ final class PresetValidator
             $issues[$dimension] = new PresetIssue(
                 PresetIssueCode::PlacementOptionCollision,
                 $command,
-                "placeholder {{$dimension}} would add --{$option}, which {$command} already defines; it is left out (use --in or the \"Group:Name\" prefix), or rename it with ->placementOption('...', '{{$dimension}}')",
+                "placeholder {{$dimension}} would add --{$option}, which {$command} already defines. It is left out; use --in or the \"Group:Name\" prefix, or rename it with ->placementOption('...', '{{$dimension}}').",
             );
         }
 
@@ -628,7 +628,7 @@ final class PresetValidator
             }
 
             if (isset($owners[$option])) {
-                $this->issue(PresetIssueCode::InvalidDimension, "placement_options.{$name}", "option [--{$option}] is already the option of dimension [{$owners[$option]}]");
+                $this->issue(PresetIssueCode::InvalidDimension, "placement_options.{$name}", "--{$option} is already the option of {{$owners[$option]}}; pick another name for {{$name}}");
 
                 continue;
             }

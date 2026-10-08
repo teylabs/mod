@@ -23,7 +23,7 @@ it('rejects too many, malformed and dimensionless placements', function () {
         ->toThrow(InvalidPlacementOption::class, 'invalid value []');
 
     expect(fn () => PlacementContext::fromOption('Billing', Layouts::ordinary()))
-        ->toThrow(InvalidPlacementOption::class, 'declares no placement dimensions');
+        ->toThrow(InvalidPlacementOption::class, 'This layout takes no placement');
 });
 
 it('is an immutable value object', function () {

@@ -40,7 +40,7 @@ it('discovers global and feature commands in the built-in layouts while other ki
         $app->assertOwned($paths[0], 'command', [], $globalClass);
         $app->assertOwned($paths[1], 'command', ['feature' => 'Billing'], $placedClass);
         foreach (['provider', 'middleware'] as $kind) {
-            $app->artisan('mod:'.$kind, ['name' => 'Strict'.$tag])->expectsOutputToContain('[feature]')->assertFailed();
+            $app->artisan('mod:'.$kind, ['name' => 'Strict'.$tag])->expectsOutputToContain("mod:{$kind} needs a feature.")->assertFailed();
         }
         $app->boot();
         expect($app->hasArtisanCommand($globalClass))->toBeTrue()

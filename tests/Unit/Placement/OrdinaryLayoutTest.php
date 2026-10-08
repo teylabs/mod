@@ -53,7 +53,7 @@ it('gives a migration a file identity and keeps the timestamp semantics', functi
 
 it('refuses a placement value because the layout has no dimensions (no fake empty module)', function () {
     expect(fn () => place(Layouts::ordinary(), 'request', 'StoreInvoice', 'Billing'))
-        ->toThrow(InvalidPlacementOption::class, 'declares no placement dimensions');
+        ->toThrow(InvalidPlacementOption::class, 'This layout takes no placement, so drop --in=Billing.');
 
     expect(fn () => (new PlacementResolver(Layouts::ordinary()))->resolve(
         ArtifactRequest::for('request', 'StoreInvoice', PlacementContext::of(['feature' => 'Billing'])),

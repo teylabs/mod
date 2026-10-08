@@ -64,7 +64,19 @@ php artisan mod:migration Billing:create_invoices_table --create=invoices
 
 ### Placement
 
-Each placeholder the kind's path uses is also an option of its command, named after the placeholder. These three are the same:
+The `laravel` layout puts files exactly where `make:*` does. The other built-in layouts organize your app into groups, such as modules or features, so each generated file also needs to know which group it belongs to.
+
+Each way a layout groups your code is called a **dimension**. The `modules` layout has one dimension: the module. The `slices` layout has two: the feature, and inside it the slice. In a layout's paths, a dimension is written as a **placeholder** such as `{module}`. When you generate a file, you give it a **value** such as `Billing`.
+
+| Layout | Dimensions | A path it uses | A value |
+| --- | --- | --- | --- |
+| `laravel` | none | `app/Models` | none needed |
+| `modules` | module | `app/Modules/{module}/Models` | `Billing` |
+| `features` | feature | `app/Features/{feature}/Models` | `Billing` |
+| `slices` | feature, slice | `app/{feature}/{slice}` | `Billing`, `CreateInvoice` |
+| `type-first` | feature (optional) | `app/Models/{feature?}` | `Billing`, or nothing |
+
+Every placeholder a command's path uses is also an option of that command, with the same name. These three commands do the same thing:
 
 ```bash
 php artisan mod:model Invoice --module=Billing
@@ -72,12 +84,24 @@ php artisan mod:model Invoice --in=Billing
 php artisan mod:model Billing:Invoice
 ```
 
-- Use one form at a time; mixing them is refused.
-- `--in` takes every value in the layout's order, separated by `/`. Dimension options combine the same way: under `slices`, `--feature=Billing --slice=CreateInvoice` is `--in=Billing/CreateInvoice`.
-- In `Billing:Invoice`, the text before the first colon is the placement and the rest is the class name. A prefix on a layout without placement groups is refused.
-- A `{group+}` value spans folders: `--group=Billing.Invoicing` or `--group=Billing/Invoicing`.
-- Rename an option on the layout: `Mod::layout('modules')->placementOption('area')` gives `--area=`, and `->placementOption('topic', '{feature}')` renames one placeholder of several.
-- An option that would shadow one of the command's own, such as a `{model}` placeholder on `mod:controller` (which has `--model`), is left out and logged as a warning; `--in` and the prefix still work. Rename it with `->placementOption()`.
+- `--module=Billing` names the placeholder you are filling in. It is the easiest to read in scripts.
+- `--in=Billing` takes every value at once, in the layout's order.
+- `Billing:Invoice` is the short form: the value, a colon, then the class name.
+- Use one form at a time. Mixing them is refused.
+
+In the `slices` layout a request lives in a slice, inside a feature. Give both values:
+
+```bash
+php artisan mod:request CreateInvoice --feature=Billing --slice=CreateInvoice
+php artisan mod:request CreateInvoice --in=Billing/CreateInvoice
+php artisan mod:request Billing/CreateInvoice:CreateInvoice
+```
+
+With `--in` and the short form, the values follow the layout's order, feature first, separated by `/`. With the named options the order you type them in doesn't matter. A model in the same layout only reads the feature, so `mod:model` has `--feature` and no `--slice`.
+
+- `{feature?}` is optional. In `type-first`, `mod:model Invoice` writes `app/Models/Invoice.php`, and `mod:model Invoice --feature=Billing` writes `app/Models/Billing/Invoice.php`.
+- `{area+}` takes one or more folders. `--area=Reporting.Internal` and `--area=Reporting/Internal` both write into `.../Reporting/Internal/`.
+- When a layout declares a fallback for a kind, leaving the value out uses the fallback folder instead of refusing.
 
 - Companion options such as `--factory` and `--migration` follow the layout's relations, in every built-in layout. Under `modules`, `mod:model Billing:Invoice --factory --migration` writes `app/Modules/Billing/Database/Factories/InvoiceFactory.php`, with the model's `newFactory()` pointing at it, and a migration in `app/Modules/Billing/Database/Migrations/`.
 - Migrations a layout places outside `database/migrations` are added to the migrator, so `php artisan migrate` runs them (see Discovery).
@@ -143,13 +167,28 @@ The active layout is checked the first time it is used. Every problem is reporte
 
 ### Placeholders
 
-Placeholders in `in:` are the layout's placement values, in order of first appearance. That order is the order of values in `--in`.
+Placeholders in `in:` are the layout's dimensions, in order of first appearance. That order is the order of values in `--in`. Each one is also an option of the commands whose path uses it.
 
-| Placeholder | Meaning | `--in` |
+| Placeholder | Meaning | Value |
 | --- | --- | --- |
-| `{feature}` | required folder | `--in=Billing` |
-| `{feature?}` | optional folder | omit it, or `--in=Billing` |
-| `{group+}` | one or more folders | `--in=Billing.Invoicing` places `.../Billing/Invoicing/...` |
+| `{feature}` | required folder | `--feature=Billing` or `--in=Billing` |
+| `{feature?}` | optional folder | omit it, or `--feature=Billing` |
+| `{area+}` | one or more folders | `--area=Reporting.Internal` places `.../Reporting/Internal/...` |
+
+### Renaming an option
+
+An option is named after its placeholder. To call it something else, rename it on the layout:
+
+```php
+Mod::layout('modules')->placementOption('area');               // mod:model Invoice --area=Billing
+Mod::layout('slices')->placementOption('operation', '{slice}'); // --feature=Billing --operation=CreateInvoice
+```
+
+With one placeholder, you don't need to say which one. With several, name the placeholder you are renaming.
+
+### When a name is already taken
+
+Some Laravel commands already have an option that could share a placeholder's name. If your layout writes controllers to `Http/Controllers/{model}`, a `--model` option would clash with `make:controller --model`. mod keeps Laravel's option, leaves the placement option out, and logs a warning. `--in` and the short form still work. Rename the placeholder's option to get it back.
 
 ## Discovery
 
@@ -222,7 +261,7 @@ Every `mod:*` command is a subclass of the matching Laravel command, for example
 - **Placement:**
   - `placementInput()` returns the placement in `--in` syntax, for example from your own option or prompt;
   - `placementContext()`;
-  - `placementOptions()` returns the placement options to add, option name => the dimension it sets (`null` for `--in`). Return `[]` to add none, in which case child commands receive the `Group:Name` form.
+  - `placementOptions()` chooses which placement options a generator adds: option name => the dimension it sets, with `null` for `--in`. Return `[]` to add none; child commands then receive the `Group:Name` form. `Preset::dimensions()` lists the layout's dimensions in order, and `Preset::placementOptions()` maps each one to its option name.
 - **Layout and kind:** `resolvePreset()` and `kindId()`, for commands not registered through the layout.
 - **Collisions:** `collisionPolicy()` returns `CollisionPolicy::Refuse` (mod checks the whole plan before writing) or `CollisionPolicy::Native` (the native generator's own check and `--force` decide).
 - **Lifecycle:**

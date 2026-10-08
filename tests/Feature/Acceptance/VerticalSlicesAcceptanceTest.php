@@ -136,10 +136,10 @@ it('refuses, rejects and reports on vertical slices', function () {
             ->assertSuccessful();
 
         // Native controllers are feature-scoped and still require a placement.
-        $app->artisan('mod:controller', ['name' => 'Anything'])->expectsOutputToContain('[feature]')->assertFailed();
+        $app->artisan('mod:controller', ['name' => 'Anything'])->expectsOutputToContain('mod:controller needs a feature. Pass --feature=<feature>, --in=<feature>, or prefix the name: <feature>:Anything.')->assertFailed();
 
-        $app->artisan('mod:model', ['name' => "Invoice{$t}", '--in' => "Billing/{$slice}"])->expectsOutputToContain('[slice]')->assertFailed();
-        $app->artisan('mod:handler', ['name' => 'Handler', '--in' => 'Billing'])->expectsOutputToContain('[slice]')->assertFailed();
+        $app->artisan('mod:model', ['name' => "Invoice{$t}", '--in' => "Billing/{$slice}"])->expectsOutputToContain('mod:model does not use a slice in this layout. Leave the slice out.')->assertFailed();
+        $app->artisan('mod:handler', ['name' => 'Handler', '--in' => 'Billing'])->expectsOutputToContain('mod:handler needs a slice.')->assertFailed();
 
         // Excluded root: a real provider in app/Providers is not owned, never registered.
         $app->handWrite("app/Providers/Global{$t}ServiceProvider.php", 'App\Providers', "class Global{$t}ServiceProvider extends \\Illuminate\\Support\\ServiceProvider {}");

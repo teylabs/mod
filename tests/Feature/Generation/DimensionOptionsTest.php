@@ -180,7 +180,7 @@ it('accepts only one form of placement', function () {
         config()->set('mod.layout', 'modules');
 
         $workspace->artisan('mod:model', ['name' => 'Invoice', '--in' => 'Billing', '--module' => 'Shipping'])
-            ->expectsOutputToContain('Placement was given as --in=Billing and as --module=Shipping; use one of them.')
+            ->expectsOutputToContain('The placement was given twice, as --in=Billing and as --module=Shipping. Use one of them.')
             ->assertFailed();
 
         $workspace->artisan('mod:model', ['name' => 'Billing:Invoice', '--module' => 'Shipping'])
@@ -196,7 +196,7 @@ it('needs the earlier dimension options before a later one', function () {
         config()->set('mod.layout', 'slices');
 
         $workspace->artisan('mod:request', ['name' => 'CreateInvoice', '--slice' => 'CreateInvoice'])
-            ->expectsOutputToContain('Placement option --slice needs --feature as well: placement values are read in order (feature/slice).')
+            ->expectsOutputToContain("--slice needs --feature too: values are read in the layout's order (feature, then slice).")
             ->assertFailed();
 
         $workspace->artisan('mod:model', ['name' => 'Invoice', '--feature' => 'Billing/Invoicing'])
@@ -242,6 +242,10 @@ it('uses a renamed placement option', function () {
             ->and($definition->getOption('area')->getDescription())->toBe('Place in this module (same as --in)')
             ->and($workspace->artisan('mod:model', ['name' => 'Invoice', '--area' => 'Billing']))
             ->toHaveGenerated('app/Modules/Billing/Models/Invoice.php', 'App\\Modules\\Billing\\Models');
+
+        $workspace->artisan('mod:model', ['name' => 'Payment'])
+            ->expectsOutputToContain('mod:model needs a module. Pass --area=<module>, --in=<module>, or prefix the name: <module>:Payment.')
+            ->assertFailed();
     });
 });
 
@@ -264,7 +268,7 @@ it('never shadows a native option: a colliding dimension option is left out and 
         expect($adapter->getDefinition()->getOption('model')->getDescription())->toBe($native->getDefinition()->getOption('model')->getDescription())
             ->and($adapter->getDefinition()->getOption('model')->getShortcut())->toBe($native->getDefinition()->getOption('model')->getShortcut())
             ->and(array_map(static fn ($issue): string => $issue->describe(), $adapter->placementOptionIssues()))
-            ->toBe(["[placement-option-collision] mod:controller: placeholder {model} would add --model, which mod:controller already defines; it is left out (use --in or the \"Group:Name\" prefix), or rename it with ->placementOption('...', '{model}')"]);
+            ->toBe(["[placement-option-collision] mod:controller: placeholder {model} would add --model, which mod:controller already defines. It is left out; use --in or the \"Group:Name\" prefix, or rename it with ->placementOption('...', '{model}')."]);
 
         $log->shouldHaveReceived('warning')->withArgs(static fn (string $message): bool => str_contains($message, '[placement-option-collision] mod:controller'));
 

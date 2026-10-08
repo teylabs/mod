@@ -7,8 +7,10 @@ use Symfony\Component\Console\Input\InputOption;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\ArtifactRequest;
 use Tey\Mod\Artifact\ResolvedArtifact;
+use Tey\Mod\Exceptions\DimensionNotApplicable;
 use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Exceptions\InvalidPlacementOption;
+use Tey\Mod\Exceptions\MissingDimension;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\CollisionPolicy;
 use Tey\Mod\Generation\ExistingArtifacts;
@@ -227,9 +229,15 @@ trait InteractsWithPreset
 
         $dimensions = $this->modPreset?->dimensionNames() ?? [];
 
-        return $dimensions === []
-            ? 'Placement (this layout declares no placement groups)'
-            : 'Placement: '.implode('/', $dimensions).' values in that order, separated by "/" (folders inside a multi-segment value separated by "."); or prefix the name with "<placement>:"';
+        if ($dimensions === []) {
+            return 'Placement (this layout takes none)';
+        }
+
+        $multi = array_filter($this->preset()->dimensions(), static fn ($declared): bool => $declared->multi) !== [];
+
+        return 'The '.implode(' and ', $dimensions).' to place in. Every value in the layout\'s order, separated by "/"'
+            .($multi ? ' (a value spanning folders separates them with ".")' : '')
+            .'; or prefix the name with "<value>:"';
     }
 
     /**
@@ -307,7 +315,7 @@ trait InteractsWithPreset
 
         if ($prefix !== null && $this->preset()->dimensionNames() === []) {
             throw GenerationRefused::because(sprintf(
-                'Layout [%s] has no placement groups; drop the [%s:] prefix.',
+                'Layout [%s] takes no placement; drop the [%s:] prefix.',
                 $this->layoutName(),
                 $prefix,
             ));
@@ -607,11 +615,37 @@ trait InteractsWithPreset
      */
     protected function reportRefusal(ModException $exception): int
     {
-        foreach (explode(PHP_EOL, $exception->getMessage()) as $line) {
+        foreach (explode(PHP_EOL, $this->refusalMessage($exception)) as $line) {
             $this->components->error($line);
         }
 
         return $exception instanceof GenerationRefused && $exception->duplicatePrimary ? self::SUCCESS : self::FAILURE;
+    }
+
+    /**
+     * A refusal in this command's own words: a missing or unused placement
+     * value of the kind it generates names the command and its options.
+     */
+    protected function refusalMessage(ModException $exception): string
+    {
+        $placement = $exception instanceof MissingDimension || $exception instanceof DimensionNotApplicable;
+
+        if (! $placement || $this->modKind === null || $exception->kindId !== $this->kind()->id) {
+            return $exception->getMessage();
+        }
+
+        $command = (string) $this->getName();
+        $dimension = $exception->dimension;
+
+        if ($exception instanceof DimensionNotApplicable) {
+            return "{$command} does not use a {$dimension} in this layout. Leave the {$dimension} out.";
+        }
+
+        $option = array_search($dimension, $this->placementOptions(), true);
+        $ways = is_string($option) ? "--{$option}=<{$dimension}>, --in=<{$dimension}>" : "--in=<{$dimension}>";
+        $name = $this->shorthand()[1];
+
+        return "{$command} needs a {$dimension}. Pass {$ways}, or prefix the name: <{$dimension}>:".($name !== '' ? $name : 'Name').'.';
     }
 
     /**

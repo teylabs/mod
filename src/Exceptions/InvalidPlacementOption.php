@@ -6,7 +6,7 @@ final class InvalidPlacementOption extends ModException
 {
     public static function noDimensions(string $option): self
     {
-        return new self("Placement [{$option}] was given but this layout declares no placement dimensions.");
+        return new self("This layout takes no placement, so drop --in={$option}.");
     }
 
     /**
@@ -27,7 +27,7 @@ final class InvalidPlacementOption extends ModException
      */
     public static function oneOf(string $in, array $options): self
     {
-        return new self(sprintf('Placement was given as --in=%s and as %s; use one of them.', $in, implode(' ', $options)));
+        return new self(sprintf('The placement was given twice, as --in=%s and as %s. Use one of them.', $in, implode(' and as ', $options)));
     }
 
     /**
@@ -36,10 +36,10 @@ final class InvalidPlacementOption extends ModException
     public static function skipped(string $given, string $missing, array $dimensions): self
     {
         return new self(sprintf(
-            'Placement option --%s needs --%s as well: placement values are read in order (%s).',
+            '--%s needs --%s too: values are read in the layout\'s order (%s).',
             $given,
             $missing,
-            implode('/', $dimensions),
+            implode(', then ', $dimensions),
         ));
     }
 

@@ -95,7 +95,7 @@ it('describes --in with the preset dimensions', function () {
     Workspace::run('vertical-slices', function () {
         $option = Artisan::all()['mod:request']->getDefinition()->getOption('in');
 
-        expect($option->getDescription())->toContain('feature/slice');
+        expect($option->getDescription())->toContain('The feature and slice to place in.');
     });
 });
 

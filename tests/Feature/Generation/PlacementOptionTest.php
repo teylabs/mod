@@ -9,7 +9,7 @@ use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 it('requires a placement value the rule needs', function () {
     Workspace::run('modules', function (Workspace $workspace) {
         $workspace->artisan('mod:model', ['name' => 'Invoice'])
-            ->expectsOutputToContain('Artifact kind [model] requires a [module] placement value; pass it with --in.')
+            ->expectsOutputToContain('mod:model needs a module. Pass --module=<module>, --in=<module>, or prefix the name: <module>:Invoice.')
             ->assertFailed();
 
         expect($workspace->files())->toBe([]);
@@ -19,7 +19,7 @@ it('requires a placement value the rule needs', function () {
 it('rejects a placement value the rule does not read', function () {
     Workspace::run('vertical-slices', function (Workspace $workspace) {
         $workspace->artisan('mod:model', ['name' => 'Invoice', '--in' => 'Billing/CreateInvoice'])
-            ->expectsOutputToContain('[slice]')
+            ->expectsOutputToContain('mod:model does not use a slice in this layout. Leave the slice out.')
             ->assertFailed();
 
         expect($workspace->files())->toBe([]);

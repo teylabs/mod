@@ -68,12 +68,12 @@ it('refuses placement given both as the prefix and as --in, naming both', functi
     });
 });
 
-it('refuses the shorthand in a layout without placement groups, actionably', function () {
+it('refuses the shorthand in a layout that takes no placement, actionably', function () {
     Workspace::run('ordinary', function (Workspace $workspace) {
         config()->set('mod.layout', 'laravel');
 
         $workspace->artisan('mod:model', ['name' => 'Billing:Invoice'])
-            ->expectsOutputToContain('Layout [laravel] has no placement groups; drop the [Billing:] prefix.')
+            ->expectsOutputToContain('Layout [laravel] takes no placement; drop the [Billing:] prefix.')
             ->assertFailed();
 
         expect($workspace->files())->toBe([]);

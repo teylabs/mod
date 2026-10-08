@@ -122,10 +122,10 @@ it('refuses, rejects and reports on feature-first', function () {
             ->expectsOutputToContain("path collision: app/Features/Billing/Providers/Billing{$t}ServiceProvider.php already exists")
             ->assertSuccessful();
 
-        $app->artisan('mod:seeder', ['name' => 'Anything'])->expectsOutputToContain('[feature]')->assertFailed();
+        $app->artisan('mod:seeder', ['name' => 'Anything'])->expectsOutputToContain('mod:seeder needs a feature.')->assertFailed();
 
         $app->artisan('mod:model', ['name' => "Invoice{$t}"])
-            ->expectsOutputToContain('requires a [feature] placement value; pass it with --in.')
+            ->expectsOutputToContain("mod:model needs a feature. Pass --feature=<feature>, --in=<feature>, or prefix the name: <feature>:Invoice{$t}.")
             ->assertFailed();
         $app->artisan('mod:command', ['name' => "Prune{$t}", '--in' => 'Billing'])->assertSuccessful();
 

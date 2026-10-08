@@ -77,7 +77,7 @@ it('refuses a rename of an unused placeholder, a malformed name and a duplicate 
     expect(placementOptionsLayoutError(fn (Layout $layout) => $layout
         ->root('app', 'App\\', 'app', fn (Root $root) => $root->kind('model', in: '{feature}/{slice}'))
         ->placementOption('feature', '{slice}')))
-        ->toContain('option [--feature] is already the option of dimension [feature]');
+        ->toContain('--feature is already the option of {feature}; pick another name for {slice}');
 });
 
 it('validates placement options in the internal definition', function () {

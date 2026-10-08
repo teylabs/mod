@@ -136,7 +136,7 @@ it('refuses, rejects and reports on the modules layout', function () {
             ->and(fn () => $app->artisan('mod:widget', ['name' => 'Anything']))->toThrow(CommandNotFoundException::class);
 
         $app->artisan('mod:model', ['name' => "Invoice{$t}"])
-            ->expectsOutputToContain('requires a [module] placement value; pass it with --in.')
+            ->expectsOutputToContain("mod:model needs a module. Pass --module=<module>, --in=<module>, or prefix the name: <module>:Invoice{$t}.")
             ->assertFailed();
         $app->artisan('mod:model', ['name' => "Billing/Invoice{$t}"])->expectsOutputToContain('--in=<module>')->assertFailed();
 
