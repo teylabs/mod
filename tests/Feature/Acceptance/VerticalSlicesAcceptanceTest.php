@@ -139,7 +139,16 @@ it('refuses, rejects and reports on vertical slices', function () {
         $app->artisan('mod:controller', ['name' => 'Anything'])->expectsOutputToContain('mod:controller needs a feature. Pass --feature=<feature>, --in=<feature>, or prefix the name: <feature>:Anything.')->assertFailed();
 
         $app->artisan('mod:model', ['name' => "Invoice{$t}", '--in' => "Billing/{$slice}"])->expectsOutputToContain('mod:model does not use a slice in this layout. Leave the slice out.')->assertFailed();
-        $app->artisan('mod:handler', ['name' => 'Handler', '--in' => 'Billing'])->expectsOutputToContain('mod:handler needs a slice.')->assertFailed();
+        // The fix names every value a slice needs, in --in order.
+        $app->artisan('mod:handler', ['name' => 'Handler', '--in' => 'Billing'])
+            ->expectsOutputToContain('mod:handler needs a slice. Pass --feature=<feature> --slice=<slice>, --in=<feature>/<slice>, or prefix the name: <feature>/<slice>:Handler.')
+            ->assertFailed();
+        $app->artisan('mod:handler', ['name' => 'Handler', '--feature' => 'Billing'])
+            ->expectsOutputToContain('mod:handler needs a slice. Pass --feature=<feature> --slice=<slice>, --in=<feature>/<slice>, or prefix the name: <feature>/<slice>:Handler.')
+            ->assertFailed();
+        $app->artisan('mod:handler', ['name' => 'Handler'])
+            ->expectsOutputToContain('mod:handler needs a feature. Pass --feature=<feature> --slice=<slice>, --in=<feature>/<slice>, or prefix the name: <feature>/<slice>:Handler.')
+            ->assertFailed();
 
         // Excluded root: a real provider in app/Providers is not owned, never registered.
         $app->handWrite("app/Providers/Global{$t}ServiceProvider.php", 'App\Providers', "class Global{$t}ServiceProvider extends \\Illuminate\\Support\\ServiceProvider {}");

@@ -19,6 +19,7 @@ use Tey\Mod\Placement\CollisionDiagnoser;
 use Tey\Mod\Placement\CollisionKind;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\PlacementResolver;
+use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Preset\Preset;
 use Tey\Mod\Preset\PresetIssue;
 use Tey\Mod\Preset\PresetValidator;
@@ -641,11 +642,57 @@ trait InteractsWithPreset
             return "{$command} does not use a {$dimension} in this layout. Leave the {$dimension} out.";
         }
 
-        $option = array_search($dimension, $this->placementOptions(), true);
-        $ways = is_string($option) ? "--{$option}=<{$dimension}>, --in=<{$dimension}>" : "--in=<{$dimension}>";
+        // The fix names every value the path needs, in --in order: slices
+        // need <feature>/<slice>, not just the missing slice.
+        $needed = $this->requiredDimensions();
+
+        if (! in_array($dimension, $needed, true)) {
+            $needed = [$dimension];
+        }
+
+        $placement = implode('/', array_map(static fn (string $name): string => "<{$name}>", $needed));
+        $options = [];
+
+        foreach ($needed as $name) {
+            $option = array_search($name, $this->placementOptions(), true);
+
+            if (! is_string($option)) {
+                $options = [];
+
+                break;
+            }
+
+            $options[] = "--{$option}=<{$name}>";
+        }
+
+        $ways = $options === [] ? "--in={$placement}" : implode(' ', $options).", --in={$placement}";
         $name = $this->shorthand()[1];
 
-        return "{$command} needs a {$dimension}. Pass {$ways}, or prefix the name: <{$dimension}>:".($name !== '' ? $name : 'Name').'.';
+        return "{$command} needs a {$dimension}. Pass {$ways}, or prefix the name: {$placement}:".($name !== '' ? $name : 'Name').'.';
+    }
+
+    /**
+     * The dimensions the bound kind's path cannot do without, in --in order.
+     *
+     * @return list<string>
+     */
+    private function requiredDimensions(): array
+    {
+        $rule = $this->preset()->rule($this->kind()->id);
+
+        if (! $rule instanceof TemplateRule) {
+            return [];
+        }
+
+        $required = [];
+
+        foreach ($rule->segments() as $segment) {
+            if ($segment->dimension !== null && $segment->required) {
+                $required[] = $segment->dimension;
+            }
+        }
+
+        return array_values(array_filter($this->kindDimensions(), static fn (string $name): bool => in_array($name, $required, true)));
     }
 
     /**
