@@ -134,7 +134,7 @@ it('refuses, rejects and reports on vertical slices', function () {
 
         $app->artisan('mod:message', ['name' => 'Command', '--in' => "Billing/{$slice}"])
             ->expectsOutputToContain("path collision: app/Billing/{$slice}/Command.php already exists")
-            ->assertFailed();
+            ->assertSuccessful();
 
         // No controller kind in this layout.
         expect(fn () => $app->artisan('mod:controller', ['name' => 'Anything']))->toThrow(CommandNotFoundException::class);

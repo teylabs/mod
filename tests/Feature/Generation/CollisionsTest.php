@@ -13,7 +13,7 @@ it('refuses to overwrite an existing file, and overwrites it with --force', func
 
         $workspace->artisan('mod:model', ['name' => 'Invoice', '--in' => 'Billing'])
             ->expectsOutputToContain('Refusing to write: path collision: app/Modules/Billing/Models/Invoice.php already exists')
-            ->assertFailed();
+            ->assertSuccessful();
 
         expect($workspace->read('app/Modules/Billing/Models/Invoice.php'))->toBe('<?php // mine');
 

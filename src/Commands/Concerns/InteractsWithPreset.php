@@ -13,6 +13,7 @@ use Tey\Mod\Generation\CollisionPolicy;
 use Tey\Mod\Generation\ExistingArtifacts;
 use Tey\Mod\Generation\GenerationPlan;
 use Tey\Mod\Placement\CollisionDiagnoser;
+use Tey\Mod\Placement\CollisionKind;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\PlacementResolver;
 use Tey\Mod\Preset\Preset;
@@ -449,7 +450,11 @@ trait InteractsWithPreset
         $collisions = $plan->collisions(new CollisionDiagnoser, $this->existingArtifacts(), $overwritePrimary);
 
         if ($collisions !== []) {
-            throw GenerationRefused::collisions($collisions);
+            throw GenerationRefused::collisions($collisions,
+                duplicatePrimary: ! $overwritePrimary && count($collisions) === 1
+                    && $collisions[0]->kind === CollisionKind::Path
+                    && $collisions[0]->artifact->equals($plan->primary),
+            );
         }
     }
 
@@ -462,7 +467,7 @@ trait InteractsWithPreset
             $this->components->error($line);
         }
 
-        return self::FAILURE;
+        return $exception instanceof GenerationRefused && $exception->duplicatePrimary ? self::SUCCESS : self::FAILURE;
     }
 
     /**

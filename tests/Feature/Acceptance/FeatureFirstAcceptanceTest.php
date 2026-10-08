@@ -120,7 +120,7 @@ it('refuses, rejects and reports on feature-first', function () {
 
         $app->artisan('mod:provider', ['name' => "Billing{$t}", '--in' => 'Billing'])
             ->expectsOutputToContain("path collision: app/Features/Billing/Providers/Billing{$t}ServiceProvider.php already exists")
-            ->assertFailed();
+            ->assertSuccessful();
 
         expect(fn () => $app->artisan('mod:seeder', ['name' => 'Anything']))->toThrow(CommandNotFoundException::class);
 

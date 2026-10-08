@@ -104,7 +104,21 @@ trait PlacesGeneratedClass
         $plan = $this->plan();
         // Read through the input itself: not every adapter's native command declares --force.
         $force = $this->input->hasOption('force') && (bool) $this->input->getOption('force');
-        $this->refuseCollisions($plan, $force);
+        // Let native placement handle its own duplicate; custom placement keeps
+        // the whole-plan refusal and reports the same successful exit code.
+        $this->plan = $plan;
+        try {
+            $nativeDuplicate = ! $force
+                && $this->existingArtifacts()->absolute($plan->primary->path()) === parent::getPath(parent::qualifyClass($this->getNameInput()))
+                && $this->alreadyExists($this->getNameInput());
+        } finally {
+            $this->plan = null;
+        }
+
+        if (! $nativeDuplicate) {
+            $this->refuseCollisions($plan, $force);
+        }
+
         $this->plan = $plan;
         $this->beforeGeneration($plan);
 

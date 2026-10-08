@@ -120,8 +120,8 @@ it('refuses, rejects and reports on ordinary Laravel', function () {
 
         // Collision: generating the same artifact again is refused before any write.
         $app->artisan('mod:model', ['name' => "Invoice{$t}"])
-            ->expectsOutputToContain("path collision: app/Models/Invoice{$t}.php already exists")
-            ->assertFailed();
+            ->expectsOutputToContain('Model already exists.')
+            ->assertSuccessful();
         expect($app->read("app/Models/Invoice{$t}.php"))->toBe($before);
 
         // Unknown kind: the layout declares no handler, so there is no mod:handler.
