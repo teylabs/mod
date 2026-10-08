@@ -20,7 +20,7 @@ use Tey\Mod\Support\Path;
  *             ->kind('controller', in: 'Reports/{area}/Controllers', suffix: 'Controller'))
  *         ->root('factories', 'Database\\Factories\\', 'database/factories')
  *         ->kind('factory', in: 'factories:{area}', suffix: 'Factory')
- *         ->relation('factory', from: 'model', to: 'factory')
+ *         ->relation('model-factory', from: 'model', to: 'factory')
  *         ->exclude('App\\Support\\');
  *
  * Placeholders such as {area} or {area?} are the layout's placement

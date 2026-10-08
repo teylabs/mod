@@ -54,7 +54,7 @@ it('keeps relations inside the feature', function () {
 
     expect($relations->resolve($model, 'factory')->target?->fqcn())->toBe('App\Features\Billing\Database\Factories\InvoiceFactory')
         ->and($relations->resolve($model, 'policy')->target?->fqcn())->toBe('App\Features\Billing\Policies\InvoicePolicy')
-        ->and($relations->resolve(place($preset, 'controller', 'Invoice', 'Billing'), 'store-request')->target?->fqcn())
+        ->and($relations->resolve(place($preset, 'controller', 'Invoice', 'Billing'), 'controller-store-request')->target?->fqcn())
         ->toBe('App\Features\Billing\Http\Requests\StoreInvoiceRequest');
 });
 

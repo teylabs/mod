@@ -15,7 +15,7 @@ it('ships the common native kinds in every built-in', function (string $name) {
         ->and($preset->hasKind('view'))->toBeFalse()
         ->and($preset->roots()['tests']->namespace)->toBe('Tests\\')
         ->and($preset->roots()['tests']->path)->toBe('tests');
-    foreach (['factory', 'seeder', 'policy', 'controller', 'migration'] as $relation) {
+    foreach (['model-factory', 'model-seeder', 'model-policy', 'model-controller', 'model-migration'] as $relation) {
         expect($preset->relation($relation)->mode)->toBe(RelationMode::Generate);
     }
 })->with(['laravel', 'features', 'slices', 'type-first', 'modules']);
@@ -26,3 +26,31 @@ it('gives every built-in layout its own registry copy', function () {
     expect((new LayoutRegistry)->compile('modules')->hasKind('report'))->toBeFalse()
         ->and($first->compile('modules')->hasKind('report'))->toBeTrue();
 });
+
+it('names every built-in relation <from>-<to>[-qualifier], meaning the same in every layout', function (string $layout, array $extra) {
+    $companions = [
+        'model-factory' => ['model', 'factory'],
+        'model-seeder' => ['model', 'seeder'],
+        'model-policy' => ['model', 'policy'],
+        'model-controller' => ['model', 'controller'],
+        'model-migration' => ['model', 'migration'],
+        'factory-model' => ['factory', 'model'],
+        'listener-event' => ['listener', 'event'],
+        'controller-store-request' => ['controller', 'request'],
+        'model-store-request' => ['model', 'request'],
+    ];
+    $relations = [];
+
+    foreach ((new LayoutRegistry)->compile($layout)->relations() as $relation) {
+        $relations[$relation->id] = [$relation->fromKind, $relation->toKind];
+    }
+
+    expect($relations)->toEqualCanonicalizing([...$companions, ...$extra]);
+})->with([
+    'laravel' => ['laravel', ['controller-update-request' => ['controller', 'request'], 'model-update-request' => ['model', 'request']]],
+    'features' => ['features', ['controller-update-request' => ['controller', 'request'], 'model-update-request' => ['model', 'request']]],
+    'type-first' => ['type-first', ['controller-update-request' => ['controller', 'request'], 'model-update-request' => ['model', 'request']]],
+    'modules' => ['modules', ['controller-update-request' => ['controller', 'request'], 'model-update-request' => ['model', 'request']]],
+    'ddd' => ['ddd', ['controller-update-request' => ['controller', 'request'], 'model-update-request' => ['model', 'request']]],
+    'slices' => ['slices', ['handler-request' => ['handler', 'request'], 'request-model' => ['request', 'model']]],
+]);

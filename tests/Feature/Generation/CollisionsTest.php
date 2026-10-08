@@ -56,7 +56,7 @@ it('refuses the whole plan when a related artifact collides', function () {
 
 it('refuses related artifacts that collide with each other', function () {
     $definition = Layouts::definition('modules');
-    $definition['relations']['update-request']['name'] = ['prefix' => 'Store'];
+    $definition['relations']['controller-update-request']['name'] = ['prefix' => 'Store'];
 
     Workspace::run($definition, function (Workspace $workspace) {
         $workspace->write('app/Modules/Billing/Models/Invoice.php', "<?php\n\nnamespace App\\Modules\\Billing\\Models;\n\nclass Invoice {}\n");

@@ -137,8 +137,8 @@ it('exposes kinds, rules and relations by id', function () {
         ->and($preset->hasKind('repository'))->toBeFalse()
         ->and($preset->kind('controller')->command)->toBe('mod:controller')
         ->and($preset->rule('factory')->root()->path)->toBe('database/factories')
-        ->and(array_keys($preset->relations()))->toBe(['factory', 'model', 'policy', 'store-request', 'update-request'])
-        ->and(array_map(fn ($r) => $r->id, $preset->relationsFrom('controller')))->toBe(['store-request', 'update-request'])
+        ->and(array_keys($preset->relations()))->toBe(['factory', 'model', 'policy', 'controller-store-request', 'controller-update-request'])
+        ->and(array_map(fn ($r) => $r->id, $preset->relationsFrom('controller')))->toBe(['controller-store-request', 'controller-update-request'])
         ->and(count($preset->roots()))->toBe(4)
         ->and($preset->dimensions())->toBe([]);
 });

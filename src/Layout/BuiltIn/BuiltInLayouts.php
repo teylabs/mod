@@ -162,11 +162,10 @@ final readonly class BuiltInLayouts
                 ->kind('test', in: 'Feature/{feature}/{slice?}'));
 
         $this->companions($layout, singleRequest: true)
-            ->relation('factory-model', from: 'factory', to: 'model', mode: 'reference')
-            ->relation('store-request', scope: ['keep' => ['feature'], 'name' => 'slice'])
+            ->relation('controller-store-request', scope: ['keep' => ['feature'], 'name' => 'slice'])
             ->relation('model-store-request', scope: ['keep' => ['feature'], 'name' => 'slice'])
-            ->relation('request', from: 'handler', to: 'request')
-            ->relation('model', from: 'request', to: 'model', scope: ['feature'], name: 'explicit', mode: 'reference');
+            ->relation('handler-request', from: 'handler', to: 'request')
+            ->relation('request-model', from: 'request', to: 'model', scope: ['feature'], name: 'explicit', mode: 'reference');
 
         return $layout
             ->exclude('App\\Http\\', 'App\\Providers\\', 'App\\Support\\');
@@ -310,19 +309,19 @@ final readonly class BuiltInLayouts
     private function companions(Layout $layout, bool $singleRequest = false): Layout
     {
         $layout
-            ->relation('factory', from: 'model', to: 'factory')
-            ->relation('seeder', from: 'model', to: 'seeder')
-            ->relation('policy', from: 'model', to: 'policy')
-            ->relation('controller', from: 'model', to: 'controller')
-            ->relation('migration', from: 'model', to: 'migration', name: 'explicit')
-            ->relation('model', from: 'factory', to: 'model', mode: 'reference')
-            ->relation('event', from: 'listener', to: 'event', name: 'explicit', mode: 'reference')
-            ->relation('store-request', from: 'controller', to: 'request', name: ['prefix' => 'Store'])
+            ->relation('model-factory', from: 'model', to: 'factory')
+            ->relation('model-seeder', from: 'model', to: 'seeder')
+            ->relation('model-policy', from: 'model', to: 'policy')
+            ->relation('model-controller', from: 'model', to: 'controller')
+            ->relation('model-migration', from: 'model', to: 'migration', name: 'explicit')
+            ->relation('factory-model', from: 'factory', to: 'model', mode: 'reference')
+            ->relation('listener-event', from: 'listener', to: 'event', name: 'explicit', mode: 'reference')
+            ->relation('controller-store-request', from: 'controller', to: 'request', name: ['prefix' => 'Store'])
             ->relation('model-store-request', from: 'model', to: 'request', name: ['prefix' => 'Store']);
 
         if (! $singleRequest) {
             $layout
-                ->relation('update-request', from: 'controller', to: 'request', name: ['prefix' => 'Update'])
+                ->relation('controller-update-request', from: 'controller', to: 'request', name: ['prefix' => 'Update'])
                 ->relation('model-update-request', from: 'model', to: 'request', name: ['prefix' => 'Update']);
         }
 

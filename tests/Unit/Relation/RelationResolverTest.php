@@ -18,7 +18,7 @@ it('throws for an undeclared relation and reports an inapplicable one', function
 
     expect(fn () => $relations->resolve($model, 'seeder'))->toThrow(UnknownRelation::class, '[seeder]');
 
-    $wrong = $relations->resolve($model, 'store-request');
+    $wrong = $relations->resolve($model, 'controller-store-request');
 
     expect($wrong->status)->toBe(RelationStatus::Unresolved)
         ->and($wrong->target)->toBeNull()

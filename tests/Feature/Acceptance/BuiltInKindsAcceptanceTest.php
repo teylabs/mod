@@ -188,7 +188,7 @@ it('generates standalone model request companions in every built-in', function (
             expect($app->root->path($folder.'/'.$request.'.php'))->toBeValidPhp();
         }
         if ($layout === 'slices') {
-            expect(array_keys($app->preset->relations()))->not->toContain('update-request', 'model-update-request');
+            expect(array_keys($app->preset->relations()))->not->toContain('controller-update-request', 'model-update-request');
         }
     });
 })->with(['laravel', 'features', 'slices', 'type-first', 'modules', 'ddd']);

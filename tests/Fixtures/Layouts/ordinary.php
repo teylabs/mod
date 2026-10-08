@@ -29,7 +29,7 @@ return [
         'factory' => ['from' => 'model', 'to' => 'factory', 'scope' => 'same', 'mode' => 'generate'],
         'model' => ['from' => 'factory', 'to' => 'model', 'scope' => 'same', 'mode' => 'reference'],
         'policy' => ['from' => 'model', 'to' => 'policy', 'scope' => 'same', 'mode' => 'reference'],
-        'store-request' => ['from' => 'controller', 'to' => 'request', 'scope' => 'same', 'name' => ['prefix' => 'Store'], 'mode' => 'generate'],
-        'update-request' => ['from' => 'controller', 'to' => 'request', 'scope' => 'same', 'name' => ['prefix' => 'Update'], 'mode' => 'generate'],
+        'controller-store-request' => ['from' => 'controller', 'to' => 'request', 'scope' => 'same', 'name' => ['prefix' => 'Store'], 'mode' => 'generate'],
+        'controller-update-request' => ['from' => 'controller', 'to' => 'request', 'scope' => 'same', 'name' => ['prefix' => 'Update'], 'mode' => 'generate'],
     ],
 ];

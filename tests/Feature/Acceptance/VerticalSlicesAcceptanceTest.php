@@ -74,8 +74,8 @@ it('runs the whole loop on vertical slices', function () {
         // Relations from the generated handler: its request (same slice) and the request's feature-scoped model.
         $handler = $app->mapPath("app/Billing/{$slice}/Handler.php")->artifact;
         $relations = new RelationResolver($app->preset, new PlacementResolver($app->preset));
-        $request = $relations->resolve($handler ?? throw new RuntimeException('unmapped handler'), 'request');
-        $model = $relations->resolve($request->target ?? throw new RuntimeException('unresolved request'), 'model', "Invoice{$t}");
+        $request = $relations->resolve($handler ?? throw new RuntimeException('unmapped handler'), 'handler-request');
+        $model = $relations->resolve($request->target ?? throw new RuntimeException('unresolved request'), 'request-model', "Invoice{$t}");
 
         expect($request->status)->toBe(RelationStatus::Resolved)
             ->and($request->target->fqcn())->toBe("{$sliceNs}\\Request")
