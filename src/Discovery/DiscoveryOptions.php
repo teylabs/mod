@@ -169,7 +169,10 @@ final readonly class DiscoveryOptions
 
         foreach ($this->kinds as $kindId => $type) {
             if (! $preset->hasKind($kindId)) {
-                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", 'the active layout does not declare this kind');
+                $declared = array_keys($preset->kinds());
+                sort($declared);
+
+                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", "the active layout has no [{$kindId}] kind. Map one of its kind ids: ".implode(', ', $declared));
             }
 
             if ($type === false) {

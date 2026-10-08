@@ -5,6 +5,7 @@ use Tey\Mod\Discovery\DiscoveryDefinition;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Exceptions\InvalidDiscoveryConfig;
+use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Tests\Fixtures\Layouts;
 
 /**
@@ -80,6 +81,21 @@ it('rejects kinds the preset cannot discover', function (array $kinds, string $m
     expect(fn () => DiscoveryOptions::fromConfig(['kinds' => $kinds])->definitionsFor(Layouts::ordinary()))
         ->toThrow(InvalidDiscoveryConfig::class, $message);
 })->with([
-    [['handler' => 'command'], '[mod.discovery.kinds.handler]: the active layout does not declare this kind'],
+    [['handler' => 'command'], '[mod.discovery.kinds.handler]: the active layout has no [handler] kind'],
     [['migration' => 'listener'], 'only class kinds can be discovered'],
 ]);
+
+it('names the kinds a layout has when the config maps one it lacks', function (string $layout) {
+    $preset = (new LayoutRegistry)->compile($layout);
+
+    expect(fn () => DiscoveryOptions::fromConfig(['kinds' => ['console' => 'command']])->definitionsFor($preset))
+        ->toThrow(InvalidDiscoveryConfig::class, 'Invalid discovery configuration [mod.discovery.kinds.console]: the active layout has no [console] kind. Map one of its kind ids: ');
+
+    try {
+        DiscoveryOptions::fromConfig(['kinds' => ['console' => 'command']])->definitionsFor($preset);
+    } catch (InvalidDiscoveryConfig $exception) {
+        foreach (array_keys($preset->kinds()) as $kind) {
+            expect($exception->getMessage())->toContain($kind);
+        }
+    }
+})->with(['laravel', 'features', 'slices', 'type-first', 'modules', 'ddd']);
