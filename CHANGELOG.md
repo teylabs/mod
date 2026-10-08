@@ -2,7 +2,7 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## [0.1.0] - YYYY-MM-DD
+## [0.1.0] - 2026-10-08
 
 The first release.
 
