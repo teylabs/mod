@@ -45,6 +45,24 @@ final readonly class Inventory
     }
 
     /**
+     * A relation type's pairs: model class => related class.
+     *
+     * @return array<string, string>
+     */
+    public function pairs(DiscoveryType $type): array
+    {
+        $pairs = [];
+
+        foreach ($this->ofType($type) as $entry) {
+            if ($entry->target !== null) {
+                $pairs[$entry->class] = $entry->target;
+            }
+        }
+
+        return $pairs;
+    }
+
+    /**
      * The directories a file kind's discovery collected (DiscoveryType::Directory), sorted.
      *
      * @return list<string>

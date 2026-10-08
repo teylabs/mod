@@ -42,6 +42,10 @@ return [
         // 'scan' ignores a stale or foreign cache file, scans instead (never rewriting the file) and
         // warns; 'fail' refuses to boot until the cache is rebuilt (mod:discovery-cache) or removed.
         'on_stale_cache' => 'scan',
+        // Models placed by the layout get their factory (Model::factory(), no newFactory() needed)
+        // and their policy (Gate::policy) through the layout's factory and policy relations.
+        'factories' => true,
+        'policies' => true,
     ],
 
 ];

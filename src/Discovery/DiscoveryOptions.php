@@ -7,6 +7,7 @@ use Tey\Mod\Artifact\NamePolicyKind;
 use Tey\Mod\Exceptions\InvalidDiscoveryConfig;
 use Tey\Mod\Placement\Root;
 use Tey\Mod\Preset\Preset;
+use Tey\Mod\Resolution\ModelRelations;
 
 /**
  * Host settings for discovery (config key `mod.discovery`).
@@ -16,11 +17,18 @@ use Tey\Mod\Preset\Preset;
  *         'kinds' => ['provider' => false, 'subscriber' => 'listener'],  // merged over the defaults
  *         'cache' => 'bootstrap/cache/mod-discovery.php',      // relative to the base path, or absolute
  *         'on_stale_cache' => 'scan',                          // or 'fail'
+ *         'factories' => true,                                 // Model::factory() through the layout's factory relation
+ *         'policies' => true,                                  // Gate::policy() through the layout's policy relation
  *     ]
  *
  * By default a preset kind whose id is `provider`, `command`, `listener` or
  * `subscriber` is discovered as that type. A `directory` type collects the
  * directories of a file kind (per-feature migration folders, say).
+ *
+ * When the layout relates its `model` kind to a `factory` or `policy` kind,
+ * models are paired with the related class that exists (DiscoveryType::Factory,
+ * ::Policy): factories resolve through ModelConventions, policies register
+ * with the Gate. `factories` / `policies` false turns either off.
  *
  * A host may supply its own candidate-file source: a closure returning the
  * relative, '/'-separated .php paths below a root that discovery should
@@ -42,6 +50,8 @@ final readonly class DiscoveryOptions
         public string $cachePath = self::DEFAULT_CACHE,
         public CacheMismatchPolicy $onStaleCache = CacheMismatchPolicy::Scan,
         public ?Closure $candidates = null,
+        public bool $factories = true,
+        public bool $policies = true,
     ) {}
 
     /**
@@ -78,7 +88,7 @@ final readonly class DiscoveryOptions
 
             $resolved = is_string($type) ? DiscoveryType::tryFrom($type) : ($type instanceof DiscoveryType ? $type : null);
 
-            if ($resolved === null) {
+            if ($resolved === null || $resolved->isRelationType()) {
                 throw InvalidDiscoveryConfig::because("kinds.{$kindId}", 'expected provider, command, listener, subscriber, directory or false');
             }
 
@@ -98,7 +108,17 @@ final readonly class DiscoveryOptions
             throw InvalidDiscoveryConfig::because('on_stale_cache', 'expected fail or scan');
         }
 
-        return new self($enabled, $kinds, $cache, $policy);
+        $switches = [];
+
+        foreach (['factories', 'policies'] as $key) {
+            $switches[$key] = $config[$key] ?? true;
+
+            if (! is_bool($switches[$key])) {
+                throw InvalidDiscoveryConfig::because($key, 'expected a boolean');
+            }
+        }
+
+        return new self($enabled, $kinds, $cache, $policy, null, $switches['factories'], $switches['policies']);
     }
 
     /**
@@ -108,7 +128,7 @@ final readonly class DiscoveryOptions
      */
     public function withCandidates(Closure $candidates): self
     {
-        return new self($this->enabled, $this->kinds, $this->cachePath, $this->onStaleCache, $candidates);
+        return new self($this->enabled, $this->kinds, $this->cachePath, $this->onStaleCache, $candidates, $this->factories, $this->policies);
     }
 
     /**
@@ -124,8 +144,18 @@ final readonly class DiscoveryOptions
         $definitions = [];
 
         foreach (DiscoveryType::cases() as $type) {
-            if ($type->isClassType() && $preset->hasKind($type->value) && $preset->kind($type->value)->isClass()) {
+            if ($type->isClassType() && ! $type->isRelationType() && $preset->hasKind($type->value) && $preset->kind($type->value)->isClass()) {
                 $definitions[$type->value] = new DiscoveryDefinition($type->value, $type);
+            }
+        }
+
+        // Models paired with their factory / policy, when the layout relates them.
+        $relations = new ModelRelations($preset);
+
+        foreach ([DiscoveryType::Factory->value => $this->factories, DiscoveryType::Policy->value => $this->policies] as $target => $on) {
+            if ($relations->declares($target)) {
+                $definition = DiscoveryDefinition::related(DiscoveryType::from($target), ModelRelations::MODEL_KIND);
+                $definitions[$definition->key()] = $on ? $definition : $definition->disabled();
             }
         }
 
