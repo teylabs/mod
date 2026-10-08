@@ -9,11 +9,11 @@ use Tey\Mod\Artifact\NamePolicy;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Placement\Dimension;
 use Tey\Mod\Placement\OpaquePlacementRule;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\PlacementRule;
-use Tey\Mod\Placement\Root;
 use Tey\Mod\Placement\Segment;
 use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Relation\NameDerivation;
@@ -118,7 +118,7 @@ final class PresetValidator
     }
 
     /**
-     * @return array<string, Root>
+     * @return array<string, CompiledRoot>
      */
     private function roots(mixed $definition): array
     {
@@ -158,7 +158,7 @@ final class PresetValidator
         return $roots;
     }
 
-    private function root(string $subject, mixed $entry): ?Root
+    private function root(string $subject, mixed $entry): ?CompiledRoot
     {
         if (! is_array($entry)) {
             $this->issue(PresetIssueCode::InvalidRoot, $subject, 'must be an array with a path and an optional namespace');
@@ -181,14 +181,14 @@ final class PresetValidator
             return null;
         }
 
-        if (in_array('..', explode('/', Root::normalisePath($path)), true)) {
+        if (in_array('..', explode('/', CompiledRoot::normalisePath($path)), true)) {
             $this->issue(PresetIssueCode::InvalidRoot, $subject, "path [{$path}] must not leave the application");
 
             return null;
         }
 
         if ($namespace === null) {
-            return Root::files($path);
+            return CompiledRoot::files($path);
         }
 
         if (! is_string($namespace) || preg_match(self::NAMESPACE_PATTERN, $namespace) !== 1) {
@@ -197,7 +197,7 @@ final class PresetValidator
             return null;
         }
 
-        return Root::psr4($namespace, $path);
+        return CompiledRoot::psr4($namespace, $path);
     }
 
     /**
@@ -233,7 +233,7 @@ final class PresetValidator
     }
 
     /**
-     * @return list<Root>
+     * @return list<CompiledRoot>
      */
     private function excluded(mixed $definition): array
     {
@@ -257,7 +257,7 @@ final class PresetValidator
     }
 
     /**
-     * @param  array<string, Root>  $roots
+     * @param  array<string, CompiledRoot>  $roots
      * @param  array<string, Dimension>  $dimensions
      * @param  bool  $commandsEnabled  when false (a host dispatches its own commands) kinds may share a command name
      * @return array{array<string, ArtifactKind>, array<string, PlacementRule>, list<string>}
@@ -491,7 +491,7 @@ final class PresetValidator
      * @param  array<string, Dimension>  $dimensions
      * @param  list<string>  $except
      */
-    private function rule(string $subject, string $id, Root $root, int $priority, array $entry, array $dimensions, bool $nested = false, bool $anywhere = false, array $except = []): ?PlacementRule
+    private function rule(string $subject, string $id, CompiledRoot $root, int $priority, array $entry, array $dimensions, bool $nested = false, bool $anywhere = false, array $except = []): ?PlacementRule
     {
         $place = $entry['place'] ?? null;
 

@@ -5,7 +5,7 @@ namespace Tey\Mod\Generation;
 use Illuminate\Filesystem\Filesystem;
 use Tey\Mod\Exceptions\InvalidGeneratorSetup;
 use Tey\Mod\Layout\CompiledLayout;
-use Tey\Mod\Placement\Root;
+use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Support\Path;
 
 /**
@@ -104,7 +104,7 @@ final readonly class BaseWriter
      */
     private function basesFolder(CompiledLayout $preset): array
     {
-        $path = Root::normalisePath($this->basesPath);
+        $path = CompiledRoot::normalisePath($this->basesPath);
         $best = null;
 
         foreach ($preset->roots() as $root) {

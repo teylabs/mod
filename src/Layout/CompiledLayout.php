@@ -9,7 +9,6 @@ use Tey\Mod\Exceptions\UnknownRelation;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Placement\Dimension;
 use Tey\Mod\Placement\PlacementRule;
-use Tey\Mod\Placement\Root;
 use Tey\Mod\Preset\PresetValidator;
 use Tey\Mod\Relation\Relation;
 
@@ -23,12 +22,12 @@ use Tey\Mod\Relation\Relation;
 final readonly class CompiledLayout
 {
     /**
-     * @param  array<string, Root>  $roots  keyed by root name
+     * @param  array<string, CompiledRoot>  $roots  keyed by root name
      * @param  list<Dimension>  $dimensions  in declared order (the order --in values are read)
      * @param  array<string, ArtifactKind>  $kinds  keyed by kind id
      * @param  array<string, PlacementRule>  $rules  keyed by kind id
      * @param  array<string, Relation>  $relations  keyed by relation id
-     * @param  list<Root>  $excludedRoots  never owned by any rule
+     * @param  list<CompiledRoot>  $excludedRoots  never owned by any rule
      * @param  array<string, string>  $placementOptions  dimension name → command option name
      * @param  array<string, Stub>  $stubs  kind id → the stub the layout declares for it
      */
@@ -57,7 +56,7 @@ final readonly class CompiledLayout
     }
 
     /**
-     * @return array<string, Root>
+     * @return array<string, CompiledRoot>
      */
     public function roots(): array
     {
@@ -136,7 +135,7 @@ final readonly class CompiledLayout
     }
 
     /**
-     * @return list<Root>
+     * @return list<CompiledRoot>
      */
     public function excludedRoots(): array
     {

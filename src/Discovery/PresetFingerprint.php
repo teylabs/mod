@@ -3,7 +3,7 @@
 namespace Tey\Mod\Discovery;
 
 use Tey\Mod\Layout\CompiledLayout;
-use Tey\Mod\Placement\Root;
+use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Placement\TemplateRule;
 
 /**
@@ -20,7 +20,7 @@ final readonly class PresetFingerprint
 {
     public static function of(CompiledLayout $preset): string
     {
-        $describeRoot = static fn (Root $root): string => ($root->namespace ?? '').'|'.$root->path;
+        $describeRoot = static fn (CompiledRoot $root): string => ($root->namespace ?? '').'|'.$root->path;
 
         $roots = array_map($describeRoot, $preset->roots());
         ksort($roots);

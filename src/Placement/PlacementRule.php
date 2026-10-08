@@ -4,6 +4,7 @@ namespace Tey\Mod\Placement;
 
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\ResolvedArtifact;
+use Tey\Mod\Layout\CompiledRoot;
 
 /**
  * Places one kind of artifact and, when it can, recognises artifacts it would have placed.
@@ -12,7 +13,7 @@ interface PlacementRule
 {
     public function kindId(): string;
 
-    public function root(): Root;
+    public function root(): CompiledRoot;
 
     /** Higher wins when several rules recognise the same input on reverse mapping. */
     public function priority(): int;

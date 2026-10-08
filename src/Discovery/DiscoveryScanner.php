@@ -9,7 +9,7 @@ use RecursiveIteratorIterator;
 use SplFileInfo;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Layout\CompiledLayout;
-use Tey\Mod\Placement\Root;
+use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Resolution\ModelRelations;
 use Tey\Mod\Reverse\ReverseMapper;
@@ -43,7 +43,7 @@ final readonly class DiscoveryScanner
     private ModelRelations $relations;
 
     /**
-     * @param  (Closure(Root, string, DiscoveryDefinition): iterable<string>)|null  $candidates
+     * @param  (Closure(CompiledRoot, string, DiscoveryDefinition): iterable<string>)|null  $candidates
      */
     public function __construct(
         private CompiledLayout $preset,
@@ -259,14 +259,14 @@ final readonly class DiscoveryScanner
      *
      * @return list<string>
      */
-    private function files(Root $root, DiscoveryDefinition $definition): array
+    private function files(CompiledRoot $root, DiscoveryDefinition $definition): array
     {
         if ($this->candidates !== null) {
-            $prefix = Root::normalisePath($root->path);
+            $prefix = CompiledRoot::normalisePath($root->path);
             $files = [];
 
             foreach (($this->candidates)($root, $this->basePath, $definition) as $path) {
-                $path = Root::normalisePath($path);
+                $path = CompiledRoot::normalisePath($path);
 
                 if ($path !== '' && str_ends_with($path, '.php') && Path::relative($prefix, $path) !== null) {
                     $files[$path] = $path;

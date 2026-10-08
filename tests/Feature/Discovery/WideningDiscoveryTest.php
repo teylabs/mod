@@ -6,7 +6,7 @@ use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\RejectionReason;
 use Tey\Mod\Layout\CompiledLayout;
-use Tey\Mod\Placement\Root;
+use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Support\Path;
 use Tey\Mod\Tests\Feature\Discovery\Support\DiscoveryFixture;
 use Tey\Mod\Tests\Feature\Discovery\Support\Sources;
@@ -134,7 +134,7 @@ it('replays widened inventories from the cache byte for byte', DiscoveryFixture:
 it('takes candidate files from a host source and keeps ownership, eligibility and order', DiscoveryFixture::around(function (DiscoveryFixture $fx) {
     $preset = groupedTree($fx);
     $seen = [];
-    $options = groupedOptions()->withCandidates(function (Root $root, string $basePath, DiscoveryDefinition $definition) use (&$seen): iterable {
+    $options = groupedOptions()->withCandidates(function (CompiledRoot $root, string $basePath, DiscoveryDefinition $definition) use (&$seen): iterable {
         $seen[] = $root->path.'|'.$definition->kindId;
         $base = Path::join($basePath, $root->path);
 

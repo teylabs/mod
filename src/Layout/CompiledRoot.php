@@ -1,6 +1,6 @@
 <?php
 
-namespace Tey\Mod\Placement;
+namespace Tey\Mod\Layout;
 
 use Tey\Mod\Support\Path;
 
@@ -8,7 +8,7 @@ use Tey\Mod\Support\Path;
  * A declared root: a PSR-4 namespace prefix with its directory, or a
  * directory alone for class-less files (migrations, routes).
  */
-final readonly class Root
+final readonly class CompiledRoot
 {
     private function __construct(
         public ?string $namespace,

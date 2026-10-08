@@ -10,6 +10,7 @@ use Tey\Mod\Artifact\Identifier;
 use Tey\Mod\Artifact\IdentityShape;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Exceptions\InvalidName;
+use Tey\Mod\Layout\CompiledRoot;
 
 /**
  * A callback-driven placement. It can place but never recognise: arbitrary
@@ -29,7 +30,7 @@ final readonly class OpaquePlacementRule implements PlacementRule
      */
     public function __construct(
         private string $kindId,
-        private Root $root,
+        private CompiledRoot $root,
         private Closure $subNamespace,
         private array $dimensions = [],
         private int $priority = 0,
@@ -41,7 +42,7 @@ final readonly class OpaquePlacementRule implements PlacementRule
         return $this->kindId;
     }
 
-    public function root(): Root
+    public function root(): CompiledRoot
     {
         return $this->root;
     }

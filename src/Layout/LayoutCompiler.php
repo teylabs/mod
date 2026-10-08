@@ -4,7 +4,6 @@ namespace Tey\Mod\Layout;
 
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Generation\Stub;
-use Tey\Mod\Placement\Root as PlacementRoot;
 use Tey\Mod\Placement\Segment;
 use Tey\Mod\Preset\PresetIssue;
 use Tey\Mod\Preset\PresetIssueCode;
@@ -278,7 +277,7 @@ final class LayoutCompiler
 
         $remainder = Path::normalize(trim(substr($namespace, strlen((string) $best['namespace'])), '\\'));
 
-        return ['namespace' => $namespace, 'path' => PlacementRoot::normalisePath(Path::join($best['path'], $remainder))];
+        return ['namespace' => $namespace, 'path' => CompiledRoot::normalisePath(Path::join($best['path'], $remainder))];
     }
 
     /**
@@ -287,14 +286,14 @@ final class LayoutCompiler
      */
     private function excludedPath(string $entry, array $roots): array
     {
-        $path = PlacementRoot::normalisePath($entry);
+        $path = CompiledRoot::normalisePath($entry);
         $best = null;
 
         foreach ($roots as $root) {
-            $rootPath = PlacementRoot::normalisePath($root['path']);
+            $rootPath = CompiledRoot::normalisePath($root['path']);
 
             if ($root['namespace'] !== null && Path::relative($rootPath, $path) !== null
-                && ($best === null || strlen($rootPath) > strlen(PlacementRoot::normalisePath($best['path'])))) {
+                && ($best === null || strlen($rootPath) > strlen(CompiledRoot::normalisePath($best['path'])))) {
                 $best = $root;
             }
         }
@@ -303,7 +302,7 @@ final class LayoutCompiler
             return ['path' => $path];
         }
 
-        $remainder = (string) Path::relative(PlacementRoot::normalisePath($best['path']), $path);
+        $remainder = (string) Path::relative(CompiledRoot::normalisePath($best['path']), $path);
 
         return ['namespace' => $best['namespace'].($remainder === '' ? '' : str_replace('/', '\\', $remainder).'\\'), 'path' => $path];
     }

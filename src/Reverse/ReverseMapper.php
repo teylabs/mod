@@ -4,8 +4,8 @@ namespace Tey\Mod\Reverse;
 
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Placement\OpaquePlacementRule;
-use Tey\Mod\Placement\Root;
 use Tey\Mod\Placement\TemplateRule;
 
 /**
@@ -25,7 +25,7 @@ final readonly class ReverseMapper
 
     public function fromPath(string $path): ReverseMatch
     {
-        return $this->map(Root::normalisePath($path), true);
+        return $this->map(CompiledRoot::normalisePath($path), true);
     }
 
     private function map(string $subject, bool $isPath): ReverseMatch

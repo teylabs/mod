@@ -3,6 +3,7 @@
 namespace Tey\Mod\Placement;
 
 use Tey\Mod\Artifact\ResolvedArtifact;
+use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Support\Path;
 
 /**
@@ -38,7 +39,7 @@ final readonly class CollisionDiagnoser
                 continue;
             }
 
-            if (Path::same(Root::normalisePath($entry), $path)) {
+            if (Path::same(CompiledRoot::normalisePath($entry), $path)) {
                 $collisions[] = new Collision(CollisionKind::Path, $entry, $artifact);
             }
         }

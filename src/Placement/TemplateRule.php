@@ -12,6 +12,7 @@ use Tey\Mod\Exceptions\DimensionNotApplicable;
 use Tey\Mod\Exceptions\InvalidName;
 use Tey\Mod\Exceptions\MissingDimension;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Layout\CompiledRoot;
 
 /**
  * A declarative placement: root + ordered segments + the kind's name policy.
@@ -37,7 +38,7 @@ final readonly class TemplateRule implements PlacementRule
      */
     public function __construct(
         private string $kindId,
-        private Root $root,
+        private CompiledRoot $root,
         private array $segments,
         private int $priority = 0,
         private bool $nested = false,
@@ -60,7 +61,7 @@ final readonly class TemplateRule implements PlacementRule
         return $this->kindId;
     }
 
-    public function root(): Root
+    public function root(): CompiledRoot
     {
         return $this->root;
     }
@@ -337,7 +338,7 @@ final readonly class TemplateRule implements PlacementRule
      */
     public function recogniseDirectory(string $path): ?PlacementContext
     {
-        $remainder = $this->root->pathRemainder(Root::normalisePath($path));
+        $remainder = $this->root->pathRemainder(CompiledRoot::normalisePath($path));
 
         if ($remainder === null || $remainder === '') {
             return null;

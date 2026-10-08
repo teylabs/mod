@@ -6,7 +6,7 @@ use Closure;
 use Tey\Mod\Artifact\NamePolicyKind;
 use Tey\Mod\Exceptions\InvalidDiscoveryConfig;
 use Tey\Mod\Layout\CompiledLayout;
-use Tey\Mod\Placement\Root;
+use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Resolution\ModelRelations;
 
 /**
@@ -42,7 +42,7 @@ final readonly class DiscoveryOptions
 
     /**
      * @param  array<string, DiscoveryType|false>  $kinds  overrides keyed by kind id
-     * @param  (Closure(Root, string, DiscoveryDefinition): iterable<string>)|null  $candidates  candidate-file source: (root, basePath, definition) → relative .php paths
+     * @param  (Closure(CompiledRoot, string, DiscoveryDefinition): iterable<string>)|null  $candidates  candidate-file source: (root, basePath, definition) → relative .php paths
      */
     public function __construct(
         public bool $enabled = true,
@@ -124,7 +124,7 @@ final readonly class DiscoveryOptions
     /**
      * The same options with a candidate-file source.
      *
-     * @param  Closure(Root, string, DiscoveryDefinition): iterable<string>  $candidates
+     * @param  Closure(CompiledRoot, string, DiscoveryDefinition): iterable<string>  $candidates
      */
     public function withCandidates(Closure $candidates): self
     {
