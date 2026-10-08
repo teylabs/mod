@@ -15,6 +15,7 @@ use Tey\Mod\Generation\GeneratorRegistry;
 use Tey\Mod\Generation\ModMigrationCreator;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Preset\Preset;
+use Tey\Mod\Resolution\ModelConventions;
 
 class ModServiceProvider extends ServiceProvider
 {
@@ -57,6 +58,12 @@ class ModServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Model::factory() through the layout's factory relation; a resolver registered
+        // before this one is delegated to, one registered after it wins.
+        if ($this->discoveryEnabled() && DiscoveryOptions::fromConfig((array) $this->app->make('config')->get('mod.discovery', []))->factories) {
+            ModelConventions::register($this->app);
+        }
+
         if (! $this->app->runningInConsole()) {
             return;
         }

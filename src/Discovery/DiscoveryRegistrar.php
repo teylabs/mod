@@ -2,7 +2,9 @@
 
 namespace Tey\Mod\Discovery;
 
+use Illuminate\Auth\Access\Gate as LaravelGate;
 use Illuminate\Console\Application as Artisan;
+use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Migrations\Migrator;
@@ -20,7 +22,8 @@ use WeakReference;
  *
  * Call it from a service provider's register(). Providers register at once,
  * commands when that application's Artisan starts, listeners on the current
- * dispatcher and on any dispatcher that replaces it. Registering the same
+ * dispatcher and on any dispatcher that replaces it, model policies on the
+ * Gate. Registering the same
  * preset again on the same application changes nothing.
  */
 final class DiscoveryRegistrar
@@ -68,8 +71,43 @@ final class DiscoveryRegistrar
         }
 
         self::loadMigrationDirectories($app, $preset, $inventory);
+        self::registerPolicies($app, $inventory->pairs(DiscoveryType::Policy));
 
         return $discovery;
+    }
+
+    /**
+     * Each model's policy, as Gate::policy() would register it. A policy the
+     * application registered for the model itself is left alone, and the
+     * Gate's policy guesser still answers for every other class.
+     *
+     * @param  array<string, string>  $policies  model class => policy class
+     */
+    private static function registerPolicies(Application $app, array $policies): void
+    {
+        if ($policies === []) {
+            return;
+        }
+
+        $register = static function (mixed $gate) use ($policies): void {
+            if (! $gate instanceof Gate) {
+                return;
+            }
+
+            $explicit = $gate instanceof LaravelGate ? $gate->policies() : [];
+
+            foreach ($policies as $model => $policy) {
+                if (! isset($explicit[$model])) {
+                    $gate->policy($model, $policy);
+                }
+            }
+        };
+
+        if ($app->resolved(Gate::class)) {
+            $register($app->make(Gate::class));
+        }
+
+        $app->afterResolving(Gate::class, $register);
     }
 
     /**
