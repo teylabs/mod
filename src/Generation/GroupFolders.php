@@ -3,14 +3,22 @@
 namespace Tey\Mod\Generation;
 
 use Closure;
+use Tey\Mod\Artifact\NamePolicyKind;
 use Tey\Mod\Artifact\ResolvedArtifact;
-use Tey\Mod\Placement\PlacementRule;
+use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Placement\Segment;
 use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Support\Path;
 
 /**
  * The group folders a placement walks into ("app/Modules/Knowledge"),
- * compared with the folders that exist, level by level:
+ * compared with the groups that exist, level by level. A folder is a group
+ * of a dimension only when it holds the layout there: a kind folder that
+ * follows the placeholder in some template (Knowledge/Models), a fixed file
+ * (CreateInvoice/Handler.php), or classes of a kind placed right at the
+ * placeholder (app/Models/Knowledge/*.php in type-first). Laravel's own
+ * app/Http or a feature's shared Models folder are not groups.
+ *
  *
  *  - case: one existing folder differs only by case (knowledge → Knowledge);
  *  - cases: several do (only on a case-sensitive disk);
@@ -32,15 +40,21 @@ final readonly class GroupFolders
      *
      * @return array{kind: 'case'|'cases'|'near'|'new', dimension: string, value: string, suggestions: list<string>, existing: list<string>}|null
      */
-    public function inspect(PlacementRule $rule, ResolvedArtifact $artifact): ?array
+    public function inspect(CompiledLayout $layout, ResolvedArtifact $artifact): ?array
     {
+        $rule = $layout->rule($artifact->kind->id);
+
         if (! $rule instanceof TemplateRule || $artifact->context->isEmpty()) {
             return null;
         }
 
+        $prefix = [];
+
         $path = $rule->root()->path;
 
         foreach ($rule->segments() as $segment) {
+            $prefix[] = $segment;
+
             if ($segment->literal !== null) {
                 $path = Path::join($path, $segment->literal);
 
@@ -57,13 +71,19 @@ final readonly class GroupFolders
             $parts = explode('/', $value);
 
             foreach ($parts as $index => $part) {
-                $existing = $this->foldersIn(Path::join($this->basePath, $path));
+                $parent = Path::join($this->basePath, $path);
+                $folders = $this->foldersIn($parent);
 
-                if (in_array($part, $existing, true)) {
+                if (in_array($part, $folders, true)) {
                     $path = Path::join($path, $part);
 
                     continue;
                 }
+
+                $existing = array_values(array_filter(
+                    $folders,
+                    fn (string $folder): bool => $this->holds($layout, $rule, $prefix, Path::join($parent, $folder)),
+                ));
 
                 $replace = static function (string $folder) use ($parts, $index): string {
                     $parts[$index] = $folder;
@@ -84,6 +104,96 @@ final readonly class GroupFolders
         }
 
         return null;
+    }
+
+    /**
+     * Whether a folder holds the layout for the dimension that ends $prefix:
+     * some template of the same root that starts like $prefix continues with
+     * a kind folder that exists there, a fixed file, a nested group, or ends
+     * with classes placed right in it. Catch-all kinds (negative priority) are
+     * no evidence.
+     *
+     * @param  list<Segment>  $prefix
+     */
+    private function holds(CompiledLayout $layout, TemplateRule $rule, array $prefix, string $folder, int $depth = 0): bool
+    {
+        if ($depth > 3 || ! is_dir($folder)) {
+            return false;
+        }
+
+        $last = count($prefix) - 1;
+
+        foreach ($layout->rules() as $candidate) {
+            if (! $candidate instanceof TemplateRule || $candidate->priority() < 0 || $candidate->root()->path !== $rule->root()->path || ! self::startsLike($candidate->segments(), $prefix)) {
+                continue;
+            }
+
+            $segments = $candidate->segments();
+            $literals = [];
+            $next = null;
+
+            for ($i = $last + 1; $i < count($segments); $i++) {
+                if ($segments[$i]->literal === null) {
+                    $next = $segments[$i];
+
+                    break;
+                }
+
+                $literals[] = $segments[$i]->literal;
+            }
+
+            if ($literals !== []) {
+                if (is_dir(Path::join($folder, ...$literals))) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if ($next !== null) {
+                foreach ($this->foldersIn($folder) as $inner) {
+                    if ($this->holds($layout, $rule, [...$prefix, $next], Path::join($folder, $inner), $depth + 1)) {
+                        return true;
+                    }
+                }
+
+                continue;
+            }
+
+            $policy = $layout->kind($candidate->kindId())->namePolicy;
+
+            if ($policy->kind === NamePolicyKind::Fixed ? is_file(Path::join($folder, $policy->value.'.php')) : glob(Path::join($folder, '*.php')) !== []) {
+                return true;
+            }
+        }
+
+        // A multi-folder group ({name+}) also holds the layout in a nested folder.
+        if ($prefix[$last]->multi) {
+            foreach ($this->foldersIn($folder) as $inner) {
+                if ($this->holds($layout, $rule, $prefix, Path::join($folder, $inner), $depth + 1)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  list<Segment>  $segments
+     * @param  list<Segment>  $prefix
+     */
+    private static function startsLike(array $segments, array $prefix): bool
+    {
+        foreach ($prefix as $index => $segment) {
+            $other = $segments[$index] ?? null;
+
+            if ($other === null || $other->literal !== $segment->literal || $other->dimension !== $segment->dimension) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

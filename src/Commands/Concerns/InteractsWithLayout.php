@@ -62,6 +62,9 @@ use Tey\Mod\Reverse\ReverseMapper;
  */
 trait InteractsWithLayout
 {
+    /** Container key set while a mod:* command generates a related file through another one. */
+    private const RELATED = 'mod.generating-related';
+
     /** @var array<string, string> group values the user settled on (case or near miss), by dimension */
     private array $modGroupValues = [];
 
@@ -589,10 +592,17 @@ trait InteractsWithLayout
             throw GenerationRefused::because("File type [{$target->kind->id}] has no command to generate [{$target->describe()}].");
         }
 
-        $exitCode = $this->call($command, [
-            ...$this->argumentsFor($target),
-            ...array_filter($arguments, static fn (mixed $value): bool => $value !== null && $value !== false && $value !== ''),
-        ]);
+        $depth = $this->laravel->bound(self::RELATED) ? (int) $this->laravel->make(self::RELATED) : 0;
+        $this->laravel->instance(self::RELATED, $depth + 1);
+
+        try {
+            $exitCode = $this->call($command, [
+                ...$this->argumentsFor($target),
+                ...array_filter($arguments, static fn (mixed $value): bool => $value !== null && $value !== false && $value !== ''),
+            ]);
+        } finally {
+            $depth === 0 ? $this->laravel->forgetInstance(self::RELATED) : $this->laravel->instance(self::RELATED, $depth);
+        }
 
         if ($exitCode !== 0) {
             throw GenerationRefused::because("Generating related {$target->kind->id} [{$target->describe()}] failed.");

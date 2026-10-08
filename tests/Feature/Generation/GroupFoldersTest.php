@@ -157,3 +157,52 @@ it('creates a near miss without asking when not interactive', function () {
             ->and($result->output)->toContain('Created new module Knowledg (existing: Knowledge).');
     });
 });
+
+/*
+ * Only folders that hold the layout's files count as groups: Laravel's own
+ * app/Http or app/Models are not features, a feature's shared Models folder
+ * is not a slice.
+ */
+
+it('counts only folders that hold the layout as groups', function () {
+    Workspace::run(null, function (Workspace $workspace) {
+        config()->set('mod.layout', 'slices');
+        $workspace->write('app/Http/Controllers/Controller.php', '<?php // Laravel');
+        $workspace->write('app/Models/User.php', '<?php // Laravel');
+        $workspace->write('app/Providers/AppServiceProvider.php', '<?php // Laravel');
+
+        expect($workspace->artisan('mod:model', ['name' => 'Knowledge:Document'])->output)->toContain('Created new feature Knowledge.');
+
+        $workspace->write('app/Knowledge/Database/Factories/DocumentFactory.php', '<?php // mine');
+        $slice = $workspace->artisan('mod:handler', ['--in' => 'Knowledge/IndexDocument']);
+
+        expect($slice->output)->toContain('Created new slice IndexDocument.')
+            ->and($workspace->artisan('mod:handler', ['--in' => 'Knowledge/CreateDocument'])->output)
+            ->toContain('Created new slice CreateDocument (existing: IndexDocument).')
+            ->and($workspace->artisan('mod:model', ['name' => 'Billing:Invoice'])->output)
+            ->toContain('Created new feature Billing (existing: Knowledge).');
+    });
+});
+
+it('matches near misses against the same groups only', function () {
+    Workspace::run(null, function (Workspace $workspace) {
+        config()->set('mod.layout', 'slices');
+        $workspace->write('app/Http/Controllers/Controller.php', '<?php // Laravel');
+
+        // Htp is no near miss of Laravel's Http folder: no question.
+        groupFoldersCase()->artisan('mod:model', ['name' => 'Htp:Thing'])
+            ->expectsOutputToContain('Created new feature Htp.')
+            ->assertSuccessful();
+    });
+});
+
+it('prints the new-group notice once per command, not once per related file', function () {
+    Workspace::run(null, function (Workspace $workspace) {
+        config()->set('mod.layout', 'type-first');
+
+        $result = $workspace->artisan('mod:model', ['name' => 'Knowledge:Document', '--migration' => true, '--factory' => true, '--policy' => true]);
+
+        expect($result->exitCode)->toBe(0)
+            ->and(substr_count($result->output, 'Created new feature Knowledge'))->toBe(1);
+    });
+});
