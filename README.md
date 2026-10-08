@@ -270,7 +270,7 @@ php artisan mod:handler --in=Knowledge/IndexDocument
 
 Commands in `features` and `slices` go to `app/Console/Commands` when you leave the value out.
 
-A value names a folder. A value that differs from an existing module only by case uses that module: `mod:model knowledge:Note` prints "Using existing module Knowledge (you typed knowledge)." and writes to `app/Modules/Knowledge`. A near miss such as `Knowledg` asks whether you meant an existing module or a new one. Without a terminal to ask in, such as with `--no-interaction` or in CI, it starts the new module and says so:
+A value names a folder. Only folders that hold the layout's files for a group count as existing groups, so Laravel's own `app/Http` and `app/Models` next to `slices` features are not groups. A value that differs from an existing module only by case uses that module: `mod:model knowledge:Note` prints "Using existing module Knowledge (you typed knowledge)." and writes to `app/Modules/Knowledge`. A near miss, one or two letters from an existing name such as `Knowledg`, asks whether you meant an existing module or a new one. Without a terminal to ask in, such as with `--no-interaction` or in CI, it starts the new module and says so:
 
 ```bash
 php artisan mod:model Knowledg:Note --no-interaction
