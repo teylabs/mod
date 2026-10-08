@@ -61,7 +61,7 @@ function placedKinds(): array
 {
     $cases = [];
 
-    foreach (['features', 'slices', 'type-first', 'modules'] as $layout) {
+    foreach (['features', 'slices', 'type-first', 'modules', 'ddd'] as $layout) {
         $preset = (new LayoutRegistry)->compile($layout);
 
         foreach ($preset->kinds() as $kind) {
@@ -98,6 +98,7 @@ it('adds --in plus one option per dimension the kind reads', function (string $l
     'slices, feature only' => ['slices', 'mod:controller', ['feature' => 'Place in this feature (same as --in)']],
     'type-first' => ['type-first', 'mod:model', ['feature' => 'Place in this feature (same as --in)']],
     'laravel' => ['laravel', 'mod:model', []],
+    'ddd' => ['ddd', 'mod:model', ['domain' => 'Place in this domain, nested folders separated by "." or "/" (same as --in)']],
 ]);
 
 it('generates through the dimension options exactly as through the shorthand', function (string $layout, string $kindId) {
@@ -317,4 +318,4 @@ it('adds exactly the expected placement options to every native definition', fun
 
         expect($checked)->toBeGreaterThan(20);
     });
-})->with(['laravel', 'features', 'slices', 'type-first', 'modules']);
+})->with(['laravel', 'features', 'slices', 'type-first', 'modules', 'ddd']);

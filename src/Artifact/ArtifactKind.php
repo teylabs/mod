@@ -30,11 +30,15 @@ final readonly class ArtifactKind
 
     public const LISTENER = 'listener';
 
+    /**
+     * @param  list<string>  $aliases  other command names that run the same command
+     */
     public function __construct(
         public string $id,
         public IdentityShape $shape,
         public NamePolicy $namePolicy,
         public ?string $command = null,
+        public array $aliases = [],
     ) {}
 
     public static function phpClass(string $id, ?NamePolicy $namePolicy = null, ?string $command = null): self

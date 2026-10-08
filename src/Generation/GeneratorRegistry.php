@@ -69,10 +69,11 @@ use Tey\Mod\Preset\Preset;
 
 /**
  * Which adapter generates which kind. Kinds stay preset data: the registry is
- * a keyed map the host can extend through `mod.generators`, and a
- * class-shaped kind nobody claims gets the declarative generic generator.
+ * a keyed map the host can extend through `mod.generators` or, from a
+ * package's service provider, Mod::generators()->use(); a class-shaped kind
+ * nobody claims gets the declarative generic generator.
  */
-final readonly class GeneratorRegistry
+final class GeneratorRegistry
 {
     /** @var array<string, class-string<GeneratorAdapter&Command>> */
     public const DEFAULTS = [
@@ -156,9 +157,10 @@ final readonly class GeneratorRegistry
             $adapters['config'] = ConfigCommand::class;
         }
 
+        $this->adapters = $adapters;
+
         foreach ($overrides as $kindId => $adapter) {
-            if (! is_string($kindId) || ! is_string($adapter)
-                || ! is_subclass_of($adapter, GeneratorAdapter::class) || ! is_subclass_of($adapter, Command::class)) {
+            if (! is_string($kindId) || ! is_string($adapter)) {
                 throw new InvalidGeneratorSetup(sprintf(
                     'Config [mod.generators] must map kind ids to %s commands; [%s] is not one.',
                     GeneratorAdapter::class,
@@ -166,10 +168,23 @@ final readonly class GeneratorRegistry
                 ));
             }
 
-            $adapters[$kindId] = $adapter;
+            $this->use($kindId, $adapter, 'Config [mod.generators]');
+        }
+    }
+
+    /**
+     * Generate a kind with this adapter (a subclass of a mod:* command, or any
+     * command implementing GeneratorAdapter), replacing the built-in one.
+     */
+    public function use(string $kindId, string $adapter, string $source = 'Mod::generators()->use()'): self
+    {
+        if (! is_subclass_of($adapter, GeneratorAdapter::class) || ! is_subclass_of($adapter, Command::class)) {
+            throw new InvalidGeneratorSetup(sprintf('%s must map kind ids to %s commands; [%s] is not one.', $source, GeneratorAdapter::class, $adapter));
         }
 
-        $this->adapters = $adapters;
+        $this->adapters[$kindId] = $adapter;
+
+        return $this;
     }
 
     /**

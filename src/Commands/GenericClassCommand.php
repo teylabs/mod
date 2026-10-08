@@ -13,7 +13,9 @@ use Tey\Mod\Preset\Preset;
 /**
  * The declarative generator for class kinds Laravel has no make:* for
  * (queries, actions, data objects...). Declaring the kind in the preset is
- * enough; stubs/mod.<kind>.stub in the application replaces the plain class.
+ * enough. The class comes from the kind's Stub when a package or the layout
+ * declares one, else a plain class; stubs/mod.<kind>.stub in the
+ * application replaces either.
  */
 class GenericClassCommand extends GeneratorCommand implements GeneratorAdapter
 {
@@ -39,9 +41,7 @@ class GenericClassCommand extends GeneratorCommand implements GeneratorAdapter
 
     protected function getStub()
     {
-        $custom = $this->laravel->basePath('stubs/mod.'.$this->kind()->id.'.stub');
-
-        return is_file($custom) ? $custom : __DIR__.'/stubs/class.stub';
+        return $this->modStubFile() ?? __DIR__.'/stubs/class.stub';
     }
 
     /**

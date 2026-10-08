@@ -31,6 +31,7 @@ it('names one placement option per placeholder of each built-in', function (stri
     'slices' => ['slices', ['feature' => 'feature', 'slice' => 'slice']],
     'type-first' => ['type-first', ['feature' => 'feature']],
     'modules' => ['modules', ['module' => 'module']],
+    'ddd' => ['ddd', ['domain' => 'domain']],
 ]);
 
 it('names a camelCase placeholder in kebab-case', function () {

@@ -2,6 +2,8 @@
 
 namespace Tey\Mod\Layout\BuiltIn;
 
+use Tey\Mod\Generation\GeneratedBase;
+use Tey\Mod\Generation\Stub;
 use Tey\Mod\Layout\Kind;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\Root;
@@ -20,7 +22,7 @@ final readonly class BuiltInLayouts
      */
     public function names(): array
     {
-        return ['laravel', 'features', 'slices', 'type-first', 'modules'];
+        return ['laravel', 'features', 'slices', 'type-first', 'modules', 'ddd'];
     }
 
     /**
@@ -34,6 +36,7 @@ final readonly class BuiltInLayouts
             'slices' => $this->slices($layout),
             'type-first' => $this->typeFirst($layout),
             'modules' => $this->modules($layout),
+            'ddd' => $this->ddd($layout),
             default => null,
         };
 
@@ -254,6 +257,60 @@ final readonly class BuiltInLayouts
 
         return $this->companions($layout)
             ->exclude('App\\UI\\', 'App\\Support\\');
+    }
+
+    /**
+     * laravel-ddd's defaults: domain objects in src/Domain/<Domain>, application
+     * objects (controllers, requests, middleware) in app/Modules/<Domain>.
+     * Subdomains nest: --domain=Reporting.Internal.
+     */
+    private function ddd(Layout $layout): Layout
+    {
+        $stubs = __DIR__.'/stubs/ddd';
+
+        $layout
+            ->root('domain', 'Domain\\', 'src/Domain', fn (Root $root) => $root
+                ->kind('model', in: '{domain+}/Models')
+                ->kind('dto', in: '{domain+}/Data', aliases: ['mod:data-transfer-object', 'mod:datatransferobject', 'mod:data'], stub: Stub::file("{$stubs}/dto.stub")
+                    ->whenInstalled('spatie/laravel-data', base: 'Spatie\\LaravelData\\Data')
+                    ->generatesBase(GeneratedBase::named('DataTransferObject', in: 'Shared/Data', stub: "{$stubs}/bases/data-transfer-object.stub")))
+                ->kind('value-object', in: '{domain+}/ValueObjects', command: 'mod:value', aliases: ['mod:value-object', 'mod:valueobject'], stub: Stub::file("{$stubs}/value-object.stub"))
+                ->kind('view-model', in: '{domain+}/ViewModels', aliases: ['mod:viewmodel'], stub: Stub::file("{$stubs}/view-model.stub")
+                    ->whenInstalled('spatie/laravel-view-models', base: 'Spatie\\ViewModels\\ViewModel')
+                    ->generatesBase(GeneratedBase::named('ViewModel', in: 'Shared/ViewModels', stub: "{$stubs}/bases/view-model.stub")))
+                ->kind('action', in: '{domain+}/Actions', stub: Stub::file("{$stubs}/action.stub")
+                    ->whenInstalled('lorisleiva/laravel-actions', stub: "{$stubs}/action.laravel-actions.stub"))
+                ->kind('cast', in: '{domain+}/Casts')
+                ->kind('channel', in: '{domain+}/Channels')
+                ->kind('command', in: '{domain+}/Commands')
+                ->kind('enum', in: '{domain+}/Enums')
+                ->kind('event', in: '{domain+}/Events')
+                ->kind('exception', in: '{domain+}/Exceptions')
+                ->kind('factory', in: '{domain+}/Database/Factories', suffix: 'Factory')
+                ->kind('job', in: '{domain+}/Jobs')
+                ->kind('job-middleware', in: '{domain+}/Jobs/Middleware')
+                ->kind('listener', in: '{domain+}/Listeners')
+                ->kind('mail', in: '{domain+}/Mail')
+                ->kind('migration', in: '{domain+}/Database/Migrations', timestamped: true)
+                ->kind('notification', in: '{domain+}/Notifications')
+                ->kind('observer', in: '{domain+}/Observers')
+                ->kind('policy', in: '{domain+}/Policies', suffix: 'Policy')
+                ->kind('provider', in: '{domain+}/Providers')
+                ->kind('resource', in: '{domain+}/Resources')
+                ->kind('rule', in: '{domain+}/Rules')
+                ->kind('scope', in: '{domain+}/Scopes')
+                ->kind('seeder', in: '{domain+}/Database/Seeders', suffix: 'Seeder')
+                ->kind('class', in: '{domain+}', priority: -10)
+                ->kind('interface', in: '{domain+}', priority: -11)
+                ->kind('trait', in: '{domain+}', priority: -12))
+            ->root('application', 'App\\Modules\\', 'app/Modules', fn (Root $root) => $root
+                ->kind('controller', in: '{domain+}/Controllers', suffix: 'Controller')
+                ->kind('request', in: '{domain+}/Requests', suffix: 'Request')
+                ->kind('middleware', in: '{domain+}/Middleware'))
+            ->root('tests', 'Tests\\', 'tests', fn (Root $root) => $root
+                ->kind('test', in: 'Feature/{domain+}'));
+
+        return $this->companions($layout);
     }
 
     private function companions(Layout $layout, bool $singleRequest = false): Layout

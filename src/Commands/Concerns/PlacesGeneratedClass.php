@@ -7,7 +7,12 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Exceptions\ModException;
+use Tey\Mod\Generation\GeneratedBase;
 use Tey\Mod\Generation\GenerationPlan;
+use Tey\Mod\Generation\PackageDetector;
+use Tey\Mod\Generation\Stub;
+use Tey\Mod\Generation\StubChoice;
+use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Relation\RelationResolution;
 use Tey\Mod\Support\Path;
 
@@ -27,12 +32,19 @@ use Tey\Mod\Support\Path;
  *    run around the native generation with the resolved plan.
  *  - getNameInput(): the name without the shorthand prefix; a host may
  *    normalise it further (studly case, say) by overriding it.
+ *  - stubDefinition(): the Stub the kind's classes come from (a package's
+ *    registered stub, else the layout's); its variants and base are applied
+ *    when the plan is resolved.
  */
 trait PlacesGeneratedClass
 {
     use InteractsWithPreset;
 
     private ?GenerationPlan $plan = null;
+
+    private ?StubChoice $modStub = null;
+
+    private bool $modStubPrepared = false;
 
     public static function supports(ArtifactKind $kind): bool
     {
@@ -53,6 +65,8 @@ trait PlacesGeneratedClass
     {
         $previous = $this->plan;
         $this->plan = null;
+        $this->modStub = null;
+        $this->modStubPrepared = false;
         $exitCode = self::FAILURE;
 
         try {
@@ -118,6 +132,8 @@ trait PlacesGeneratedClass
 
         if (! $nativeDuplicate) {
             $this->refuseCollisions($plan, $force);
+            // Bases and stub variants only once the class will really be written.
+            $this->prepareStub();
         }
 
         $this->plan = $plan;
@@ -222,5 +238,120 @@ trait PlacesGeneratedClass
         }
 
         return parent::getPath($name);
+    }
+
+    /**
+     * Hook: the Stub the kind's classes are generated from: the one a
+     * package registered for the kind (Mod::stubs()), else the layout's.
+     */
+    protected function stubDefinition(): ?Stub
+    {
+        $kind = $this->kind()->id;
+
+        return $this->laravel->make(StubRegistry::class)->get($kind) ?? $this->preset()->stub($kind);
+    }
+
+    /**
+     * The stub file to render: the application's published stubs/mod.<kind>.stub,
+     * else the file the kind's Stub chose, else null for the generator's own.
+     */
+    protected function modStubFile(): ?string
+    {
+        $choice = $this->prepareStub();
+        $published = $this->laravel->basePath('stubs/mod.'.$this->kind()->id.'.stub');
+
+        return is_file($published) ? $published : $choice?->file;
+    }
+
+    protected function getStub(): string
+    {
+        return $this->modStubFile() ?? parent::getStub();
+    }
+
+    /**
+     * Fill the base placeholders with the base the stub chose: {{ base }}
+     * (full name), {{ baseClass }} (short name), {{ baseImport }} (a use
+     * line) and {{ extends }} (" extends Base"); the last two are empty
+     * when there is no base.
+     *
+     * @param  string  $stub
+     * @param  string  $name
+     * @return string
+     */
+    protected function replaceClass($stub, $name)
+    {
+        $stub = parent::replaceClass($stub, $name);
+        $base = $this->modStub?->base;
+        $short = $base !== null ? class_basename($base) : '';
+        $import = $base !== null ? PHP_EOL.'use '.$base.';'.PHP_EOL : '';
+        $extends = $base !== null ? ' extends '.$short : '';
+
+        return str_replace(
+            ['{{ base }}', '{{base}}', '{{ baseClass }}', '{{baseClass}}', '{{ baseImport }}', '{{baseImport}}', '{{ extends }}', '{{extends}}'],
+            [$base ?? '', $base ?? '', $short, $short, $import, $import, $extends, $extends],
+            $stub,
+        );
+    }
+
+    /**
+     * Resolve the kind's Stub once per invocation: say which branch applies,
+     * and write the generated base on first use.
+     */
+    private function prepareStub(): ?StubChoice
+    {
+        if ($this->modStubPrepared) {
+            return $this->modStub;
+        }
+
+        $this->modStubPrepared = true;
+        $stub = $this->stubDefinition();
+
+        if ($stub === null) {
+            return null;
+        }
+
+        $config = $this->laravel->make('config');
+        $configured = $config->get('mod.layouts.'.$this->layoutName().'.bases.'.$this->kind()->id);
+        $choice = $stub->choose(
+            $this->laravel->make(PackageDetector::class),
+            static fn (string $key): mixed => $config->get($key),
+            is_string($configured) ? $configured : null,
+        );
+
+        if ($choice->generatedBase !== null) {
+            $choice = $choice->withBase($this->ensureBase($choice->generatedBase));
+        } elseif ($choice->message !== null) {
+            $this->components->info($choice->message);
+        }
+
+        return $this->modStub = $choice;
+    }
+
+    /**
+     * The generated base's class, written into the kind's root first when it does not exist yet.
+     * An existing base is never overwritten, not even with --force.
+     */
+    private function ensureBase(GeneratedBase $base): string
+    {
+        $root = $this->preset()->rule($this->kind()->id)->root();
+        $folder = str_replace('/', '\\', $base->in);
+        $fqcn = rtrim((string) $root->namespace, '\\').'\\'.($folder === '' ? '' : $folder.'\\').$base->name;
+        $relative = Path::join($root->path, $base->in, $base->name.'.php');
+        $absolute = $this->existingArtifacts()->absolute($relative);
+
+        if (class_exists($fqcn) || is_file($absolute)) {
+            return $fqcn;
+        }
+
+        $published = $this->laravel->basePath('stubs/mod.base.'.$base->stubName().'.stub');
+        $body = (string) file_get_contents(is_file($published) ? $published : $base->stub);
+        $namespace = substr($fqcn, 0, (int) strrpos($fqcn, '\\'));
+
+        $this->files->ensureDirectoryExists(dirname($absolute));
+        $this->files->put($absolute, str_replace(['{{ namespace }}', '{{namespace}}', '{{ class }}', '{{class}}'], [$namespace, $namespace, $base->name, $base->name], $body));
+
+        $this->components->info("Created base class {$fqcn} [{$relative}].");
+
+        return $fqcn;
     }
 }

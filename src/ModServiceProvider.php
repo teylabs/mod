@@ -11,8 +11,11 @@ use Tey\Mod\Discovery\Discovery;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryRegistrar;
 use Tey\Mod\Exceptions\InvalidGeneratorSetup;
+use Tey\Mod\Generation\ComposerPackageDetector;
 use Tey\Mod\Generation\GeneratorRegistry;
 use Tey\Mod\Generation\ModMigrationCreator;
+use Tey\Mod\Generation\PackageDetector;
+use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Preset\Preset;
 use Tey\Mod\Resolution\ModelConventions;
@@ -24,6 +27,9 @@ class ModServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../config/mod.php', 'mod');
 
         $this->app->singleton(LayoutRegistry::class);
+        $this->app->singleton(StubRegistry::class);
+        $this->app->singleton(PackageDetector::class, ComposerPackageDetector::class);
+        $this->app->singleton(ModManager::class);
 
         // The active layout compiles on first use, after every provider has booted
         // (Artisan::starting, the booted callback below), so Mod::layout() calls in

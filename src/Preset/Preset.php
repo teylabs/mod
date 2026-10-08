@@ -6,6 +6,7 @@ use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Exceptions\InvalidPreset;
 use Tey\Mod\Exceptions\UnknownArtifactKind;
 use Tey\Mod\Exceptions\UnknownRelation;
+use Tey\Mod\Generation\Stub;
 use Tey\Mod\Placement\Dimension;
 use Tey\Mod\Placement\PlacementRule;
 use Tey\Mod\Placement\Root;
@@ -28,6 +29,7 @@ final readonly class Preset
      * @param  array<string, Relation>  $relations  keyed by relation id
      * @param  list<Root>  $excludedRoots  never owned by any rule
      * @param  array<string, string>  $placementOptions  dimension name → command option name
+     * @param  array<string, Stub>  $stubs  kind id → the stub the layout declares for it
      */
     public function __construct(
         private array $roots,
@@ -38,6 +40,7 @@ final readonly class Preset
         private array $excludedRoots = [],
         private bool $commandsEnabled = true,
         private array $placementOptions = [],
+        private array $stubs = [],
     ) {}
 
     /**
@@ -155,6 +158,14 @@ final readonly class Preset
         }
 
         return $options;
+    }
+
+    /**
+     * The stub the layout declares for a kind, if any.
+     */
+    public function stub(string $kindId): ?Stub
+    {
+        return $this->stubs[$kindId] ?? null;
     }
 
     /**

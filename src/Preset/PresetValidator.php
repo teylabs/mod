@@ -7,6 +7,7 @@ use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\IdentityShape;
 use Tey\Mod\Artifact\NamePolicy;
 use Tey\Mod\Exceptions\InvalidPreset;
+use Tey\Mod\Generation\Stub;
 use Tey\Mod\Placement\Dimension;
 use Tey\Mod\Placement\OpaquePlacementRule;
 use Tey\Mod\Placement\PlacementContext;
@@ -33,6 +34,7 @@ use Tey\Mod\Relation\ScopeMap;
  *        'nested' => true,                       // accepts "Billing/Invoice" and keeps the folders below the kind's own
  *        'discover' => 'anywhere', 'except' => ['Tests'],   // discovery widening below the dimension folders
  *        'place' => Closure(string $name, PlacementContext $context): string   // opaque alternative to 'segments'
+ *        'aliases' => ['mod:records'], 'stub' => Stub::file(...),
  *    ]],
  *    'relations'  => ['factory' => [
  *        'from' => 'model', 'to' => 'factory', 'scope' => 'same'|['keep' => ['feature'], 'nested' => 'keep'|'drop'],
@@ -103,7 +105,15 @@ final class PresetValidator
             return null;
         }
 
-        return new Preset($roots, array_values($dimensions), $kinds, $rules, $relations, $excluded, $commands, $placementOptions);
+        $stubs = [];
+
+        foreach (is_array($definition['kinds'] ?? null) ? $definition['kinds'] : [] as $id => $entry) {
+            if (isset($kinds[$id]) && is_array($entry) && ($entry['stub'] ?? null) instanceof Stub) {
+                $stubs[$id] = $entry['stub'];
+            }
+        }
+
+        return new Preset($roots, array_values($dimensions), $kinds, $rules, $relations, $excluded, $commands, $placementOptions, $stubs);
     }
 
     /**
@@ -321,6 +331,43 @@ final class PresetValidator
                 $commands[$command] = $id;
             }
 
+            $aliases = $entry['aliases'] ?? [];
+
+            if (! is_array($aliases) || ! array_is_list($aliases) || array_filter($aliases, static fn (mixed $alias): bool => ! is_string($alias) || $alias === '') !== []) {
+                $this->issue(PresetIssueCode::InvalidKind, $subject, 'aliases must be a list of command names');
+
+                continue;
+            }
+
+            if ($aliases !== [] && $command === null) {
+                $this->issue(PresetIssueCode::InvalidKind, $subject, 'aliases need a command to stand for');
+
+                continue;
+            }
+
+            $names = [];
+
+            foreach ($aliases as $alias) {
+                if (! is_string($alias)) {
+                    continue;
+                }
+
+                $names[] = $alias;
+
+                if ($commandsEnabled && isset($commands[$alias])) {
+                    $this->issue(PresetIssueCode::DuplicateCommandName, $subject, "alias [{$alias}] is already used by kind [{$commands[$alias]}]");
+
+                    continue 2;
+                }
+                $commands[$alias] = $id;
+            }
+
+            if (isset($entry['stub']) && ! $entry['stub'] instanceof Stub) {
+                $this->issue(PresetIssueCode::InvalidKind, $subject, 'stub must be a '.Stub::class);
+
+                continue;
+            }
+
             $rootName = $entry['root'] ?? null;
 
             if (! is_string($rootName) || ! isset($roots[$rootName])) {
@@ -392,7 +439,7 @@ final class PresetValidator
                 }
             }
 
-            $kinds[$id] = new ArtifactKind($id, $shape, $policy, $command);
+            $kinds[$id] = new ArtifactKind($id, $shape, $policy, $command, $names);
             $rules[$id] = $rule;
         }
 

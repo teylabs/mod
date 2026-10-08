@@ -13,7 +13,7 @@ return [
 
     /*
      * The application's layout: a built-in one (laravel, features, slices,
-     * type-first, modules) or any name defined with Mod::layout() in a
+     * type-first, modules, ddd) or any name defined with Mod::layout() in a
      * service provider. Built-in layouts can be extended the same way:
      *
      *     Mod::layout('modules')->kind('job', in: 'Modules/{module}/Jobs');
@@ -28,6 +28,23 @@ return [
      * generic generator; its stub is stubs/mod.<kind>.stub when published.
      */
     'generators' => [],
+
+    /*
+     * Per-layout settings. `bases` names the class a kind's generated classes
+     * extend, by kind id. Null (the default) lets mod decide: a supported
+     * package when it is installed (spatie/laravel-data for DTOs,
+     * spatie/laravel-view-models for view models, lorisleiva/laravel-actions
+     * for actions), else a base class it writes into the app on first use.
+     */
+    'layouts' => [
+        'ddd' => [
+            'bases' => [
+                'dto' => null,
+                'view-model' => null,
+                'action' => null,
+            ],
+        ],
+    ],
 
     /*
      * Runtime discovery of the providers, Artisan commands and listeners the

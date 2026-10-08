@@ -78,7 +78,7 @@ trait InteractsWithPreset
         $this->modKind = $kind;
 
         $this->setName($kind->command);
-        $this->setAliases([]);
+        $this->setAliases($kind->aliases);
         $this->registerPlacementOptions();
 
         return $this;

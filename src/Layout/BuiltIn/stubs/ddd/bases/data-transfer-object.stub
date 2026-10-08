@@ -1,0 +1,35 @@
+<?php
+
+namespace {{ namespace }};
+
+use ReflectionClass;
+use ReflectionProperty;
+
+abstract class {{ class }}
+{
+    public static function fromArray(array $data): static
+    {
+        $arguments = [];
+
+        foreach ((new ReflectionClass(static::class))->getConstructor()?->getParameters() ?? [] as $parameter) {
+            if (array_key_exists($parameter->getName(), $data)) {
+                $arguments[$parameter->getName()] = $data[$parameter->getName()];
+            }
+        }
+
+        return new static(...$arguments);
+    }
+
+    public function toArray(): array
+    {
+        $properties = [];
+
+        foreach ((new ReflectionClass($this))->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
+            if (! $property->isStatic()) {
+                $properties[$property->getName()] = $property->getValue($this);
+            }
+        }
+
+        return $properties;
+    }
+}

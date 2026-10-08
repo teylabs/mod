@@ -18,7 +18,7 @@ use Tey\Mod\Relation\RelationPolicy;
  */
 function dddLayout(LayoutRegistry $registry): Layout
 {
-    return $registry->layout('ddd')
+    return $registry->layout('domains')
         ->root('domain', 'Domain\\', 'src/Domain', fn (Root $r) => $r
             ->kind('model', in: '{domain}/Models')
             ->kind('action', in: '{domain}/Actions'))
@@ -158,7 +158,7 @@ it('extends a layout: repeated ids override the given arguments and keep the res
     $registry = new LayoutRegistry;
     dddLayout($registry);
 
-    $returned = $registry->layout('ddd')
+    $returned = $registry->layout('domains')
         ->kind('model', suffix: 'Model')
         ->kind('controller', in: 'Http/{domain}/Controllers')
         ->kind('query', in: '{domain}/Queries')
@@ -166,9 +166,9 @@ it('extends a layout: repeated ids override the given arguments and keep the res
         ->relation('factory', policy: 'reference')
         ->exclude('App\\Support\\', 'App\\UI\\');
 
-    $preset = $registry->compile('ddd');
+    $preset = $registry->compile('domains');
 
-    expect($returned)->toBe($registry->layout('ddd'))
+    expect($returned)->toBe($registry->layout('domains'))
         ->and(array_keys($preset->kinds()))->toBe(['model', 'action', 'controller', 'factory', 'query'])
         ->and(place($preset, 'model', 'Invoice', 'Billing')->fqcn())->toBe('Domain\\Billing\\Models\\InvoiceModel')
         ->and(place($preset, 'controller', 'Invoice', 'Billing')->path())->toBe('application/Http/Billing/Controllers/InvoiceController.php')
@@ -185,12 +185,12 @@ it('starts a built-in layout from its definition and an unknown name empty', fun
         ->and($registry->layout('reporting')->toArray()['kinds'])->toBe([])
         ->and($registry->has('laravel'))->toBeTrue()
         ->and($registry->has('nope'))->toBeFalse()
-        ->and($registry->names())->toBe(['laravel', 'features', 'slices', 'type-first', 'modules', 'reporting']);
+        ->and($registry->names())->toBe(['laravel', 'features', 'slices', 'type-first', 'modules', 'ddd', 'reporting']);
 });
 
 it('refuses to compile a layout nobody defined', function () {
     expect(fn () => (new LayoutRegistry)->compile('nope'))
-        ->toThrow(InvalidGeneratorSetup::class, "Layout [nope] is not defined. Use a built-in layout (laravel, features, slices, type-first, modules) or define it with Mod::layout('nope')");
+        ->toThrow(InvalidGeneratorSetup::class, "Layout [nope] is not defined. Use a built-in layout (laravel, features, slices, type-first, modules, ddd) or define it with Mod::layout('nope')");
 });
 
 it('refuses changes to a layout already compiled for use', function () {

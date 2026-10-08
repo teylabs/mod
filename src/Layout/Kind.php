@@ -3,6 +3,7 @@
 namespace Tey\Mod\Layout;
 
 use Closure;
+use Tey\Mod\Generation\Stub;
 use Tey\Mod\Placement\PlacementContext;
 
 /**
@@ -25,6 +26,11 @@ final class Kind
     private bool $file = false;
 
     private string|false|null $command = null;
+
+    /** @var list<string> */
+    private array $aliases = [];
+
+    private ?Stub $stub = null;
 
     private ?int $priority = null;
 
@@ -123,6 +129,30 @@ final class Kind
     }
 
     /**
+     * Other names for the kind's command (`mod:data` for `mod:dto`, say); they run the same command.
+     */
+    public function aliases(string ...$names): self
+    {
+        foreach ($names as $name) {
+            if (! in_array($name, $this->aliases, true)) {
+                $this->aliases[] = $name;
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * The stub the kind's classes are generated from, with its variants and base.
+     */
+    public function stub(Stub $stub): self
+    {
+        $this->stub = $stub;
+
+        return $this;
+    }
+
+    /**
      * Accept nested names ("Billing/Invoice"): the folders go below the kind's
      * own folder and the basename last, as native make:* does.
      */
@@ -186,7 +216,7 @@ final class Kind
     /**
      * @internal
      *
-     * @return array{in: ?string, fallback: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: (Closure(string, PlacementContext): string)|null, reads: list<string>}
+     * @return array{in: ?string, fallback: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, aliases: list<string>, stub: ?Stub, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: (Closure(string, PlacementContext): string)|null, reads: list<string>}
      */
     public function toArray(): array
     {
@@ -197,6 +227,8 @@ final class Kind
             'name' => $this->name,
             'file' => $this->file,
             'command' => $this->command,
+            'aliases' => $this->aliases,
+            'stub' => $this->stub,
             'priority' => $this->priority,
             'nested' => $this->nested,
             'discover' => $this->discover,

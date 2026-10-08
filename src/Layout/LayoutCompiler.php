@@ -3,6 +3,7 @@
 namespace Tey\Mod\Layout;
 
 use Tey\Mod\Exceptions\InvalidLayout;
+use Tey\Mod\Generation\Stub;
 use Tey\Mod\Placement\Root as PlacementRoot;
 use Tey\Mod\Placement\Segment;
 use Tey\Mod\Preset\Preset;
@@ -94,7 +95,7 @@ final class LayoutCompiler
     }
 
     /**
-     * @param  array{in: ?string, fallback: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: ?\Closure, reads: list<string>}  $kind
+     * @param  array{in: ?string, fallback: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, aliases: list<string>, stub: ?Stub, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: ?\Closure, reads: list<string>}  $kind
      * @param  array<string, array{namespace: ?string, path: string}>  $roots
      * @return array{array<string, mixed>, list<string>}|null the internal kind definition and the placeholders it reads
      */
@@ -141,6 +142,14 @@ final class LayoutCompiler
 
         if ($kind['command'] !== false) {
             $definition['command'] = $kind['command'] ?? 'mod:'.$id;
+        }
+
+        if ($kind['aliases'] !== []) {
+            $definition['aliases'] = $kind['aliases'];
+        }
+
+        if ($kind['stub'] !== null) {
+            $definition['stub'] = $kind['stub'];
         }
 
         if ($kind['fallback'] !== null) {

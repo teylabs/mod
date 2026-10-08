@@ -5,6 +5,7 @@ namespace Tey\Mod\Layout;
 use Closure;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Exceptions\ModException;
+use Tey\Mod\Generation\Stub;
 use Tey\Mod\Preset\Preset;
 use Tey\Mod\Relation\RelationPolicy;
 
@@ -77,9 +78,12 @@ final class Layout
      * `nested: true` accepts nested names ("Billing/Invoice"); `discoverAnywhere: true`
      * (with `except: [...]`) widens discovery to every file below the kind's
      * dimension folders. A `{name+}` placeholder spans one or more folders.
+     * `aliases:` gives the command other names; `stub:` the stub its classes
+     * are generated from (with variants and a base, see Stub).
      *
      * @param  list<string>|null  $except  folders discovery skips, relative to the dimension folder
      * @param  (Closure(Kind): mixed)|null  $using  for what the named arguments do not cover
+     * @param  list<string>|null  $aliases  other names for the kind's command
      */
     public function kind(
         string $id,
@@ -94,6 +98,8 @@ final class Layout
         ?array $except = null,
         ?Closure $using = null,
         ?string $fallback = null,
+        ?array $aliases = null,
+        ?Stub $stub = null,
     ): self {
         $this->guard();
 
@@ -139,6 +145,14 @@ final class Layout
             }
 
             $kind->discoverAnywhere($except ?? []);
+        }
+
+        if ($aliases !== null) {
+            $kind->aliases(...$aliases);
+        }
+
+        if ($stub !== null) {
+            $kind->stub($stub);
         }
 
         if ($using !== null) {

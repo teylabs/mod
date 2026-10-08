@@ -14,10 +14,10 @@ use Tey\Mod\Support\Path;
 /**
  * Every code token of src, comments and docblocks stripped.
  *
- * src/Layout/BuiltIn is exempt: it is the layouts mod ships, written as data
- * with the public builder, so it necessarily names folders and placeholders.
- * The DDD-vocabulary check below and tests/Unit/VocabularyTest.php still
- * cover it.
+ * src/Layout/BuiltIn is exempt: it is the layouts mod ships (including the
+ * ddd layout and its stubs), written as data with the public builder, so it
+ * necessarily names folders, placeholders and DDD terms. Everything else in
+ * src stays neutral.
  *
  * @return list<array{file: string, line: int, text: string}>
  */
@@ -73,11 +73,25 @@ it('exempts only the built-in layouts from the layout-word check', function () {
         array_unique(array_column(engineCodeTokens(), 'file')),
     );
 
-    expect(array_values($exempt))->toBe(['Layout/BuiltIn/BuiltInLayouts.php']);
+    expect($exempt)->not->toBeEmpty();
+
+    foreach ($exempt as $file) {
+        expect($file)->toStartWith('Layout/BuiltIn/');
+    }
 });
 
 it('names no DDD concept in engine code', function () {
-    expect(codeTokensMatching('/(domain|layer|bounded|aggregate|value-?object|ddd)/i', withBuiltInLayouts: true))->toBe([]);
+    expect(codeTokensMatching('/(domain|layer|bounded|aggregate|value-?object|ddd)/i'))->toBe([]);
+});
+
+it('keeps the ddd vocabulary to the built-in layouts', function () {
+    $hits = codeTokensMatching('/(domain|value-?object|ddd)/i', withBuiltInLayouts: true);
+
+    expect($hits)->not->toBeEmpty();
+
+    foreach ($hits as $hit) {
+        expect($hit)->toStartWith('Layout/BuiltIn/');
+    }
 });
 
 it('has no dependency on any layout package', function () {

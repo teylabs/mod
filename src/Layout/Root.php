@@ -3,6 +3,7 @@
 namespace Tey\Mod\Layout;
 
 use Closure;
+use Tey\Mod\Generation\Stub;
 
 /**
  * A root's kinds, declared inside `->root(..., fn (Root $root) => $root->kind(...))`.
@@ -23,6 +24,7 @@ final readonly class Root
     /**
      * @param  list<string>|null  $except
      * @param  (Closure(Kind): mixed)|null  $using
+     * @param  list<string>|null  $aliases
      */
     public function kind(
         string $id,
@@ -37,6 +39,8 @@ final readonly class Root
         ?array $except = null,
         ?Closure $using = null,
         ?string $fallback = null,
+        ?array $aliases = null,
+        ?Stub $stub = null,
     ): self {
         $this->layout->kind($id, $in, $suffix, $fixed, $timestamped, $command, $priority, $nested, $discoverAnywhere, $except, function (Kind $kind) use ($using): void {
             $kind->withinRoot($this->name);
@@ -44,7 +48,7 @@ final readonly class Root
             if ($using !== null) {
                 $using($kind);
             }
-        }, $fallback);
+        }, $fallback, $aliases, $stub);
 
         return $this;
     }

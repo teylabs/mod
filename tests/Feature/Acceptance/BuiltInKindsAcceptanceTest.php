@@ -9,6 +9,26 @@ use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
 /** @return array<string, string> */
 function builtInFolders(string $layout, string $group, string $slice): array
 {
+    if ($layout === 'ddd') {
+        $domain = [
+            'model' => 'Models', 'dto' => 'Data', 'value-object' => 'ValueObjects', 'view-model' => 'ViewModels', 'action' => 'Actions',
+            'cast' => 'Casts', 'channel' => 'Channels', 'command' => 'Commands', 'enum' => 'Enums', 'event' => 'Events',
+            'exception' => 'Exceptions', 'factory' => 'Database/Factories', 'job' => 'Jobs', 'job-middleware' => 'Jobs/Middleware',
+            'listener' => 'Listeners', 'mail' => 'Mail', 'migration' => 'Database/Migrations', 'notification' => 'Notifications',
+            'observer' => 'Observers', 'policy' => 'Policies', 'provider' => 'Providers', 'resource' => 'Resources', 'rule' => 'Rules',
+            'scope' => 'Scopes', 'seeder' => 'Database/Seeders', 'class' => '', 'interface' => '', 'trait' => '',
+        ];
+        $folders = array_map(static fn (string $folder): string => rtrim("src/Domain/{$group}/{$folder}", '/'), $domain);
+
+        foreach (['controller' => 'Controllers', 'request' => 'Requests', 'middleware' => 'Middleware'] as $kind => $folder) {
+            $folders[$kind] = "app/Modules/{$group}/{$folder}";
+        }
+
+        $folders['test'] = "tests/Feature/{$group}";
+
+        return $folders;
+    }
+
     $folders = [
         'model' => 'Models', 'controller' => 'Http/Controllers', 'request' => 'Http/Requests',
         'policy' => 'Policies', 'provider' => 'Providers', 'command' => 'Console/Commands',
@@ -91,7 +111,7 @@ it('generates and autoloads every declared built-in kind at its table location',
                 $options['--phpunit'] = true;
             }
             $before = glob($app->root->path($folder).'/*.php') ?: [];
-            $result = $app->artisan('mod:'.$kind, $options)->assertSuccessful();
+            $result = $app->artisan((string) $app->preset->kind($kind)->command, $options)->assertSuccessful();
             $files = array_values(array_diff(glob($app->root->path($folder).'/*.php') ?: [], $before));
             expect($files)->toHaveCount(1, "{$layout}: {$kind} in {$folder}");
             $file = $files[0];
@@ -124,7 +144,7 @@ it('generates and autoloads every declared built-in kind at its table location',
         $unitFolder = str_replace('/Feature', '/Unit', builtInFolders($layout, $group, '')['test']);
         expect($unitResult)->toHaveGenerated(rtrim($unitFolder, '/').'/'.$unit.'.php');
     });
-})->with(['laravel', 'features', 'slices', 'type-first', 'modules']);
+})->with(['laravel', 'features', 'slices', 'type-first', 'modules', 'ddd']);
 
 it('generates model companions including policy alone in every built-in', function (string $layout) {
     AcceptanceApp::run($layout, function (AcceptanceApp $app) use ($layout) {
@@ -154,7 +174,7 @@ it('generates model companions including policy alone in every built-in', functi
             $folders['model'].'/'.$alone.'.php', $folders['policy'].'/'.$alone.'Policy.php',
         ]);
     });
-})->with(['laravel', 'features', 'slices', 'type-first', 'modules']);
+})->with(['laravel', 'features', 'slices', 'type-first', 'modules', 'ddd']);
 
 it('generates standalone model request companions in every built-in', function (string $layout) {
     AcceptanceApp::run($layout, function (AcceptanceApp $app) use ($layout) {
@@ -171,4 +191,4 @@ it('generates standalone model request companions in every built-in', function (
             expect(array_keys($app->preset->relations()))->not->toContain('update-request', 'model-update-request');
         }
     });
-})->with(['laravel', 'features', 'slices', 'type-first', 'modules']);
+})->with(['laravel', 'features', 'slices', 'type-first', 'modules', 'ddd']);
