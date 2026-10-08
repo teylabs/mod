@@ -43,7 +43,7 @@ it('replays exactly the inventory a cold scan produces', DiscoveryFixture::aroun
     $written = $cold->writeCache();
     $replayed = discoveryFor($fx, $preset);
 
-    expect($cold->cache()->path)->toBe($fx->path('bootstrap/cache/mod-discovery.php'))
+    expect($cold->cache()->path)->toEqualPath($fx->path('bootstrap/cache/mod-discovery.php'))
         ->and($replayed->inventory()->toArray())->toBe($written->toArray())
         ->and($replayed->inventory()->equals($cold->scan()))->toBeTrue()
         ->and($replayed->source())->toBe('cache')

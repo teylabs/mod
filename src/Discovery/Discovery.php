@@ -108,7 +108,7 @@ final class Discovery
 
     public function cache(): DiscoveryCache
     {
-        $path = $this->options->cachePath;
+        $path = Path::normalize($this->options->cachePath);
         $absolute = str_starts_with($path, '/') || preg_match('#^[A-Za-z]:[\\\\/]#', $path) === 1
             ? $path
             : Path::join($this->basePath, $path);
