@@ -216,7 +216,8 @@ class ModServiceProvider extends ServiceProvider
 
         foreach ($this->app->make(LayoutRegistry::class)->builtInCommands() as $command => $other) {
             if (! isset($own[$command]) && ! $artisan->has($command)) {
-                $artisan->add(new OtherLayoutCommand($command, $other['kind'], $other['layouts'], $layout));
+                // resolve() adds a command instance on every supported Laravel (addCommand() where add() is deprecated).
+                $artisan->resolve(new OtherLayoutCommand($command, $other['kind'], $other['layouts'], $layout));
             }
         }
     }
