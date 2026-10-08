@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://mod.teylabs.com/banner-dark.png?v=1">
+    <img alt="Mod: Modular Development Toolkit for Laravel" src="https://mod.teylabs.com/banner-light.png?v=1" width="600">
+  </picture>
+</p>
+
 # Mod: Modular Development Toolkit for Laravel
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/tey/mod.svg?style=flat-square)](https://packagist.org/packages/tey/mod)
