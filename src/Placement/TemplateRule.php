@@ -21,7 +21,7 @@ use Tey\Mod\Layout\CompiledRoot;
  *
  * A nested rule (`nested: true`) also accepts nested names: "Billing/Invoice"
  * places the folders after the template and the basename last, exactly like
- * native make:* does, and recognises them back as the artifact's `nested`
+ * native make:* does, and recognizes them back as the artifact's `nested`
  * folders. A multi-segment dimension (`{name+}`) spans one or more folders.
  *
  * An "anywhere" rule (`discover: 'anywhere'`) additionally offers discovery

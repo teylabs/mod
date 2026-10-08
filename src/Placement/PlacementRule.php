@@ -7,7 +7,7 @@ use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Layout\CompiledRoot;
 
 /**
- * Places one kind of artifact and, when it can, recognises artifacts it would have placed.
+ * Places one kind of artifact and, when it can, recognizes artifacts it would have placed.
  *
  * @internal
  */
@@ -17,7 +17,7 @@ interface PlacementRule
 
     public function root(): CompiledRoot;
 
-    /** Higher wins when several rules recognise the same input on reverse mapping. */
+    /** Higher wins when several rules recognize the same input on reverse mapping. */
     public function priority(): int;
 
     /**

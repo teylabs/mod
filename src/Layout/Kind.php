@@ -205,7 +205,7 @@ final class Kind
     /**
      * Place artifacts with a closure instead of a path: it returns the
      * sub-namespace under the root. Such kinds generate but are never
-     * recognised by discovery.
+     * recognized by discovery.
      *
      * @param  Closure(string, PlacementContext): string  $place
      * @param  list<string>  $reads  the placeholders the closure reads, e.g. ['area']

@@ -70,7 +70,7 @@ final readonly class ReverseMapper
         }
 
         if ($ranked === []) {
-            return ReverseMatch::notOwned('no declared rule recognises it');
+            return ReverseMatch::notOwned('no declared rule recognizes it');
         }
 
         if (count($candidates) === 1) {

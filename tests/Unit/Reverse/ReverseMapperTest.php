@@ -62,3 +62,7 @@ it('never maps a migration from a class name', function () {
     expect((new ReverseMapper(Layouts::ordinary()))->fromClass('CreateInvoicesTable')->outcome)
         ->toBe(ReverseOutcome::NotOwned);
 });
+
+it('says plainly that no rule recognizes a file outside the layout', function () {
+    expect((new ReverseMapper(Layouts::ordinary()))->fromPath('app/Unowned/Thing.php')->reason)->toBe('no declared rule recognizes it');
+});

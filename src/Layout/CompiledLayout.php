@@ -64,6 +64,8 @@ final readonly class CompiledLayout
     }
 
     /**
+     * @internal use dimensionNames() and placementOptions(); Dimension is internal
+     *
      * @return list<Dimension>
      */
     public function dimensions(): array

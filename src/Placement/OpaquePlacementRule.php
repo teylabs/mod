@@ -13,7 +13,7 @@ use Tey\Mod\Exceptions\InvalidName;
 use Tey\Mod\Layout\CompiledRoot;
 
 /**
- * A callback-driven placement. It can place but never recognise: arbitrary
+ * A callback-driven placement. It can place but never recognize: arbitrary
  * callbacks are not invertible, so reverse mapping reports Unsupported for
  * anything under its root instead of guessing.
  *

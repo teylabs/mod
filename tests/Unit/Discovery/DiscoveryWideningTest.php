@@ -58,7 +58,7 @@ it('keeps reverse mapping template-exact for anywhere kinds', function () {
         ->and($mapper->fromPath('src/Billing/Providers/BillingProvider.php')->outcome)->toBe(ReverseOutcome::Matched);
 });
 
-it('recognises the directories a file kind template binds', function () {
+it('recognizes the directories a file kind template binds', function () {
     $rule = anywhereLayout()->rule('migration');
     assert($rule instanceof TemplateRule);
 

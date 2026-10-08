@@ -10,7 +10,7 @@ enum RejectionReason: string
     /** No declared rule owns the file, or it lies in an excluded root. */
     case NotOwned = 'not-owned';
 
-    /** Several rules recognise the file and none has priority. */
+    /** Several rules recognize the file and none has priority. */
     case Ambiguous = 'ambiguous';
 
     /** A callback rule covers the file, so ownership cannot be decided. */

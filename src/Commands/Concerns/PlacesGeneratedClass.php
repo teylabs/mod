@@ -36,7 +36,7 @@ use function Laravel\Prompts\select;
  *  - beforeGeneration(GenerationPlan) / afterGeneration(GenerationPlan, int):
  *    run around the native generation with the resolved plan.
  *  - getNameInput(): the name without the shorthand prefix; a host may
- *    normalise it further (studly case, say) by overriding it.
+ *    normalize it further (studly case, say) by overriding it.
  *  - stubDefinition(): the Stub the kind's classes come from (a package's
  *    registered stub, else the layout's); its variants and base are applied
  *    when the plan is resolved.
