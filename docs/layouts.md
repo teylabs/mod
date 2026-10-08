@@ -25,8 +25,7 @@ The other layouts put each file in a folder below its group:
 | `mod:class`, `mod:interface`, `mod:trait` | the group folder | the group folder | the group folder | the group folder |
 | `mod:command` | `Console` | `Console/Commands` | `Console/Commands` | `Commands` |
 | `mod:controller` | `Controllers` | `Http/Controllers` | `Http/Controllers` | `app/Modules/<Domain>/Controllers` |
-| `mod:data` | `Data` | | | |
-| `mod:dto` | | | | `Data` |
+| `mod:dto` | `Data` | | | `Data` |
 | `mod:enum` | `Enums` | `Enums` | `Enums` | `Enums` |
 | `mod:event` | `Events` | `Events` | `Events` | `Events` |
 | `mod:exception` | `Exceptions` | `Exceptions` | `Exceptions` | `Exceptions` |
@@ -52,14 +51,16 @@ The other layouts put each file in a folder below its group:
 | `mod:seeder` | `Database/Seeders` | `Database/Seeders` | `Database/Seeders` | `Database/Seeders` |
 | `mod:test` | `tests/Feature/Modules/<Module>` | `tests/Feature/<Feature>` | `tests/Feature/<Feature>/<Slice>` | `tests/Feature/<Domain>` |
 | `mod:validator` | | `Validation` | `<Slice>/Validator.php` | |
-| `mod:value` | | | | `ValueObjects` |
-| `mod:view-model` | | | | `ViewModels` |
+| `mod:value` | `ValueObjects` | | | `ValueObjects` |
+| `mod:view-model` | `ViewModels` | | | `ViewModels` |
 
 - A slice's classes have fixed names, so `mod:handler Handler --in=Knowledge/IndexDocument` writes `app/Knowledge/IndexDocument/Handler.php`.
 - `mod:test --unit` writes to `tests/Unit` instead of `tests/Feature`.
+- `mod:provider` adds `ServiceProvider` to the name, except in `ddd`, which names providers as given, as laravel-ddd and `make:provider` do.
+- In `modules`, `mod:dto` answers to `mod:data` as well.
 - In `features` and `slices`, `mod:command` without a feature writes to `app/Console/Commands`.
 
-## The ddd Layout
+## The DDD Layout
 
 ```php
 // config/mod.php
@@ -99,9 +100,11 @@ Add the namespace to your `composer.json` autoload, then run `composer dump-auto
 }
 ```
 
-### Stub Variants
+DTOs, view models, value objects and actions start from [starter stubs](#starter-stubs). In this layout, their base classes go in `src/Domain/Shared`, where laravel-ddd puts them.
 
-DTOs, value objects, view models and actions start as plain Laravel-style classes. When a package for them is installed, mod uses it instead:
+## Starter Stubs
+
+`mod:dto`, `mod:view-model`, `mod:value` and `mod:action` start as plain Laravel-style classes. When a package for them is installed, mod uses it instead:
 
 | Command | When installed | Otherwise |
 | --- | --- | --- |
@@ -110,15 +113,67 @@ DTOs, value objects, view models and actions start as plain Laravel-style classe
 | `mod:action` | [lorisleiva/laravel-actions](https://github.com/lorisleiva/laravel-actions): `use AsAction;` | a plain class with `handle()` |
 | `mod:value` | | a plain class with a constructor |
 
+The `modules` and `ddd` layouts have all four commands. In any layout, a file type with the id `dto` (or `data`), `view-model`, `value-object` (or `value`) or `action` starts from the matching starter. Add one to the `features` layout and it starts as a DTO:
+
+```php
+// app/Providers/AppServiceProvider.php
+use Tey\Mod\Facades\Mod;
+
+public function boot(): void
+{
+    Mod::layout('features')->kind('dto', in: 'Features/{feature}/Data');
+}
+```
+
 ```bash
 php artisan mod:dto Knowledge:DocumentData
+# ->  INFO  Created base class App\Support\Data\DataTransferObject [app/Support/Data/DataTransferObject.php].
+# ->  INFO  DTO [app/Features/Knowledge/Data/DocumentData.php] created successfully.
+```
+
+A file type with another id uses a starter through `stub:`, for example `->kind('payload', in: 'Features/{feature}/Payloads', stub: Starters::dto())` with `use Tey\Mod\Layout\BuiltIn\Starters;`.
+
+### Generated Base Classes
+
+Without spatie/laravel-data, the first `mod:dto` writes a `DataTransferObject` base into your app, and the first `mod:view-model` a `ViewModel` base. They go in `app/Support`: `App\Support\Data\DataTransferObject` and `App\Support\ViewModels\ViewModel`, the same classes for every module. Set `bases_path` in `config/mod.php` to put them somewhere else. The `ddd` layout keeps them in `src/Domain/Shared`:
+
+```bash
+php artisan mod:dto Knowledge:DocumentData   # with 'layout' => 'ddd'
 # ->  INFO  Created base class Domain\Shared\Data\DataTransferObject [src/Domain/Shared/Data/DataTransferObject.php].
 # ->  INFO  DTO [src/Domain/Knowledge/Data/DocumentData.php] created successfully.
 ```
 
-- A base class is written into your app the first time it is needed, and it is yours from then on: mod never overwrites it, not even with `--force`. Publish `stubs/mod.base.data-transfer-object.stub` or `stubs/mod.base.view-model.stub` to change what it starts as.
-- To extend a class of your own instead, set it in `config/mod.php`: `'layouts' => ['ddd' => ['bases' => ['dto' => App\Support\Data::class]]]`. A configured base wins over an installed package.
-- To change any generated class, publish `stubs/mod.<type>.stub`, for example `stubs/mod.dto.stub`. It can use `{{ baseImport }}` and `{{ extends }}` for the base mod chose.
+A base is yours from then on: mod never overwrites it, not even with `--force`. To change what it starts as, add `stubs/mod.base.data-transfer-object.stub` or `stubs/mod.base.view-model.stub` to your app.
+
+### Writing Missing Bases
+
+A module copied from another project refers to bases it doesn't contain. `mod:bases` writes every missing base your layout's file types extend:
+
+```bash
+php artisan mod:bases
+# ->  INFO  Created base class App\Support\Data\DataTransferObject [app/Support/Data/DataTransferObject.php].
+# ->  INFO  Created base class App\Support\ViewModels\ViewModel [app/Support/ViewModels/ViewModel.php].
+```
+
+It never overwrites a base. When every base exists, it prints "Every base class already exists." and writes nothing.
+
+### Extending Your Own Base Class
+
+To extend a class of your own instead, set it in `config/mod.php`, by file type. A configured base wins over an installed package:
+
+```php
+// config/mod.php
+'bases' => [
+    'dto' => App\Support\BaseData::class,
+],
+```
+
+```bash
+php artisan mod:dto Knowledge:DocumentData
+# ->  INFO  Using the configured base App\Support\BaseData.
+```
+
+`view-model`, `value-object` and `action` take a base the same way. To change any generated class, add `stubs/mod.<type>.stub` to your app, for example `stubs/mod.dto.stub`. It can use `{{ baseImport }}` and `{{ extends }}` for the base mod chose.
 
 ## Defining a Layout
 

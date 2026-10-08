@@ -236,11 +236,11 @@ php artisan mod:listener Knowledge:GenerateEmbeddings --event=DocumentUploaded
 
 Options such as `-m`, `-f`, `--policy`, `--requests` and `--all` create the related files in the same module, as in the trees above. The model links its factory, so `Document::factory()` works wherever the factory lives.
 
-`mod:*` checks every file it is about to write before writing any of them. When one already exists, it prints an error and writes nothing.
+`mod:*` checks every file it is about to write before writing any of them. When one already exists, it prints an error and writes nothing. It exits with 0 when every file it would write already exists, as `make:*` does, and with 1, printing "Nothing was written.", when it holds back a file that doesn't exist yet.
 
 ### Placement
 
-The `laravel` layout puts files where `make:*` does. The other layouts group your code, so each command also needs to know which group a file belongs to.
+The `laravel` layout puts files where `make:*` does. The other layouts group your code, so each command also takes the group a file belongs to.
 
 Each way a layout groups code is a **dimension**. `modules` has one: the module. `slices` has two: the feature, and the slice inside it. A layout's folders show each one as a placeholder, such as `{module}` in `app/Modules/{module}/Models`, and you give it a value, such as `Knowledge`. These three commands do the same thing:
 
@@ -294,16 +294,16 @@ php artisan mod:action Knowledge:IndexDocument
 
 `mod:value` and `mod:view-model` complete the set, and laravel-ddd's command names work as aliases (`mod:data`, `mod:value-object`, `mod:viewmodel`). See [docs/layouts.md](docs/layouts.md#the-ddd-layout) for every folder and for adding a layer such as `src/Infrastructure`.
 
-### Starter Stubs and Stub Variants
+### Starter Stubs and Base Classes
 
-DTOs, value objects, view models and actions start as plain Laravel-style classes. When [spatie/laravel-data](https://github.com/spatie/laravel-data), [spatie/laravel-view-models](https://github.com/spatie/laravel-view-models) or [lorisleiva/laravel-actions](https://github.com/lorisleiva/laravel-actions) is installed, mod uses it instead:
+`mod:dto`, `mod:view-model`, `mod:value` and `mod:action` start as plain Laravel-style classes, in any layout that has them (`modules` and `ddd` have all four). When [spatie/laravel-data](https://github.com/spatie/laravel-data), [spatie/laravel-view-models](https://github.com/spatie/laravel-view-models) or [lorisleiva/laravel-actions](https://github.com/lorisleiva/laravel-actions) is installed, mod uses it instead:
 
 ```bash
 php artisan mod:dto Knowledge:DocumentData
 # ->  INFO  Using spatie/laravel-data (installed).
 ```
 
-A base class mod writes into your app is yours from then on: mod never overwrites it. [Stub Variants](docs/layouts.md#stub-variants) covers each variant, your own base classes and published stubs.
+Otherwise DTOs and view models extend a base class mod writes into your app once: `App\Support\Data\DataTransferObject` and `App\Support\ViewModels\ViewModel` in `app/Support`, or `src/Domain/Shared` in the `ddd` layout. A base is yours from then on: mod never overwrites it, and `php artisan mod:bases` writes any that are missing. [Starter Stubs](docs/layouts.md#starter-stubs) covers each starter, your own base classes and published stubs.
 
 ### Auto-Discovery
 
@@ -350,26 +350,12 @@ It starts as an empty class. To start from your own stub, add `stubs/mod.validat
 
 ### Self-Contained Modules
 
-Keep everything a feature needs in one folder, so you can copy it to the next project. The `modules` layout already keeps models, migrations, factories, actions, events, listeners and jobs inside each module. Add the file types you use most:
-
-```php
-// app/Providers/AppServiceProvider.php
-use Tey\Mod\Facades\Mod;
-
-public function boot(): void
-{
-    // Everything a feature needs, in one folder you can copy to the next project.
-    Mod::layout('modules')
-        ->kind('view-model', in: 'Modules/{module}/ViewModels', label: 'View model')
-        ->kind('value-object', in: 'Modules/{module}/ValueObjects', command: 'mod:value', label: 'Value object');
-}
-```
-
-Then build two modules, Knowledge and Agents:
+Keep everything a feature needs in one folder, so you can copy it to the next project. The `modules` layout keeps models, migrations, factories, actions, DTOs, view models, value objects, events, listeners and jobs inside each module. Build two modules, Knowledge and Agents:
 
 ```bash
 php artisan mod:model Knowledge:Document -mf --controller --resource --requests
 php artisan mod:action Knowledge:IndexDocument
+php artisan mod:dto Knowledge:DocumentData
 php artisan mod:event Knowledge:DocumentUploaded
 php artisan mod:listener Knowledge:GenerateEmbeddings --event=DocumentUploaded
 php artisan mod:view-model Knowledge:ShowDocument
@@ -402,6 +388,8 @@ app/Modules/
     │   └── IndexDocument.php
     ├── Controllers/
     │   └── DocumentController.php
+    ├── Data/
+    │   └── DocumentData.php
     ├── Database/
     │   ├── Factories/
     │   │   └── DocumentFactory.php
@@ -422,7 +410,9 @@ app/Modules/
 
 </details>
 
-Each module is one folder. Copy either into another project that uses the same layout, and its migrations, listeners and factories come with it.
+The DTO and the view model extend the shared base classes in `app/Support`, which the first `mod:dto` and `mod:view-model` write once.
+
+Each module is one folder, and its migrations, listeners and factories come with it to another project that uses the `modules` layout: copy the folder, run `php artisan mod:bases` once.
 
 To define a layout from scratch instead, see [Defining a Layout](docs/layouts.md#defining-a-layout).
 
@@ -433,9 +423,10 @@ To define a layout from scratch instead, see [Defining a Layout](docs/layouts.md
 | `layout` | `'laravel'` | The active layout: a built-in name or one you define |
 | `commands` | `true` | Register the `mod:*` commands |
 | `generators` | `[]` | Replace the command behind a file type, by type |
-| `layouts.ddd.bases` | `null` each | The class DTOs, view models and actions extend |
-| `discovery.enabled` | `true` | Register discovered providers, commands, listeners and subscribers |
-| `discovery.kinds` | `[]` | Discover more file types, or `false` to skip one, such as `'migration' => false` |
+| `bases` | `null` each | The class DTOs, view models, value objects and actions extend, by file type |
+| `bases_path` | `'app/Support'` | Where generated base classes go |
+| `discovery.enabled` | `true` | Register discovered providers, commands, listeners and subscribers; `false` also turns off factory and policy lookup |
+| `discovery.kinds` | `[]` | Discover more file types by file type id, or `false` to skip one, such as `'migration' => false` |
 | `discovery.cache` | `'bootstrap/cache/mod-discovery.php'` | Where the discovery cache is written |
 | `discovery.on_stale_cache` | `'scan'` | `'scan'` ignores an outdated cache with a warning; `'fail'` stops the app booting |
 | `discovery.factories` | `true` | Find factories for models the layout places |

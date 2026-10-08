@@ -69,7 +69,10 @@ class {{ class }} extends Builder
 1. the application's `stubs/mod.<type>.stub`;
 2. the stub registered with `Mod::stubs()->for()` (the last registration wins);
 3. the stub the layout declares (`kind(..., stub: ...)`);
-4. the Laravel generator's stub, or mod's empty class.
+4. the starter for the file type's id: `dto`, `view-model`, `value-object` or `action` (see [Starter Stubs](layouts.md#starter-stubs));
+5. the Laravel generator's stub, or mod's empty class.
+
+A file type with another id uses a starter through `stub:`, such as `->kind('payload', in: '{domain+}/Payloads', stub: Starters::dto())` with `use Tey\Mod\Layout\BuiltIn\Starters;`.
 
 | Placeholder | Filled with |
 | --- | --- |
@@ -88,7 +91,7 @@ use Tey\Mod\Generation\Stub;
 
 Mod::stubs()->for('dto', Stub::file(__DIR__.'/../stubs/dto.stub')
     ->whenInstalled('spatie/laravel-data', base: 'Spatie\\LaravelData\\Data')
-    ->whenClass('App\\Support\\Data', stub: __DIR__.'/../stubs/dto.app.stub'));
+    ->whenClass('App\\Support\\BaseData', stub: __DIR__.'/../stubs/dto.app.stub'));
 ```
 
 ```bash
@@ -112,11 +115,11 @@ class {{ class }}{{ extends }}
 }
 ```
 
-An explicit base wins over every variant. The application sets one in `config/mod.php` (`'layouts' => ['ddd' => ['bases' => ['dto' => ...]]]`); a plugin can read its own config key and give a default with `->base(config: 'billing.base_dto', class: 'App\\Support\\Data')`.
+An explicit base wins over every variant. The application sets one in `config/mod.php` (`'bases' => ['dto' => ...]`); a plugin can read its own config key and give a default with `->base(config: 'knowledge.base_dto', class: 'App\\Support\\BaseData')`.
 
 ### Generating a Base Class
 
-When no variant applies, a stub can write a base class into the application the first time it is used:
+When no variant applies, a stub can write a base class into the application the first time it is used. The base goes in the application's bases folder, `app/Support` by default:
 
 ```php
 use Tey\Mod\Facades\Mod;
@@ -125,18 +128,19 @@ use Tey\Mod\Generation\Stub;
 
 Mod::stubs()->for('dto', Stub::file(__DIR__.'/../stubs/dto.stub')
     ->whenInstalled('spatie/laravel-data', base: 'Spatie\\LaravelData\\Data')
-    ->generatesBase(GeneratedBase::named('DataTransferObject', in: 'Shared/Data', stub: __DIR__.'/../stubs/bases/data-transfer-object.stub')));
+    ->generatesBase(GeneratedBase::named('DataTransferObject', in: 'Data', stub: __DIR__.'/../stubs/bases/data-transfer-object.stub')));
 ```
 
 ```bash
 php artisan mod:dto Knowledge:DocumentData
-# ->  INFO  Created base class Domain\Shared\Data\DataTransferObject [src/Domain/Shared/Data/DataTransferObject.php].
-# ->  INFO  DTO [src/Domain/Knowledge/Data/DocumentData.php] created successfully.
+# ->  INFO  Created base class App\Support\Data\DataTransferObject [app/Support/Data/DataTransferObject.php].
+# ->  INFO  DTO [app/Modules/Knowledge/Data/DocumentData.php] created successfully.
 ```
 
-- `in:` is a folder below the file type's root, so the base above lands in `src/Domain/Shared/Data`.
+- `in:` is a folder below the bases folder, which the application sets with `bases_path` in `config/mod.php`.
+- To place the base below the file type's own root instead, add `->inKindRoot()`. In the `ddd` layout, `GeneratedBase::named('DataTransferObject', in: 'Shared/Data', stub: ...)->inKindRoot()` writes `src/Domain/Shared/Data/DataTransferObject.php`.
 - The base stub fills `{{ namespace }}` and `{{ class }}`. The application can replace it by publishing `stubs/mod.base.data-transfer-object.stub` (the base's name in kebab-case).
-- Once the file exists, the application owns it: mod never overwrites it, even with `--force`.
+- Once the file exists, the application owns it: mod never overwrites it, even with `--force`. `mod:bases` writes it when it is missing.
 - Stubs must not use mod's own classes, so the generated code runs without mod installed.
 
 ### Swapping a Generator
@@ -178,7 +182,7 @@ The provider below is the shape of [laravel-ddd](https://github.com/teylabs/lara
 // src/DddServiceProvider.php
 <?php
 
-namespace Acme\Ddd;
+namespace Vendor\Ddd;
 
 use Illuminate\Support\ServiceProvider;
 use Tey\Mod\Facades\Mod;
@@ -197,7 +201,7 @@ class DddServiceProvider extends ServiceProvider
             ->for('dto', Stub::file(__DIR__.'/../stubs/dto.stub')
                 ->base(config: 'ddd.base_dto')
                 ->whenInstalled('spatie/laravel-data', base: 'Spatie\\LaravelData\\Data')
-                ->generatesBase(GeneratedBase::named('DataTransferObject', in: 'Shared/Data', stub: __DIR__.'/../stubs/bases/data-transfer-object.stub')))
+                ->generatesBase(GeneratedBase::named('DataTransferObject', in: 'Shared/Data', stub: __DIR__.'/../stubs/bases/data-transfer-object.stub')->inKindRoot()))
             ->for('view-model', Stub::file(__DIR__.'/../stubs/view-model.stub')
                 ->base(config: 'ddd.base_view_model')
                 ->whenInstalled('spatie/laravel-view-models', base: 'Spatie\\ViewModels\\ViewModel'));
