@@ -282,12 +282,28 @@ final readonly class TemplateRule implements PlacementRule
 
         $context = PlacementContext::none();
         $index = 0;
+        // The dimension folders are the template's leading fixed folders plus
+        // the dimension slots after them ("Modules/{module}"); a template that
+        // starts with no dimension slot offers its whole root.
+        $leadsToDimension = $this->leadsToDimension();
+        $seenDimension = false;
 
         foreach ($this->segments as $segment) {
             if ($segment->literal !== null) {
-                break;
+                if (! $leadsToDimension || $seenDimension) {
+                    break;
+                }
+
+                if (($parts[$index] ?? null) !== $segment->literal) {
+                    return null;
+                }
+
+                $index++;
+
+                continue;
             }
 
+            $seenDimension = true;
             $part = $parts[$index] ?? null;
 
             if ($part === null || ! Identifier::isClassSegment($part)) {
@@ -420,6 +436,20 @@ final readonly class TemplateRule implements PlacementRule
         }
 
         return $results;
+    }
+
+    /**
+     * Whether a dimension slot follows the template's leading fixed folders.
+     */
+    private function leadsToDimension(): bool
+    {
+        foreach ($this->segments as $segment) {
+            if ($segment->isDimension()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function multi(): bool

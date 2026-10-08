@@ -8,6 +8,7 @@ use Tey\Mod\Exceptions\InvalidDiscoveryConfig;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Exceptions\InvalidPreset;
 use Tey\Mod\Layout\Layout;
+use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Layout\Root;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\TemplateRule;
@@ -120,3 +121,25 @@ it('refuses except without anywhere and anywhere on a callback kind', function (
 
     expect(fn () => Preset::fromArray($exceptOnly))->toThrow(InvalidPreset::class, 'except needs discover');
 });
+
+it('skips the excluded folders below the dimension folders of every built-in shape', function (string $layout, string $found, array $context, string $excluded, string $outside) {
+    $registry = new LayoutRegistry;
+    $registry->layout($layout)->kind('provider', discoverAnywhere: true, except: ['Tests']);
+    $preset = $registry->compile($layout);
+    $rule = $preset->rule('provider');
+    assert($rule instanceof TemplateRule);
+    $kind = $preset->kind('provider');
+
+    $match = $rule->recogniseAnywhere($kind, $found);
+
+    expect($match?->context->toArray())->toBe($context)
+        ->and($match?->nested)->toBe(['Support'])
+        ->and($rule->recogniseAnywhere($kind, $excluded))->toBeNull()
+        ->and($rule->recogniseAnywhere($kind, $outside))->toBeNull('outside the fixed folders');
+})->with([
+    'modules' => ['modules', 'app/Modules/Billing/Support/BillingServiceProvider.php', ['module' => 'Billing'], 'app/Modules/Billing/Tests/FakeServiceProvider.php', 'app/Http/FakeServiceProvider.php'],
+    'features' => ['features', 'app/Features/Billing/Support/BillingServiceProvider.php', ['feature' => 'Billing'], 'app/Features/Billing/Tests/FakeServiceProvider.php', 'app/Http/FakeServiceProvider.php'],
+    'type-first' => ['type-first', 'app/Providers/Billing/Support/BillingServiceProvider.php', ['feature' => 'Billing'], 'app/Providers/Billing/Tests/FakeServiceProvider.php', 'app/Http/Billing/FakeServiceProvider.php'],
+    'ddd' => ['ddd', 'src/Domain/Billing/Support/BillingProvider.php', ['domain' => 'Billing'], 'src/Domain/Billing/Tests/FakeProvider.php', 'app/Modules/Billing/FakeProvider.php'],
+    'slices' => ['slices', 'app/Billing/Support/BillingServiceProvider.php', ['feature' => 'Billing'], 'app/Billing/Tests/FakeServiceProvider.php', 'app/BillingServiceProvider.php'],
+]);
