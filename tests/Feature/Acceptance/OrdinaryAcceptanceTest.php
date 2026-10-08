@@ -1,6 +1,5 @@
 <?php
 
-use Symfony\Component\Console\Exception\CommandNotFoundException;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\RejectionReason;
 use Tey\Mod\Facades\Mod;
@@ -124,8 +123,10 @@ it('refuses, rejects and reports on ordinary Laravel', function () {
             ->assertSuccessful();
         expect($app->read("app/Models/Invoice{$t}.php"))->toBe($before);
 
-        // Unknown kind: the layout declares no handler, so there is no mod:handler.
-        expect(fn () => $app->artisan('mod:handler', ['name' => 'Anything']))->toThrow(CommandNotFoundException::class);
+        // Unknown file type: the layout declares no handler; mod:handler says which layout has one.
+        $app->artisan('mod:handler', ['name' => 'Anything'])
+            ->expectsOutputToContain('mod:handler is not a command of the laravel layout. The slices layout has it.')
+            ->assertFailed();
 
         // --in in a layout without dimensions.
         $app->artisan('mod:model', ['name' => "Other{$t}", '--in' => 'Billing'])->assertFailed();

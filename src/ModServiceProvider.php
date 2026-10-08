@@ -6,6 +6,7 @@ use Illuminate\Console\Application as Artisan;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 use Tey\Mod\Commands\BasesCommand;
+use Tey\Mod\Commands\OtherLayoutCommand;
 use Tey\Mod\Discovery\Console\DiscoveryCacheCommand;
 use Tey\Mod\Discovery\Console\DiscoveryClearCommand;
 use Tey\Mod\Discovery\Discovery;
@@ -95,6 +96,15 @@ class ModServiceProvider extends ServiceProvider
             $this->registerGeneratorCommands($artisan);
             $this->registerDiscoveryCommands($artisan);
         });
+
+        // Last, once every provider has booted, so a package's command of the same name wins.
+        $this->app->booted(function (): void {
+            Artisan::starting(function (Artisan $artisan): void {
+                if ($artisan->getLaravel() === $this->app) {
+                    $this->registerOtherLayoutCommands($artisan);
+                }
+            });
+        });
     }
 
     /**
@@ -170,6 +180,40 @@ class ModServiceProvider extends ServiceProvider
 
         $artisan->resolveCommands([DiscoveryCacheCommand::class, DiscoveryClearCommand::class]);
         $this->optimizes(optimize: 'mod:discovery-cache', clear: 'mod:discovery-clear', key: 'mod');
+    }
+
+    /**
+     * A hidden placeholder for each mod:* command another built-in layout has
+     * and nothing here registers: running it names the layouts that have it.
+     */
+    private function registerOtherLayoutCommands(Artisan $artisan): void
+    {
+        $config = $this->app->make('config');
+        $layout = $config->get('mod.layout');
+
+        if (! (bool) $config->get('mod.commands', true) || is_array($config->get('mod.preset')) || ! is_string($layout)) {
+            return;
+        }
+
+        $preset = $this->app->make(Preset::class);
+
+        if (! $preset->commandsEnabled()) {
+            return;
+        }
+
+        $own = [];
+
+        foreach ($preset->kinds() as $kind) {
+            foreach ($kind->command === null ? [] : [$kind->command, ...$kind->aliases] as $command) {
+                $own[$command] = true;
+            }
+        }
+
+        foreach ($this->app->make(LayoutRegistry::class)->builtInCommands() as $command => $other) {
+            if (! isset($own[$command]) && ! $artisan->has($command)) {
+                $artisan->add(new OtherLayoutCommand($command, $other['kind'], $other['layouts'], $layout));
+            }
+        }
     }
 
     /**

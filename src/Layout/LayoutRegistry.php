@@ -48,6 +48,29 @@ final class LayoutRegistry
     }
 
     /**
+     * Every mod:* command name (aliases included) of the built-in layouts as
+     * shipped, with the file type it generates and the layouts that have it.
+     *
+     * @return array<string, array{kind: string, layouts: list<string>}>
+     */
+    public function builtInCommands(): array
+    {
+        $fresh = new self($this->builtIn);
+        $commands = [];
+
+        foreach ($this->builtIn->names() as $name) {
+            foreach ($fresh->compile($name)->kinds() as $kind) {
+                foreach ($kind->command === null ? [] : [$kind->command, ...$kind->aliases] as $command) {
+                    $commands[$command] ??= ['kind' => $kind->id, 'layouts' => []];
+                    $commands[$command]['layouts'][] = $name;
+                }
+            }
+        }
+
+        return $commands;
+    }
+
+    /**
      * Compile a layout for use. It is sealed: changing it afterwards is an error, never silently ignored.
      *
      * @throws InvalidLayout

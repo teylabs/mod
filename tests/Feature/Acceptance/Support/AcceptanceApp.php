@@ -151,8 +151,9 @@ final class AcceptanceApp
      */
     public function modCommands(): array
     {
-        $names = array_keys($this->app()->make(Kernel::class)->all());
-        $mod = array_values(array_filter($names, static fn (string $name): bool => str_starts_with($name, 'mod:')));
+        // Visible commands only: hidden placeholders name the layouts that have a command.
+        $commands = array_filter($this->app()->make(Kernel::class)->all(), static fn ($command): bool => ! $command->isHidden());
+        $mod = array_values(array_filter(array_keys($commands), static fn (string $name): bool => str_starts_with($name, 'mod:')));
         sort($mod);
 
         return $mod;
