@@ -38,6 +38,7 @@ use Tey\Mod\Relation\ScopeMap;
  *        'from' => 'model', 'to' => 'factory', 'scope' => 'same'|['keep' => ['feature'], 'nested' => 'keep'|'drop'],
  *        'name' => 'explicit'|['strip-suffix' => 'Controller', 'prefix' => 'Store', 'suffix' => 'Request'], 'policy' => 'generate',
  *    ]],
+ *    'placement_options' => ['feature' => 'topic'],   // option name per dimension; default: the dimension in kebab-case
  *  ]
  *
  * @internal validates the compiled array definition; define layouts with Mod::layout().
@@ -96,12 +97,13 @@ final class PresetValidator
         [$kinds, $rules, $declaredKinds] = $this->kinds($definition['kinds'] ?? [], $roots, $dimensions, $commands);
         $dimensions = $this->multiDimensions($dimensions, $rules);
         $relations = $this->relations($definition['relations'] ?? [], $declaredKinds, $dimensions);
+        $placementOptions = $this->placementOptions($definition['placement_options'] ?? [], $dimensions);
 
         if ($this->issues !== []) {
             return null;
         }
 
-        return new Preset($roots, array_values($dimensions), $kinds, $rules, $relations, $excluded, $commands);
+        return new Preset($roots, array_values($dimensions), $kinds, $rules, $relations, $excluded, $commands, $placementOptions);
     }
 
     /**
@@ -555,6 +557,87 @@ final class PresetValidator
         }
 
         return $folders;
+    }
+
+    /**
+     * The placement options of a kind that would shadow an option the
+     * generating command already defines (its native options and their
+     * shortcuts, and mod's own --in). The command registers without them;
+     * the layout should rename them with ->placementOption().
+     *
+     * @param  list<string>  $taken  option names and shortcuts the command defines
+     * @return array<string, PresetIssue> dimension name → issue
+     */
+    public function placementOptionCollisions(Preset $preset, ArtifactKind $kind, array $taken): array
+    {
+        $issues = [];
+        $options = $preset->placementOptions();
+        $command = $kind->command ?? $kind->id;
+
+        foreach ($preset->rule($kind->id)->dimensions() as $dimension) {
+            $option = $options[$dimension] ?? null;
+
+            if ($option === null || ! in_array($option, $taken, true)) {
+                continue;
+            }
+
+            $issues[$dimension] = new PresetIssue(
+                PresetIssueCode::PlacementOptionCollision,
+                $command,
+                "placeholder {{$dimension}} would add --{$option}, which {$command} already defines; it is left out (use --in or the \"Group:Name\" prefix), or rename it with ->placementOption('...', '{{$dimension}}')",
+            );
+        }
+
+        return $issues;
+    }
+
+    /**
+     * The command option of every dimension: the declared override, else the dimension in kebab-case.
+     *
+     * @param  array<string, Dimension>  $dimensions
+     * @return array<string, string> dimension → option name
+     */
+    private function placementOptions(mixed $definition, array $dimensions): array
+    {
+        if (! is_array($definition)) {
+            $this->issue(PresetIssueCode::InvalidShape, 'placement_options', 'must be a map of dimension name to option name');
+
+            return [];
+        }
+
+        foreach ($definition as $name => $option) {
+            if (! is_string($name) || ! isset($dimensions[$name])) {
+                $this->issue(PresetIssueCode::UnknownDimension, 'placement_options.'.$name, 'names no declared dimension');
+
+                continue;
+            }
+
+            if (! is_string($option) || preg_match('/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/', $option) !== 1) {
+                $this->issue(PresetIssueCode::InvalidDimension, "placement_options.{$name}", 'option must be a lowercase name such as "area" or "sub-area"');
+            }
+        }
+
+        $options = [];
+        $owners = [];
+
+        foreach ($dimensions as $name => $dimension) {
+            $option = $definition[$name] ?? strtolower((string) preg_replace('/(?<!^)[A-Z]/', '-$0', $name));
+
+            if (! is_string($option)) {
+                continue;
+            }
+
+            if (isset($owners[$option])) {
+                $this->issue(PresetIssueCode::InvalidDimension, "placement_options.{$name}", "option [--{$option}] is already the option of dimension [{$owners[$option]}]");
+
+                continue;
+            }
+
+            $owners[$option] = $name;
+            $options[$name] = $option;
+        }
+
+        return $options;
     }
 
     /**

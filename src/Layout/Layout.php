@@ -22,7 +22,8 @@ use Tey\Mod\Relation\RelationPolicy;
  *
  * Placeholders such as {area} or {area?} are the layout's placement
  * dimensions, in order of first appearance; that order is the order of
- * the values in --in=A/B. Declaring a kind, root or relation id again
+ * the values in --in=A/B, and each one is also an option of the mod:*
+ * commands that read it (--area=, renamed with ->placementOption()). Declaring a kind, root or relation id again
  * overrides the arguments given and keeps the rest, so built-in layouts
  * extend the same way. Everything is checked when the layout is compiled.
  */
@@ -41,6 +42,9 @@ final class Layout
     private array $excluded = [];
 
     private bool $commands = true;
+
+    /** @var array<string, string> placeholder name ('' for the layout's only one) → option name */
+    private array $placementOptions = [];
 
     private bool $sealed = false;
 
@@ -195,6 +199,21 @@ final class Layout
     }
 
     /**
+     * Rename the placement option of one placeholder, or of the layout's
+     * only placeholder when none is named: `->placementOption('area')` turns
+     * --module= into --area= on a layout placing by {module};
+     * `->placementOption('topic', '{feature}')` renames one of several.
+     */
+    public function placementOption(string $option, ?string $placeholder = null): self
+    {
+        $this->guard();
+
+        $this->placementOptions[$placeholder === null ? '' : trim($placeholder, '{}+?')] = $option;
+
+        return $this;
+    }
+
+    /**
      * Register no mod:* commands for this layout (a host with its own artisan
      * catalog). Kinds keep their command names for the host to dispatch by,
      * and several kinds may then share one (a host that places the same
@@ -228,7 +247,7 @@ final class Layout
     /**
      * @internal
      *
-     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, Kind>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, policy: string|RelationPolicy|null}>, excluded: list<string>, commands: bool}
+     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, Kind>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, policy: string|RelationPolicy|null}>, excluded: list<string>, commands: bool, placement_options: array<string, string>}
      */
     public function toArray(): array
     {
@@ -238,6 +257,7 @@ final class Layout
             'relations' => $this->relations,
             'excluded' => $this->excluded,
             'commands' => $this->commands,
+            'placement_options' => $this->placementOptions,
         ];
     }
 

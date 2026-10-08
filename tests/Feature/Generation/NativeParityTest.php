@@ -66,7 +66,8 @@ it('matches native bytes, output, exit codes, duplicate and force behavior', fun
 
         $nativeOptions = array_keys($native->getDefinition()->getOptions());
         $adapterOptions = array_keys($adapter->getDefinition()->getOptions());
-        expect(array_values(array_diff($adapterOptions, $nativeOptions)))->toBe(['in'])
+        // Placement options only: --in, plus one per dimension the kind reads (the fixture places tests by {group?}).
+        expect(array_values(array_diff($adapterOptions, $nativeOptions)))->toBe($kind === 'test' ? ['in', 'group'] : ['in'])
             ->and(array_values(array_diff($nativeOptions, $adapterOptions)))->toBe([]);
 
         foreach ($native->getDefinition()->getOptions() as $option => $definition) {

@@ -73,6 +73,7 @@ final class LayoutCompiler
             'excluded' => $excluded,
             'kinds' => $kinds,
             'relations' => array_map($this->relation(...), $chain['relations']),
+            'placement_options' => $this->placementOptions($chain['placement_options'], array_keys($placeholders)),
         ];
 
         $reported = array_flip(array_map(static fn (PresetIssue $issue): string => $issue->subject, $this->issues));
@@ -340,8 +341,47 @@ final class LayoutCompiler
             'excluded' => $excludedCalls[(int) $key] ?? '->exclude()',
             'dimensions' => 'placeholder {'.($placeholders[(int) $key] ?? $key).'}',
             'commands' => '->withoutCommands()',
+            'placement_options' => "->placementOption('...', '{{$key}}')",
             default => $subject,
         };
+    }
+
+    /**
+     * The placeholder each ->placementOption() renames; the unnamed form needs exactly one placeholder.
+     *
+     * @param  array<string, string>  $overrides  placeholder ('' for the only one) → option
+     * @param  list<string>  $placeholders
+     * @return array<string, string> placeholder → option
+     */
+    private function placementOptions(array $overrides, array $placeholders): array
+    {
+        $options = [];
+
+        foreach ($overrides as $placeholder => $option) {
+            $call = $placeholder === '' ? "->placementOption('{$option}')" : "->placementOption('{$option}', '{{$placeholder}}')";
+
+            if ($placeholder === '') {
+                if (count($placeholders) !== 1) {
+                    $this->issue(PresetIssueCode::UnknownDimension, $call, $placeholders === []
+                        ? 'this layout has no placeholders to name an option after'
+                        : 'this layout has several placeholders; name the one to rename ('.implode(', ', array_map(static fn (string $name): string => "{{$name}}", $placeholders)).')');
+
+                    continue;
+                }
+
+                $placeholder = $placeholders[0];
+            }
+
+            if (! in_array($placeholder, $placeholders, true)) {
+                $this->issue(PresetIssueCode::UnknownDimension, $call, "placeholder {{$placeholder}} is used by no kind");
+
+                continue;
+            }
+
+            $options[$placeholder] = $option;
+        }
+
+        return $options;
     }
 
     /**

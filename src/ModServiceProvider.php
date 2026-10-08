@@ -150,6 +150,11 @@ class ModServiceProvider extends ServiceProvider
 
         foreach ($this->app->make(GeneratorRegistry::class)->commands($preset, $this->app) as $command) {
             $artisan->resolveCommands([$command]);
+
+            // A placement option that would shadow one of the command's own is left out; say so.
+            foreach (method_exists($command, 'placementOptionIssues') ? $command->placementOptionIssues() : [] as $issue) {
+                $this->app->make('log')->warning('mod layout: '.$issue->describe());
+            }
         }
     }
 }

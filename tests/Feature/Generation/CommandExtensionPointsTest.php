@@ -126,9 +126,14 @@ final class HostModelCommand extends ModelCommand
         $this->setName('host:model');
     }
 
-    protected function placementOptionName(): ?string
+    /**
+     * Placement comes from the host's own --group option: no mod placement options.
+     *
+     * @return array<string, ?string>
+     */
+    protected function placementOptions(): array
     {
-        return null;
+        return [];
     }
 
     protected function resolvePreset(): Preset
@@ -194,6 +199,10 @@ it('lets a host command bring its own preset, kind, placement option and output'
         $command->hostPreset = Preset::fromArray(Layouts::definition('modules'));
         $command->setLaravel(app());
         app(Kernel::class)->registerCommand($command);
+
+        // placementOptions() returns none: the host's own --group is the only placement option.
+        expect($command->getDefinition()->hasOption('in'))->toBeFalse()
+            ->and($command->getDefinition()->hasOption('module'))->toBeFalse();
 
         $workspace->artisan('host:model', ['name' => 'Invoice', '--group' => 'Billing'])->assertSuccessful();
 

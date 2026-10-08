@@ -43,7 +43,7 @@ trait PlacesGeneratedClass
     {
         parent::configure();
 
-        $this->addPlacementOption();
+        $this->registerPlacementOptions();
     }
 
     /**

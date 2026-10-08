@@ -20,4 +20,5 @@ enum PresetIssueCode: string
     case DuplicatePlacementPattern = 'duplicate-placement-pattern';
     case UnknownRelationTarget = 'unknown-relation-target';
     case InvalidRelation = 'invalid-relation';
+    case PlacementOptionCollision = 'placement-option-collision';
 }

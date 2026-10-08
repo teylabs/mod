@@ -54,7 +54,7 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
     {
         parent::configure();
 
-        $this->addPlacementOption();
+        $this->registerPlacementOptions();
     }
 
     /**

@@ -8,6 +8,7 @@ use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\ArtifactRequest;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Exceptions\GenerationRefused;
+use Tey\Mod\Exceptions\InvalidPlacementOption;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\CollisionPolicy;
 use Tey\Mod\Generation\ExistingArtifacts;
@@ -17,6 +18,8 @@ use Tey\Mod\Placement\CollisionKind;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\PlacementResolver;
 use Tey\Mod\Preset\Preset;
+use Tey\Mod\Preset\PresetIssue;
+use Tey\Mod\Preset\PresetValidator;
 use Tey\Mod\Relation\RelationPolicy;
 use Tey\Mod\Relation\RelationResolution;
 use Tey\Mod\Relation\RelationResolver;
@@ -24,7 +27,8 @@ use Tey\Mod\Reverse\ReverseMapper;
 
 /**
  * What every mod:* adapter shares: the preset and kind it generates, the
- * placement input (--in or the "Group:Name" shorthand), placement,
+ * placement input (--in, one option per placement dimension, or the
+ * "Group:Name" shorthand), placement,
  * relations and the collision check before writing.
  *
  * Everything a host package needs to build its own generator on top of an
@@ -34,10 +38,12 @@ use Tey\Mod\Reverse\ReverseMapper;
  *    for, when the command is not bound through forKind() (a host may
  *    resolve them per invocation from its own configuration).
  *  - placementInput() / placementContext(): where the placement comes from.
- *    The default reads `--in` or the shorthand prefix of the name argument;
- *    a host may derive it from its own options or prompts.
- *  - placementOptionName(): the option added for placement (`in`), or null
- *    for a host that provides placement its own way.
+ *    The default reads `--in`, the dimension options (`--module=`) or the
+ *    shorthand prefix of the name argument; a host may derive it from its
+ *    own options or prompts.
+ *  - placementOptions(): the placement options the command adds (`--in`
+ *    plus one per dimension the kind reads), or none for a host that
+ *    provides placement its own way.
  *  - collisionPolicy(): refuse the plan up front, or leave it to the native
  *    generator.
  *  - reportRefusal() / reportReference(): the console output of refusals
@@ -54,6 +60,12 @@ trait InteractsWithPreset
 
     private ?ArtifactKind $modKind = null;
 
+    /** @var list<string> the placement options this trait added to the definition */
+    private array $modPlacementOptions = [];
+
+    /** @var array<string, PresetIssue> dimension → why its option was left out */
+    private array $modPlacementIssues = [];
+
     public function forKind(Preset $preset, ArtifactKind $kind): static
     {
         if ($kind->command === null) {
@@ -65,9 +77,20 @@ trait InteractsWithPreset
 
         $this->setName($kind->command);
         $this->setAliases([]);
-        $this->addPlacementOption(replace: true);
+        $this->registerPlacementOptions();
 
         return $this;
+    }
+
+    /**
+     * Dimension options left out because the command already defines an
+     * option of that name (or shortcut); the layout should rename them.
+     *
+     * @return list<PresetIssue>
+     */
+    public function placementOptionIssues(): array
+    {
+        return array_values($this->modPlacementIssues);
     }
 
     /**
@@ -106,45 +129,107 @@ trait InteractsWithPreset
     }
 
     /**
-     * Hook: the name of the placement option, or null when the host supplies placement its own way.
+     * Hook: the placement options the command adds, option name => the
+     * dimension it sets (null for --in, which takes every dimension in
+     * order). The default is --in plus, once the command is bound to a
+     * kind, one option per dimension the kind reads (--module=), except
+     * those that would shadow an option the command already defines.
+     * A host that supplies placement its own way returns [].
+     *
+     * @return array<string, ?string>
      */
-    protected function placementOptionName(): ?string
+    protected function placementOptions(): array
     {
-        return 'in';
+        $options = ['in' => null];
+
+        if ($this->modKind === null) {
+            return $options;
+        }
+
+        $names = $this->preset()->placementOptions();
+
+        foreach ($this->kindDimensions() as $dimension) {
+            if (! isset($this->modPlacementIssues[$dimension])) {
+                $options[$names[$dimension]] = $dimension;
+            }
+        }
+
+        return $options;
     }
 
     /**
-     * Add the placement option once, with the preset's dimensions in its
-     * description; `replace` refreshes the description once the preset is bound.
+     * Add the placement options to the definition, replacing the ones added
+     * before (the set grows once the command is bound to a kind). A
+     * dimension option the command already defines is left out and
+     * recorded as an issue, so a native option is never shadowed.
      */
-    protected function addPlacementOption(bool $replace = false): void
+    protected function registerPlacementOptions(): void
     {
-        $option = $this->placementOptionName();
+        $definition = $this->getDefinition();
+        $options = $definition->getOptions();
 
-        if ($option === null) {
-            return;
+        foreach ($this->modPlacementOptions as $added) {
+            unset($options[$added]);
         }
 
-        if ($this->getDefinition()->hasOption($option)) {
-            if (! $replace) {
-                return;
+        $definition->setOptions(array_values($options));
+        $this->modPlacementOptions = [];
+
+        if ($this->modKind !== null) {
+            $taken = ['in'];
+
+            foreach ($definition->getOptions() as $name => $option) {
+                $taken[] = $name;
+
+                foreach (explode('|', (string) $option->getShortcut()) as $shortcut) {
+                    if ($shortcut !== '') {
+                        $taken[] = $shortcut;
+                    }
+                }
             }
 
-            $options = $this->getDefinition()->getOptions();
-            unset($options[$option]);
-            $this->getDefinition()->setOptions(array_values($options));
+            $this->modPlacementIssues = (new PresetValidator)->placementOptionCollisions($this->preset(), $this->kind(), $taken);
+        }
+
+        foreach ($this->placementOptions() as $option => $dimension) {
+            if ($definition->hasOption($option)) {
+                continue;
+            }
+
+            $definition->addOption(new InputOption($option, null, InputOption::VALUE_REQUIRED, $this->placementOptionDescription($dimension)));
+            $this->modPlacementOptions[] = $option;
+        }
+    }
+
+    /**
+     * The dimensions the bound kind reads, in the layout's --in order.
+     *
+     * @return list<string>
+     */
+    private function kindDimensions(): array
+    {
+        $reads = $this->preset()->rule($this->kind()->id)->dimensions();
+
+        return array_values(array_filter($this->preset()->dimensionNames(), static fn (string $name): bool => in_array($name, $reads, true)));
+    }
+
+    private function placementOptionDescription(?string $dimension): string
+    {
+        if ($dimension !== null) {
+            foreach ($this->preset()->dimensions() as $declared) {
+                if ($declared->name === $dimension && $declared->multi) {
+                    return "Place in this {$dimension}, nested folders separated by \".\" or \"/\" (same as --in)";
+                }
+            }
+
+            return "Place in this {$dimension} (same as --in)";
         }
 
         $dimensions = $this->modPreset?->dimensionNames() ?? [];
 
-        $this->getDefinition()->addOption(new InputOption(
-            $option,
-            null,
-            InputOption::VALUE_REQUIRED,
-            $dimensions === []
-                ? 'Placement (this layout declares no placement groups)'
-                : 'Placement: '.implode('/', $dimensions).' values in that order, separated by "/" (folders inside a multi-segment value separated by "."); or prefix the name with "<placement>:"',
-        ));
+        return $dimensions === []
+            ? 'Placement (this layout declares no placement groups)'
+            : 'Placement: '.implode('/', $dimensions).' values in that order, separated by "/" (folders inside a multi-segment value separated by "."); or prefix the name with "<placement>:"';
     }
 
     /**
@@ -183,17 +268,41 @@ trait InteractsWithPreset
     protected function placementInput(): ?string
     {
         [$prefix] = $this->shorthand();
-        $option = $this->placementOptionName();
-        $value = $option !== null && $this->hasOption($option) ? $this->option($option) : null;
-        $value = is_string($value) && trim($value) !== '' ? trim($value) : null;
+        $in = null;
+        $given = [];
 
-        if ($prefix !== null && $value !== null) {
+        foreach ($this->placementOptions() as $option => $dimension) {
+            $value = $this->hasOption($option) ? $this->option($option) : null;
+            $value = is_string($value) && trim($value) !== '' ? trim($value) : null;
+
+            if ($value === null) {
+                continue;
+            }
+
+            if ($dimension === null) {
+                $in = $value;
+            } else {
+                $given[$dimension] = [$option, $value];
+            }
+        }
+
+        if ($prefix !== null && ($in !== null || $given !== [])) {
+            [$option, $value] = $in !== null ? ['in', $in] : array_values($given)[0];
+
             throw GenerationRefused::because(sprintf(
                 'Placement was given twice: as the prefix [%s:] of the name and as --%s=%s. Use one of them.',
                 $prefix,
                 $option,
                 $value,
             ));
+        }
+
+        if ($in !== null && $given !== []) {
+            throw InvalidPlacementOption::oneOf($in, array_map(static fn (array $pair): string => "--{$pair[0]}={$pair[1]}", array_values($given)));
+        }
+
+        if ($given !== []) {
+            return $this->dimensionPlacement($given);
         }
 
         if ($prefix !== null && $this->preset()->dimensionNames() === []) {
@@ -208,7 +317,43 @@ trait InteractsWithPreset
             throw GenerationRefused::because('The placement prefix before ":" is empty.');
         }
 
-        return $prefix ?? $value;
+        return $prefix ?? $in;
+    }
+
+    /**
+     * The dimension options as one placement in --in syntax: the values in
+     * the layout's order, a multi-segment value's folders joined by ".".
+     *
+     * @param  array<string, array{0: string, 1: string}>  $given  dimension → [option, value]
+     */
+    private function dimensionPlacement(array $given): string
+    {
+        $values = [];
+        $missing = null;
+
+        foreach ($this->preset()->dimensions() as $dimension) {
+            if (! isset($given[$dimension->name])) {
+                $missing ??= $dimension->name;
+
+                continue;
+            }
+
+            [$option, $value] = $given[$dimension->name];
+
+            if ($missing !== null) {
+                throw InvalidPlacementOption::skipped($option, $this->preset()->placementOptions()[$missing], $this->preset()->dimensionNames());
+            }
+
+            if ($dimension->multi) {
+                $value = str_replace('/', '.', $value);
+            } elseif (str_contains($value, '/') || str_contains($value, '.')) {
+                throw InvalidPlacementOption::malformedValue("--{$option}={$value}", $value);
+            }
+
+            $values[] = $value;
+        }
+
+        return implode('/', $values);
     }
 
     /**
@@ -385,25 +530,24 @@ trait InteractsWithPreset
      * Hook: the arguments that make a child command generate exactly the given artifact.
      *
      * The default passes the nested name and the placement through `--in`
-     * (or through the shorthand prefix when the layout has no placement
-     * option). A host whose commands take placement differently overrides it.
+     * (or through the shorthand prefix when the command adds no --in). A
+     * host whose commands take placement differently overrides it.
      *
      * @return array<string, mixed>
      */
     protected function argumentsFor(ResolvedArtifact $target): array
     {
         $placement = $this->inOption($target->context);
-        $option = $this->placementOptionName();
 
         if ($placement === '') {
             return ['name' => $target->nestedName()];
         }
 
-        if ($option === null) {
+        if (! array_key_exists('in', $this->placementOptions())) {
             return ['name' => $placement.':'.$target->nestedName()];
         }
 
-        return ['name' => $target->nestedName(), '--'.$option => $placement];
+        return ['name' => $target->nestedName(), '--in' => $placement];
     }
 
     /**

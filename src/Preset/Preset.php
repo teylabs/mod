@@ -27,6 +27,7 @@ final readonly class Preset
      * @param  array<string, PlacementRule>  $rules  keyed by kind id
      * @param  array<string, Relation>  $relations  keyed by relation id
      * @param  list<Root>  $excludedRoots  never owned by any rule
+     * @param  array<string, string>  $placementOptions  dimension name → command option name
      */
     public function __construct(
         private array $roots,
@@ -36,6 +37,7 @@ final readonly class Preset
         private array $relations = [],
         private array $excludedRoots = [],
         private bool $commandsEnabled = true,
+        private array $placementOptions = [],
     ) {}
 
     /**
@@ -135,6 +137,24 @@ final readonly class Preset
     public function excludedRoots(): array
     {
         return $this->excludedRoots;
+    }
+
+    /**
+     * The command option of each dimension (`--module=`): the dimension in
+     * kebab-case unless the layout renamed it with ->placementOption().
+     *
+     * @return array<string, string> dimension name → option name
+     */
+    public function placementOptions(): array
+    {
+        $options = [];
+
+        foreach ($this->dimensions as $dimension) {
+            $options[$dimension->name] = $this->placementOptions[$dimension->name]
+                ?? strtolower((string) preg_replace('/(?<!^)[A-Z]/', '-$0', $dimension->name));
+        }
+
+        return $options;
     }
 
     /**
