@@ -59,12 +59,8 @@ Generate a model with its migration and factory, then migrate:
 
 ```bash
 php artisan mod:model Knowledge:Document -mf
-# -> app/Modules/Knowledge/Models/Document.php
-# -> app/Modules/Knowledge/Database/Factories/DocumentFactory.php
-# -> app/Modules/Knowledge/Database/Migrations/2026_10_08_120000_create_documents_table.php
-
 php artisan migrate
-# -> runs 2026_10_08_120000_create_documents_table
+# -> runs 2026_10_08_120000_create_documents_table from app/Modules/Knowledge/Database/Migrations
 ```
 
 ## Usage
@@ -228,9 +224,6 @@ php artisan mod:event Knowledge:DocumentUploaded
 
 php artisan mod:listener Knowledge:GenerateEmbeddings --event=DocumentUploaded
 # -> app/Modules/Knowledge/Listeners/GenerateEmbeddings.php (imports App\Modules\Knowledge\Events\DocumentUploaded)
-
-php artisan mod:job Knowledge:ExtractText
-# -> app/Modules/Knowledge/Jobs/ExtractText.php
 ```
 
 `php artisan list mod` shows every command your layout has. `make:*` is untouched and keeps writing to Laravel's default folders.
@@ -293,53 +286,32 @@ php artisan mod:dto Knowledge:DocumentData
 
 php artisan mod:action Knowledge:IndexDocument
 # -> src/Domain/Knowledge/Actions/IndexDocument.php
-
-php artisan mod:value Knowledge:ContentHash
-# -> src/Domain/Knowledge/ValueObjects/ContentHash.php
 ```
 
-`mod:view-model` completes the set, and laravel-ddd's command names work as aliases (`mod:data`, `mod:value-object`, `mod:viewmodel`). See [docs/layouts.md](docs/layouts.md#the-ddd-layout) for every folder and for adding a layer such as `src/Infrastructure`.
+`mod:value` and `mod:view-model` complete the set, and laravel-ddd's command names work as aliases (`mod:data`, `mod:value-object`, `mod:viewmodel`). See [docs/layouts.md](docs/layouts.md#the-ddd-layout) for every folder and for adding a layer such as `src/Infrastructure`.
 
 ### Starter Stubs and Stub Variants
 
-DTOs, value objects, view models and actions start as plain Laravel-style classes. When a package for them is installed, mod uses it instead:
-
-| Command | When installed | Otherwise |
-| --- | --- | --- |
-| `mod:dto` | [spatie/laravel-data](https://github.com/spatie/laravel-data): extends `Data` | extends a `DataTransferObject` base with `fromArray()` and `toArray()` |
-| `mod:view-model` | [spatie/laravel-view-models](https://github.com/spatie/laravel-view-models): extends `ViewModel` | extends a `ViewModel` base |
-| `mod:action` | [lorisleiva/laravel-actions](https://github.com/lorisleiva/laravel-actions): `use AsAction;` | a plain class with `handle()` |
-| `mod:value` | | a plain class with a constructor |
+DTOs, value objects, view models and actions start as plain Laravel-style classes. When [spatie/laravel-data](https://github.com/spatie/laravel-data), [spatie/laravel-view-models](https://github.com/spatie/laravel-view-models) or [lorisleiva/laravel-actions](https://github.com/lorisleiva/laravel-actions) is installed, mod uses it instead:
 
 ```bash
 php artisan mod:dto Knowledge:DocumentData
 # ->  INFO  Using spatie/laravel-data (installed).
 ```
 
-A base class is written into your app the first time it is needed, and it is yours from then on: mod never overwrites it. To extend a class of your own instead, set it in `config/mod.php` (`'layouts' => ['ddd' => ['bases' => ['dto' => App\Support\Data::class]]]`). To change any generated class, publish `stubs/mod.<type>.stub`, for example `stubs/mod.dto.stub`.
+A base class mod writes into your app is yours from then on: mod never overwrites it. [Stub Variants](docs/layouts.md#stub-variants) covers each variant, your own base classes and published stubs.
 
 ### Auto-Discovery
 
-Providers, Artisan commands, event listeners and event subscribers anywhere your layout places them are registered with Laravel:
+Providers, Artisan commands, event listeners and event subscribers anywhere your layout places them are registered with Laravel. The listener from [Generating](#generating) needs no registration:
 
 ```bash
-php artisan mod:command Knowledge:PruneDocuments
-php artisan mod:listener Knowledge:GenerateEmbeddings --event=DocumentUploaded
-
 php artisan event:list --event=DocumentUploaded
 # -> App\Modules\Knowledge\Events\DocumentUploaded
 # ->   ⇂ App\Modules\Knowledge\Listeners\GenerateEmbeddings@handle
 ```
 
-A listener Laravel's own event discovery already registers is never registered twice. [docs/discovery.md](docs/discovery.md) covers what is discovered where.
-
-#### Migrations
-
-Migration folders outside `database/migrations`, such as `app/Modules/Knowledge/Database/Migrations`, are added to Laravel's migrator. `php artisan migrate`, `migrate:rollback` and `migrate:status` include them.
-
-#### Factories and Policies
-
-A model the layout places finds its factory and its policy by the layout's folders, with no registration:
+A listener Laravel's own event discovery already registers is never registered twice. Migration folders such as `app/Modules/Knowledge/Database/Migrations` are added to Laravel's migrator, so `migrate`, `migrate:rollback` and `migrate:status` include them. A model finds its factory and policy through the layout, with no registration:
 
 ```php
 use App\Modules\Knowledge\Models\Document;
@@ -348,6 +320,8 @@ use Illuminate\Support\Facades\Gate;
 Document::factory();                 // App\Modules\Knowledge\Database\Factories\DocumentFactory
 Gate::getPolicyFor(Document::class); // App\Modules\Knowledge\Policies\DocumentPolicy
 ```
+
+[docs/discovery.md](docs/discovery.md) covers what is discovered where.
 
 ### Your Own File Types
 
@@ -368,49 +342,85 @@ php artisan mod:validator Knowledge:Upload
 # -> app/Modules/Knowledge/Validators/UploadValidator.php
 ```
 
-It starts as an empty class. To start from your own stub, add `stubs/mod.validator.stub` to your app:
+It starts as an empty class. To start from your own stub, add `stubs/mod.validator.stub` to your app, using `{{ namespace }}` and `{{ class }}` where the class's namespace and name go.
 
-```php
-// stubs/mod.validator.stub
-<?php
+### Self-Contained Modules
 
-namespace {{ namespace }};
-
-class {{ class }}
-{
-    public function rules(): array
-    {
-        return [];
-    }
-}
-```
-
-### Defining a Layout
-
-A layout of your own is one chain in a service provider. Name it in `config/mod.php` with `'layout' => 'domains'`:
+Keep everything a feature needs in one folder, so you can copy it to the next project. The `modules` layout already keeps models, migrations, factories, actions, events, listeners and jobs inside each module. Add the file types you use most:
 
 ```php
 // app/Providers/AppServiceProvider.php
 use Tey\Mod\Facades\Mod;
-use Tey\Mod\Layout\Root;
 
 public function boot(): void
 {
-    Mod::layout('domains')
-        ->root('domain', 'Domain\\', 'src/Domain', fn (Root $root) => $root
-            ->kind('model', in: '{domain}/Models')
-            ->kind('factory', in: '{domain}/Factories', suffix: 'Factory'))
-        ->relation('factory', from: 'model', to: 'factory');
+    // Everything a feature needs, in one folder you can copy to the next project.
+    Mod::layout('modules')
+        ->kind('view-model', in: 'Modules/{module}/ViewModels', label: 'View model')
+        ->kind('value-object', in: 'Modules/{module}/ValueObjects', command: 'mod:value', label: 'Value object');
 }
 ```
 
+Then build two modules, Knowledge and Agents:
+
 ```bash
-php artisan mod:model Knowledge:Document --factory   # after adding Domain\ to composer.json, as in the DDD layout
-# -> src/Domain/Knowledge/Models/Document.php
-# -> src/Domain/Knowledge/Factories/DocumentFactory.php
+php artisan mod:model Knowledge:Document -mf --controller --resource --requests
+php artisan mod:action Knowledge:IndexDocument
+php artisan mod:event Knowledge:DocumentUploaded
+php artisan mod:listener Knowledge:GenerateEmbeddings --event=DocumentUploaded
+php artisan mod:view-model Knowledge:ShowDocument
+
+php artisan mod:model Agents:Conversation -m
+php artisan mod:action Agents:AnswerQuestion
+php artisan mod:value Agents:TokenUsage
+php artisan mod:job Agents:GenerateReply
 ```
 
-`Mod::layout()` with a built-in name extends that layout instead, as in [Your Own File Types](#your-own-file-types). [docs/layouts.md](docs/layouts.md#defining-a-layout) lists every method and option.
+<details>
+<summary>The resulting <code>app/Modules/</code> folder</summary>
+
+```text
+app/Modules/
+├── Agents/
+│   ├── Actions/
+│   │   └── AnswerQuestion.php
+│   ├── Database/
+│   │   └── Migrations/
+│   │       └── 2026_10_08_120001_create_conversations_table.php
+│   ├── Jobs/
+│   │   └── GenerateReply.php
+│   ├── Models/
+│   │   └── Conversation.php
+│   └── ValueObjects/
+│       └── TokenUsage.php
+└── Knowledge/
+    ├── Actions/
+    │   └── IndexDocument.php
+    ├── Controllers/
+    │   └── DocumentController.php
+    ├── Database/
+    │   ├── Factories/
+    │   │   └── DocumentFactory.php
+    │   └── Migrations/
+    │       └── 2026_10_08_120000_create_documents_table.php
+    ├── Events/
+    │   └── DocumentUploaded.php
+    ├── Listeners/
+    │   └── GenerateEmbeddings.php
+    ├── Models/
+    │   └── Document.php
+    ├── Requests/
+    │   ├── StoreDocumentRequest.php
+    │   └── UpdateDocumentRequest.php
+    └── ViewModels/
+        └── ShowDocument.php
+```
+
+</details>
+
+Each module is one folder. Copy either into another project that uses the same layout, and its migrations, listeners and factories come with it.
+
+To define a layout from scratch instead, see [Defining a Layout](docs/layouts.md#defining-a-layout).
 
 ## Configuration
 

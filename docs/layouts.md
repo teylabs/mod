@@ -99,7 +99,26 @@ Add the namespace to your `composer.json` autoload, then run `composer dump-auto
 }
 ```
 
-What a DTO, view model or action starts as depends on the packages you have installed. See [Starter Stubs and Stub Variants](../README.md#starter-stubs-and-stub-variants).
+### Stub Variants
+
+DTOs, value objects, view models and actions start as plain Laravel-style classes. When a package for them is installed, mod uses it instead:
+
+| Command | When installed | Otherwise |
+| --- | --- | --- |
+| `mod:dto` | [spatie/laravel-data](https://github.com/spatie/laravel-data): extends `Data` | extends a `DataTransferObject` base with `fromArray()` and `toArray()` |
+| `mod:view-model` | [spatie/laravel-view-models](https://github.com/spatie/laravel-view-models): extends `ViewModel` | extends a `ViewModel` base |
+| `mod:action` | [lorisleiva/laravel-actions](https://github.com/lorisleiva/laravel-actions): `use AsAction;` | a plain class with `handle()` |
+| `mod:value` | | a plain class with a constructor |
+
+```bash
+php artisan mod:dto Knowledge:DocumentData
+# ->  INFO  Created base class Domain\Shared\Data\DataTransferObject [src/Domain/Shared/Data/DataTransferObject.php].
+# ->  INFO  DTO [src/Domain/Knowledge/Data/DocumentData.php] created successfully.
+```
+
+- A base class is written into your app the first time it is needed, and it is yours from then on: mod never overwrites it, not even with `--force`. Publish `stubs/mod.base.data-transfer-object.stub` or `stubs/mod.base.view-model.stub` to change what it starts as.
+- To extend a class of your own instead, set it in `config/mod.php`: `'layouts' => ['ddd' => ['bases' => ['dto' => App\Support\Data::class]]]`. A configured base wins over an installed package.
+- To change any generated class, publish `stubs/mod.<type>.stub`, for example `stubs/mod.dto.stub`. It can use `{{ baseImport }}` and `{{ extends }}` for the base mod chose.
 
 ## Defining a Layout
 
