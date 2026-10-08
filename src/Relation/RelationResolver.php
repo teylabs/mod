@@ -14,6 +14,8 @@ use Tey\Mod\Placement\PlacementResolver;
  * Whether the target exists on disk is the generator's concern; this stays pure.
  * The source's nested folders carry over to the target unless the relation's
  * scope drops them; a target kind that is not nested refuses them.
+ *
+ * @internal
  */
 final readonly class RelationResolver
 {

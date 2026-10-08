@@ -8,6 +8,9 @@ use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\Inventory;
 use Tey\Mod\Discovery\RejectionReason;
 
+/**
+ * @internal the command, mod:cache, is the public part
+ */
 final class DiscoveryCacheCommand extends Command
 {
     protected $signature = 'mod:cache';

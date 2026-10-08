@@ -13,6 +13,8 @@ use Tey\Mod\Layout\Root;
  * This is the one place in src that names concrete layouts, folders and
  * placeholders; the engine itself stays layout-neutral (see the audit in
  * tests/Unit/Audit/LayoutNeutralityTest.php, which exempts only this folder).
+ *
+ * @internal
  */
 final readonly class BuiltInLayouts
 {

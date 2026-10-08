@@ -14,6 +14,8 @@ use Tey\Mod\Support\Path;
  * class the autoloader already knows. A known class is only reported when it
  * lives somewhere other than the target file, so a path collision is never
  * counted twice and --force can still overwrite the file itself.
+ *
+ * @internal
  */
 final readonly class ExistingArtifacts
 {

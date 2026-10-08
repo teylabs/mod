@@ -8,6 +8,8 @@ use Tey\Mod\Layout\BuiltIn\BuiltInLayouts;
 /**
  * The application's layouts by name: the built-in ones, extended or not,
  * and any defined with Mod::layout(). One per application (container singleton).
+ *
+ * @internal
  */
 final class LayoutRegistry
 {

@@ -2,6 +2,9 @@
 
 namespace Tey\Mod\Discovery;
 
+/**
+ * @internal
+ */
 enum RejectionReason: string
 {
     /** No declared rule owns the file, or it lies in an excluded root. */

@@ -5,6 +5,8 @@ namespace Tey\Mod\Discovery;
 /**
  * What the framework does with a discovered artifact. Eligibility is decided
  * by this type through the class's real ancestry or methods, never by name.
+ *
+ * @internal
  */
 enum DiscoveryType: string
 {

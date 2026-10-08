@@ -4,6 +4,9 @@ namespace Tey\Mod\Relation;
 
 use Tey\Mod\Artifact\ResolvedArtifact;
 
+/**
+ * @internal
+ */
 final readonly class RelationResolution
 {
     private function __construct(

@@ -13,6 +13,8 @@ use Tey\Mod\Placement\TemplateRule;
  *
  * Only declared rules are consulted. Nothing is inferred from a namespace
  * segment that no rule names, and excluded roots are never owned.
+ *
+ * @internal
  */
 final readonly class ReverseMapper
 {

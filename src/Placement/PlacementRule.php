@@ -8,6 +8,8 @@ use Tey\Mod\Layout\CompiledRoot;
 
 /**
  * Places one kind of artifact and, when it can, recognises artifacts it would have placed.
+ *
+ * @internal
  */
 interface PlacementRule
 {

@@ -72,6 +72,7 @@ trait InteractsWithLayout
     /** @var array<string, PresetIssue> dimension → why its option was left out */
     private array $modPlacementIssues = [];
 
+    /** @internal */
     public function forKind(CompiledLayout $preset, ArtifactKind $kind): static
     {
         if ($kind->command === null) {
@@ -97,6 +98,8 @@ trait InteractsWithLayout
      * option of that name (or shortcut); the layout should rename them.
      *
      * @return list<PresetIssue>
+     *
+     * @internal
      */
     public function placementOptionIssues(): array
     {
@@ -172,6 +175,8 @@ trait InteractsWithLayout
      * before (the set grows once the command is bound to a kind). A
      * dimension option the command already defines is left out and
      * recorded as an issue, so a native option is never shadowed.
+     *
+     * @internal
      */
     protected function registerPlacementOptions(): void
     {
@@ -250,6 +255,8 @@ trait InteractsWithLayout
 
     /**
      * The raw name argument, before the shorthand prefix is split off.
+     *
+     * @internal
      */
     protected function rawNameInput(): string
     {
@@ -262,6 +269,8 @@ trait InteractsWithLayout
      * The "Group:Name" shorthand split at the first colon: [placement|null, name].
      *
      * @return array{0: ?string, 1: string}
+     *
+     * @internal
      */
     protected function shorthand(): array
     {
@@ -275,6 +284,8 @@ trait InteractsWithLayout
 
     /**
      * The basename every class of the bound kind gets (slices' "Handler"), or null.
+     *
+     * @internal
      */
     protected function fixedName(): ?string
     {
@@ -403,6 +414,8 @@ trait InteractsWithLayout
 
     /**
      * Hook: the layout's name for messages.
+     *
+     * @internal
      */
     protected function layoutName(): string
     {
@@ -421,6 +434,8 @@ trait InteractsWithLayout
 
     /**
      * @param  array<string, string|int|float|bool|null>  $attributes
+     *
+     * @internal
      */
     protected function resolveArtifact(string $kindId, string $name, PlacementContext $context, array $attributes = []): ResolvedArtifact
     {
@@ -435,6 +450,8 @@ trait InteractsWithLayout
      * placement, narrowed to the dimensions the kind's rule reads; a
      * slash-nested name is refused by placement with the --in hint unless the
      * kind accepts nested names.
+     *
+     * @internal
      */
     protected function placeSibling(string $kindId, string $name): string
     {
@@ -455,6 +472,8 @@ trait InteractsWithLayout
 
     /**
      * Where an existing or planned class lives, when a preset rule owns it.
+     *
+     * @internal
      */
     protected function ownedPathOf(string $fqcn): ?string
     {
@@ -465,6 +484,8 @@ trait InteractsWithLayout
 
     /**
      * Whether a class exists: known to the autoloader, or written where the preset places it.
+     *
+     * @internal
      */
     protected function classExists(string $fqcn): bool
     {
@@ -480,6 +501,8 @@ trait InteractsWithLayout
     /**
      * Generate a class an option names (a missing --model, say) through the
      * command of the kind that owns it. Classes no rule places are refused.
+     *
+     * @internal
      */
     protected function generateOwnedClass(string $fqcn, string $kindId): void
     {
@@ -505,6 +528,8 @@ trait InteractsWithLayout
      *
      * @param  array<string, string|int|float|bool|null>  $attributes
      * @return list<RelationResolution>
+     *
+     * @internal
      */
     protected function relationsTo(ResolvedArtifact $source, string $toKind, ?string $name = null, array $attributes = [], bool $required = true): array
     {
@@ -536,6 +561,8 @@ trait InteractsWithLayout
      * Generate a related artifact through its own command, or report a reference.
      *
      * @param  array<string, mixed>  $arguments
+     *
+     * @internal
      */
     protected function followRelation(RelationResolution $resolution, array $arguments = []): void
     {
@@ -571,6 +598,8 @@ trait InteractsWithLayout
      * host whose commands take placement differently overrides it.
      *
      * @return array<string, mixed>
+     *
+     * @internal
      */
     protected function argumentsFor(ResolvedArtifact $target): array
     {
@@ -589,6 +618,8 @@ trait InteractsWithLayout
 
     /**
      * The --in value that reproduces a placement context.
+     *
+     * @internal
      */
     protected function inOption(PlacementContext $context): string
     {
@@ -614,6 +645,7 @@ trait InteractsWithLayout
         return implode('/', $values);
     }
 
+    /** @internal */
     protected function existingArtifacts(): ExistingArtifacts
     {
         return new ExistingArtifacts($this->laravel->basePath());
@@ -621,6 +653,8 @@ trait InteractsWithLayout
 
     /**
      * @throws GenerationRefused
+     *
+     * @internal
      */
     protected function refuseCollisions(GenerationPlan $plan, bool $overwritePrimary): void
     {
@@ -673,6 +707,8 @@ trait InteractsWithLayout
     /**
      * A refusal in this command's own words: a missing or unused placement
      * value of the kind it generates names the command and its options.
+     *
+     * @internal
      */
     protected function refusalMessage(ModException $exception): string
     {

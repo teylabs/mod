@@ -6,6 +6,8 @@ use UnexpectedValueException;
 
 /**
  * A scanned file that was deliberately not registered, and why.
+ *
+ * @internal
  */
 final readonly class Rejection
 {

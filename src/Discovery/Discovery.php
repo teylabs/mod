@@ -16,6 +16,8 @@ use WeakMap;
  * Bound as an instance in that application's container by DiscoveryRegistrar.
  * Nothing here is static, so two applications in one process never share an
  * inventory or a registration record.
+ *
+ * @internal
  */
 final class Discovery
 {

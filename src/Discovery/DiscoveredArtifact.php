@@ -8,6 +8,8 @@ use UnexpectedValueException;
  * One class that registers, with its provenance: which kind owns it, where it
  * was placed (context) and the file it came from. A relation type (factory,
  * policy) pairs the class with its target: the related class it resolves to.
+ *
+ * @internal
  */
 final readonly class DiscoveredArtifact
 {

@@ -109,6 +109,8 @@ trait PlacesGeneratedClass
 
     /**
      * The plan of the running invocation, once resolved.
+     *
+     * @internal
      */
     protected function currentPlan(): ?GenerationPlan
     {
@@ -181,6 +183,7 @@ trait PlacesGeneratedClass
      */
     protected function afterGeneration(GenerationPlan $plan, int $exitCode): void {}
 
+    /** @internal */
     protected function plan(): GenerationPlan
     {
         $primary = $this->resolveArtifact($this->kind()->id, $this->getNameInput(), $this->placementContext());
@@ -193,12 +196,15 @@ trait PlacesGeneratedClass
      * collisions in related artifacts refuse before the primary is written.
      *
      * @return list<RelationResolution>
+     *
+     * @internal
      */
     protected function plannedRelations(ResolvedArtifact $primary): array
     {
         return [];
     }
 
+    /** @internal */
     protected function primary(): ResolvedArtifact
     {
         return $this->plan !== null ? $this->plan->primary : $this->resolveArtifact($this->kind()->id, $this->getNameInput(), $this->placementContext());
@@ -206,6 +212,8 @@ trait PlacesGeneratedClass
 
     /**
      * The planned relation with the given id, if this invocation follows it.
+     *
+     * @internal
      */
     protected function plannedRelation(string $relationId): ?RelationResolution
     {
@@ -222,6 +230,8 @@ trait PlacesGeneratedClass
      * Planned relations to the given kind.
      *
      * @return list<RelationResolution>
+     *
+     * @internal
      */
     protected function plannedRelationsTo(string $kindId): array
     {
@@ -284,6 +294,8 @@ trait PlacesGeneratedClass
     /**
      * The stub file to render: the application's published stubs/mod.<kind>.stub,
      * else the file the kind's Stub chose, else null for the generator's own.
+     *
+     * @internal
      */
     protected function modStubFile(): ?string
     {

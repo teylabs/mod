@@ -2,6 +2,9 @@
 
 namespace Tey\Mod\Artifact;
 
+/**
+ * @internal
+ */
 final readonly class FileIdentity implements ArtifactIdentity
 {
     public function __construct(private string $path) {}

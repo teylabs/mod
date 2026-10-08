@@ -6,6 +6,8 @@ use Tey\Mod\Artifact\ResolvedArtifact;
 
 /**
  * The explicit result of mapping a class or path back to the layout.
+ *
+ * @internal
  */
 final readonly class ReverseMatch
 {

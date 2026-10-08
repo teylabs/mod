@@ -4,6 +4,8 @@ namespace Tey\Mod\Artifact;
 
 /**
  * Where an artifact lives. A class has a namespace and a path; a file only a path.
+ *
+ * @internal
  */
 interface ArtifactIdentity
 {

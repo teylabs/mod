@@ -5,6 +5,8 @@ namespace Tey\Mod\Relation;
 /**
  * A named edge from one artifact kind to another, with explicit scope mapping,
  * name derivation and generation mode.
+ *
+ * @internal
  */
 final readonly class Relation
 {

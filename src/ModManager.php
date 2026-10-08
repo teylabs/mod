@@ -16,6 +16,8 @@ use Tey\Mod\Layout\LayoutRegistry;
 /**
  * What the Mod facade reaches: layouts, stubs and generators, callable from
  * any package's service provider.
+ *
+ * @internal reached through the Mod facade
  */
 final readonly class ModManager
 {

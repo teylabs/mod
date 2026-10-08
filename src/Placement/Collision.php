@@ -4,6 +4,9 @@ namespace Tey\Mod\Placement;
 
 use Tey\Mod\Artifact\ResolvedArtifact;
 
+/**
+ * @internal
+ */
 final readonly class Collision
 {
     public function __construct(

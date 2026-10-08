@@ -8,6 +8,8 @@ use UnexpectedValueException;
  * The result of discovery: what registers (with provenance) and what was
  * deliberately left out. Immutable; owned by the Discovery instance of one
  * application, never shared through static state.
+ *
+ * @internal
  */
 final readonly class Inventory
 {

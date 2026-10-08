@@ -9,6 +9,8 @@ use Tey\Mod\Exceptions\InvalidName;
  *
  * Every policy is invertible: stem() recovers the requested name from a
  * basename, or returns null when the basename cannot have come from it.
+ *
+ * @internal
  */
 final readonly class NamePolicy
 {

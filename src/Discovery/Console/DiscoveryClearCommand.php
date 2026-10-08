@@ -5,6 +5,9 @@ namespace Tey\Mod\Discovery\Console;
 use Illuminate\Console\Command;
 use Tey\Mod\Discovery\Discovery;
 
+/**
+ * @internal the command, mod:clear, is the public part
+ */
 final class DiscoveryClearCommand extends Command
 {
     protected $signature = 'mod:clear';

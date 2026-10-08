@@ -113,8 +113,8 @@ class ModServiceProvider extends ServiceProvider
     }
 
     /**
-     * The layout `mod.layout` names. `mod.preset`, a raw internal preset
-     * definition, is an undocumented test hook that wins when set.
+     * The layout `mod.layout` names. `mod.preset`, a raw layout definition,
+     * is an @internal test hook that wins when set; it is not public API.
      */
     private function activeLayout(Application $app): CompiledLayout
     {

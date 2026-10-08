@@ -8,6 +8,8 @@ use Tey\Mod\Layout\CompiledLayout;
 
 /**
  * Resolves an artifact request to its identity under one preset. Pure: no filesystem.
+ *
+ * @internal
  */
 final readonly class PlacementResolver
 {

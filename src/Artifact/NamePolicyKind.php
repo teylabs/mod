@@ -2,6 +2,9 @@
 
 namespace Tey\Mod\Artifact;
 
+/**
+ * @internal
+ */
 enum NamePolicyKind: string
 {
     case AsGiven = 'as-given';
