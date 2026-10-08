@@ -2,7 +2,7 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## [0.1.1] - YYYY-MM-DD
+## [0.1.1] - 2026-10-08
 
 ### Fixed
 - Subclasses of the `mod:*` commands can override their methods with Laravel's signatures again. 0.1.0 declared `getStub(): string`, and `configure(): void` where Symfony Console 7 leaves `configure()` untyped, so an override without the return type was a fatal error.
