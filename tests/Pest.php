@@ -2,6 +2,7 @@
 
 use Tey\Mod\Artifact\ArtifactRequest;
 use Tey\Mod\Artifact\ResolvedArtifact;
+use Tey\Mod\Facades\Mod;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\PlacementResolver;
 use Tey\Mod\Preset\Preset;
@@ -41,3 +42,20 @@ function place(Preset $preset, string $kind, string $name, string $in = '', arra
 }
 
 const MIGRATION_TIMESTAMP = '2026_01_01_000000';
+
+/**
+ * Move the ddd layout's domain root to a namespace no other test uses. Classes
+ * stay loaded for the whole PHP process, so a generated base such as
+ * Domain\Shared\Data\DataTransferObject may already exist when this test runs;
+ * under a fresh namespace it never does. Returns the namespace, without the
+ * trailing backslash; the folder stays src/Domain. Pass a namespace to apply
+ * the same one again (an acceptance app runs its layout calls more than once).
+ */
+function isolatedDomainNamespace(?string $namespace = null): string
+{
+    $namespace ??= 'Domain'.bin2hex(random_bytes(4));
+
+    Mod::layout('ddd')->root('domain', $namespace.'\\', 'src/Domain');
+
+    return $namespace;
+}

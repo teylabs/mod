@@ -2,6 +2,7 @@
 
 use Tey\Mod\Generation\PackageDetector;
 use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
+use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 
 /*
  * Acceptance, the built-in ddd layout: domain objects in src/Domain/<Domain>,
@@ -10,6 +11,15 @@ use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
  * packages are not installed in mod's own dev install; the "present" case
  * fakes the package detector instead of installing them.
  */
+
+/**
+ * The ddd layout with its domain root under a namespace of its own, so the
+ * base classes generated here are never already loaded in this process.
+ */
+function isolatedDdd(string $namespace): LayoutUnderTest
+{
+    return new LayoutUnderTest('ddd', fn () => isolatedDomainNamespace($namespace));
+}
 
 it('places by --domain, the shorthand and nested subdomains', function () {
     AcceptanceApp::run('ddd', function (AcceptanceApp $app) {
@@ -56,28 +66,25 @@ it('puts controllers, requests and middleware in the application layer', functio
 });
 
 it('generates a DTO and its base without the optional packages, and the DTO round-trips', function () {
-    AcceptanceApp::run('ddd', function (AcceptanceApp $app) {
-        $t = $app->tag;
+    $ns = 'Domain'.bin2hex(random_bytes(4));
+
+    AcceptanceApp::run(isolatedDdd($ns), function (AcceptanceApp $app) use ($ns) {
         $app->boot();
 
-        $result = $app->artisan('mod:dto', ['name' => "Invoice{$t}Data", '--domain' => 'Billing']);
+        $result = $app->artisan('mod:dto', ['name' => 'InvoiceData', '--domain' => 'Billing']);
 
-        expect($result)->toHaveGenerated("src/Domain/Billing/Data/Invoice{$t}Data.php", 'Domain\\Billing\\Data');
+        expect($result)->toHaveGenerated('src/Domain/Billing/Data/InvoiceData.php', "{$ns}\\Billing\\Data")
+            ->and($result->output)->toContain("Created base class {$ns}\\Shared\\Data\\DataTransferObject [src/Domain/Shared/Data/DataTransferObject.php].")
+            ->and($app->root->path('src/Domain/Shared/Data/DataTransferObject.php'))->toBeValidPhp();
 
-        $base = 'src/Domain/Shared/Data/DataTransferObject.php';
-
-        if (str_contains($result->output, 'Created base class')) {
-            expect($result->output)->toContain("Created base class Domain\\Shared\\Data\\DataTransferObject [{$base}].");
-        }
-
-        $app->write("src/Domain/Billing/Data/Invoice{$t}Data.php", <<<PHP
+        $app->write('src/Domain/Billing/Data/InvoiceData.php', <<<PHP
             <?php
 
-            namespace Domain\\Billing\\Data;
+            namespace {$ns}\\Billing\\Data;
 
-            use Domain\\Shared\\Data\\DataTransferObject;
+            use {$ns}\\Shared\\Data\\DataTransferObject;
 
-            class Invoice{$t}Data extends DataTransferObject
+            class InvoiceData extends DataTransferObject
             {
                 public function __construct(
                     public string \$number,
@@ -87,31 +94,30 @@ it('generates a DTO and its base without the optional packages, and the DTO roun
 
             PHP);
 
-        $class = "Domain\\Billing\\Data\\Invoice{$t}Data";
+        $class = "{$ns}\\Billing\\Data\\InvoiceData";
         $dto = $class::fromArray(['number' => 'INV-1', 'total' => 1200, 'ignored' => true]);
 
         expect($dto->toArray())->toBe(['number' => 'INV-1', 'total' => 1200]);
 
-        // Generated classes stay loaded in this test process: an earlier test may already have declared the base.
-        if (is_file($app->root->path($base))) {
-            expect($app->root->path($base))->toBeValidPhp();
-        }
+        $second = $app->artisan('mod:data', ['name' => 'Billing:LineData']);
 
-        $second = $app->artisan('mod:data', ['name' => "Billing:Line{$t}Data"]);
-
-        expect($second)->toHaveGenerated("src/Domain/Billing/Data/Line{$t}Data.php")
+        expect($second)->toHaveGenerated('src/Domain/Billing/Data/LineData.php')
             ->and($second->output)->not->toContain('Created base class');
     });
 });
 
 it('generates a view model and its base without the optional packages', function () {
-    AcceptanceApp::run('ddd', function (AcceptanceApp $app) {
-        $t = $app->tag;
+    $ns = 'Domain'.bin2hex(random_bytes(4));
+
+    AcceptanceApp::run(isolatedDdd($ns), function (AcceptanceApp $app) use ($ns) {
         $app->boot();
 
-        expect($app->artisan('mod:view-model', ['name' => "Show{$t}Invoice", '--domain' => 'Billing']))
-            ->toHaveGenerated("src/Domain/Billing/ViewModels/Show{$t}Invoice.php", 'Domain\\Billing\\ViewModels')
-            ->and(class_exists("Domain\\Billing\\ViewModels\\Show{$t}Invoice"))->toBeTrue();
+        $result = $app->artisan('mod:view-model', ['name' => 'ShowInvoice', '--domain' => 'Billing']);
+
+        expect($result)->toHaveGenerated('src/Domain/Billing/ViewModels/ShowInvoice.php', "{$ns}\\Billing\\ViewModels")
+            ->and($result->output)->toContain("Created base class {$ns}\\Shared\\ViewModels\\ViewModel [src/Domain/Shared/ViewModels/ViewModel.php].")
+            ->and($app->root->path('src/Domain/Shared/ViewModels/ViewModel.php'))->toBeValidPhp()
+            ->and(class_exists("{$ns}\\Billing\\ViewModels\\ShowInvoice"))->toBeTrue();
     });
 });
 

@@ -104,6 +104,12 @@ it('adds --in plus one option per dimension the kind reads', function (string $l
 it('generates through the dimension options exactly as through the shorthand', function (string $layout, string $kindId) {
     Workspace::run(null, function (Workspace $workspace) use ($layout, $kindId) {
         config()->set('mod.layout', $layout);
+
+        if ($layout === 'ddd') {
+            // Both runs then write the generated base, whatever other tests loaded.
+            isolatedDomainNamespace();
+        }
+
         $preset = (new LayoutRegistry)->compile($layout);
         $command = (string) $preset->kind($kindId)->command;
         $values = dimensionValues($preset);

@@ -14,7 +14,10 @@ use SplFileInfo;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Tey\Mod\Discovery\Discovery;
 use Tey\Mod\Facades\Mod;
+use Tey\Mod\Generation\GeneratorRegistry;
+use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Layout\LayoutRegistry;
+use Tey\Mod\ModManager;
 use Tey\Mod\Preset\Preset;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseMatch;
@@ -283,7 +286,7 @@ final class AcceptanceApp
     private function expectedPreset(): Preset
     {
         $registry = new LayoutRegistry;
-        Mod::swap($registry);
+        Mod::swap(new ModManager($registry, new StubRegistry, new GeneratorRegistry));
 
         try {
             if ($this->define !== null) {
@@ -292,7 +295,7 @@ final class AcceptanceApp
 
             return $registry->compile($this->layout);
         } finally {
-            Mod::clearResolvedInstance(LayoutRegistry::class);
+            Mod::clearResolvedInstance(ModManager::class);
         }
     }
 

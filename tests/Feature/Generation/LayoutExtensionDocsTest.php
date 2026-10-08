@@ -58,6 +58,7 @@ it('adds an infrastructure layer to the ddd layout', function () {
 it('adds a kind with an alias, its stub and a swapped generator from a plugin', function () {
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'ddd');
+        $ns = isolatedDomainNamespace();
         $workspace->write('package/stubs/builder.stub', "<?php\n\nnamespace {{ namespace }};\n\nuse Illuminate\\Database\\Eloquent\\Builder;\n\nclass {{ class }} extends Builder\n{\n    //\n}\n");
 
         Mod::layout('ddd')
@@ -67,7 +68,7 @@ it('adds a kind with an alias, its stub and a swapped generator from a plugin', 
 
         $builder = $workspace->artisan('mod:builder', ['name' => 'Billing:Invoice']);
 
-        expect($builder)->toHaveGenerated('src/Domain/Billing/Builders/InvoiceBuilder.php', 'Domain\\Billing\\Builders')
+        expect($builder)->toHaveGenerated('src/Domain/Billing/Builders/InvoiceBuilder.php', "{$ns}\\Billing\\Builders")
             ->and($builder->output)->toContain('Add a newEloquentBuilder() method to the model to use it.')
             ->and($workspace->read('src/Domain/Billing/Builders/InvoiceBuilder.php'))->toContain('class InvoiceBuilder extends Builder')
             ->and($workspace->artisan('mod:query-builder', ['name' => 'Billing:Payment']))
@@ -78,6 +79,7 @@ it('adds a kind with an alias, its stub and a swapped generator from a plugin', 
 it('adds to the aliases of an existing kind', function () {
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'ddd');
+        isolatedDomainNamespace();
         withoutOptionalPackages();
 
         Mod::layout('ddd')->kind('dto', aliases: ['mod:payload']);
@@ -90,6 +92,7 @@ it('adds to the aliases of an existing kind', function () {
 it('reads a plugin base from its own config key before detection and the generated base', function () {
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'ddd');
+        $ns = isolatedDomainNamespace();
         withoutOptionalPackages();
         $workspace->write('package/stubs/dto.stub', "<?php\n\nnamespace {{ namespace }};\n{{ baseImport }}\nclass {{ class }}{{ extends }}\n{\n    public function __construct(\n        //\n    ) {}\n}\n");
         $workspace->write('package/stubs/bases/data-transfer-object.stub', "<?php\n\nnamespace {{ namespace }};\n\nabstract class {{ class }}\n{\n}\n");
@@ -101,14 +104,14 @@ it('reads a plugin base from its own config key before detection and the generat
         Mod::stubs()->for('dto', $dto());
         $generated = $workspace->artisan('mod:dto', ['name' => 'Billing:InvoiceData']);
 
-        expect($generated->output)->toContain('Created base class Domain\\Shared\\Data\\DataTransferObject [src/Domain/Shared/Data/DataTransferObject.php].')
+        expect($generated->output)->toContain("Created base class {$ns}\\Shared\\Data\\DataTransferObject [src/Domain/Shared/Data/DataTransferObject.php].")
             ->and($workspace->read('src/Domain/Billing/Data/InvoiceData.php'))->toContain('class InvoiceData extends DataTransferObject');
 
-        config()->set('ddd.base_dto', 'Domain\\Shared\\Data\\BaseData');
+        config()->set('ddd.base_dto', "{$ns}\\Shared\\Data\\BaseData");
         $configured = $workspace->artisan('mod:dto', ['name' => 'Billing:LineData']);
 
-        expect($configured->output)->toContain('Using the configured base Domain\\Shared\\Data\\BaseData.')
-            ->and($workspace->read('src/Domain/Billing/Data/LineData.php'))->toContain("use Domain\\Shared\\Data\\BaseData;\n\nclass LineData extends BaseData\n");
+        expect($configured->output)->toContain("Using the configured base {$ns}\\Shared\\Data\\BaseData.")
+            ->and($workspace->read('src/Domain/Billing/Data/LineData.php'))->toContain("use {$ns}\\Shared\\Data\\BaseData;\n\nclass LineData extends BaseData\n");
     });
 });
 

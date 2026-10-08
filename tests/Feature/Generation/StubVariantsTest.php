@@ -41,15 +41,16 @@ function installedPackages(string ...$packages): void
 it('writes the DataTransferObject base on first use, says so, and extends it', function () {
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'ddd');
+        $ns = isolatedDomainNamespace();
         installedPackages();
 
         $first = $workspace->artisan('mod:dto', ['name' => 'Billing:InvoiceData']);
 
-        expect($first)->toHaveGenerated('src/Domain/Billing/Data/InvoiceData.php', 'Domain\\Billing\\Data')
-            ->and($first->output)->toContain('Created base class Domain\\Shared\\Data\\DataTransferObject [src/Domain/Shared/Data/DataTransferObject.php].')
+        expect($first)->toHaveGenerated('src/Domain/Billing/Data/InvoiceData.php', "{$ns}\\Billing\\Data")
+            ->and($first->output)->toContain("Created base class {$ns}\\Shared\\Data\\DataTransferObject [src/Domain/Shared/Data/DataTransferObject.php].")
             ->and(strpos($first->output, 'Created base class'))->toBeLessThan(strpos($first->output, 'InvoiceData.php'))
             ->and($workspace->read('src/Domain/Billing/Data/InvoiceData.php'))
-            ->toContain("use Domain\\Shared\\Data\\DataTransferObject;\n\nclass InvoiceData extends DataTransferObject\n")
+            ->toContain("use {$ns}\\Shared\\Data\\DataTransferObject;\n\nclass InvoiceData extends DataTransferObject\n")
             ->and($workspace->root->path('src/Domain/Shared/Data/DataTransferObject.php'))->toBeValidPhp();
 
         $second = $workspace->artisan('mod:dto', ['name' => 'Billing:LineData']);
@@ -62,6 +63,7 @@ it('writes the DataTransferObject base on first use, says so, and extends it', f
 it('never overwrites a base, not even with --force', function () {
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'ddd');
+        isolatedDomainNamespace();
         installedPackages();
 
         $workspace->artisan('mod:dto', ['name' => 'Billing:InvoiceData'])->assertSuccessful();
@@ -77,14 +79,15 @@ it('never overwrites a base, not even with --force', function () {
 it('writes the ViewModel base from the shipped body', function () {
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'ddd');
+        $ns = isolatedDomainNamespace();
         installedPackages();
 
         $result = $workspace->artisan('mod:view-model', ['name' => 'Billing:ShowInvoice']);
         $base = $workspace->read('src/Domain/Shared/ViewModels/ViewModel.php');
 
         expect($result)->toHaveGenerated('src/Domain/Billing/ViewModels/ShowInvoice.php')
-            ->and($result->output)->toContain('Created base class Domain\\Shared\\ViewModels\\ViewModel [src/Domain/Shared/ViewModels/ViewModel.php].')
-            ->and($base)->toContain('namespace Domain\\Shared\\ViewModels;')
+            ->and($result->output)->toContain("Created base class {$ns}\\Shared\\ViewModels\\ViewModel [src/Domain/Shared/ViewModels/ViewModel.php].")
+            ->and($base)->toContain("namespace {$ns}\\Shared\\ViewModels;")
             ->toContain('abstract class ViewModel implements Arrayable, JsonSerializable')
             ->toContain('public static function make(...$args)')
             ->toContain("'__construct', 'make', 'toArray', 'jsonSerialize',")
@@ -95,6 +98,7 @@ it('writes the ViewModel base from the shipped body', function () {
 it('uses an installed package instead of a generated base', function () {
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'ddd');
+        isolatedDomainNamespace();
         installedPackages('spatie/laravel-data', 'spatie/laravel-view-models', 'lorisleiva/laravel-actions');
 
         $dto = $workspace->artisan('mod:dto', ['name' => 'Billing:InvoiceData']);
@@ -117,6 +121,7 @@ it('uses an installed package instead of a generated base', function () {
 it('extends a configured base before anything detected or generated', function () {
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'ddd');
+        isolatedDomainNamespace();
         config()->set('mod.layouts.ddd.bases.dto', 'App\\Support\\Data');
         config()->set('mod.layouts.ddd.bases.action', 'App\\Support\\Action');
         installedPackages('spatie/laravel-data');
@@ -135,21 +140,23 @@ it('extends a configured base before anything detected or generated', function (
 it('writes plain value objects and actions when nothing applies', function () {
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'ddd');
+        $ns = isolatedDomainNamespace();
         installedPackages();
 
         $workspace->artisan('mod:value', ['name' => 'Billing:Money'])->assertSuccessful();
         $workspace->artisan('mod:action', ['name' => 'Billing:PayInvoice'])->assertSuccessful();
 
         expect($workspace->read('src/Domain/Billing/ValueObjects/Money.php'))
-            ->toBe("<?php\n\nnamespace Domain\\Billing\\ValueObjects;\n\nclass Money\n{\n    public function __construct(\n        //\n    ) {}\n}\n")
+            ->toBe("<?php\n\nnamespace {$ns}\\Billing\\ValueObjects;\n\nclass Money\n{\n    public function __construct(\n        //\n    ) {}\n}\n")
             ->and($workspace->read('src/Domain/Billing/Actions/PayInvoice.php'))
-            ->toBe("<?php\n\nnamespace Domain\\Billing\\Actions;\n\nclass PayInvoice\n{\n    public function handle(): void\n    {\n        //\n    }\n}\n");
+            ->toBe("<?php\n\nnamespace {$ns}\\Billing\\Actions;\n\nclass PayInvoice\n{\n    public function handle(): void\n    {\n        //\n    }\n}\n");
     });
 });
 
 it('prefers a published stub, then a package stub, then the layout stub', function () {
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'ddd');
+        isolatedDomainNamespace();
         installedPackages();
         $workspace->write('package/value.stub', "<?php\n\nnamespace {{ namespace }};\n\nclass {{ class }}\n{\n    // from a package\n}\n");
         Mod::stubs()->for('value-object', Stub::file($workspace->root->path('package/value.stub')));
@@ -171,6 +178,7 @@ it('prefers a published stub, then a package stub, then the layout stub', functi
 it('uses a published base stub for a generated base', function () {
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'ddd');
+        isolatedDomainNamespace();
         installedPackages();
         $workspace->write('stubs/mod.base.data-transfer-object.stub', "<?php\n\nnamespace {{ namespace }};\n\nabstract class {{ class }}\n{\n    // the application's base\n}\n");
 
@@ -183,6 +191,7 @@ it('uses a published base stub for a generated base', function () {
 it('registers the laravel-ddd aliases', function () {
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'ddd');
+        isolatedDomainNamespace();
         installedPackages();
         $commands = Artisan::all();
 
@@ -197,6 +206,7 @@ it('registers the laravel-ddd aliases', function () {
 it('lets a package swap the generator of a kind', function () {
     Workspace::run(null, function () {
         config()->set('mod.layout', 'ddd');
+        isolatedDomainNamespace();
         Mod::generators()->use('dto', SwappedDtoCommand::class);
 
         expect(Artisan::all()['mod:dto'])->toBeInstanceOf(SwappedDtoCommand::class);
