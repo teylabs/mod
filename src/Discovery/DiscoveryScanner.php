@@ -14,6 +14,7 @@ use Tey\Mod\Preset\Preset;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Reverse\ReverseMatch;
 use Tey\Mod\Reverse\ReverseOutcome;
+use Tey\Mod\Support\Path;
 
 /**
  * A cold scan: walks the root of every enabled discovered kind, lets the
@@ -222,13 +223,13 @@ final readonly class DiscoveryScanner
     private function files(Root $root, DiscoveryDefinition $definition): array
     {
         if ($this->candidates !== null) {
-            $prefix = $root->path === '' ? '' : Root::normalisePath($root->path).'/';
+            $prefix = Root::normalisePath($root->path);
             $files = [];
 
             foreach (($this->candidates)($root, $this->basePath, $definition) as $path) {
                 $path = Root::normalisePath($path);
 
-                if ($path !== '' && str_ends_with($path, '.php') && ($prefix === '' || str_starts_with($path, $prefix))) {
+                if ($path !== '' && str_ends_with($path, '.php') && Path::relative($prefix, $path) !== null) {
                     $files[$path] = $path;
                 }
             }
@@ -288,8 +289,11 @@ final readonly class DiscoveryScanner
                 continue;
             }
 
-            $relative = substr($item->getPathname(), strlen(rtrim($this->basePath, '/\\')) + 1);
-            $files[] = str_replace('\\', '/', $relative);
+            $relative = Path::relative($this->basePath, $item->getPathname());
+
+            if ($relative !== null) {
+                $files[] = $relative;
+            }
         }
 
         sort($files);
@@ -299,6 +303,6 @@ final readonly class DiscoveryScanner
 
     private function absolute(string $relative): string
     {
-        return rtrim($this->basePath, '/\\').($relative === '' ? '' : DIRECTORY_SEPARATOR.$relative);
+        return Path::join($this->basePath, $relative);
     }
 }

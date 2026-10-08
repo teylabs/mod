@@ -10,6 +10,7 @@ use Tey\Mod\Preset\PresetIssue;
 use Tey\Mod\Preset\PresetIssueCode;
 use Tey\Mod\Preset\PresetValidator;
 use Tey\Mod\Relation\RelationPolicy;
+use Tey\Mod\Support\Path;
 
 /**
  * Turns a layout's chain into the core preset: infers the placement
@@ -262,9 +263,9 @@ final class LayoutCompiler
             return null;
         }
 
-        $remainder = str_replace('\\', '/', trim(substr($namespace, strlen((string) $best['namespace'])), '\\'));
+        $remainder = Path::normalize(trim(substr($namespace, strlen((string) $best['namespace'])), '\\'));
 
-        return ['namespace' => $namespace, 'path' => PlacementRoot::normalisePath($best['path'].($remainder === '' ? '' : '/'.$remainder))];
+        return ['namespace' => $namespace, 'path' => PlacementRoot::normalisePath(Path::join($best['path'], $remainder))];
     }
 
     /**
@@ -279,7 +280,7 @@ final class LayoutCompiler
         foreach ($roots as $root) {
             $rootPath = PlacementRoot::normalisePath($root['path']);
 
-            if ($root['namespace'] !== null && ($path === $rootPath || str_starts_with($path, $rootPath.'/'))
+            if ($root['namespace'] !== null && Path::relative($rootPath, $path) !== null
                 && ($best === null || strlen($rootPath) > strlen(PlacementRoot::normalisePath($best['path'])))) {
                 $best = $root;
             }
@@ -289,7 +290,7 @@ final class LayoutCompiler
             return ['path' => $path];
         }
 
-        $remainder = trim(substr($path, strlen(PlacementRoot::normalisePath($best['path']))), '/');
+        $remainder = (string) Path::relative(PlacementRoot::normalisePath($best['path']), $path);
 
         return ['namespace' => $best['namespace'].($remainder === '' ? '' : str_replace('/', '\\', $remainder).'\\'), 'path' => $path];
     }

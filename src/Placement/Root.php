@@ -2,6 +2,8 @@
 
 namespace Tey\Mod\Placement;
 
+use Tey\Mod\Support\Path;
+
 /**
  * A declared root: a PSR-4 namespace prefix with its directory, or a
  * directory alone for class-less files (migrations, routes).
@@ -45,13 +47,7 @@ final readonly class Root
      */
     public function pathRemainder(string $path): ?string
     {
-        $prefix = $this->path === '' ? '' : $this->path.'/';
-
-        if ($prefix !== '' && ! str_starts_with($path, $prefix)) {
-            return null;
-        }
-
-        return substr($path, strlen($prefix));
+        return Path::relative($this->path, $path);
     }
 
     /**
@@ -69,14 +65,11 @@ final readonly class Root
      */
     public function pathFor(array $segments, string $file): string
     {
-        return implode('/', array_filter([$this->path, ...$segments, $file], static fn (string $part): bool => $part !== ''));
+        return Path::join($this->path, ...[...$segments, $file]);
     }
 
     public static function normalisePath(string $path): string
     {
-        $path = str_replace('\\', '/', $path);
-        $path = preg_replace('#^\./#', '', $path) ?? $path;
-
-        return trim($path, '/');
+        return trim(Path::normalize($path), '/');
     }
 }

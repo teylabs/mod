@@ -6,6 +6,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Testing\Fakes\EventFake;
 use Tey\Mod\Exceptions\InvalidDiscoveryCache;
 use Tey\Mod\Preset\Preset;
+use Tey\Mod\Support\Path;
 use WeakMap;
 
 /**
@@ -110,7 +111,7 @@ final class Discovery
         $path = $this->options->cachePath;
         $absolute = str_starts_with($path, '/') || preg_match('#^[A-Za-z]:[\\\\/]#', $path) === 1
             ? $path
-            : rtrim($this->basePath, '/\\').DIRECTORY_SEPARATOR.$path;
+            : Path::join($this->basePath, $path);
 
         return new DiscoveryCache($absolute);
     }
@@ -251,7 +252,7 @@ final class Discovery
             return false;
         }
 
-        $file = realpath(rtrim($this->basePath, '/\\').DIRECTORY_SEPARATOR.$relativePath);
+        $file = realpath(Path::join($this->basePath, $relativePath));
 
         if ($file === false) {
             return false;
@@ -260,7 +261,7 @@ final class Discovery
         foreach ($directories as $directory) {
             $real = realpath($directory);
 
-            if ($real !== false && str_starts_with($file, rtrim($real, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR)) {
+            if ($real !== false && Path::relative($real, $file) !== null && ! Path::same($real, $file)) {
                 return true;
             }
         }

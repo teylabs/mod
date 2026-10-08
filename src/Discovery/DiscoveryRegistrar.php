@@ -11,6 +11,7 @@ use ReflectionClass;
 use Tey\Mod\Artifact\NamePolicyKind;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Preset\Preset;
+use Tey\Mod\Support\Path;
 use WeakReference;
 
 /**
@@ -117,9 +118,9 @@ final class DiscoveryRegistrar
                 continue;
             }
 
-            $directory = rtrim($app->basePath(), '/\\').DIRECTORY_SEPARATOR.$entry->path;
+            $directory = Path::join($app->basePath(), $entry->path);
 
-            if ($default === false || realpath($directory) !== $default) {
+            if ($default === false || ! Path::same(realpath($directory) ?: $directory, $default)) {
                 $directories[] = $directory;
             }
         }

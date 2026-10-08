@@ -8,6 +8,7 @@ use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionUnionType;
+use Tey\Mod\Support\Path;
 
 /**
  * Semantic eligibility: a class registers only when it really is what its
@@ -27,7 +28,7 @@ final readonly class Eligibility
         $reflection = new ReflectionClass($class);
         $file = $reflection->getFileName();
 
-        if ($file === false || realpath($file) !== realpath($absolutePath)) {
+        if ($file === false || ! Path::same(realpath($file) ?: $file, realpath($absolutePath) ?: $absolutePath)) {
             return sprintf('class [%s] is loaded from [%s], not from the scanned file', $class, $file === false ? 'internal' : $file);
         }
 

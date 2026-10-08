@@ -4,6 +4,7 @@ namespace Tey\Mod\Generation;
 
 use ReflectionClass;
 use Tey\Mod\Artifact\ResolvedArtifact;
+use Tey\Mod\Support\Path;
 
 /**
  * What already exists for a resolved artifact in one application root, in
@@ -36,7 +37,7 @@ final readonly class ExistingArtifacts
             /** @var class-string $fqcn */
             $file = (new ReflectionClass($fqcn))->getFileName();
 
-            if ($file === false || realpath($file) !== realpath($target)) {
+            if ($file === false || ! Path::same(realpath($file) ?: $file, realpath($target) ?: $target)) {
                 $existing[] = $fqcn;
             }
         }
@@ -46,7 +47,7 @@ final readonly class ExistingArtifacts
 
     public function absolute(string $relativePath): string
     {
-        return rtrim($this->basePath, '/\\').'/'.ltrim($relativePath, '/\\');
+        return Path::join($this->basePath, $relativePath);
     }
 
     private function declared(string $fqcn): bool
