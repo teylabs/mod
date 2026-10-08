@@ -2,6 +2,9 @@ parameters:
     level: 6
     paths:
         - tests
+    excludePaths:
+        # Symfony Console 7's untyped configure(), invalid against 8's configure(): void; loaded only on 7.
+        - tests/Fixtures/Commands/UntypedConfigureCommand.php
     tmpDir: build/phpstan-tests
     stubFiles:
         - tests/Support/PestExpectations.stub

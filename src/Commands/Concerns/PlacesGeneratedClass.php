@@ -51,14 +51,35 @@ trait PlacesGeneratedClass
 
     private bool $modStubPrepared = false;
 
+    /** The new-group notice, held until the class is written. */
+    private ?string $modNewGroup = null;
+
     public static function supports(ArtifactKind $kind): bool
     {
         return $kind->isClass();
     }
 
-    protected function configure(): void
+    /**
+     * Add --in once the native definition is built, whichever way the command
+     * declares it: $name and getOptions(), or $signature (Laravel 13.24+).
+     * Not configure(), which Symfony Console 7 leaves untyped and 8 declares
+     * void, so no override of it could match both for subclasses.
+     *
+     * @return void
+     */
+    protected function specifyParameters()
     {
-        parent::configure();
+        parent::specifyParameters();
+
+        $this->registerPlacementOptions();
+    }
+
+    /**
+     * @return void
+     */
+    protected function configureUsingFluentDefinition()
+    {
+        parent::configureUsingFluentDefinition();
 
         $this->registerPlacementOptions();
     }
@@ -73,6 +94,7 @@ trait PlacesGeneratedClass
         $this->modStub = null;
         $this->modStubPrepared = false;
         $this->modGroupValues = [];
+        $this->modNewGroup = null;
         $exitCode = self::FAILURE;
 
         try {
@@ -82,10 +104,18 @@ trait PlacesGeneratedClass
                 $this->resolvePlan();
             }
 
-            return $exitCode = parent::execute($input, $output);
+            $exitCode = parent::execute($input, $output);
+
+            // A host handle() that writes the class itself: announce the group once it exists.
+            if ($exitCode === self::SUCCESS && $this->plan !== null && is_file($this->existingArtifacts()->absolute($this->plan->primary->path()))) {
+                $this->announceNewGroup();
+            }
+
+            return $exitCode;
         } catch (ModException $exception) {
             return $exitCode = $this->reportRefusal($exception);
         } finally {
+            $this->modNewGroup = null;
             $plan = $this->currentPlan();
 
             if ($plan !== null) {
@@ -221,14 +251,34 @@ trait PlacesGeneratedClass
             $this->prepareStub();
         }
 
-        if ($newGroup !== null) {
-            $this->components->info($newGroup);
-        }
-
+        // Announced once the class is written: the native command may still refuse (an unknown guard, say).
+        $this->modNewGroup = $newGroup;
         $this->plan = $plan;
         $this->beforeGeneration($plan);
 
         return $plan;
+    }
+
+    /**
+     * The native generator calls this with the built class just before writing
+     * it, after every check of its own: the moment a new group really appears.
+     *
+     * @param  string  $stub
+     * @return string
+     */
+    protected function sortImports($stub)
+    {
+        $this->announceNewGroup();
+
+        return parent::sortImports($stub);
+    }
+
+    private function announceNewGroup(): void
+    {
+        if ($this->modNewGroup !== null) {
+            $this->components->info($this->modNewGroup);
+            $this->modNewGroup = null;
+        }
     }
 
     /**
@@ -363,7 +413,12 @@ trait PlacesGeneratedClass
         return is_file($published) ? $published : $choice?->file;
     }
 
-    protected function getStub(): string
+    /**
+     * Untyped, as Laravel declares it, so subclasses can override it either way.
+     *
+     * @return string
+     */
+    protected function getStub()
     {
         return $this->modStubFile() ?? parent::getStub();
     }

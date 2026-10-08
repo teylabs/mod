@@ -2,6 +2,13 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## [0.1.1] - YYYY-MM-DD
+
+### Fixed
+- Subclasses of the `mod:*` commands can override their methods with Laravel's signatures again. 0.1.0 declared `getStub(): string`, and `configure(): void` where Symfony Console 7 leaves `configure()` untyped, so an override without the return type was a fatal error.
+- "Created new <group>" is printed only when the file is written, not when the command then refuses (an unknown policy guard, an invalid observer model, an unknown controller type).
+- A nested group's own folders (`Billing/Controllers`) are no longer listed as existing groups when the root also places classes right in the group.
+
 ## [0.1.0] - 2026-10-08
 
 The first release.

@@ -28,4 +28,12 @@ class ConfigCommand extends ConfigMakeCommand implements GeneratorAdapter
     {
         return $this->existingArtifacts()->absolute($this->primary()->path());
     }
+
+    /**
+     * Typed, as ConfigMakeCommand declares it (unlike the other generators).
+     */
+    protected function getStub(): string
+    {
+        return $this->modStubFile() ?? parent::getStub();
+    }
 }
