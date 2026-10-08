@@ -2,10 +2,14 @@
 
 namespace Tey\Mod;
 
+use Closure;
 use Illuminate\Container\Container;
+use Tey\Mod\Discovery\DiscoveryCandidates;
+use Tey\Mod\Discovery\DiscoveryDefinition;
 use Tey\Mod\Generation\GeneratorRegistry;
 use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
 
@@ -20,7 +24,23 @@ final readonly class ModManager
         private StubRegistry $stubs,
         private GeneratorRegistry $generators,
         private ?Container $container = null,
+        private DiscoveryCandidates $candidates = new DiscoveryCandidates,
     ) {}
+
+    /**
+     * Supply the files discovery considers, instead of scanning each root:
+     * fn (CompiledRoot $root, string $basePath, DiscoveryDefinition $definition): iterable
+     * returns paths relative to the application. Mod still decides which of
+     * them are registered, in what order, and how.
+     *
+     * @param  Closure(CompiledRoot, string, DiscoveryDefinition): iterable<string>  $candidates
+     */
+    public function discoverUsing(Closure $candidates): self
+    {
+        $this->candidates->using = $candidates;
+
+        return $this;
+    }
 
     /**
      * The active layout (config `mod.layout`), compiled: its kinds, roots,

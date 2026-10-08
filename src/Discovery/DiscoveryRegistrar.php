@@ -27,6 +27,9 @@ use WeakReference;
  * dispatcher and on any dispatcher that replaces it, model policies on the
  * Gate. Registering the same
  * preset again on the same application changes nothing.
+ *
+ * @internal register discovery through the service provider; a package supplies
+ * candidate files with Mod::discoverUsing()
  */
 final class DiscoveryRegistrar
 {

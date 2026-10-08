@@ -10,6 +10,7 @@ use Tey\Mod\Commands\OtherLayoutCommand;
 use Tey\Mod\Discovery\Console\DiscoveryCacheCommand;
 use Tey\Mod\Discovery\Console\DiscoveryClearCommand;
 use Tey\Mod\Discovery\Discovery;
+use Tey\Mod\Discovery\DiscoveryCandidates;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryRegistrar;
 use Tey\Mod\Exceptions\InvalidLayout;
@@ -39,6 +40,7 @@ class ModServiceProvider extends ServiceProvider
             self::appNamespace($app),
         ));
         $this->app->singleton(PackageDetector::class, ComposerPackageDetector::class);
+        $this->app->singleton(DiscoveryCandidates::class);
         $this->app->singleton(ModManager::class);
 
         // The active layout compiles on first use, after every provider has booted
@@ -64,10 +66,13 @@ class ModServiceProvider extends ServiceProvider
                 return;
             }
 
+            $options = DiscoveryOptions::fromConfig((array) $app->make('config')->get('mod.discovery', []));
+            $candidates = $app->make(DiscoveryCandidates::class)->using;
+
             DiscoveryRegistrar::register(
                 $app,
                 $app->make(CompiledLayout::class),
-                DiscoveryOptions::fromConfig((array) $app->make('config')->get('mod.discovery', [])),
+                $candidates === null ? $options : $options->withCandidates($candidates),
             );
         });
     }

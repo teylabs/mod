@@ -3,12 +3,13 @@
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
-use Tey\Mod\Discovery\DiscoveryOptions;
-use Tey\Mod\Discovery\DiscoveryRegistrar;
+use Tey\Mod\Discovery\DiscoveryDefinition;
 use Tey\Mod\Discovery\DiscoveryType;
-use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Facades\Mod;
+use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Resolution\ModelConventions;
+use Tey\Mod\Support\Path;
 use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
 use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 
@@ -161,16 +162,36 @@ it('turns factory and policy lookup off with discovery, which they read', functi
     });
 });
 
-it('resolves factories and policies for a host that registers discovery itself', function () {
-    AcceptanceApp::run('modules', function (AcceptanceApp $app) {
+it('lets a package supply the files discovery considers with Mod::discoverUsing()', function () {
+    $asked = new class
+    {
+        /** @var list<string> */
+        public array $kinds = [];
+    };
+    $layout = new LayoutUnderTest('modules', fn () => Mod::discoverUsing(function (CompiledRoot $root, string $basePath, DiscoveryDefinition $definition) use ($asked): array {
+        $asked->kinds[] = $definition->kindId;
+        $folder = Path::join($basePath, $root->path);
+        $files = [];
+
+        foreach (is_dir($folder) ? new RecursiveIteratorIterator(new RecursiveDirectoryIterator($folder, FilesystemIterator::SKIP_DOTS)) : [] as $file) {
+            if ($file->getExtension() === 'php') {
+                $files[] = (string) Path::relative($basePath, $file->getPathname());
+            }
+        }
+
+        return $files;
+    }));
+
+    AcceptanceApp::run($layout, function (AcceptanceApp $app) use ($asked) {
         $app->boot();
         $classes = generateModelWithRelations($app, "Invoice{$app->tag}");
         Factory::flushState();
+        $asked->kinds = [];
 
-        $application = $app->boot(['enabled' => false]);
-        DiscoveryRegistrar::register($application, $application->make(CompiledLayout::class), DiscoveryOptions::fromConfig([...(array) config('mod.discovery'), 'enabled' => true]));
+        $app->boot();
 
-        expect(Gate::policies())->toHaveKey($classes['model'])
+        expect($asked->kinds)->not->toBeEmpty()
+            ->and(Gate::policies())->toHaveKey($classes['model'])
             ->and(modelFactory($classes['model']))->toBeInstanceOf($classes['factory']);
     });
 });
