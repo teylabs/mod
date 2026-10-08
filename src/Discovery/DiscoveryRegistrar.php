@@ -138,7 +138,7 @@ final class DiscoveryRegistrar
         }
 
         $message = sprintf(
-            'mod: ignoring the stale discovery cache at [%s] (%s); scanning instead. Rebuild it with `php artisan mod:discovery-cache` or remove it with `php artisan mod:discovery-clear`.',
+            'mod: ignoring the stale discovery cache at [%s] (%s); scanning instead. Rebuild it with `php artisan mod:cache` or remove it with `php artisan mod:clear`.',
             $discovery->cache()->path,
             rtrim($reason, '.'),
         );

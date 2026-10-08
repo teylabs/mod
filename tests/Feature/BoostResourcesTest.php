@@ -115,7 +115,7 @@ it('names only mod:* commands that a built-in layout registers', function () {
 
     $named = boostCommands();
 
-    expect($named)->toContain('mod:model', 'mod:bases', 'mod:discovery-cache')
+    expect($named)->toContain('mod:model', 'mod:bases', 'mod:cache')
         ->and(array_values(array_diff($named, $registered)))->toBe([]);
 });
 

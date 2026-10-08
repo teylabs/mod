@@ -7,7 +7,7 @@ use Tey\Mod\Discovery\Discovery;
 
 final class DiscoveryClearCommand extends Command
 {
-    protected $signature = 'mod:discovery-clear';
+    protected $signature = 'mod:clear';
 
     protected $description = 'Remove the discovery cache file';
 

@@ -77,7 +77,7 @@ it('refuses a cache built for another preset, naming the fix', DiscoveryFixture:
     $other = $fx->preset($definition);
 
     expect(fn () => discoveryFor($fx, $other, ['on_stale_cache' => 'fail'])->inventory())
-        ->toThrow(InvalidDiscoveryCache::class, 'it was built for a different layout. Rebuild it with `php artisan mod:discovery-cache`');
+        ->toThrow(InvalidDiscoveryCache::class, 'it was built for a different layout. Rebuild it with `php artisan mod:cache`');
 }));
 
 it('refuses a cache built with other discovery settings', DiscoveryFixture::around(function (DiscoveryFixture $fx) {
@@ -130,7 +130,7 @@ it('scans and warns instead of failing under the default policy', DiscoveryFixtu
 
     expect($discovery->source())->toBe('scan')
         ->and($discovery->staleCacheReason())->not->toBeNull();
-    $log->shouldHaveReceived('warning')->once()->withArgs(fn (string $message) => str_contains($message, 'mod:discovery-cache'));
+    $log->shouldHaveReceived('warning')->once()->withArgs(fn (string $message) => str_contains($message, 'mod:cache'));
 }));
 
 it('fails registration loudly under the fail policy', DiscoveryFixture::around(function (DiscoveryFixture $fx) {
@@ -162,14 +162,14 @@ it('builds and clears the cache through the console commands', DiscoveryFixture:
     $kernel->registerCommand($this->app->make(DiscoveryCacheCommand::class));
     $kernel->registerCommand($this->app->make(DiscoveryClearCommand::class));
 
-    $this->artisan('mod:discovery-cache')
+    $this->artisan('mod:cache')
         ->expectsOutputToContain('1 providers, 1 commands, 1 listeners, 0 subscribers, 0 directories, 2 rejected')
         // What "rejected" means, and which ones are worth a look.
         ->expectsOutputToContain('Rejected files were found but not registered: 1 placed by no file type (helpers and plain classes; nothing to do), 1 in a discovered folder but not a provider, command, listener or subscriber (check it). Run with -v to list them.')
         ->doesntExpectOutputToContain('app/helpers.php')
         ->assertSuccessful();
 
-    $this->artisan('mod:discovery-cache', ['-v' => true])
+    $this->artisan('mod:cache', ['-v' => true])
         ->expectsOutputToContain('app/helpers.php: placed by no file type')
         ->expectsOutputToContain('app/Listeners/Untyped.php: in a discovered folder but not a provider, command, listener or subscriber')
         ->doesntExpectOutputToContain('Run with -v')
@@ -177,7 +177,7 @@ it('builds and clears the cache through the console commands', DiscoveryFixture:
 
     expect(is_file($fx->path('bootstrap/cache/mod-discovery.php')))->toBeTrue();
 
-    $this->artisan('mod:discovery-clear')->expectsOutputToContain('Discovery cache cleared.')->assertSuccessful();
+    $this->artisan('mod:clear')->expectsOutputToContain('Discovery cache cleared.')->assertSuccessful();
 
     expect(is_file($fx->path('bootstrap/cache/mod-discovery.php')))->toBeFalse();
 }));

@@ -55,14 +55,14 @@ return [
      * Runtime discovery of the providers, Artisan commands and listeners the
      * layout places. Kinds with id provider/command/listener are discovered
      * by default; map other kind ids to a type, or false to skip one.
-     * Production: `php artisan optimize` writes the cache (mod:discovery-cache).
+     * Production: `php artisan optimize` writes the cache (mod:cache).
      */
     'discovery' => [
         'enabled' => true,
         'kinds' => [],
         'cache' => 'bootstrap/cache/mod-discovery.php',
         // 'scan' ignores a stale or foreign cache file, scans instead (never rewriting the file) and
-        // warns; 'fail' refuses to boot until the cache is rebuilt (mod:discovery-cache) or removed.
+        // warns; 'fail' refuses to boot until the cache is rebuilt (mod:cache) or removed.
         'on_stale_cache' => 'scan',
         // Models placed by the layout get their factory (Model::factory(), no newFactory() needed)
         // and their policy (Gate::policy) through the layout's factory and policy relations.

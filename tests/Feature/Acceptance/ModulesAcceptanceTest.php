@@ -117,7 +117,7 @@ it('runs the whole loop on the modules layout', function () {
         };
         $assertRegistered();
 
-        $app->artisan('mod:discovery-cache')->assertSuccessful();
+        $app->artisan('mod:cache')->assertSuccessful();
         $app->boot();
 
         expect($app->discovery()->source())->toBe('cache')

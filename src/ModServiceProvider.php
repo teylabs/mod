@@ -166,7 +166,7 @@ class ModServiceProvider extends ServiceProvider
     }
 
     /**
-     * mod:discovery-cache / mod:discovery-clear, hooked into optimize and
+     * mod:cache / mod:clear, hooked into optimize and
      * optimize:clear, only while mod:* commands and discovery are both on.
      * Laravel keeps the optimize hooks in a process-wide map keyed by
      * provider, so they are set or removed to match this application.
@@ -184,7 +184,7 @@ class ModServiceProvider extends ServiceProvider
         }
 
         $artisan->resolveCommands([DiscoveryCacheCommand::class, DiscoveryClearCommand::class]);
-        $this->optimizes(optimize: 'mod:discovery-cache', clear: 'mod:discovery-clear', key: 'mod');
+        $this->optimizes(optimize: 'mod:cache', clear: 'mod:clear', key: 'mod');
     }
 
     /**

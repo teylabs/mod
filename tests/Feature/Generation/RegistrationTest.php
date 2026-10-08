@@ -111,13 +111,13 @@ it('registers the discovery cache commands only with mod:* commands and discover
             $app->make('config')->set('mod.discovery.enabled', $discovery);
         });
 
-        expect(array_values(array_filter(modCommands(), static fn (string $name): bool => str_starts_with($name, 'mod:discovery-'))))
+        expect(array_values(array_filter(modCommands(), static fn (string $name): bool => in_array($name, ['mod:cache', 'mod:clear'], true))))
             ->toBe($expected)
             ->and(ServiceProvider::$optimizeCommands['mod'] ?? null)
-            ->toBe($expected === [] ? null : 'mod:discovery-cache');
+            ->toBe($expected === [] ? null : 'mod:cache');
     });
 })->with([
-    'both on' => [true, true, ['mod:discovery-cache', 'mod:discovery-clear']],
+    'both on' => [true, true, ['mod:cache', 'mod:clear']],
     'commands off' => [false, true, []],
     'discovery off' => [true, false, []],
 ]);

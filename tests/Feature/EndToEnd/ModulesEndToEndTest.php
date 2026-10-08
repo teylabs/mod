@@ -78,7 +78,7 @@ it('generates into a module, discovers it on a fresh boot and replays it from th
                 ->and($app->make('events')->hasListeners($event))->toBeTrue();
 
             // 3. Cache it.
-            expect($artisan($app, 'mod:discovery-cache'))->toBe(0)
+            expect($artisan($app, 'mod:cache'))->toBe(0)
                 ->and(is_file($root->path('bootstrap/cache/mod-discovery.php')))->toBeTrue();
 
             // 4. Another fresh boot replays the identical inventory from the cache.

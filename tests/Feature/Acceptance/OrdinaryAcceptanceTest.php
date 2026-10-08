@@ -100,7 +100,7 @@ it('runs the whole loop on ordinary Laravel', function () {
         $assertRegistered();
 
         // 5. Cache, then replay on a fresh boot: identical inventory and registrations.
-        $app->artisan('mod:discovery-cache')->assertSuccessful();
+        $app->artisan('mod:cache')->assertSuccessful();
         $app->boot();
 
         expect($app->discovery()->source())->toBe('cache')

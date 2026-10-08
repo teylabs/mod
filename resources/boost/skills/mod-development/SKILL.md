@@ -58,7 +58,7 @@ In `modules`, everything a module needs (models, migrations, factories, policies
 - Providers, Artisan commands, event listeners and event subscribers in the layout's folders are registered automatically. A listener Laravel already registers is never registered twice.
 - Migration folders the layout places, such as `app/Modules/<Module>/Database/Migrations`, are added to the migrator. A model's factory and policy are found through the layout.
 - Check registration with `php artisan event:list`, `php artisan list` and `php artisan migrate:status`.
-- `php artisan optimize` writes the discovery cache (`mod:discovery-cache`), and `optimize:clear` removes it (`mod:discovery-clear`). The cache doesn't pick up new classes: after adding a provider, command or listener while it exists, run `php artisan mod:discovery-clear`.
+- `php artisan optimize` writes the discovery cache (`mod:cache`), and `optimize:clear` removes it (`mod:clear`). The cache doesn't pick up new classes: after adding a provider, command or listener while it exists, run `php artisan mod:clear`.
 - `config/mod.php` `discovery.enabled`, `discovery.kinds`, `discovery.factories` and `discovery.policies` control what is discovered.
 
 ## What Not to Do

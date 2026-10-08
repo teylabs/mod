@@ -108,7 +108,7 @@ it('resolves factories and policies by convention on every built-in layout', fun
         expectResolution($classes);
 
         // The discovery cache holds the pairs.
-        $app->artisan('mod:discovery-cache')->assertSuccessful();
+        $app->artisan('mod:cache')->assertSuccessful();
         $app->boot();
         expect($app->discovery()->source())->toBe('cache')
             ->and($app->discovery()->inventory()->pairs(DiscoveryType::Factory))->toBe([$classes['model'] => $classes['factory']])

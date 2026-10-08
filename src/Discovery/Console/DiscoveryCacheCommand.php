@@ -10,7 +10,7 @@ use Tey\Mod\Discovery\RejectionReason;
 
 final class DiscoveryCacheCommand extends Command
 {
-    protected $signature = 'mod:discovery-cache';
+    protected $signature = 'mod:cache';
 
     protected $description = 'Scan the layout and cache the discovered providers, commands, listeners, subscribers and directories';
 

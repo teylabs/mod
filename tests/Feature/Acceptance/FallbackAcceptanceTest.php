@@ -45,7 +45,7 @@ it('discovers global and feature commands in the built-in layouts while other ki
         $app->boot();
         expect($app->hasArtisanCommand($globalClass))->toBeTrue()
             ->and($app->hasArtisanCommand($placedClass))->toBeTrue();
-        $app->artisan('mod:discovery-cache')->assertSuccessful();
+        $app->artisan('mod:cache')->assertSuccessful();
         $app->boot();
         expect($app->discovery()->source())->toBe('cache')
             ->and($app->hasArtisanCommand($globalClass))->toBeTrue()
