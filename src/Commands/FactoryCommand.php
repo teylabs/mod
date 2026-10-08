@@ -56,7 +56,10 @@ class FactoryCommand extends FactoryMakeCommand implements GeneratorAdapter
 
         $stub = str_replace(array_keys($replace), array_values($replace), GeneratorCommand::buildClass($name));
 
-        if (! (new FactoryConvention($this->laravel->getNamespace()))->links($model, (string) $primary->fqcn())) {
+        $nativeModel = $this->qualifyModel($this->guessModelName($name));
+
+        if (! (new FactoryConvention($this->laravel->getNamespace()))->links($model, (string) $primary->fqcn())
+            && ($this->option('model') || $model !== $nativeModel)) {
             $stub = preg_replace(
                 '/(class '.preg_quote($basename, '/').' extends Factory\R\{\R)/',
                 '$1    protected $model = \\'.$model.'::class;'."\n\n",
@@ -78,6 +81,12 @@ class FactoryCommand extends FactoryMakeCommand implements GeneratorAdapter
 
         $related = ($this->plannedRelationsTo('model')[0] ?? null)?->target?->fqcn();
 
-        return $related ?? $this->qualifyModel($this->guessModelName((string) $this->primary()->class()?->basename));
+        // A conventional reference keeps Laravel's missing-model fallback. A
+        // relation that names a different identity remains authoritative.
+        if ($related !== null && ! (new FactoryConvention($this->laravel->getNamespace()))->links($related, (string) $this->primary()->fqcn())) {
+            return $related;
+        }
+
+        return $this->qualifyModel($this->guessModelName((string) $this->primary()->class()?->basename));
     }
 }

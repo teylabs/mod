@@ -31,7 +31,7 @@ dataset('native adapters', [
     'model' => ['model', 'ExampleModel'],
     'controller' => ['controller', 'ExampleController'],
     'request' => ['request', 'ExampleRequest'],
-    'factory' => ['factory', 'ModelFactory'],
+    'factory' => ['factory', 'ExampleFactory'],
     'policy' => ['policy', 'ExamplePolicy'],
     'provider' => ['provider', 'ExampleServiceProvider'],
     'command' => ['command', 'ExampleCommand'],

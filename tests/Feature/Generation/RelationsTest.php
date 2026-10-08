@@ -65,12 +65,15 @@ it('places a bare factory --model as the model kind of the same placement', func
     });
 });
 
-it('resolves a factory model through the declared reference relation', function () {
-    Workspace::run('ordinary', function (Workspace $workspace) {
+it('resolves a factory model through a nonconventional reference relation', function () {
+    $definition = Layouts::definition('ordinary');
+    $definition['relations']['model']['name'] = ['prefix' => 'Related'];
+
+    Workspace::run($definition, function (Workspace $workspace) {
         $workspace->artisan('mod:factory', ['name' => 'InvoiceFactory'])->assertSuccessful();
 
         expect($workspace->files())->toBe(['database/factories/InvoiceFactory.php'])
-            ->and($workspace->references('database/factories/InvoiceFactory.php', 'App\Models\Invoice'))->toBeTrue();
+            ->and($workspace->references('database/factories/InvoiceFactory.php', 'App\Models\RelatedInvoice'))->toBeTrue();
     });
 });
 
