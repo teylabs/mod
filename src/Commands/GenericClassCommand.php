@@ -33,10 +33,18 @@ class GenericClassCommand extends GeneratorCommand implements GeneratorAdapter
     {
         $this->bindKind($preset, $kind);
 
-        $this->type = Str::headline($kind->id);
-        $this->setDescription("Create a new {$kind->id} class");
+        $this->type = $kind->label ?? Str::headline($kind->id);
+        $this->setDescription('Create a new '.($kind->label === null ? $kind->id : self::noun($kind->label)).' class');
 
         return $this;
+    }
+
+    /**
+     * The label as a noun inside a sentence: "Value object" becomes "value object"; "DTO" stays.
+     */
+    private static function noun(string $label): string
+    {
+        return preg_match('/^\p{Lu}{2}/u', $label) === 1 ? $label : lcfirst($label);
     }
 
     protected function getStub()

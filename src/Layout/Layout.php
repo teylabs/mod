@@ -79,7 +79,8 @@ final class Layout
      * (with `except: [...]`) widens discovery to every file below the kind's
      * dimension folders. A `{name+}` placeholder spans one or more folders.
      * `aliases:` gives the command other names; `stub:` the stub its classes
-     * are generated from (with variants and a base, see Stub).
+     * are generated from (with variants and a base, see Stub); `label:` the
+     * noun its command prints ("DTO [...] created successfully.").
      *
      * @param  list<string>|null  $except  folders discovery skips, relative to the dimension folder
      * @param  (Closure(Kind): mixed)|null  $using  for what the named arguments do not cover
@@ -100,6 +101,7 @@ final class Layout
         ?string $fallback = null,
         ?array $aliases = null,
         ?Stub $stub = null,
+        ?string $label = null,
     ): self {
         $this->guard();
 
@@ -153,6 +155,10 @@ final class Layout
 
         if ($stub !== null) {
             $kind->stub($stub);
+        }
+
+        if ($label !== null) {
+            $kind->label($label);
         }
 
         if ($using !== null) {

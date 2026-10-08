@@ -32,6 +32,7 @@ final readonly class ArtifactKind
 
     /**
      * @param  list<string>  $aliases  other command names that run the same command
+     * @param  ?string  $label  the noun the kind's command prints ("DTO [...] created successfully.")
      */
     public function __construct(
         public string $id,
@@ -39,6 +40,7 @@ final readonly class ArtifactKind
         public NamePolicy $namePolicy,
         public ?string $command = null,
         public array $aliases = [],
+        public ?string $label = null,
     ) {}
 
     public static function phpClass(string $id, ?NamePolicy $namePolicy = null, ?string $command = null): self

@@ -121,7 +121,7 @@ The `ddd` layout's DTOs, view models and actions are starter classes: plain Lara
 php artisan mod:dto Billing:InvoiceData
 # without spatie/laravel-data:
 # ->  INFO  Created base class Domain\Shared\Data\DataTransferObject [src/Domain/Shared/Data/DataTransferObject.php].
-# ->  INFO  Dto [src/Domain/Billing/Data/InvoiceData.php] created successfully.
+# ->  INFO  DTO [src/Domain/Billing/Data/InvoiceData.php] created successfully.
 # with spatie/laravel-data installed:
 # ->  INFO  Using spatie/laravel-data (installed).
 ```
@@ -182,6 +182,7 @@ The building blocks:
   - `timestamped: true` (migrations);
   - `nested: true` (accepts names like `Archived/Invoice`, the same as `make:model Archived/Invoice`);
   - `command:` (defaults to `mod:<id>`; `false` for none);
+  - `label:` (the noun the command prints, as in `'DTO'` for "DTO [...] created successfully."; Laravel's own generators keep their wording);
   - `discoverAnywhere: true` with `except: [...]` (see Discovery).
 - `relation($id, from: ..., to: ...)` drives companion options and cross-references, and also takes `scope:`, `name:` and `policy:` (`'generate'`, `'reference'` or `'none'`).
   - `name:` says how the target's name derives from the source's: `'explicit'` (always named by the caller) or a map of `strip-suffix`, `prefix` and `suffix`, for example `['prefix' => 'Store']`. The target kind's own `suffix:` or `fixed:` still applies afterwards.

@@ -250,7 +250,7 @@ final readonly class BuiltInLayouts
                 ->kind('seeder', in: 'Modules/{module}/Database/Seeders', suffix: 'Seeder')
                 ->kind('migration', in: 'Modules/{module}/Database/Migrations', timestamped: true)
                 ->kind('action', in: 'Modules/{module}/Actions')
-                ->kind('data', in: 'Modules/{module}/Data')
+                ->kind('data', in: 'Modules/{module}/Data', label: 'Data object')
                 ->kind('query', in: 'Modules/{module}/Queries'))
             ->root('tests', 'Tests\\', 'tests', fn (Root $root) => $root
                 ->kind('test', in: 'Feature/Modules/{module}'));
@@ -271,14 +271,14 @@ final readonly class BuiltInLayouts
         $layout
             ->root('domain', 'Domain\\', 'src/Domain', fn (Root $root) => $root
                 ->kind('model', in: '{domain+}/Models')
-                ->kind('dto', in: '{domain+}/Data', aliases: ['mod:data-transfer-object', 'mod:datatransferobject', 'mod:data'], stub: Stub::file("{$stubs}/dto.stub")
+                ->kind('dto', in: '{domain+}/Data', label: 'DTO', aliases: ['mod:data-transfer-object', 'mod:datatransferobject', 'mod:data'], stub: Stub::file("{$stubs}/dto.stub")
                     ->whenInstalled('spatie/laravel-data', base: 'Spatie\\LaravelData\\Data')
                     ->generatesBase(GeneratedBase::named('DataTransferObject', in: 'Shared/Data', stub: "{$stubs}/bases/data-transfer-object.stub")))
-                ->kind('value-object', in: '{domain+}/ValueObjects', command: 'mod:value', aliases: ['mod:value-object', 'mod:valueobject'], stub: Stub::file("{$stubs}/value-object.stub"))
-                ->kind('view-model', in: '{domain+}/ViewModels', aliases: ['mod:viewmodel'], stub: Stub::file("{$stubs}/view-model.stub")
+                ->kind('value-object', in: '{domain+}/ValueObjects', label: 'Value object', command: 'mod:value', aliases: ['mod:value-object', 'mod:valueobject'], stub: Stub::file("{$stubs}/value-object.stub"))
+                ->kind('view-model', in: '{domain+}/ViewModels', label: 'View model', aliases: ['mod:viewmodel'], stub: Stub::file("{$stubs}/view-model.stub")
                     ->whenInstalled('spatie/laravel-view-models', base: 'Spatie\\ViewModels\\ViewModel')
                     ->generatesBase(GeneratedBase::named('ViewModel', in: 'Shared/ViewModels', stub: "{$stubs}/bases/view-model.stub")))
-                ->kind('action', in: '{domain+}/Actions', stub: Stub::file("{$stubs}/action.stub")
+                ->kind('action', in: '{domain+}/Actions', label: 'Action', stub: Stub::file("{$stubs}/action.stub")
                     ->whenInstalled('lorisleiva/laravel-actions', stub: "{$stubs}/action.laravel-actions.stub"))
                 ->kind('cast', in: '{domain+}/Casts')
                 ->kind('channel', in: '{domain+}/Channels')

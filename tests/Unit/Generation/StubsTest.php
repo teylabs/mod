@@ -193,3 +193,23 @@ it('declares the ddd kinds with laravel-ddd command names and aliases', function
         ->and($preset->placementOptions())->toBe(['domain' => 'domain'])
         ->and($preset->stub('dto'))->not->toBeNull();
 });
+
+it('compiles a kind label and refuses an empty one', function () {
+    $preset = (new Layout('labels'))
+        ->root('app', 'App\\', 'app', fn (Root $root) => $root
+            ->kind('record', in: 'Records', label: 'Ledger record')
+            ->kind('entry', in: 'Entries'))
+        ->compile();
+
+    expect($preset->kind('record')->label)->toBe('Ledger record')
+        ->and($preset->kind('entry')->label)->toBeNull()
+        ->and((new LayoutRegistry)->compile('ddd')->kind('dto')->label)->toBe('DTO')
+        ->and((new LayoutRegistry)->compile('modules')->kind('data')->label)->toBe('Data object');
+
+    $definition = [
+        'roots' => ['app' => ['namespace' => 'App\\', 'path' => 'app']],
+        'kinds' => ['record' => ['shape' => 'class', 'root' => 'app', 'segments' => ['Records'], 'label' => ' ']],
+    ];
+
+    expect(fn () => Preset::fromArray($definition))->toThrow(InvalidPreset::class, 'label must be a non-empty string');
+});

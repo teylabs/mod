@@ -41,6 +41,7 @@ final readonly class Root
         ?string $fallback = null,
         ?array $aliases = null,
         ?Stub $stub = null,
+        ?string $label = null,
     ): self {
         $this->layout->kind($id, $in, $suffix, $fixed, $timestamped, $command, $priority, $nested, $discoverAnywhere, $except, function (Kind $kind) use ($using): void {
             $kind->withinRoot($this->name);
@@ -48,7 +49,7 @@ final readonly class Root
             if ($using !== null) {
                 $using($kind);
             }
-        }, $fallback, $aliases, $stub);
+        }, $fallback, $aliases, $stub, $label);
 
         return $this;
     }

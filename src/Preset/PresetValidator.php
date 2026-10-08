@@ -34,7 +34,7 @@ use Tey\Mod\Relation\ScopeMap;
  *        'nested' => true,                       // accepts "Billing/Invoice" and keeps the folders below the kind's own
  *        'discover' => 'anywhere', 'except' => ['Tests'],   // discovery widening below the dimension folders
  *        'place' => Closure(string $name, PlacementContext $context): string   // opaque alternative to 'segments'
- *        'aliases' => ['mod:records'], 'stub' => Stub::file(...),
+ *        'aliases' => ['mod:records'], 'stub' => Stub::file(...), 'label' => 'Record',
  *    ]],
  *    'relations'  => ['factory' => [
  *        'from' => 'model', 'to' => 'factory', 'scope' => 'same'|['keep' => ['feature'], 'nested' => 'keep'|'drop'],
@@ -368,6 +368,14 @@ final class PresetValidator
                 continue;
             }
 
+            $label = $entry['label'] ?? null;
+
+            if ($label !== null && (! is_string($label) || trim($label) === '')) {
+                $this->issue(PresetIssueCode::InvalidKind, $subject, 'label must be a non-empty string');
+
+                continue;
+            }
+
             $rootName = $entry['root'] ?? null;
 
             if (! is_string($rootName) || ! isset($roots[$rootName])) {
@@ -439,7 +447,7 @@ final class PresetValidator
                 }
             }
 
-            $kinds[$id] = new ArtifactKind($id, $shape, $policy, $command, $names);
+            $kinds[$id] = new ArtifactKind($id, $shape, $policy, $command, $names, $label);
             $rules[$id] = $rule;
         }
 

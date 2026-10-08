@@ -95,7 +95,7 @@ final class LayoutCompiler
     }
 
     /**
-     * @param  array{in: ?string, fallback: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, aliases: list<string>, stub: ?Stub, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: ?\Closure, reads: list<string>}  $kind
+     * @param  array{in: ?string, fallback: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, aliases: list<string>, stub: ?Stub, label: ?string, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: ?\Closure, reads: list<string>}  $kind
      * @param  array<string, array{namespace: ?string, path: string}>  $roots
      * @return array{array<string, mixed>, list<string>}|null the internal kind definition and the placeholders it reads
      */
@@ -150,6 +150,10 @@ final class LayoutCompiler
 
         if ($kind['stub'] !== null) {
             $definition['stub'] = $kind['stub'];
+        }
+
+        if ($kind['label'] !== null) {
+            $definition['label'] = $kind['label'];
         }
 
         if ($kind['fallback'] !== null) {

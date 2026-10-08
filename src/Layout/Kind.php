@@ -32,6 +32,8 @@ final class Kind
 
     private ?Stub $stub = null;
 
+    private ?string $label = null;
+
     private ?int $priority = null;
 
     private ?bool $nested = null;
@@ -143,6 +145,17 @@ final class Kind
     }
 
     /**
+     * The noun the kind's command prints: "DTO [...] created successfully."
+     * Without one, a generated class is named after the kind id.
+     */
+    public function label(string $label): self
+    {
+        $this->label = $label;
+
+        return $this;
+    }
+
+    /**
      * The stub the kind's classes are generated from, with its variants and base.
      */
     public function stub(Stub $stub): self
@@ -216,7 +229,7 @@ final class Kind
     /**
      * @internal
      *
-     * @return array{in: ?string, fallback: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, aliases: list<string>, stub: ?Stub, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: (Closure(string, PlacementContext): string)|null, reads: list<string>}
+     * @return array{in: ?string, fallback: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, aliases: list<string>, stub: ?Stub, label: ?string, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: (Closure(string, PlacementContext): string)|null, reads: list<string>}
      */
     public function toArray(): array
     {
@@ -229,6 +242,7 @@ final class Kind
             'command' => $this->command,
             'aliases' => $this->aliases,
             'stub' => $this->stub,
+            'label' => $this->label,
             'priority' => $this->priority,
             'nested' => $this->nested,
             'discover' => $this->discover,

@@ -14,7 +14,7 @@ Everything below goes in that provider. Mod reads it when Artisan starts, so the
 
 ### Adding Kinds, Commands and Aliases
 
-Extend a built-in layout with `Mod::layout()`. A new kind gets a `mod:<kind>` command; `command:` renames it and `aliases:` adds other names:
+Extend a built-in layout with `Mod::layout()`. A new kind gets a `mod:<kind>` command; `command:` renames it, `aliases:` adds other names and `label:` sets the noun its output uses:
 
 ```php
 // src/BillingToolsServiceProvider.php
@@ -23,18 +23,19 @@ use Tey\Mod\Facades\Mod;
 public function boot(): void
 {
     Mod::layout('ddd')
-        ->kind('builder', in: '{domain+}/Builders', suffix: 'Builder', aliases: ['mod:query-builder']);
+        ->kind('builder', in: '{domain+}/Builders', suffix: 'Builder', aliases: ['mod:query-builder'], label: 'Query builder');
 }
 ```
 
 ```bash
 php artisan mod:builder Billing:Invoice
-# -> src/Domain/Billing/Builders/InvoiceBuilder.php
+# ->  INFO  Query builder [src/Domain/Billing/Builders/InvoiceBuilder.php] created successfully.
 php artisan mod:query-builder Billing:Payment
 # -> src/Domain/Billing/Builders/PaymentBuilder.php
 ```
 
 - Repeating an existing kind changes only the arguments you pass. Aliases add up: `->kind('dto', aliases: ['mod:payload'])` keeps `mod:data` and the DTO's other aliases.
+- Without `label:`, the output names the kind id in title case (`Builder`). Kinds with a Laravel generator keep Laravel's wording.
 - A command or alias that another kind already uses stops the layout from compiling, with an error naming both kinds.
 - The layout methods are listed in the [README](../README.md#defining-or-extending-a-layout).
 
@@ -130,7 +131,7 @@ Mod::stubs()->for('dto', Stub::file(__DIR__.'/../stubs/dto.stub')
 ```bash
 php artisan mod:dto Billing:InvoiceData
 # ->  INFO  Created base class Domain\Shared\Data\DataTransferObject [src/Domain/Shared/Data/DataTransferObject.php].
-# ->  INFO  Dto [src/Domain/Billing/Data/InvoiceData.php] created successfully.
+# ->  INFO  DTO [src/Domain/Billing/Data/InvoiceData.php] created successfully.
 ```
 
 - `in:` is a folder below the kind's root, so the base above lands in `src/Domain/Shared/Data`.

@@ -62,13 +62,14 @@ it('adds a kind with an alias, its stub and a swapped generator from a plugin', 
         $workspace->write('package/stubs/builder.stub', "<?php\n\nnamespace {{ namespace }};\n\nuse Illuminate\\Database\\Eloquent\\Builder;\n\nclass {{ class }} extends Builder\n{\n    //\n}\n");
 
         Mod::layout('ddd')
-            ->kind('builder', in: '{domain+}/Builders', suffix: 'Builder', aliases: ['mod:query-builder']);
+            ->kind('builder', in: '{domain+}/Builders', suffix: 'Builder', aliases: ['mod:query-builder'], label: 'Query builder');
         Mod::stubs()->for('builder', Stub::file($workspace->root->path('package/stubs/builder.stub')));
         Mod::generators()->use('builder', DocsBuilderCommand::class);
 
         $builder = $workspace->artisan('mod:builder', ['name' => 'Billing:Invoice']);
 
         expect($builder)->toHaveGenerated('src/Domain/Billing/Builders/InvoiceBuilder.php', "{$ns}\\Billing\\Builders")
+            ->and($builder->output)->toContain('Query builder [src/Domain/Billing/Builders/InvoiceBuilder.php] created successfully.')
             ->and($builder->output)->toContain('Add a newEloquentBuilder() method to the model to use it.')
             ->and($workspace->read('src/Domain/Billing/Builders/InvoiceBuilder.php'))->toContain('class InvoiceBuilder extends Builder')
             ->and($workspace->artisan('mod:query-builder', ['name' => 'Billing:Payment']))
