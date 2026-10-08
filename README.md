@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://mod.teylabs.com/banner-dark.png?v=1">
-    <img alt="Mod: Modular Development Toolkit for Laravel" src="https://mod.teylabs.com/banner-light.png?v=1" width="600">
+    <source media="(prefers-color-scheme: dark)" srcset="https://mod.teylabs.com/banner-dark-transparent.png?v=1">
+    <img alt="Mod: Modular Development Toolkit for Laravel" src="https://mod.teylabs.com/banner-light-transparent.png?v=1" width="520">
   </picture>
 </p>
 
