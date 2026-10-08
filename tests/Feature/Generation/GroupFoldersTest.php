@@ -22,6 +22,19 @@ function groupFoldersCase(): TestCase
     return $case instanceof TestCase ? $case : throw new RuntimeException('Needs the Testbench test case.');
 }
 
+/**
+ * Whether the workspace's disk tells folder names apart by case (Linux, a
+ * case-sensitive APFS volume), as a server can.
+ */
+function caseSensitive(Workspace $workspace): bool
+{
+    $workspace->write('case-probe/a.txt', '');
+    $sensitive = ! file_exists($workspace->root->path('case-probe/A.txt'));
+    $workspace->remove(['case-probe/a.txt']);
+
+    return $sensitive;
+}
+
 it('uses the one existing group that differs only by case, and says so', function () {
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'modules');
@@ -45,11 +58,17 @@ it('asks which group is meant when several differ only by case, and stops when n
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'modules');
         $workspace->write('app/Modules/Knowledge/Models/Document.php', '<?php // mine');
-        // Two folders that differ only by case exist only on a case-sensitive disk.
-        app()->bind(GroupFolders::class, fn ($app, array $parameters) => new GroupFolders(
-            $parameters['basePath'],
-            fn (string $directory): array => str_ends_with($directory, 'app/Modules') ? ['KNOWLEDGE', 'Knowledge'] : [],
-        ));
+
+        if (caseSensitive($workspace)) {
+            // Linux: both groups really exist, each holding the layout.
+            $workspace->write('app/Modules/KNOWLEDGE/Models/Page.php', '<?php // mine');
+        } else {
+            // A case-insensitive disk cannot hold both: list them; KNOWLEDGE resolves to Knowledge on disk.
+            app()->bind(GroupFolders::class, fn ($app, array $parameters) => new GroupFolders(
+                $parameters['basePath'],
+                fn (string $directory): array => str_ends_with($directory, 'app/Modules') ? ['KNOWLEDGE', 'Knowledge'] : [],
+            ));
+        }
 
         $stopped = $workspace->artisan('mod:model', ['name' => 'knowledge:Note']);
 
