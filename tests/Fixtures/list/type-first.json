@@ -440,7 +440,11 @@
         "css": "resources/css",
         "views": "resources/views/{feature?}",
         "page_name": "{feature}::{path}",
-        "view_namespace": "{feature.kebab}"
+        "view_namespace": "{feature.kebab}",
+        "import_alias": {
+            "alias": "@modules",
+            "root": "resources/views"
+        }
     },
     "stack": {
         "inertia": null,

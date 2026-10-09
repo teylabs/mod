@@ -19,7 +19,8 @@ it('P1 exposes compiled module frontend paths and pins every frontend key', func
             'views' => 'app/Modules/{module}/resources/views',
             'page_name' => '{module}::{path}',
             'view_namespace' => '{module.kebab}',
-        ])->and(array_diff_key($data['frontend'], ['view_namespace' => null]))->toBe(app(CompiledLayout::class)->frontend());
+            'import_alias' => ['alias' => '@modules', 'root' => 'app/Modules'],
+        ])->and(array_diff_key($data['frontend'], ['view_namespace' => null, 'import_alias' => null]))->toBe(app(CompiledLayout::class)->frontend());
         $types = array_column($data['types'], 'folder', 'id');
         expect($types['controller'])->toBe('app/Modules/{module}/Http/Controllers')
             ->and($types['request'])->toBe('app/Modules/{module}/Http/Requests')
@@ -54,6 +55,7 @@ it('P2 exposes DDD frontend paths from the application root', function () {
             'views' => 'app/Modules/{domain}/resources/views',
             'page_name' => '{domain}::{path}',
             'view_namespace' => '{domain.kebab}',
+            'import_alias' => ['alias' => '@modules', 'root' => 'app/Modules'],
         ]);
     });
 });
@@ -85,7 +87,7 @@ it('exports nullable frontend fields for a layout without frontend declarations'
         config()->set('mod.layout', 'custom');
         Mod::layout('custom')->path('app')->mounts('app', 'App\\', 'app')->generates('model', in: 'Models');
         $data = json_decode($w->artisan('mod:list', ['--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
-        expect($data['frontend'])->toBe(['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'page_name' => null, 'view_namespace' => null])
+        expect($data['frontend'])->toBe(['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'page_name' => null, 'view_namespace' => null, 'import_alias' => null])
             ->and(JsonSchema::errors($data, (new InventorySectionRegistry)->schema()))->toBe([]);
     });
 });

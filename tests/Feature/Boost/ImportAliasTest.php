@@ -12,7 +12,7 @@ it('reports the module alias root from compiled frontend folders', function (str
         $data = json_decode($w->artisan('mod:list', ['--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
         expect($data['frontend']['import_alias'])->toBe(['alias' => '@modules', 'root' => $root]);
     });
-})->with([['modules', 'app/Modules'], ['ddd', 'app/Modules'], ['areas', 'src'], ['features', 'app'], ['slices', 'app'], ['type-first', 'app'], ['laravel', 'app']]);
+})->with([['modules', 'app/Modules'], ['ddd', 'app/Modules'], ['areas', 'src'], ['features', 'app/Features'], ['slices', 'app'], ['type-first', 'resources/views'], ['laravel', 'app']]);
 
 it('keeps the app import rule for mirrored pages while exposing the module alias', function () {
     Workspace::run(null, function (Workspace $w) {

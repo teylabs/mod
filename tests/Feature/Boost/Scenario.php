@@ -14,7 +14,7 @@ final class Scenario
     /** @return array<string, mixed> */
     public static function data(Response $response, Tool $tool): array
     {
-        expect($response->isError())->toBeFalse();
+        expect($response->isError())->toBeFalse((string) $response->content());
 
         return json_decode($response->content()->toTool($tool)['text'], true, flags: JSON_THROW_ON_ERROR);
     }
@@ -33,7 +33,10 @@ final class Scenario
         $w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful();
         $w->write('app/Modules/Inventory/resources/views/mail/widget-restocked.blade.php', '<p>Restocked</p>');
         $w->write('app/Modules/Inventory/resources/views/components/widget-card.blade.php', '<div>Widget</div>');
-        $w->write('app/Modules/Inventory/routes/web.php', '<?php // Read-only inventory must never execute this file.');
+        $w->write('app/Modules/Inventory/routes/web.php', '<?php // The inventory describes this entrypoint.');
+        // A2's loader is on bootstrap/app.php:18, matching the catalogue provenance.
+        $w->write('bootstrap/app.php', "<?php\n".str_repeat("\n", 16)."\\Tey\\Mod\\Facades\\Mod::routes();\n");
+        require $w->root->path('bootstrap/app.php');
         $w->write('stubs/mod/@module/resources/js/components/card.vue.stub', '<template>{{ name.studly }}</template>');
     }
 
@@ -46,7 +49,8 @@ final class Scenario
         $w->write('bootstrap/providers.php', '<?php return '.var_export($providers, true).';');
         $w->write('bootstrap/app.php', <<<'APP'
 <?php
-return \Illuminate\Foundation\Application::configure(basePath: dirname(__DIR__))->create();
+return \Illuminate\Foundation\Application::configure(basePath: dirname(__DIR__))->withExceptions()
+    ->create();
 APP);
         $w->write('config/app.php', "<?php return ['env' => 'local', 'debug' => true];");
         $w->write('config/boost.php', "<?php return ['browser_logs_watcher' => false];");

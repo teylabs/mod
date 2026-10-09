@@ -473,7 +473,11 @@
         "css": "app/Modules/{domain}/resources/css",
         "views": "app/Modules/{domain}/resources/views",
         "page_name": "{domain}::{path}",
-        "view_namespace": "{domain.kebab}"
+        "view_namespace": "{domain.kebab}",
+        "import_alias": {
+            "alias": "@modules",
+            "root": "app/Modules"
+        }
     },
     "stack": {
         "inertia": null,

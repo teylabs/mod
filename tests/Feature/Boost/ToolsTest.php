@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Artisan;
 use Laravel\Boost\Mcp\Boost;
 use Laravel\Boost\Mcp\ToolRegistry;
 use Laravel\Boost\Mcp\Tools\ApplicationInfo;
@@ -11,6 +12,7 @@ use Tey\Mod\Facades\Mod;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Tests\Feature\Boost\Scenario;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
+use Tey\Mod\Tests\Support\JsonSchema;
 
 it('registers exactly two read-only tools alongside existing Boost includes', function () {
     $existing = ApplicationInfo::class;
@@ -25,7 +27,7 @@ it('registers exactly two read-only tools alongside existing Boost includes', fu
         expect($tool->toArray()['name'])->toBe($name)
             ->and($tool->toArray()['annotations']['readOnlyHint'])->toBeTrue();
     }
-    $server = app(Boost::class);
+    $server = (new ReflectionClass(Boost::class))->newInstanceWithoutConstructor();
     $tools = (new ReflectionMethod($server, 'discoverTools'))->invoke($server);
     expect($tools)->toContain(InventoryTool::class, PlanTool::class);
     ToolRegistry::clearCache();
@@ -95,3 +97,41 @@ it('converts invalid inventory layouts into a tool error', function () {
         expect($tool->handle(new Request)->isError())->toBeTrue();
     });
 });
+
+it('uses the existing preview for every registered writer in every built-in layout', function (string $layout) {
+    Workspace::run(null, function (Workspace $w) use ($layout) {
+        config()->set('mod.layout', $layout);
+        $tool = app(PlanTool::class);
+        $before = Scenario::bytes($w);
+        foreach (Artisan::all() as $command) {
+            $name = $command->getName();
+            $definition = $command->getDefinition();
+            if ($name === null || ! str_starts_with($name, 'mod:') || ! $definition->hasOption('dry-run') || ! $definition->hasOption('json')) {
+                continue;
+            }
+            $arguments = [];
+            foreach ($definition->getArguments() as $argument) {
+                $value = match ($argument->getName()) {
+                    'command' => null,
+                    'stack' => 'inertia',
+                    'type' => 'class',
+                    'path' => 'tool',
+                    'module' => $layout === 'slices' ? 'Inventory/Index' : 'Inventory',
+                    'name' => match ($layout) {
+                        'modules', 'ddd', 'features' => 'Inventory:Widget',
+                        'slices' => 'Inventory/Index:Widget',
+                        default => 'Widget',
+                    },
+                    default => null,
+                };
+                if ($value !== null) {
+                    $arguments[] = $value;
+                }
+            }
+            $data = Scenario::data($tool->handle(new Request(['command' => $name, 'arguments' => $arguments])), $tool);
+            expect($data['command'])->toBe($name)
+                ->and(JsonSchema::errors($data, json_decode(file_get_contents(__DIR__.'/../../Fixtures/schema/plan.json'), true, flags: JSON_THROW_ON_ERROR)))->toBe([], $name)
+                ->and(Scenario::bytes($w))->toBe($before, $name);
+        }
+    });
+})->with(['laravel', 'modules', 'features', 'slices', 'type-first', 'ddd']);

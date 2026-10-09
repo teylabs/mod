@@ -534,7 +534,7 @@
             "kind": "file",
             "middleware_group": "web",
             "order": 1,
-            "loaded_by": null
+            "loaded_by": "bootstrap/app.php:18"
         }
     ]
 }
