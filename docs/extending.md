@@ -264,14 +264,14 @@ Register a folder from the package's provider. Use the neutral `@group` anchor s
 // src/ToolsServiceProvider.php: imports at file scope, registration in boot().
 use Tey\Mod\Facades\Mod;
 
-Mod::stubs()->folder(dirname(__DIR__).'/stubs');
+Mod::stubs()->folder(__DIR__.'/../stubs/mod');
 ```
 
-For example, `stubs/@group/Tools/tool.stub` gives the application a `mod:tool` command:
+For example, `stubs/mod/@group/Tools/tool.stub` gives the application a `mod:tool` command:
 
 ```php
 <?php
-// stubs/@group/Tools/tool.stub
+// stubs/mod/@group/Tools/tool.stub
 
 namespace {{ namespace }};
 
