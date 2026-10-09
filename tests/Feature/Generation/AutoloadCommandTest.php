@@ -59,7 +59,7 @@ it('adds the missing ddd root and dumps autoloads once in the application', func
 
 it('recognizes a parent mapping only when its namespace and folder both match', function (string $path, bool $covered) {
     Workspace::run(null, function (Workspace $workspace) use ($path, $covered) {
-        Mod::layout('areas')->root('areas', 'App\\Modules\\', $path)->kind('model', in: '{area}/Models');
+        Mod::layout('areas')->mounts('areas', 'App\\Modules\\', $path)->generates('model', in: '{area}/Models');
         config()->set('mod.layout', 'areas');
         app()->instance(Composer::class, Mockery::mock(Composer::class));
         $before = $workspace->read('composer.json');
@@ -76,7 +76,7 @@ it('recognizes a parent mapping only when its namespace and folder both match', 
 
 it('adds an outside root and generates a model in Areas with the current layout API', function () {
     Workspace::run(null, function (Workspace $workspace) {
-        Mod::layout('areas')->root('areas', 'Areas\\', 'src/Areas')->kind('model', in: '{area}/Models');
+        Mod::layout('areas')->mounts('areas', 'Areas\\', 'src/Areas')->generates('model', in: '{area}/Models');
         config()->set('mod.layout', 'areas');
         app()->instance(Composer::class, Mockery::mock(Composer::class));
         $workspace->artisan('mod:autoload', ['--no-dump' => true])->assertSuccessful();
@@ -105,7 +105,7 @@ it('refuses conflicting mappings atomically and names both folders', function ()
 
 it('reports an exact namespace conflict even when a parent mapping would cover it', function () {
     Workspace::run(null, function (Workspace $workspace) {
-        Mod::layout('areas')->root('areas', 'App\\Modules\\', 'app/Modules')->kind('model', in: '{area}/Models');
+        Mod::layout('areas')->mounts('areas', 'App\\Modules\\', 'app/Modules')->generates('model', in: '{area}/Models');
         config()->set('mod.layout', 'areas');
         $workspace->write('composer.json', '{"autoload":{"psr-4":{"App\\\\":"app/","App\\\\Modules\\\\":"elsewhere/"}}}');
         $before = $workspace->read('composer.json');
@@ -144,7 +144,7 @@ it('preserves indentation, key order, empty objects, arrays and the final newlin
 it('adds multiple namespaced roots, normalizes Windows separators and ignores plain file roots', function () {
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'ddd');
-        Mod::layout('ddd')->root('infrastructure', 'Infrastructure\\', 'src\\Infrastructure')->root('config', null, 'config');
+        Mod::layout('ddd')->mounts('infrastructure', 'Infrastructure\\', 'src\\Infrastructure')->mounts('config', null, 'config');
         autoloadFixture($workspace);
         app()->instance(Composer::class, Mockery::mock(Composer::class));
         $workspace->artisan('mod:autoload', ['--no-dump' => true])->assertSuccessful()
