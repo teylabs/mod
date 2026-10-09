@@ -52,3 +52,17 @@ it('resolves frontend anchors for star paths as it does class placement', functi
     $registry->layout('modules')->path('app/*/{module}');
     expect($registry->compile('modules')->frontend()['pages'])->toBe('app/resources/js/pages/{module}');
 });
+
+it('allows custom API resources when the frontend roots are moved away from the case collision', function () {
+    $registry = new LayoutRegistry;
+    $registry->layout('modules')->generates('resource', in: '@module/Resources')->frontend(
+        pages: 'app/Modules/{module}/ui/js/pages',
+        components: 'app/Modules/{module}/ui/js/components',
+        css: 'app/Modules/{module}/ui/css',
+        views: 'app/Modules/{module}/ui/views',
+    );
+    $layout = $registry->compile('modules');
+    expect(place($layout, 'resource', 'WidgetResource', 'Inventory')->path())->toBe('app/Modules/Inventory/Resources/WidgetResource.php')
+        ->and($layout->roots()['resources-js']->path)->toBe('app/Modules/{module}/ui/js')
+        ->and($layout->isPlainFilePath('app/Modules/Inventory/ui/views/widget.blade.php'))->toBeTrue();
+});
