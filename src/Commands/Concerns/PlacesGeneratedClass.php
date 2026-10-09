@@ -132,7 +132,9 @@ trait PlacesGeneratedClass
             }
 
             if ($scaffold !== null && $this->plan !== null && $scaffold->keeps($this->plan->primary)) {
-                $this->components->info('Kept '.$this->plan->primary->path().'.');
+                if (! in_array($this->plan->primary->path(), $scaffold->silentKeep, true)) {
+                    $this->components->info('Kept '.$this->plan->primary->path().'.');
+                }
                 $this->generateScaffoldRelations();
 
                 return $exitCode = self::SUCCESS;
@@ -182,7 +184,7 @@ trait PlacesGeneratedClass
      *
      * @return array{0: GenerationPlan, 1: ?string} the plan and the new-group notice
      */
-    private function settleGroups(GenerationPlan $plan): array
+    protected function settleGroups(GenerationPlan $plan): array
     {
         $groups = $this->laravel->make(GroupFolders::class, ['basePath' => $this->laravel->basePath()]);
         $interactive = $this->input->isInteractive()
@@ -213,7 +215,10 @@ trait PlacesGeneratedClass
                 if ($choice === 'Cancel') {
                     throw GenerationRefused::because('Cancelled; nothing was written.');
                 }
-            } elseif ($kind === 'near' && $interactive && $templated) {
+            } elseif ($kind === 'near' && ! $interactive && $this->scaffoldExecution()?->groupFlag !== null) {
+                $flag = $this->scaffoldExecution()->groupFlag;
+                throw GenerationRefused::because($this->getName().": {$value} doesn't exist. Did you mean {$suggestions[0]}? Pass {$flag}={$suggestions[0]}. Nothing was written.");
+            } elseif ($kind === 'near' && $interactive && ($templated || $this->scaffoldExecution()?->groupFlag !== null)) {
                 $choice = (string) suggest("{$value} doesn't exist. Did you mean {$suggestions[0]}?", $suggestions, default: $suggestions[0], required: true);
                 if ($choice === $value) {
                     $choice = null;

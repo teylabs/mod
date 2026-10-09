@@ -30,9 +30,10 @@ it('pins the JSON contract and includes package override members', function () {
         expect($data['layout'])->toBe('areas')->and($data['extends'])->toBe('modules')
             ->and($data['path'])->toBe('app/Modules/{area}')->and($data['token'])->toBe('area')
             ->and($data['discovery']['enabled'])->toBeFalse()
-            ->and($data['scaffolds']['items'][0]['source'])->toBe('app (overrides acme/kit)')
+            ->and($data['scaffolds']['items'][0]['source'])->toBe('app')
+            ->and($data['scaffolds']['items'][0]['from'])->toBe('app (overrides acme/kit)')
             ->and($data['scaffolds']['items'][0]['members'][0])->toBe([
-                'alias' => 'model', 'type' => 'model', 'name' => null, 'stub' => null, 'options' => ['--factory'], 'folder' => 'app/Modules/{area}/Models',
+                'alias' => 'model', 'type' => 'model', 'name' => null, 'stub' => null, 'options' => ['--factory'], 'folder' => 'app/Modules/{area}/Models', 'ungrouped' => false, 'group' => null, 'existing' => null,
             ]);
         expect($w->files())->toBe([]);
     });

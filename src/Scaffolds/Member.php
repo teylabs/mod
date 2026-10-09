@@ -11,5 +11,8 @@ final readonly class Member
         public ?string $name = null,
         public ?string $stub = null,
         public array $options = [],
+        public bool $ungrouped = false,
+        public ?string $group = null,
+        public ?string $existing = null,
     ) {}
 }

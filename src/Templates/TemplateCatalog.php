@@ -4,8 +4,10 @@ namespace Tey\Mod\Templates;
 
 use Illuminate\Support\Str;
 use Symfony\Component\Filesystem\Path as FilesystemPath;
+use Tey\Mod\Discovery\GroupDirectories;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Generation\StubRegistry;
+use Tey\Mod\Layout\BuiltIn\GeneratorSources;
 use Tey\Mod\Layout\FileType;
 use Tey\Mod\Support\ComposerJson;
 use Tey\Mod\Support\Path;
@@ -15,6 +17,9 @@ final class TemplateCatalog
 {
     /** @var array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}> */
     private array $templates = [];
+
+    /** @var array<string, array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}>> */
+    private array $variants = [];
 
     /** @var array<string, string> */
     private array $skipped = [];
@@ -30,6 +35,7 @@ final class TemplateCatalog
         private readonly string $basePath,
         private readonly StubRegistry $stubs = new StubRegistry,
         private readonly ?array $cached = null,
+        private readonly ?string $targetGroup = null,
     ) {}
 
     /**
@@ -43,7 +49,25 @@ final class TemplateCatalog
         $this->skipped = [];
         $this->notices = [];
         $this->conflicts = [];
+        $this->variants = [];
         $records = $this->files();
+        foreach ((new GroupDirectories($this->basePath, $groupPath))->all() as $group => $directory) {
+            foreach ((new TemplateScanner)->files(Path::join(Path::resolve($this->basePath, $directory['path']), 'stubs/mod')) as $relative => $file) {
+                $display = Path::relative($this->basePath, $file) ?? $file;
+                if (! str_starts_with($relative, GeneratorSources::ANCHOR)) {
+                    $this->skipped[$display] = GeneratorSources::INVALID_ANCHOR;
+
+                    continue;
+                }
+                $contents = file_get_contents($file);
+                if ($contents === false) {
+                    $this->skipped[$display] = 'The template cannot be read. Check its permissions.';
+
+                    continue;
+                }
+                $records[] = ['file' => $file, 'path' => $display, 'source' => GeneratorSources::PREFIX.$group, 'slots' => [], 'groups' => [], 'digest' => hash('sha256', $contents), 'relative' => $relative, 'uses_base' => preg_match('/\\{\\{\\s*baseImport\\s*\\}\\}/', $contents) === 1];
+            }
+        }
         if ($records === []) {
             return [$types, $roots];
         }
@@ -73,12 +97,41 @@ final class TemplateCatalog
                         throw new InvalidTemplate("{$command} is one of mod's own commands. Choose another template name.");
                     }
                 }
+                $aliases = $parsed->group === null ? [] : ['group' => $parsed->group];
+                if ($parsed->anchor !== null && $parsed->group !== null) {
+                    $aliases[$parsed->anchor] = $parsed->group;
+                }
+                $record = [...$record, 'slots' => $parsed->slots, 'groups' => $parsed->groups, 'body_aliases' => $aliases];
+                $this->variants[$id][$source] = $record;
                 $candidates[$id][] = [$parsed, $record];
             } catch (InvalidTemplate $exception) {
                 $this->skipped[$display] = $exception->getMessage();
             }
         }
         foreach ($candidates as $id => $entries) {
+            $targetGroup = array_values(array_filter($entries, fn (array $entry): bool => $this->targetGroup !== null && $entry[1]['source'] === GeneratorSources::PREFIX.$this->targetGroup));
+            $fallback = array_values(array_filter($entries, static fn (array $entry): bool => ! str_starts_with($entry[1]['source'], GeneratorSources::PREFIX)));
+            if ($targetGroup !== []) {
+                $candidates[$id] = $targetGroup;
+
+                continue;
+            }
+            if ($fallback === []) {
+                if ($this->targetGroup === null) {
+                    $candidates[$id] = [$entries[0]];
+                } else {
+                    unset($candidates[$id]);
+                }
+
+                continue;
+            }
+            $owned = array_values(array_filter($entries, static fn (array $entry): bool => str_starts_with($entry[1]['source'], GeneratorSources::PREFIX)));
+            if ($this->targetGroup === null && $owned !== [] && count($fallback) > 1 && array_filter($fallback, static fn (array $entry): bool => $entry[1]['source'] === 'app') === []) {
+                $candidates[$id] = [$owned[0]];
+
+                continue;
+            }
+            $entries = $fallback;
             $app = array_values(array_filter($entries, static fn (array $entry): bool => ($entry[1]['source'] === 'app' || str_starts_with($entry[1]['source'], 'app (overrides '))));
             if ($app !== []) {
                 $packages = array_values(array_unique(array_map(static fn (array $entry): string => $entry[1]['source'], array_filter($entries, static fn (array $entry): bool => $entry[1]['source'] !== 'app' && ! str_starts_with($entry[1]['source'], 'app (overrides ')))));
@@ -153,6 +206,31 @@ final class TemplateCatalog
         $this->notices = array_values(array_unique($this->notices));
 
         return [$types, $roots];
+    }
+
+    /** @internal A separate catalogue keeps module selection local to one invocation. */
+    public function forGroup(string $group): self
+    {
+        return new self($this->basePath, $this->stubs, $this->cached, $group);
+    }
+
+    /** @return array<string, array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}>> */
+    public function variants(): array
+    {
+        return $this->variants;
+    }
+
+    public function hasGroupTemplates(): bool
+    {
+        foreach ($this->variants as $variants) {
+            foreach (array_keys($variants) as $source) {
+                if (str_starts_with($source, GeneratorSources::PREFIX)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /** @return list<string> */

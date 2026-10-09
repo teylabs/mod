@@ -36,14 +36,20 @@ class Scaffold
     public function __construct(private readonly ?Closure $resolve = null) {}
 
     /** @param array<array-key, mixed> $options flags passed to this file type's generator */
-    public function makes(string $fileType, ?string $name = null, ?string $as = null, ?string $stub = null, array $options = []): static
+    public function makes(string $fileType, ?string $name = null, ?string $as = null, ?string $stub = null, array $options = [], bool $ungrouped = false, ?string $group = null, ?string $existing = null): static
     {
+        if ($ungrouped && $group !== null) {
+            throw GenerationRefused::because('A scaffold member cannot set both ungrouped: true and group:. Choose one placement.');
+        }
+        if ($existing !== null && $existing !== 'keep') {
+            throw GenerationRefused::because("A scaffold member existing: policy must be 'keep'. Remove it to use the scaffold collision choice.");
+        }
         $alias = $as ?? $fileType;
         if (isset($this->members[$alias]) && ! isset($this->inherited[$alias])) {
             $this->duplicates[] = $alias;
         }
         unset($this->inherited[$alias]);
-        $this->members[$alias] = new Member($fileType, $name, $stub, $options);
+        $this->members[$alias] = new Member($fileType, $name, $stub, $options, $ungrouped, $group, $existing);
 
         return $this;
     }

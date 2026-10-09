@@ -28,6 +28,7 @@ use Tey\Mod\Discovery\DiscoveryCache;
 use Tey\Mod\Discovery\DiscoveryCandidates;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryRegistrar;
+use Tey\Mod\Discovery\GroupScaffoldRegistrar;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Generation\BaseWriter;
 use Tey\Mod\Generation\ComposerPackageDetector;
@@ -326,6 +327,7 @@ class ModServiceProvider extends ServiceProvider
             }
         }
 
+        GroupScaffoldRegistrar::register($this->app);
         $registry = $this->app->make(ScaffoldRegistry::class);
         $layoutName = $this->app->make('config')->get('mod.layout', 'laravel');
         $overrides = is_string($layoutName) && $this->app->make(LayoutRegistry::class)->has($layoutName)

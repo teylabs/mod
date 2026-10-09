@@ -5,7 +5,9 @@ namespace Tey\Mod\Layout\BuiltIn;
 use Tey\Mod\Generation\Starters;
 use Tey\Mod\Layout\FileType;
 use Tey\Mod\Layout\Layout;
+use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Layout\Root;
+use Tey\Mod\Placement\PlacementRule;
 
 /**
  * The layouts mod ships, as data written with the public builder.
@@ -24,6 +26,14 @@ final readonly class BuiltInLayouts
     public function names(): array
     {
         return ['laravel', 'features', 'slices', 'type-first', 'modules', 'ddd'];
+    }
+
+    /** @internal Familiar ungrouped placement for a built-in file type. */
+    public function ungrouped(string $fileType): ?PlacementRule
+    {
+        $layout = (new LayoutRegistry($this))->compile('laravel');
+
+        return $layout->hasKind($fileType) ? $layout->rule($fileType) : null;
     }
 
     /**

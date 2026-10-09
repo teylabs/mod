@@ -5,6 +5,7 @@ namespace Tey\Mod\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 use Tey\Mod\Exceptions\ModException;
+use Tey\Mod\Layout\BuiltIn\GeneratorSources;
 use Tey\Mod\Listing\LayoutInventory;
 use Tey\Mod\Listing\RoutesSection;
 use Tey\Mod\Routing\ModRoutes;
@@ -92,6 +93,11 @@ final class ListCommand extends Command
                 $this->line('  '.$type['id'].':');
                 $this->line('    Aliases: '.(implode(', ', $type['aliases']) ?: '(none)'));
                 $this->line('    Stub: '.($type['stub'] ?? '(generator default)'));
+                foreach ($report['templates']['items'] as $template) {
+                    if ($template['type'] === $type['id'] && str_starts_with($template['source'], GeneratorSources::PREFIX)) {
+                        $this->line('    '.substr($template['source'], strlen(GeneratorSources::PREFIX)).' ..... template '.$template['path'].GeneratorSources::TEMPLATE_LABEL);
+                    }
+                }
                 $this->line('    Base: '.($type['base'] ?? '(none)'));
                 $this->line('    Discovery: '.(implode(', ', $type['discovery']) ?: 'off'));
                 $this->line('    Relations: '.(implode(', ', $type['relations']) ?: '(none)'));
@@ -157,7 +163,7 @@ final class ListCommand extends Command
         } else {
             $rows = [];
             foreach ($scaffolds as $scaffold) {
-                $rows[] = [$scaffold['name'], $scaffold['command'], $scaffold['source'], implode(', ', array_column($scaffold['members'], 'type'))];
+                $rows[] = [$scaffold['name'], $scaffold['command'], ($scaffold['from'] ?? $scaffold['source']).(isset($scaffold['origin']) ? ' ('.$scaffold['origin'].')' : ''), implode(', ', array_column($scaffold['members'], 'type'))];
             }
             $this->table(['Scaffold', 'Command', 'From', 'Members'], $rows, 'compact');
         }
@@ -185,7 +191,7 @@ final class ListCommand extends Command
             if ($node === null) {
                 return;
             }
-            $rows[] = [$prefix.$branch.$name, $node['uses'] ?? '', $node['source']];
+            $rows[] = [$prefix.$branch.$name, $node['uses'] ?? '', ($node['from'] ?? $node['source'])];
             $children = $node['children'] ?? [];
             foreach ($children as $index => $child) {
                 $next = $prefix.($branch === '' ? '' : ($branch === '└ ' ? '  ' : '│ '));

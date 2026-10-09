@@ -86,6 +86,21 @@ final readonly class TemplateRule implements PlacementRule
         return new self($this->kindId, $this->root, $segments, $this->priority, $this->nested, $this->anywhere, $this->except, $this->fallback?->withPageFolder($folder));
     }
 
+    /** @internal A custom member keeps its file-type suffix after the last group.
+     * @param  list<string>  $groups
+     */
+    public function withoutGroup(array $groups): self
+    {
+        $last = -1;
+        foreach ($this->segments as $index => $segment) {
+            if ($segment->dimension !== null && in_array($segment->dimension, $groups, true)) {
+                $last = $index;
+            }
+        }
+
+        return new self($this->kindId, $this->root, array_values(array_filter($this->segments, static fn (int $index): bool => $index > $last, ARRAY_FILTER_USE_KEY)), $this->priority, true);
+    }
+
     public function nested(): bool
     {
         return $this->nested;

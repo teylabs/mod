@@ -6,6 +6,7 @@ use Illuminate\Foundation\Application;
 use Tey\Mod\Discovery\Discovery;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\Inventory;
+use Tey\Mod\Layout\BuiltIn\GeneratorSources;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
 
@@ -19,14 +20,29 @@ final class ScaffoldsSection implements InventorySection
     public function read(Application $app, CompiledLayout $layout, DiscoveryOptions $options, Inventory $inventory, ?Discovery $discovery): array
     {
         $scaffolds = $app->make(ScaffoldRegistry::class);
-        $nodes = $scaffolds->nodes();
+        $nodes = [];
+        foreach ([$scaffolds, ...array_map($scaffolds->forGroup(...), $scaffolds->groups())] as $registry) {
+            $origins = $registry->origins();
+            foreach ($registry->nodes() as $key => $node) {
+                $nodes[$key.'|'.$node['source']] = [...$node, 'origin' => $origins[$key]];
+            }
+        }
         $items = [];
-        foreach ($nodes as $scaffoldName => $node) {
+        foreach ($nodes as $node) {
+            $scaffoldName = $node['key'];
             $members = [];
             foreach ($node['members'] as $alias => $member) {
-                $members[] = ['alias' => $alias, 'type' => $member['fileType'], 'name' => $member['name'], 'stub' => $member['stub'], 'options' => $member['options'], 'folder' => LayoutInventory::folder($layout, $member['fileType'])];
+                $members[] = ['alias' => $alias, 'type' => $member['fileType'], 'name' => $member['name'], 'stub' => $member['stub'], 'options' => $member['options'], 'folder' => LayoutInventory::folder($layout, $member['fileType']), 'ungrouped' => $member['ungrouped'], 'group' => $member['group'], 'existing' => $member['existing']];
             }
-            $row = ['name' => $scaffoldName, 'command' => 'mod:'.$scaffoldName, 'source' => $node['from'], 'members' => $members];
+            $source = $node['source'];
+            $label = in_array($source, ['app', 'layout'], true) || str_starts_with($source, GeneratorSources::PREFIX) ? $source : 'package:'.$source;
+            $row = ['name' => $scaffoldName, 'command' => 'mod:'.$scaffoldName, 'source' => $label, 'members' => $members];
+            if ($node['from'] !== $label || str_starts_with($source, GeneratorSources::PREFIX)) {
+                $row['from'] = $node['from'];
+            }
+            if (str_starts_with($source, GeneratorSources::PREFIX)) {
+                $row['origin'] = $node['origin'];
+            }
             if ($node['children'] !== [] || str_contains($scaffoldName, '.')) {
                 $row['uses'] = $node['uses'];
                 $row['children'] = $node['children'];

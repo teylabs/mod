@@ -7,7 +7,9 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\Identifier;
+use Tey\Mod\Commands\Concerns\SelectsGroupTemplates;
 use Tey\Mod\Exceptions\GenerationRefused;
+use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\GenerationPlan;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\PlacementContext;
@@ -22,6 +24,8 @@ use function Laravel\Prompts\text;
 /** A compiled generator template, using the ordinary generation plan and writer. */
 class TemplateCommand extends GenericClassCommand
 {
+    use SelectsGroupTemplates;
+
     /** @var array<string, string> */
     private array $answers = [];
 
@@ -31,7 +35,7 @@ class TemplateCommand extends GenericClassCommand
     {
         $this->templateBound = true;
         parent::forKind($preset, $kind);
-        foreach ($this->template()['slots'] as $slot) {
+        foreach ($this->templateSlots() as $slot) {
             $this->getDefinition()->addOption(new InputOption($slot, null, InputOption::VALUE_REQUIRED, 'The '.$slot.' folder and template value'));
         }
 
@@ -42,7 +46,7 @@ class TemplateCommand extends GenericClassCommand
     {
         $options = parent::placementOptions();
         if ($this->templateBound) {
-            foreach ($this->template()['slots'] as $slot) {
+            foreach ($this->templateSlots() as $slot) {
                 unset($options[$slot]);
             }
         }
@@ -53,8 +57,33 @@ class TemplateCommand extends GenericClassCommand
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->answers = [];
+        $this->resetGroupAnswers();
 
-        return parent::execute($input, $output);
+        if ($input->getOption('dry-run') && $this->scaffoldExecution() === null) {
+            return $this->previewGeneration(fn (): int => $this->execute($input, $output));
+        }
+        try {
+            return $this->withGroupTemplates(fn (): int => parent::execute($input, $output));
+        } catch (ModException $error) {
+            if ($this->scaffoldExecution()?->planning) {
+                throw $error;
+            }
+
+            return $this->reportRefusal($error);
+        }
+    }
+
+    protected function groupTemplateContext(): PlacementContext
+    {
+        return $this->placementInput() === null ? $this->placementContext() : parent::placementContext();
+    }
+
+    protected function settleGroups(GenerationPlan $plan): array
+    {
+        [$settled, $notice] = parent::settleGroups($plan);
+        $this->bindGroupTemplates($settled->primary->context);
+
+        return [$this->plan(), $notice];
     }
 
     /** @return array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>} */

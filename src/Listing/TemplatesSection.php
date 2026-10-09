@@ -6,6 +6,7 @@ use Illuminate\Foundation\Application;
 use Tey\Mod\Discovery\Discovery;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\Inventory;
+use Tey\Mod\Layout\BuiltIn\GeneratorSources;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Templates\TemplateCatalog;
 
@@ -24,7 +25,18 @@ final class TemplatesSection implements InventorySection
             $problems[] = ['path' => $path, 'reason' => $reason];
         }
 
-        return ['templates' => ['problems' => $problems, 'notices' => $catalog->notices()]];
+        $items = [];
+        foreach ($catalog->variants() as $id => $variants) {
+            foreach ($variants as $record) {
+                if (isset($catalog->skipped()[$record['path']])) {
+                    continue;
+                }
+                $source = $record['source'];
+                $items[] = ['type' => $id, 'source' => $source === 'app' || str_starts_with($source, GeneratorSources::PREFIX) ? $source : 'package:'.$source, 'path' => $record['path']];
+            }
+        }
+
+        return ['templates' => ['items' => $items, 'problems' => $problems, 'notices' => $catalog->notices()]];
     }
 
     /** @return SchemaFragment */

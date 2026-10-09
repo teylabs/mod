@@ -51,13 +51,13 @@ final class PlanWriter
 
             return;
         }
-        $count = count($plan->files);
+        $count = count(array_filter($plan->files, static fn (array $file): bool => ! ($file['exists'] && $file['existing'] === 'keep')));
         $inserts = count($plan->inserts);
         $suffix = $inserts === 0 ? '' : " and {$inserts} inserts";
         $name = $plan->group === null ? ($plan->name ?? '') : ($plan->name === null ? $plan->group : $plan->group.':'.$plan->name);
         $command->outputComponents()->info($plan->command.' will write '.$count.' '.($count === 1 ? 'file' : 'files').$suffix.($name === '' ? '' : ' for '.$name).'.');
         foreach ($plan->files as $file) {
-            $this->line($command, $file['path'], $file['alias'].($file['exists'] ? ' (exists)' : ''));
+            $this->line($command, $file['path'], $file['alias'].($file['exists'] ? ($file['existing'] === 'keep' ? ' (kept, exists)' : ' (exists)') : ''));
             $mappings = $file['identity']['mappings'] ?? [];
             if (is_array($mappings)) {
                 foreach ($mappings as $namespace => $path) {
