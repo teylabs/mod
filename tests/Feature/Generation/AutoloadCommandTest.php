@@ -48,7 +48,7 @@ it('adds the missing ddd root and dumps autoloads once in the application', func
 
         $result = $workspace->artisan('mod:autoload')->assertSuccessful();
 
-        expect($result->output)->toBe("\n   INFO  composer.json is missing 1 autoload entry for the ddd layout.  \n\n  \"Domain\\\\\": \"src/Domain/\" .................................... added  \n  composer dump-autoload ........................................ DONE  \n\n")
+        expect(str_replace("\r\n", "\n", $result->output))->toBe("\n   INFO  composer.json is missing 1 autoload entry for the ddd layout.  \n\n  \"Domain\\\\\": \"src/Domain/\" .................................... added  \n  composer dump-autoload ........................................ DONE  \n\n")
             ->and(json_decode($workspace->read('composer.json'), true)['autoload']['psr-4'])
             ->toBe(['App\\' => 'app/', 'Domain\\' => 'src/Domain/']);
 

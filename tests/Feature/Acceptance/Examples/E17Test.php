@@ -34,7 +34,7 @@ it('autoloads E17 moved areas and then generates the model', function (bool $int
                 $options = $namespace === null ? [] : ['--namespace' => $namespace];
                 $result = $workspace->artisan('mod:autoload', $options)->assertSuccessful();
                 $notice = $namespace === null ? "\n   INFO  Using namespace [Areas\\] for [src/Areas]; pass --namespace to choose another.  \n" : '';
-                expect($result->output)->toBe($notice."\n   INFO  composer.json is missing 1 autoload entry for the areas layout.  \n\n  \"Areas\\\\\": \"src/Areas/\" ...................................... added  \n  composer dump-autoload ........................................ DONE  \n\n");
+                expect(str_replace("\r\n", "\n", $result->output))->toBe($notice."\n   INFO  composer.json is missing 1 autoload entry for the areas layout.  \n\n  \"Areas\\\\\": \"src/Areas/\" ...................................... added  \n  composer dump-autoload ........................................ DONE  \n\n");
             }
 
             expect($workspace->read('composer.json'))->toBe("{\n    \"name\": \"tey-mod/owned-app\",\n    \"autoload\": {\n        \"psr-4\": {\n            \"App\\\\\": \"app/\",\n            \"Areas\\\\\": \"src/Areas/\"\n        }\n    },\n    \"autoload-dev\": {\n        \"psr-4\": {\n            \"Tests\\\\\": \"tests/\"\n        }\n    }\n}\n");
