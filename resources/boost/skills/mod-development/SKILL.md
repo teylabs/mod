@@ -97,3 +97,72 @@ In `modules`, everything a module needs (models, migrations, factories, policies
 - Don't invent `mod:*` commands or options. Check `php artisan list mod` and `php artisan help mod:<type>`. Add a missing file type with a generator template or `->generates()` when it is within the requested scope.
 
 The installed package's source and README describe its exact behaviour. Application instructions and the user's chosen scope take precedence over these examples.
+
+## Agent foundations: plans and command coverage
+
+Before generating files, run the same command with `--dry-run --json`. It emits only the plan: `command`, `group`, `name`, `files`, `inserts`, `warnings`, and `would_write`. Each file has its alias, file type, path, class or identity, group, and `existing`/`exists` flags. Inserts name their destination, anchor, and rendered stub. Warnings carry a file, line, and message; a missing answer makes `would_write` false and the preview still exits 0. Supply that answer through its flag, then preview again. A plan writes no files and runs no Composer subprocess. Recheck it when the application changes.
+
+Use `--dry-run` alone for the same plan as a text table. A refused collision makes `would_write` false; a scaffold's `--skip-existing` keeps existing files, while `--force` permits overwriting files the command supports. Generated bases are always kept. Read `warnings` and `would_write` before running the command for real.
+
+### Shared options
+
+<!-- mod-shared-options:start -->
+
+These options are covered once for commands that declare them. Check the command's help before using an option:
+
+- `--dry-run` describes files without writing; `--json` formats that preview as JSON. Use both together for agents.
+- `--force` allows the command's supported overwrite behaviour; `--skip-existing` keeps existing scaffold members.
+- `--in` gives placement in layout order. `--module`, `--domain`, `--feature`, and `--slice` answer built-in group dimensions. Custom group dimensions use the option shown in the inventory and command help.
+- `--no-interaction` uses flags and defaults without a terminal. Global console controls are `--help`, `--quiet`, `--verbose`, `--version`, `--ansi`, `--no-ansi`, and `--env`.
+- Where the native generator offers them, `--test` also generates a test, and `--pest` or `--phpunit` chooses its style.
+
+<!-- mod-shared-options:end -->
+
+### Registered file type commands
+
+The layout determines which commands exist. Each line names its command-specific options; the native generator defines their defaults. A command unavailable in the current layout explains the available layouts. Dashless aliases generate the same file type.
+
+- `mod:model`: `--all` generates the supported companions; `--factory`, `--migration`, `--seed`, `--policy`, and `--controller` select individual companions. `--resource`, `--api`, and `--requests` shape a companion controller; `--pivot` and `--morph-pivot` select pivot models.
+- `mod:controller`: `--resource` or `--api` generates resource actions; `--model` supplies the model, `--parent` supplies a nested resource's parent, and `--requests` generates request classes. `--invokable` generates one action, `--singleton` a singleton resource, `--creatable` its creation actions, and `--type` selects a custom controller template.
+- `mod:request` generates a form request; `mod:provider` generates a service provider.
+- `mod:command`: `--command` sets the Artisan command name.
+- `mod:event` generates an event; `mod:listener` uses `--event` to name its event and `--queued` to queue the listener.
+- `mod:job`: `--sync` makes the job synchronous and `--batched` adds batch support.
+- `mod:job-middleware` (alias `mod:jobmiddleware`) generates job middleware; `mod:middleware` generates HTTP middleware.
+- `mod:mail`: `--markdown` chooses a Markdown mail view and `--view` a regular view.
+- `mod:notification`: `--markdown` chooses its Markdown mail template.
+- `mod:policy`: `--model` names the model and `--guard` names the authentication guard.
+- `mod:observer`: `--model` names the observed model.
+- `mod:rule`: `--implicit` makes the validation rule implicit.
+- `mod:resource`: `--collection` creates a resource collection; `--json-api` selects JSON:API output when offered by the installed Laravel version.
+- `mod:cast`: `--inbound` creates an inbound-only cast.
+- `mod:channel` generates a broadcast channel; `mod:scope` generates an Eloquent scope.
+- `mod:enum`: `--string` or `--int` selects the backed enum type.
+- `mod:exception`: `--render` adds a rendering method and `--report` adds a reporting method.
+- `mod:class`: `--invokable` adds an invocation method. `mod:interface` and `mod:trait` create their named language types.
+- `mod:factory`: `--model` names the factory's model. `mod:seeder` creates a database seeder.
+- `mod:migration`: `--create` names the table being created, `--table` an existing table, and `--fullpath` displays the full output path. The native `--path` and `--realpath` options are refused by mod; use layout placement instead.
+- `mod:config` creates a configuration file; `mod:test` uses `--unit` for a unit test.
+- `mod:dto` has aliases `mod:data`, `mod:data-transfer-object`, and `mod:datatransferobject`.
+- `mod:view-model` has alias `mod:viewmodel`; `mod:value-object` has aliases `mod:value` and `mod:valueobject`.
+- `mod:action` generates an action; `mod:handler`, `mod:query`, `mod:validator`, and `mod:message` use the file type declared by their layout.
+
+### Inventory and maintenance commands
+
+- `mod:list --json` reads the machine inventory; `mod:list --type=<file-type>` shows one file type in detail.
+- `mod:autoload --namespace=<namespace>` answers an inferred root's namespace. `mod:autoload --no-dump` updates Composer mappings without running Composer.
+- `mod:bases --dry-run --json` describes missing bases; existing bases are kept.
+- `mod:template --from=<class-or-file> --into=<path>` extracts a generator template. `mod:template --force` overwrites the chosen destination; `mod:template --dry-run --json` previews creation or extraction.
+- `mod:cache` builds the discovery cache; `mod:clear` clears it. Use verbosity to inspect rejected files.
+
+### Recipe and template examples
+
+These names describe application-registered examples, rather than extra built-in generators. Register the recipe or generator template first and confirm its command appears in `mod:list --json`.
+
+- `mod:crud Knowledge:Document --dry-run --json` describes the model, migration, factory, store/update requests, resource, policy, and controller in the CRUD recipe.
+- `mod:resource-tabs Inventory:Widget --model=Widget --tabs=Overview,Details,Notes` creates a tabs cluster. Its registered parts also expose `mod:resource-tabs --base=<class> --tab=<name>` when those answers are needed.
+- `mod:resource-tabs.tab Inventory:Widget History --model=Widget --tabs=Overview,Details,Notes --base=<class> --tab=History --dry-run --json` describes a new tab's files and inserts in its parent cluster. Defaults and parent aliases normally provide the unused answers.
+- `mod:tab-page Inventory:Widget --base=<class> --tab=History` uses the standalone page recipe and needs both answers.
+- A generator template at `stubs/mod/@module/Tools/[source]/probe.stub` registers `mod:probe Inventory:Widget --source=Drive --dry-run --json`. Its `--source` answer supplies the slot folder and template value.
+
+Every new command and option must be mentioned with its command on the same line in this skill or the Boost guideline. The shared-options block covers only the options listed there. `BoostCoverageTest` checks all built-in layouts and the registered recipe/template examples; A4 pins its missing-option diagnostic.
