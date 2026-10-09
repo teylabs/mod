@@ -46,6 +46,8 @@ use function Laravel\Prompts\suggest;
  *  - stubDefinition(): the Stub the kind's classes come from (a package's
  *    registered stub, else the layout's); its variants and base are applied
  *    when the plan is resolved.
+ *
+ * @internal
  */
 trait PlacesGeneratedClass
 {
@@ -60,6 +62,7 @@ trait PlacesGeneratedClass
     /** The new-group notice, held until the class is written. */
     private ?string $modNewGroup = null;
 
+    /** @internal */
     public static function supports(ArtifactKind $kind): bool
     {
         return $kind->isClass();
@@ -72,6 +75,8 @@ trait PlacesGeneratedClass
      * void, so no override of it could match both for subclasses.
      *
      * @return void
+     *
+     * @internal
      */
     protected function specifyParameters()
     {
@@ -82,6 +87,8 @@ trait PlacesGeneratedClass
 
     /**
      * @return void
+     *
+     * @internal
      */
     protected function configureUsingFluentDefinition()
     {
@@ -92,6 +99,8 @@ trait PlacesGeneratedClass
 
     /**
      * Resolve and check the plan, then let the native command run with it.
+     *
+     * @internal
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
@@ -183,6 +192,8 @@ trait PlacesGeneratedClass
      * group, reported once the plan stands.
      *
      * @return array{0: GenerationPlan, 1: ?string} the plan and the new-group notice
+     *
+     * @internal
      */
     protected function settleGroups(GenerationPlan $plan): array
     {
@@ -273,7 +284,8 @@ trait PlacesGeneratedClass
     /**
      * The plan of the running invocation, once resolved.
      *
-     * @internal
+     *
+     * @api
      */
     protected function currentPlan(): ?GenerationPlan
     {
@@ -282,6 +294,8 @@ trait PlacesGeneratedClass
 
     /**
      * Hook: whether the plan is resolved before the native handle() runs.
+     *
+     * @api
      */
     protected function plansEagerly(): bool
     {
@@ -293,6 +307,8 @@ trait PlacesGeneratedClass
      * beforeGeneration(). Idempotent within one invocation.
      *
      * @throws ModException
+     *
+     * @api
      */
     protected function resolvePlan(): GenerationPlan
     {
@@ -336,6 +352,8 @@ trait PlacesGeneratedClass
      *
      * @param  string  $stub
      * @return string
+     *
+     * @internal
      */
     protected function sortImports($stub)
     {
@@ -356,15 +374,19 @@ trait PlacesGeneratedClass
 
     /**
      * Hook: before the native generator writes, with the resolved plan.
+     *
+     * @api
      */
     protected function beforeGeneration(GenerationPlan $plan): void {}
 
     /**
      * Hook: after the native generator ran (or was refused), with the plan and the exit code.
+     *
+     * @api
      */
     protected function afterGeneration(GenerationPlan $plan, int $exitCode): void {}
 
-    /** @internal */
+    /** @api */
     protected function plan(): GenerationPlan
     {
         $primary = $this->resolveArtifact($this->kind()->id, $this->getNameInput(), $this->placementContext());
@@ -380,7 +402,7 @@ trait PlacesGeneratedClass
      *
      * @internal
      */
-    /** @internal generate companions even when an existing primary is kept */
+    /** generate companions even when an existing primary is kept @internal */
     protected function generateScaffoldRelations(): void
     {
         foreach (($this->currentPlan() ?? throw new \LogicException('A plan is required to generate companions.'))->relations as $relation) {
@@ -388,7 +410,11 @@ trait PlacesGeneratedClass
         }
     }
 
-    /** @return list<RelationResolution> */
+    /**
+     * @return list<RelationResolution>
+     *
+     * @api
+     */
     protected function plannedRelations(ResolvedArtifact $primary): array
     {
         return [];
@@ -403,7 +429,8 @@ trait PlacesGeneratedClass
     /**
      * The planned relation with the given id, if this invocation follows it.
      *
-     * @internal
+     *
+     * @api
      */
     protected function plannedRelation(string $relationId): ?RelationResolution
     {
@@ -435,6 +462,8 @@ trait PlacesGeneratedClass
      * The name argument without its placement shorthand prefix.
      *
      * @return string
+     *
+     * @internal
      */
     protected function getNameInput()
     {
@@ -444,6 +473,8 @@ trait PlacesGeneratedClass
     /**
      * @param  string  $name
      * @return string
+     *
+     * @internal
      */
     protected function qualifyClass($name)
     {
@@ -457,6 +488,8 @@ trait PlacesGeneratedClass
     /**
      * @param  string  $rawName
      * @return bool
+     *
+     * @internal
      */
     protected function alreadyExists($rawName)
     {
@@ -468,7 +501,11 @@ trait PlacesGeneratedClass
         return parent::alreadyExists($rawName);
     }
 
-    /** @return string */
+    /**
+     * @return string
+     *
+     * @internal
+     */
     protected function getPath($name)
     {
         $primary = $this->primary();
@@ -484,6 +521,8 @@ trait PlacesGeneratedClass
      * Hook: the Stub the kind's classes are generated from: the one a
      * package registered for the kind (Mod::stubs()), else the layout's,
      * else the starter for a kind of this id.
+     *
+     * @api
      */
     protected function stubDefinition(): ?Stub
     {
@@ -495,6 +534,7 @@ trait PlacesGeneratedClass
     /**
      * The stub file to render: the application's published stubs/mod.<kind>.stub,
      * else the file the kind's Stub chose, else null for the generator's own.
+     *
      *
      * @internal
      */
@@ -513,6 +553,8 @@ trait PlacesGeneratedClass
      * Untyped, as Laravel declares it, so subclasses can override it either way.
      *
      * @return string
+     *
+     * @internal
      */
     protected function getStub()
     {
@@ -528,6 +570,8 @@ trait PlacesGeneratedClass
      * @param  string  $stub
      * @param  string  $name
      * @return string
+     *
+     * @internal
      */
     protected function replaceClass($stub, $name)
     {
@@ -547,7 +591,7 @@ trait PlacesGeneratedClass
         );
     }
 
-    /** @internal Read-only provenance for mod:list; never prepares or writes a base. */
+    /** Read-only provenance for mod:list; never prepares or writes a base. @internal */
     public function stubSelection(): StubSelection
     {
         $config = $this->laravel->make('config');

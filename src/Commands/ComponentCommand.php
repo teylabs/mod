@@ -11,7 +11,9 @@ use Tey\Mod\Generation\GenerationPlan;
 use Tey\Mod\Generation\GeneratorAdapter;
 use Tey\Mod\Views\ViewIdentity;
 
-/** Laravel's Blade component generator, including anonymous views. */
+/** Laravel's Blade component generator, including anonymous views.
+ * @api
+ */
 class ComponentCommand extends ComponentMakeCommand implements GeneratorAdapter
 {
     use GeneratesViews { plan as private componentPlan; }
@@ -32,6 +34,7 @@ class ComponentCommand extends ComponentMakeCommand implements GeneratorAdapter
         return (is_string($path) ? implode('.', array_map(Str::kebab(...), explode('/', trim($path, '/')))) : 'components'.($parts !== [] ? '.'.implode('.', $parts) : '')).'.'.$last;
     }
 
+    /** @api */
     protected function plan(): GenerationPlan
     {
         $plan = $this->componentPlan();

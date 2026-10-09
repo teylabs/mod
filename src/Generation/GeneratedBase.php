@@ -14,6 +14,8 @@ namespace Tey\Mod\Generation;
  * inFileTypeRoot(), `in` is below the generated file type's own root instead. The
  * application may publish its own body as `stubs/mod.base.<name>.stub` (the
  * name in kebab-case, e.g. `stubs/mod.base.record.stub`).
+ *
+ * @api
  */
 final readonly class GeneratedBase
 {
@@ -28,6 +30,8 @@ final readonly class GeneratedBase
      * @param  string  $name  the class name, e.g. "Record"
      * @param  string  $in  the folder below the bases folder, e.g. "Records"
      * @param  string  $stub  the stub file of its body
+     *
+     * @api
      */
     public static function named(string $name, string $in, string $stub): self
     {
@@ -36,6 +40,8 @@ final readonly class GeneratedBase
 
     /**
      * Place the base below the generated file type's own root instead of the bases folder.
+     *
+     * @api
      */
     public function inFileTypeRoot(): self
     {
@@ -44,6 +50,8 @@ final readonly class GeneratedBase
 
     /**
      * The name of the base in published stub file names: "Record" → "record".
+     *
+     * @api
      */
     public function stubName(): string
     {

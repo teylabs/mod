@@ -4,6 +4,8 @@ namespace Tey\Mod\Generation;
 
 /**
  * What a generator does when the plan collides with what exists.
+ *
+ * @api
  */
 enum CollisionPolicy: string
 {

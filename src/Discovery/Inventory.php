@@ -9,21 +9,28 @@ use UnexpectedValueException;
  * deliberately left out. Immutable; owned by the Discovery instance of one
  * application, never shared through static state.
  *
- * @internal
+ *
+ * @api
  */
 final readonly class Inventory
 {
     /**
      * @param  list<DiscoveredArtifact>  $entries
      * @param  list<Rejection>  $rejections
+     *
+     * @internal
      */
     public function __construct(
+        /** @internal */
         public array $entries = [],
+        /** @internal */
         public array $rejections = [],
     ) {}
 
     /**
      * @return list<DiscoveredArtifact>
+     *
+     * @api
      */
     public function ofType(DiscoveryType $type): array
     {
@@ -32,6 +39,8 @@ final readonly class Inventory
 
     /**
      * @return list<DiscoveredArtifact>
+     *
+     * @internal
      */
     public function ofKind(string $kindId): array
     {
@@ -40,6 +49,8 @@ final readonly class Inventory
 
     /**
      * @return list<string>
+     *
+     * @internal
      */
     public function classes(DiscoveryType $type): array
     {
@@ -50,6 +61,8 @@ final readonly class Inventory
      * A relation type's pairs: model class => related class.
      *
      * @return array<string, string>
+     *
+     * @internal
      */
     public function pairs(DiscoveryType $type): array
     {
@@ -68,13 +81,15 @@ final readonly class Inventory
      * The directories a file kind's discovery collected (DiscoveryType::Directory), sorted.
      *
      * @return list<string>
+     *
+     * @api
      */
-    public function directories(string $kindId): array
+    public function directories(string $fileType): array
     {
         $paths = [];
 
         foreach ($this->entries as $entry) {
-            if ($entry->type === DiscoveryType::Directory && $entry->kindId === $kindId) {
+            if ($entry->type === DiscoveryType::Directory && $entry->kindId === $fileType) {
                 $paths[] = $entry->path;
             }
         }
@@ -84,6 +99,7 @@ final readonly class Inventory
         return $paths;
     }
 
+    /** @internal */
     public function rejection(string $path): ?Rejection
     {
         foreach ($this->rejections as $rejection) {
@@ -97,17 +113,21 @@ final readonly class Inventory
 
     /**
      * @return list<Rejection>
+     *
+     * @internal
      */
     public function rejectedFor(RejectionReason $reason): array
     {
         return array_values(array_filter($this->rejections, static fn (Rejection $rejection): bool => $rejection->reason === $reason));
     }
 
+    /** @internal */
     public function isEmpty(): bool
     {
         return $this->entries === [];
     }
 
+    /** @internal */
     public function equals(self $other): bool
     {
         return $this->toArray() === $other->toArray();
@@ -115,6 +135,8 @@ final readonly class Inventory
 
     /**
      * @return array{entries: list<array<string, mixed>>, rejections: list<array<string, mixed>>}
+     *
+     * @internal
      */
     public function toArray(): array
     {
@@ -126,6 +148,8 @@ final readonly class Inventory
 
     /**
      * @throws UnexpectedValueException
+     *
+     * @internal
      */
     public static function fromArray(mixed $data): self
     {

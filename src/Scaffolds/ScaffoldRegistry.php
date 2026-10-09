@@ -23,6 +23,8 @@ use Throwable;
  * Public node metadata is available through nodes(); recipes stay internal.
  *
  * @phpstan-type Node array{key: string, source: string, from: string, members: array<string, array{fileType: string, name: ?string, stub: ?string, options: array<array-key, mixed>, ungrouped: bool, group: ?string, existing: ?string}>, children: list<string>, uses: ?string}
+ *
+ * @api
  */
 final class ScaffoldRegistry
 {
@@ -48,6 +50,8 @@ final class ScaffoldRegistry
 
     /** @param (Closure(Scaffold): mixed)|(Closure(Part): mixed) $recipe
      * @param  ?string  $source  internal override for package registration tooling
+     *
+     * @api
      */
     public function register(string $name, Closure $recipe, ?string $source = null, ?string $from = null): self
     {
@@ -82,6 +86,7 @@ final class ScaffoldRegistry
         return $scaffold;
     }
 
+    /** @api */
     public function get(string $name): ?Scaffold
     {
         if (isset($this->resolvedNodes[$name])) {
@@ -151,7 +156,8 @@ final class ScaffoldRegistry
         return $registry;
     }
 
-    /** @return array<string, Scaffold> */
+    /** @return array<string, Scaffold> * @api
+     */
     public function all(): array
     {
         $nodes = [];
@@ -171,6 +177,8 @@ final class ScaffoldRegistry
 
     /** A finite read-only table for tree views and cache metadata.
      * @return array<string, Node>
+     *
+     * @api
      */
     public function nodes(): array
     {

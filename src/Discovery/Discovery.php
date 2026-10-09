@@ -17,14 +17,19 @@ use WeakMap;
  * Nothing here is static, so two applications in one process never share an
  * inventory or a registration record.
  *
- * @internal
+ *
  *
  * @phpstan-import-type Node from \Tey\Mod\Scaffolds\ScaffoldRegistry
+ *
+ * @api
  */
 final class Discovery
 {
     /** @var list<DiscoveryDefinition> */
     private readonly array $definitions;
+
+    /** @internal */
+    public readonly CompiledLayout $preset;
 
     private ?Inventory $inventory = null;
 
@@ -36,17 +41,24 @@ final class Discovery
     /** @var WeakMap<object, true> */
     private WeakMap $dispatchers;
 
+    /** @api */
     public function __construct(
-        public readonly CompiledLayout $preset,
+        /** @internal */
+        public readonly CompiledLayout $layout,
+        /** @internal */
         public readonly DiscoveryOptions $options,
+        /** @internal */
         public readonly string $basePath,
     ) {
-        $this->definitions = $options->definitionsFor($preset);
+        $this->preset = $layout;
+        $this->definitions = $options->definitionsFor($layout);
         $this->dispatchers = new WeakMap;
     }
 
     /**
      * @return list<DiscoveryDefinition>
+     *
+     * @internal
      */
     public function definitions(): array
     {
@@ -57,6 +69,8 @@ final class Discovery
      * The inventory: replayed from the cache file when one exists, otherwise a cold scan.
      *
      * @throws InvalidDiscoveryCache when the cache cannot be trusted and the policy is Fail
+     *
+     * @internal
      */
     public function inventory(): Inventory
     {
@@ -87,6 +101,8 @@ final class Discovery
 
     /**
      * Where the current inventory came from: 'cache', 'scan', or null before it is built.
+     *
+     * @internal
      */
     public function source(): ?string
     {
@@ -96,6 +112,8 @@ final class Discovery
     /**
      * Why an existing cache file was ignored (scan policy): the validation
      * message, or null when the cache was used or there was none.
+     *
+     * @internal
      */
     public function staleCacheReason(): ?string
     {
@@ -104,12 +122,27 @@ final class Discovery
 
     /**
      * A fresh cold scan, ignoring any cache and leaving the current inventory alone.
+     *
+     * @api
      */
     public function scan(): Inventory
     {
         return (new DiscoveryScanner($this->preset, $this->basePath, new Eligibility, $this->options->candidates))->scan($this->definitions);
     }
 
+    /** Read a validated cache only; never scan or mutate memoised inventory. @api */
+    public function readCache(): Inventory
+    {
+        return $this->cache()->read($this->presetFingerprint(), $this->definitionsFingerprint());
+    }
+
+    /** Scan and write the host inventory, with no scaffold payload. @api */
+    public function cacheInventory(): Inventory
+    {
+        return $this->writeCache();
+    }
+
+    /** @internal */
     public function cache(): DiscoveryCache
     {
         $path = Path::normalize($this->options->cachePath);
@@ -124,6 +157,8 @@ final class Discovery
      * Scan cold and write the result to the cache file.
      *
      * @param  array<string, Node>  $scaffolds
+     *
+     * @internal
      */
     public function writeCache(array $scaffolds = []): Inventory
     {
@@ -133,11 +168,13 @@ final class Discovery
         return $inventory;
     }
 
+    /** @internal */
     public function clearCache(): bool
     {
         return $this->cache()->clear();
     }
 
+    /** @internal */
     public function presetFingerprint(): string
     {
         return PresetFingerprint::of($this->preset);
@@ -147,6 +184,8 @@ final class Discovery
      * The definitions digest; a custom candidate-file source is recorded by
      * presence only (a closure cannot be hashed), so rebuild the cache on
      * deploy when the source changes.
+     *
+     * @internal
      */
     public function definitionsFingerprint(): string
     {
@@ -164,6 +203,8 @@ final class Discovery
      *
      * @param  list<string>  $skipBelow  absolute directories the application discovers listeners in itself
      * @return int bindings and subscriptions added
+     *
+     * @internal
      */
     public function registerListeners(Dispatcher $events, array $skipBelow = []): int
     {

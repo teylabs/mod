@@ -8,6 +8,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:rule generator, placed by the preset.
+ *
+ * @api
  */
 class RuleCommand extends RuleMakeCommand implements GeneratorAdapter
 {

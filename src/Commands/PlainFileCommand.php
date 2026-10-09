@@ -24,7 +24,9 @@ use Tey\Mod\Scaffolds\Placeholders;
 use Tey\Mod\Support\Path;
 use Tey\Mod\Support\Stack;
 
-/** A namespace-free template using ordinary placement and scaffold planning. */
+/** A namespace-free template using ordinary placement and scaffold planning.
+ * @api
+ */
 class PlainFileCommand extends Command implements GeneratorAdapter
 {
     use InteractsWithLayout { forKind as bindKind; }

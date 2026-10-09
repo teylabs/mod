@@ -20,6 +20,19 @@ class ModMigrationCreator extends MigrationCreator
 
     private ?string $selectedStub = null;
 
+    /** @internal Adapt the framework creator while retaining its filesystem and stub path. */
+    public static function fromNative(MigrationCreator $creator): self
+    {
+        $property = new ReflectionProperty(MigrationCreator::class, 'customStubPath');
+        $path = $property->getValue($creator);
+
+        if (! is_string($path)) {
+            throw new \LogicException('The native migration creator must have a string custom stub path.');
+        }
+
+        return new self($creator->getFilesystem(), $path);
+    }
+
     /** Select rendered house source for one native write; null restores native selection. */
     public function useStub(?string $source): void
     {

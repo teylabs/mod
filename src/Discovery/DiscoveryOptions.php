@@ -35,6 +35,8 @@ use Tey\Mod\Resolution\ModelRelations;
  * consider for one discovered kind (to skip generated or vendored subtrees,
  * to reuse an existing finder, or to scope candidates per kind). Ownership,
  * eligibility and registration stay with mod.
+ *
+ * @api
  */
 final readonly class DiscoveryOptions
 {
@@ -43,6 +45,8 @@ final readonly class DiscoveryOptions
     /**
      * @param  array<string, DiscoveryType|false>  $kinds  overrides keyed by kind id
      * @param  (Closure(CompiledRoot, string, DiscoveryDefinition): iterable<string>)|null  $candidates  candidate-file source: (root, basePath, definition) → relative .php paths
+     *
+     * @internal
      */
     public function __construct(
         public bool $enabled = true,
@@ -58,6 +62,8 @@ final readonly class DiscoveryOptions
      * @param  array<array-key, mixed>  $config
      *
      * @throws InvalidDiscoveryConfig
+     *
+     * @api
      */
     public static function fromConfig(array $config): self
     {
@@ -129,6 +135,8 @@ final readonly class DiscoveryOptions
      * The same options with a candidate-file source.
      *
      * @param  Closure(CompiledRoot, string, DiscoveryDefinition): iterable<string>  $candidates
+     *
+     * @api
      */
     public function withCandidates(Closure $candidates): self
     {
@@ -141,6 +149,8 @@ final readonly class DiscoveryOptions
      * @return list<DiscoveryDefinition>
      *
      * @throws InvalidDiscoveryConfig
+     *
+     * @internal
      */
     public function definitionsFor(CompiledLayout $preset): array
     {

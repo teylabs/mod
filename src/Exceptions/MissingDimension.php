@@ -2,6 +2,7 @@
 
 namespace Tey\Mod\Exceptions;
 
+/** @api */
 final class MissingDimension extends ModException
 {
     /** The kind that needs the value, and the dimension it is missing. */

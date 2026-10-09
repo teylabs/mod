@@ -7,24 +7,31 @@ use Tey\Mod\Support\Path;
 /**
  * A declared root: a PSR-4 namespace prefix with its directory, or a
  * directory alone for class-less files (migrations, routes).
+ *
+ * @api
  */
 final readonly class CompiledRoot
 {
     private function __construct(
+        /** @api */
         public ?string $namespace,
+        /** @api */
         public string $path,
     ) {}
 
+    /** @internal */
     public static function psr4(string $namespace, string $path): self
     {
         return new self(rtrim($namespace, '\\').'\\', self::normalisePath($path));
     }
 
+    /** @internal */
     public static function files(string $path): self
     {
         return new self(null, self::normalisePath($path));
     }
 
+    /** @api */
     public function isClassRoot(): bool
     {
         return $this->namespace !== null;
@@ -32,6 +39,8 @@ final readonly class CompiledRoot
 
     /**
      * The namespace remainder below this root, or null when the class is not under it.
+     *
+     * @api
      */
     public function namespaceRemainder(string $fqcn): ?string
     {
@@ -44,6 +53,8 @@ final readonly class CompiledRoot
 
     /**
      * The path remainder below this root, or null when the path is not under it.
+     *
+     * @api
      */
     public function pathRemainder(string $path): ?string
     {
@@ -54,6 +65,8 @@ final readonly class CompiledRoot
      * Join namespace segments below this root. Returns the root namespace without its trailing separator.
      *
      * @param  list<string>  $segments
+     *
+     * @internal
      */
     public function namespaceFor(array $segments): string
     {
@@ -62,12 +75,15 @@ final readonly class CompiledRoot
 
     /**
      * @param  list<string>  $segments
+     *
+     * @internal
      */
     public function pathFor(array $segments, string $file): string
     {
         return Path::join($this->path, ...[...$segments, $file]);
     }
 
+    /** @api */
     public static function normalisePath(string $path): string
     {
         return Path::normalize($path);

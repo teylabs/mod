@@ -8,6 +8,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:* service provider generator, placed by the preset.
+ *
+ * @api
  */
 class ProviderCommand extends ProviderMakeCommand implements GeneratorAdapter
 {

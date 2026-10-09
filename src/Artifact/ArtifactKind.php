@@ -7,6 +7,8 @@ namespace Tey\Mod\Artifact;
  *
  * Kinds are data declared by the preset; the engine has no built-in list.
  * The constants below are only shared spellings for well-known ids.
+ *
+ * @internal
  */
 final readonly class ArtifactKind
 {

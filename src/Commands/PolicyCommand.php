@@ -9,6 +9,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 /**
  * Native make:policy, placed by the preset. A bare --model is placed as the
  * model kind; the native stub does the rest.
+ *
+ * @api
  */
 class PolicyCommand extends PolicyMakeCommand implements GeneratorAdapter
 {
@@ -23,7 +25,7 @@ class PolicyCommand extends PolicyMakeCommand implements GeneratorAdapter
         $model = $this->option('model');
 
         if (is_string($model) && $model !== '') {
-            $this->input->setOption('model', '\\'.$this->placeSibling('model', $model));
+            $this->input->setOption('model', '\\'.$this->placeSibling($this->relatedFileType('model'), $model));
         }
 
         return parent::buildClass($name);

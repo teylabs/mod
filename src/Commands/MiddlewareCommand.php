@@ -8,6 +8,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:middleware generator, placed by the preset.
+ *
+ * @api
  */
 class MiddlewareCommand extends MiddlewareMakeCommand implements GeneratorAdapter
 {

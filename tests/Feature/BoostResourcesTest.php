@@ -160,3 +160,11 @@ it('guides agents through inventory, templates and scaffold planning', function 
 
     expect($skill)->toContain('Tey\\Mod\\Scaffolds\\Scaffold', '->makes(', '->include(', '.fqcn', '--skip-existing', '->asks(', '->part(', '->inserts(');
 });
+
+it('keeps the host API guidance in both Boost resources', function () {
+    $guideline = (string) file_get_contents(boostPath('guidelines/core.blade.php'));
+    [, $skill] = boostSkill('mod-development');
+    foreach ([$guideline, $skill] as $text) {
+        expect($text)->toContain('Building on mod', 'CompiledFileType', 'fileTypes()', 'fileTypeId()', 'relatedFileType()', 'readCache()', 'cacheInventory()', 'registerGenerationServices', 'MigrationCreator', 'fromFileType/toFileType', 'published API snapshot');
+    }
+});

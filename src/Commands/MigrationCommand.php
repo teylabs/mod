@@ -4,6 +4,7 @@ namespace Tey\Mod\Commands;
 
 use Illuminate\Database\Console\Migrations\MigrateMakeCommand;
 use Illuminate\Database\Console\Migrations\TableGuesser;
+use Illuminate\Database\Migrations\MigrationCreator;
 use Illuminate\Support\Composer;
 use Illuminate\Support\Str;
 use Symfony\Component\Console\Input\InputInterface;
@@ -31,6 +32,8 @@ use Tey\Mod\Support\Path;
  * inside a host's own handle(); nativePathAllowed() lets a host honour
  * --path/--realpath natively instead of refusing them; beforeGeneration()/
  * afterGeneration() run around the native write.
+ *
+ * @api
  */
 class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
 {
@@ -43,17 +46,25 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
     /** The name argument as given, kept while the native handle() sees it without the shorthand prefix. */
     private ?string $rawName = null;
 
-    public function __construct(private readonly ModMigrationCreator $modCreator, Composer $composer)
+    private readonly ModMigrationCreator $modCreator;
+
+    private readonly bool $applicationCreator;
+
+    /** @api */
+    public function __construct(MigrationCreator $creator, Composer $composer)
     {
-        parent::__construct($modCreator, $composer);
+        $this->applicationCreator = ! $creator instanceof ModMigrationCreator && get_class($creator) !== MigrationCreator::class;
+        $this->modCreator = $creator instanceof ModMigrationCreator ? $creator : ModMigrationCreator::fromNative($creator);
+        parent::__construct($this->applicationCreator ? $creator : $this->modCreator, $composer);
     }
 
-    /** @internal The default native migration stub, shared with mod:list. */
+    /** The default native migration stub, shared with mod:list. @internal */
     public function stubSelection(?string $table = null, bool $create = false): StubSelection
     {
         return $this->modCreator->stubSelection($table, $create);
     }
 
+    /** @internal */
     public static function supports(ArtifactKind $kind): bool
     {
         return ! $kind->isClass() && $kind->namePolicy->kind === NamePolicyKind::Timestamped;
@@ -66,6 +77,8 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
      * void, so no override of it could match both for subclasses.
      *
      * @return void
+     *
+     * @internal
      */
     protected function specifyParameters()
     {
@@ -76,6 +89,8 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
 
     /**
      * @return void
+     *
+     * @internal
      */
     protected function configureUsingFluentDefinition()
     {
@@ -86,6 +101,8 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
 
     /**
      * Resolve and check the migration, then let the native command write it with the pinned timestamp.
+     *
+     * @internal
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
@@ -103,7 +120,7 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
                 throw GenerationRefused::because('mod:* places migrations from the layout; use --in instead of --path/--realpath.');
             }
 
-            if ($nativePath) {
+            if ($nativePath || $this->applicationCreator) {
                 return $exitCode = parent::execute($input, $output);
             }
 
@@ -145,6 +162,7 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
         }
     }
 
+    /** @internal */
     protected function rawNameInput(): string
     {
         return $this->rawName ?? $this->traitRawNameInput();
@@ -154,6 +172,8 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
      * Hook: whether the migration is planned before the native handle() runs.
      * Return false and call resolvePlan() from your own handle() to plan after
      * your own preparation (a prompt, say).
+     *
+     * @api
      */
     protected function plansEagerly(): bool
     {
@@ -167,6 +187,8 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
      * one invocation.
      *
      * @throws ModException
+     *
+     * @api
      */
     protected function resolvePlan(): GenerationPlan
     {
@@ -204,6 +226,9 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
 
     /**
      * The plan of the running invocation, once resolved.
+     *
+     *
+     * @api
      */
     protected function currentPlan(): ?GenerationPlan
     {
@@ -212,6 +237,8 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
 
     /**
      * Hook: whether --path/--realpath are honoured natively (bypassing the layout) instead of refused.
+     *
+     * @api
      */
     protected function nativePathAllowed(): bool
     {
@@ -220,11 +247,17 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
 
     /**
      * Hook: before the native creator writes, with the resolved migration.
+     *
+     *
+     * @api
      */
     protected function beforeGeneration(GenerationPlan $plan): void {}
 
     /**
      * Hook: after the native creator ran (or was refused).
+     *
+     *
+     * @api
      */
     protected function afterGeneration(GenerationPlan $plan, int $exitCode): void {}
 
@@ -232,6 +265,8 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
      * The migration name without its placement shorthand prefix.
      *
      * @return string
+     *
+     * @internal
      */
     protected function getNameInput()
     {
@@ -240,6 +275,8 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
 
     /**
      * @return string
+     *
+     * @internal
      */
     protected function getMigrationPath()
     {
@@ -280,6 +317,8 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
      * @param  string|null  $table
      * @param  bool  $create
      * @return void
+     *
+     * @internal
      */
     protected function writeMigration($name, $table, $create)
     {

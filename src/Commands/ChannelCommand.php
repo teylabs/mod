@@ -8,6 +8,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:channel generator, placed by the preset.
+ *
+ * @api
  */
 class ChannelCommand extends ChannelMakeCommand implements GeneratorAdapter
 {

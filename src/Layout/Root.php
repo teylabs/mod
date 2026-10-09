@@ -10,11 +10,15 @@ use Tey\Mod\Generation\Stub;
  *
  * File types declared here live in this root unless their `in:` names another.
  * Returns to the layout chain when the closure ends.
+ *
+ * @api
  */
 final readonly class Root
 {
     /**
-     * @internal created by Layout::mounts()
+     *  created by Layout::mounts()
+     *
+     * @internal
      */
     public function __construct(
         public string $name,
@@ -26,6 +30,8 @@ final readonly class Root
      * @param  list<string>|null  $discoverExcept
      * @param  (Closure(FileType): mixed)|null  $using
      * @param  list<string>|null  $aliases
+     *
+     * @api
      */
     public function generates(
         string $id,

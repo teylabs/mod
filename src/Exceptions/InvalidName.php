@@ -2,6 +2,7 @@
 
 namespace Tey\Mod\Exceptions;
 
+/** @api */
 final class InvalidName extends ModException
 {
     /**

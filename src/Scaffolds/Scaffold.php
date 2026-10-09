@@ -5,7 +5,9 @@ namespace Tey\Mod\Scaffolds;
 use Closure;
 use Tey\Mod\Exceptions\GenerationRefused;
 
-/** A recipe of file types, placed by the active layout. */
+/** A recipe of file types, placed by the active layout.
+ * @api
+ */
 class Scaffold
 {
     /** @var array<string, Question> */
@@ -35,7 +37,8 @@ class Scaffold
     /** @param (Closure(string): ?self)|null $resolve */
     public function __construct(private readonly ?Closure $resolve = null) {}
 
-    /** @param array<array-key, mixed> $options flags passed to this file type's generator */
+    /** @param array<array-key, mixed> $options flags passed to this file type's generator * @api
+     */
     public function makes(string $fileType, ?string $name = null, ?string $as = null, ?string $stub = null, array $options = [], bool $ungrouped = false, ?string $group = null, ?string $existing = null): static
     {
         if ($ungrouped && $group !== null) {
@@ -54,7 +57,8 @@ class Scaffold
         return $this;
     }
 
-    /** Copy the other recipe as it stands now. */
+    /** Copy the other recipe as it stands now. * @api
+     */
     public function include(string $name): static
     {
         $this->includes[] = $name;
@@ -79,7 +83,8 @@ class Scaffold
         return $this;
     }
 
-    /** @param array<array-key, string> $options */
+    /** @param array<array-key, string> $options * @api
+     */
     public function asks(string $name, string $type = 'text', mixed $default = null, ?string $label = null, array $options = []): static
     {
         $this->questions[$name] = new Question($name, $type, $default, $label, $options);
@@ -87,6 +92,7 @@ class Scaffold
         return $this;
     }
 
+    /** @api */
     public function each(string $name, string $part): static
     {
         $this->repetitions[$name] = $part;
@@ -97,6 +103,8 @@ class Scaffold
     /**
      * @param  array<string, mixed>  $with
      * @param  (Closure(Part): mixed)|null  $configure
+     *
+     * @api
      */
     public function part(string $name, string|Closure|null $uses = null, array $with = [], ?Closure $configure = null): static
     {

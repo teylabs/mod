@@ -20,6 +20,8 @@ use Tey\Mod\Relation\RelationResolution;
  * --requests, --policy, --all) follows a declared relation from the model
  * and runs the target kind's mod:* command; an option without a declared
  * relation is refused before anything is written.
+ *
+ * @api
  */
 class ModelCommand extends ModelMakeCommand implements GeneratorAdapter
 {
@@ -27,6 +29,8 @@ class ModelCommand extends ModelMakeCommand implements GeneratorAdapter
 
     /**
      * @return list<RelationResolution>
+     *
+     * @api
      */
     protected function plannedRelations(ResolvedArtifact $primary): array
     {
@@ -34,31 +38,32 @@ class ModelCommand extends ModelMakeCommand implements GeneratorAdapter
         $relations = [];
 
         if ($all || $this->option('factory')) {
-            array_push($relations, ...$this->relationsTo($primary, 'factory'));
+            array_push($relations, ...$this->relationsTo($primary, $this->relatedFileType('factory')));
         }
 
         if ($all || $this->option('seed')) {
-            array_push($relations, ...$this->relationsTo($primary, 'seeder'));
+            array_push($relations, ...$this->relationsTo($primary, $this->relatedFileType('seeder')));
         }
 
         if ($all || $this->option('migration')) {
             // Placement only: mod:migration reads the real timestamp from the native clock.
-            array_push($relations, ...$this->relationsTo($primary, 'migration', $this->migrationName(), ['timestamp' => $this->laravel->make(ModMigrationCreator::class)->datePrefixFor($this->existingArtifacts()->absolute(dirname($this->resolveArtifact('migration', $this->migrationName(), $primary->context, ['timestamp' => '0000_00_00_000000'])->path())))]));
+            array_push($relations, ...$this->relationsTo($primary, $this->relatedFileType('migration'), $this->migrationName(), ['timestamp' => $this->laravel->make(ModMigrationCreator::class)->datePrefixFor($this->existingArtifacts()->absolute(dirname($this->resolveArtifact($this->relatedFileType('migration'), $this->migrationName(), $primary->context, ['timestamp' => '0000_00_00_000000'])->path())))]));
         }
 
         if ($all || $this->option('controller') || $this->option('resource') || $this->option('api')) {
-            array_push($relations, ...$this->relationsTo($primary, 'controller'));
+            array_push($relations, ...$this->relationsTo($primary, $this->relatedFileType('controller')));
         } elseif ($this->option('requests')) {
-            array_push($relations, ...$this->relationsTo($primary, 'request'));
+            array_push($relations, ...$this->relationsTo($primary, $this->relatedFileType('request')));
         }
 
         if ($all || $this->option('policy')) {
-            array_push($relations, ...$this->relationsTo($primary, 'policy'));
+            array_push($relations, ...$this->relationsTo($primary, $this->relatedFileType('policy')));
         }
 
         return $relations;
     }
 
+    /** @internal */
     protected function generateScaffoldRelations(): void
     {
         $this->createFactory();
@@ -69,32 +74,36 @@ class ModelCommand extends ModelMakeCommand implements GeneratorAdapter
         $this->createPolicy();
     }
 
+    /** @internal */
     protected function createFactory()
     {
-        foreach ($this->plannedRelationsTo('factory') as $relation) {
+        foreach ($this->plannedRelationsTo($this->relatedFileType('factory')) as $relation) {
             $this->followRelation($relation, ['--model' => $this->primary()->fqcn()]);
         }
     }
 
+    /** @internal */
     protected function createMigration()
     {
-        foreach ($this->plannedRelationsTo('migration') as $relation) {
+        foreach ($this->plannedRelationsTo($this->relatedFileType('migration')) as $relation) {
             $this->followRelation($relation, ['--create' => $this->tableName()]);
         }
     }
 
+    /** @internal */
     protected function createSeeder()
     {
-        foreach ($this->plannedRelationsTo('seeder') as $relation) {
+        foreach ($this->plannedRelationsTo($this->relatedFileType('seeder')) as $relation) {
             $this->followRelation($relation);
         }
     }
 
+    /** @internal */
     protected function createController()
     {
         $resourceful = $this->option('resource') || $this->option('api');
 
-        foreach ($this->plannedRelationsTo('controller') as $relation) {
+        foreach ($this->plannedRelationsTo($this->relatedFileType('controller')) as $relation) {
             $this->followRelation($relation, [
                 '--model' => $resourceful ? $this->primary()->fqcn() : null,
                 '--api' => $this->option('api'),
@@ -105,16 +114,18 @@ class ModelCommand extends ModelMakeCommand implements GeneratorAdapter
         }
     }
 
+    /** @internal */
     protected function createFormRequests()
     {
-        foreach ($this->plannedRelationsTo('request') as $relation) {
+        foreach ($this->plannedRelationsTo($this->relatedFileType('request')) as $relation) {
             $this->followRelation($relation);
         }
     }
 
+    /** @internal */
     protected function createPolicy()
     {
-        foreach ($this->plannedRelationsTo('policy') as $relation) {
+        foreach ($this->plannedRelationsTo($this->relatedFileType('policy')) as $relation) {
             $this->followRelation($relation, ['--model' => $this->primary()->fqcn()]);
         }
     }
@@ -125,10 +136,12 @@ class ModelCommand extends ModelMakeCommand implements GeneratorAdapter
      * explicitly with newFactory().
      *
      * @return array<string, string>
+     *
+     * @internal
      */
     protected function buildFactoryReplacements()
     {
-        $factory = ($this->plannedRelationsTo('factory')[0] ?? null)?->target?->fqcn();
+        $factory = ($this->plannedRelationsTo($this->relatedFileType('factory'))[0] ?? null)?->target?->fqcn();
 
         if ($factory === null) {
             return parent::buildFactoryReplacements();

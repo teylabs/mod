@@ -11,6 +11,8 @@ use Tey\Mod\Layout\CompiledLayout;
  *
  * An empty context is ordinary Laravel with no grouping at all. A
  * multi-segment dimension's value is a '/'-joined chain of folders.
+ *
+ * @api
  */
 final readonly class PlacementContext
 {
@@ -19,6 +21,7 @@ final readonly class PlacementContext
      */
     private function __construct(private array $values) {}
 
+    /** @api */
     public static function none(): self
     {
         return new self([]);
@@ -26,6 +29,8 @@ final readonly class PlacementContext
 
     /**
      * @param  array<string, string>  $values
+     *
+     * @api
      */
     public static function of(array $values): self
     {
@@ -37,8 +42,10 @@ final readonly class PlacementContext
      * dimension values in the preset's declared order, separated by "/". Inside
      * a multi-segment dimension the folders are separated by "." instead
      * (`--in=Billing.Invoicing/CreateInvoice`).
+     *
+     * @api
      */
-    public static function fromOption(string $option, CompiledLayout $preset): self
+    public static function fromOption(string $option, CompiledLayout $layout): self
     {
         $option = trim($option);
 
@@ -46,7 +53,7 @@ final readonly class PlacementContext
             return self::none();
         }
 
-        $dimensions = $preset->dimensions();
+        $dimensions = $layout->dimensions();
 
         if ($dimensions === []) {
             throw InvalidPlacementOption::noDimensions($option);
@@ -55,7 +62,7 @@ final readonly class PlacementContext
         $parts = count($dimensions) === 1 && $dimensions[0]->multi ? [str_replace('/', '.', $option)] : explode('/', $option);
 
         if (count($parts) > count($dimensions)) {
-            throw InvalidPlacementOption::tooManyValues($option, $preset->dimensionNames());
+            throw InvalidPlacementOption::tooManyValues($option, $layout->dimensionNames());
         }
 
         $values = [];
@@ -86,11 +93,13 @@ final readonly class PlacementContext
         return new self($values);
     }
 
+    /** @api */
     public function with(string $dimension, string $value): self
     {
         return new self([...$this->values, $dimension => $value]);
     }
 
+    /** @api */
     public function without(string $dimension): self
     {
         $values = $this->values;
@@ -101,22 +110,27 @@ final readonly class PlacementContext
 
     /**
      * @param  list<string>  $dimensions
+     *
+     * @api
      */
     public function only(array $dimensions): self
     {
         return new self(array_intersect_key($this->values, array_flip($dimensions)));
     }
 
+    /** @api */
     public function get(string $dimension): ?string
     {
         return $this->values[$dimension] ?? null;
     }
 
+    /** @api */
     public function has(string $dimension): bool
     {
         return array_key_exists($dimension, $this->values);
     }
 
+    /** @api */
     public function isEmpty(): bool
     {
         return $this->values === [];
@@ -124,6 +138,8 @@ final readonly class PlacementContext
 
     /**
      * @return list<string>
+     *
+     * @api
      */
     public function names(): array
     {
@@ -132,17 +148,21 @@ final readonly class PlacementContext
 
     /**
      * @return array<string, string>
+     *
+     * @api
      */
     public function toArray(): array
     {
         return $this->values;
     }
 
+    /** @api */
     public function equals(self $other): bool
     {
         return $this->values === $other->values;
     }
 
+    /** @api */
     public function describe(): string
     {
         if ($this->values === []) {

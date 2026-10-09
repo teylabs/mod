@@ -6,6 +6,8 @@ use Tey\Mod\Placement\Collision;
 
 /**
  * A generation plan that must not be written, with every reason at once.
+ *
+ * @api
  */
 final class GenerationRefused extends ModException
 {
@@ -36,6 +38,7 @@ final class GenerationRefused extends ModException
         return new self($reasons, $nothingMissing);
     }
 
+    /** @api */
     public static function because(string $reason): self
     {
         return new self([$reason]);

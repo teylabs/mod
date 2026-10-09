@@ -8,6 +8,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:class generator, placed by the preset.
+ *
+ * @api
  */
 class ClassCommand extends ClassMakeCommand implements GeneratorAdapter
 {

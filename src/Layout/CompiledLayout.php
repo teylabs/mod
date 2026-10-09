@@ -4,16 +4,22 @@ namespace Tey\Mod\Layout;
 
 use Illuminate\Support\Str;
 use Tey\Mod\Artifact\ArtifactKind;
+use Tey\Mod\Artifact\ArtifactRequest;
+use Tey\Mod\Artifact\CompiledFileType;
+use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Exceptions\UnknownFileType;
 use Tey\Mod\Exceptions\UnknownRelation;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Placement\Dimension;
+use Tey\Mod\Placement\PlacementContext;
+use Tey\Mod\Placement\PlacementResolver;
 use Tey\Mod\Placement\PlacementRule;
 use Tey\Mod\Placement\Segment;
 use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Preset\PresetValidator;
 use Tey\Mod\Relation\Relation;
+use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Support\Path;
 use Tey\Mod\Support\Stack;
 
@@ -23,6 +29,8 @@ use Tey\Mod\Support\Stack;
  * Build one with CompiledLayout::fromArray() (the provisional internal definition
  * format, see PresetValidator) or the constructor. Immutable; hold as many
  * as you like side by side.
+ *
+ * @api
  */
 final readonly class CompiledLayout
 {
@@ -37,6 +45,8 @@ final readonly class CompiledLayout
      * @param  array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}>  $templates
      * @param  array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string}  $frontendPaths
      * @param  array<string, Stub>  $stubs  kind id → the stub the layout declares for it
+     *
+     * @internal
      */
     public function __construct(
         private array $roots,
@@ -54,9 +64,9 @@ final readonly class CompiledLayout
     ) {}
 
     /**
-     * @internal
-     *
      * @param  array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}>  $templates
+     *
+     * @internal
      */
     public function withTemplates(array $templates): self
     {
@@ -66,18 +76,24 @@ final readonly class CompiledLayout
         return new self($this->roots, $dimensions, $this->kinds, $this->rules, $this->relations, $this->excludedRoots, $this->commandsEnabled, $this->placementOptions, $this->stubs, $templates, $this->frontendPaths, $this->mirrorPages);
     }
 
-    /** @return array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}> */
+    /**
+     * @return array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}>
+     *
+     * @internal
+     */
     public function templates(): array
     {
         return $this->templates;
     }
 
     /**
-     * @internal the array definition is the layout compiler's output format and may change; define layouts with Mod::layout() and compile() them.
+     *  the array definition is the layout compiler's output format and may change; define layouts with Mod::layout() and compile() them.
      *
      * @param  array<string, mixed>  $definition
      *
      * @throws InvalidLayout
+     *
+     * @internal
      */
     public static function fromArray(array $definition): self
     {
@@ -88,6 +104,8 @@ final readonly class CompiledLayout
      * Resolved project-relative path templates and the declared page-name pattern.
      *
      * @return array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string}
+     *
+     * @internal
      */
     public function frontend(?Stack $stack = null): array
     {
@@ -99,7 +117,7 @@ final readonly class CompiledLayout
         return $paths;
     }
 
-    /** @internal resolve the active app's casing once when its layout compiles. */
+    /** resolve the active app's casing once when its layout compiles. @internal */
     public function withStack(Stack $stack): self
     {
         $paths = $this->frontend($stack);
@@ -126,7 +144,7 @@ final readonly class CompiledLayout
         return new self($roots, $this->dimensions, $kinds, $rules, $this->relations, $this->excludedRoots, $this->commandsEnabled, $this->placementOptions, $this->stubs, $this->templates, $paths, $this->mirrorPages);
     }
 
-    /** Whether a candidate lies inside a declared root that holds no classes. */
+    /** Whether a candidate lies inside a declared root that holds no classes. @internal */
     public function isPlainFilePath(string $path): bool
     {
         $path = Path::normalize($path);
@@ -154,7 +172,7 @@ final readonly class CompiledLayout
         return false;
     }
 
-    /** The mounted namespace for a project path, or its folder-derived default. */
+    /** The mounted namespace for a project path, or its folder-derived default. @api */
     public function namespaceFor(string $path): string
     {
         $path = Path::normalize($path);
@@ -176,6 +194,8 @@ final readonly class CompiledLayout
 
     /**
      * @return array<string, CompiledRoot>
+     *
+     * @api
      */
     public function roots(): array
     {
@@ -183,9 +203,11 @@ final readonly class CompiledLayout
     }
 
     /**
-     * @internal use dimensionNames() and placementOptions(); Dimension is internal
+     *  use dimensionNames() and placementOptions(); Dimension is internal
      *
      * @return list<Dimension>
+     *
+     * @internal
      */
     public function dimensions(): array
     {
@@ -194,6 +216,8 @@ final readonly class CompiledLayout
 
     /**
      * @return list<string>
+     *
+     * @api
      */
     public function dimensionNames(): array
     {
@@ -201,6 +225,48 @@ final readonly class CompiledLayout
     }
 
     /**
+     * @return array<string, CompiledFileType>
+     *
+     * @api
+     */
+    public function fileTypes(): array
+    {
+        return array_map(static fn (ArtifactKind $type): CompiledFileType => new CompiledFileType($type), $this->kinds);
+    }
+
+    /** @api */
+    public function fileType(string $fileType): CompiledFileType
+    {
+        return new CompiledFileType($this->kind($fileType));
+    }
+
+    /** @api */
+    public function hasFileType(string $fileType): bool
+    {
+        return $this->hasKind($fileType);
+    }
+
+    /**
+     * @param  array<string, string|int|float|bool|null>  $attributes
+     *
+     * @api
+     */
+    public function place(string $fileType, string $name, PlacementContext $context, array $attributes = []): ResolvedArtifact
+    {
+        return (new PlacementResolver($this))->resolve(ArtifactRequest::for($fileType, $name, $context, $attributes));
+    }
+
+    /** @api */
+    public function locate(string $fqcn): ?ResolvedArtifact
+    {
+        $match = (new ReverseMapper($this))->fromClass($fqcn);
+
+        return $match->isMatched() ? $match->artifact : null;
+    }
+
+    /**
+     * @internal
+     *
      * @return array<string, ArtifactKind>
      */
     public function kinds(): array
@@ -208,11 +274,13 @@ final readonly class CompiledLayout
         return $this->kinds;
     }
 
+    /** @internal */
     public function hasKind(string $kindId): bool
     {
         return isset($this->kinds[$kindId]);
     }
 
+    /** @internal */
     public function kind(string $kindId): ArtifactKind
     {
         return $this->kinds[$kindId] ?? throw UnknownFileType::id($kindId);
@@ -220,12 +288,15 @@ final readonly class CompiledLayout
 
     /**
      * @return array<string, PlacementRule>
+     *
+     * @internal
      */
     public function rules(): array
     {
         return $this->rules;
     }
 
+    /** @internal */
     public function rule(string $kindId): PlacementRule
     {
         return $this->rules[$kindId] ?? throw UnknownFileType::id($kindId);
@@ -233,12 +304,15 @@ final readonly class CompiledLayout
 
     /**
      * @return array<string, Relation>
+     *
+     * @api
      */
     public function relations(): array
     {
         return $this->relations;
     }
 
+    /** @api */
     public function relation(string $relationId): Relation
     {
         return $this->relations[$relationId] ?? throw UnknownRelation::id($relationId);
@@ -246,17 +320,21 @@ final readonly class CompiledLayout
 
     /**
      * @return list<Relation>
+     *
+     * @api
      */
-    public function relationsFrom(string $kindId): array
+    public function relationsFrom(string $fileType): array
     {
         return array_values(array_filter(
             $this->relations,
-            static fn (Relation $relation): bool => $relation->fromKind === $kindId,
+            static fn (Relation $relation): bool => $relation->fromKind === $fileType,
         ));
     }
 
     /**
      * @return list<CompiledRoot>
+     *
+     * @internal
      */
     public function excludedRoots(): array
     {
@@ -268,6 +346,8 @@ final readonly class CompiledLayout
      * kebab-case unless the layout renamed it with ->path().
      *
      * @return array<string, string> dimension name → option name
+     *
+     * @api
      */
     public function placementOptions(): array
     {
@@ -283,6 +363,8 @@ final readonly class CompiledLayout
 
     /**
      * The stub the layout declares for a kind, if any.
+     *
+     * @internal
      */
     public function stub(string $kindId): ?Stub
     {
@@ -291,6 +373,8 @@ final readonly class CompiledLayout
 
     /**
      * Whether the host wants the built-in mod:* commands registered (config key `mod.commands`).
+     *
+     * @internal
      */
     public function commandsEnabled(): bool
     {

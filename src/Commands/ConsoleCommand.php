@@ -8,6 +8,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:* Artisan command generator, placed by the preset.
+ *
+ * @api
  */
 class ConsoleCommand extends ConsoleMakeCommand implements GeneratorAdapter
 {

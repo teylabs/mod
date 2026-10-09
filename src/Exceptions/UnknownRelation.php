@@ -2,6 +2,7 @@
 
 namespace Tey\Mod\Exceptions;
 
+/** @api */
 final class UnknownRelation extends ModException
 {
     public static function id(string $relationId): self

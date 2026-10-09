@@ -11,6 +11,8 @@ use Tey\Mod\Placement\PlacementContext;
  *
  * Reached through `->generates(..., using: fn (FileType $kind) => $kind->...)` for
  * what the named arguments do not cover; every method returns the kind.
+ *
+ * @api
  */
 final class FileType
 {
@@ -54,13 +56,17 @@ final class FileType
     private array $reads = [];
 
     /**
-     * @internal created by Layout::generates()
+     *  created by Layout::generates()
+     *
+     * @internal
      */
     public function __construct(public readonly string $id) {}
 
     /**
      * Where the file type's artifacts go: "Models", "Http/Controllers/{area?}",
      * or "root:Path/{area}" to place them in another declared root.
+     *
+     * @api
      */
     public function in(string $path): self
     {
@@ -69,7 +75,7 @@ final class FileType
         return $this;
     }
 
-    /** Place here under the same root when no placement is supplied. */
+    /** Place here under the same root when no placement is supplied. @api */
     public function ungrouped(string $path): self
     {
         $this->fallback = $path;
@@ -77,6 +83,7 @@ final class FileType
         return $this;
     }
 
+    /** @api */
     public function asGiven(): self
     {
         $this->name = 'as-given';
@@ -86,6 +93,8 @@ final class FileType
 
     /**
      * The basename is the given name plus this suffix (Invoice → InvoiceController).
+     *
+     * @api
      */
     public function suffix(string $suffix): self
     {
@@ -96,6 +105,8 @@ final class FileType
 
     /**
      * Every artifact of the kind has this basename; its placement tells them apart.
+     *
+     * @api
      */
     public function fixed(string $basename): self
     {
@@ -106,6 +117,8 @@ final class FileType
 
     /**
      * A file named <timestamp>_<name>, like a migration.
+     *
+     * @api
      */
     public function timestamped(): self
     {
@@ -116,6 +129,8 @@ final class FileType
 
     /**
      * A plain file rather than a PHP class (a routes file, say).
+     *
+     * @api
      */
     public function extension(string $extension): self
     {
@@ -125,6 +140,7 @@ final class FileType
         return $this;
     }
 
+    /** @api */
     public function case(string $case): self
     {
         $this->case = $case;
@@ -132,6 +148,7 @@ final class FileType
         return $this;
     }
 
+    /** @api */
     public function file(): self
     {
         $this->file = true;
@@ -141,6 +158,8 @@ final class FileType
 
     /**
      * The artisan command that generates the kind; false for none. Defaults to mod:<kind>.
+     *
+     * @api
      */
     public function command(string|false $command): self
     {
@@ -151,6 +170,8 @@ final class FileType
 
     /**
      * Other names for the file type's command (`mod:data` for `mod:dto`, say); they run the same command.
+     *
+     * @api
      */
     public function aliases(string ...$names): self
     {
@@ -166,6 +187,8 @@ final class FileType
     /**
      * The noun the file type's command prints: "DTO [...] created successfully."
      * Without one, a generated class is named after the kind id.
+     *
+     * @api
      */
     public function label(string $label): self
     {
@@ -176,6 +199,8 @@ final class FileType
 
     /**
      * The stub the file type's classes are generated from, with its variants and base.
+     *
+     * @api
      */
     public function stub(Stub $stub): self
     {
@@ -187,6 +212,8 @@ final class FileType
     /**
      * Accept nested names ("Billing/Invoice"): the folders go below the file type's
      * own folder and the basename last, as native make:* does.
+     *
+     * @api
      */
     public function nested(bool $nested = true): self
     {
@@ -202,6 +229,8 @@ final class FileType
      *
      * @param  string  $where  'folder' or 'anywhere'
      * @param  list<string>  $except  folders relative to the dimension folder, e.g. ['Tests', 'Database/Migrations']
+     *
+     * @api
      */
     public function discover(string $where, array $except = []): self
     {
@@ -213,6 +242,8 @@ final class FileType
 
     /**
      * Breaks ties when two kinds could own the same class.
+     *
+     * @api
      */
     public function priority(int $priority): self
     {
@@ -228,6 +259,8 @@ final class FileType
      *
      * @param  Closure(string, PlacementContext): string  $place
      * @param  list<string>  $reads  the placeholders the closure reads, e.g. ['area']
+     *
+     * @api
      */
     public function place(Closure $place, array $reads = []): self
     {
@@ -238,7 +271,9 @@ final class FileType
     }
 
     /**
-     * @internal the root a Root closure declared the kind in
+     *  the root a Root closure declared the kind in
+     *
+     * @api
      */
     public function withinRoot(string $root): self
     {
@@ -248,9 +283,9 @@ final class FileType
     }
 
     /**
-     * @internal
-     *
      * @return array{in: ?string, fallback: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, extension: ?string, case: ?string, command: string|false|null, aliases: list<string>, stub: ?Stub, label: ?string, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: (Closure(string, PlacementContext): string)|null, reads: list<string>}
+     *
+     * @internal
      */
     public function toArray(): array
     {

@@ -8,6 +8,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:job-middleware generator, placed by the preset.
+ *
+ * @api
  */
 class JobMiddlewareCommand extends JobMiddlewareMakeCommand implements GeneratorAdapter
 {

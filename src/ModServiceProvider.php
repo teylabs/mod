@@ -4,6 +4,7 @@ namespace Tey\Mod;
 
 use Illuminate\Console\Application as Artisan;
 use Illuminate\Console\Events\CommandStarting;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Foundation\Exceptions\Handler;
@@ -50,8 +51,22 @@ use Tey\Mod\Templates\TemplateDiagnostics;
 use Tey\Mod\Views\ViewNamespaceRegistrar;
 use Throwable;
 
+/** @api */
 class ModServiceProvider extends ServiceProvider
 {
+    /** Register adapter defaults without application feature boot. @api */
+    public static function registerGenerationServices(Container $app): void
+    {
+        $app->bindIf(PackageDetector::class, ComposerPackageDetector::class, shared: true);
+        $app->bindIf(StubRegistry::class, fn (): StubRegistry => Starters::register(new StubRegistry), shared: true);
+        $app->bindIf(TemplateCatalog::class, fn (Application $app): TemplateCatalog => new TemplateCatalog($app->basePath(), $app->make(StubRegistry::class)), shared: true);
+        $app->bindIf(TemplateDiagnostics::class, TemplateDiagnostics::class, shared: true);
+        $app->bindIf(Stack::class, fn (Application $app): Stack => new Stack($app->basePath()));
+        $app->bindIf(BaseWriter::class, fn (Application $app): BaseWriter => new BaseWriter($app->make('files'), $app->basePath(), self::basesPath($app), self::appNamespace($app)));
+        $app->bindIf(ModMigrationCreator::class, fn (Application $app): ModMigrationCreator => new ModMigrationCreator($app->make('files'), $app->basePath('stubs')));
+    }
+
+    /** @internal */
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../config/mod.php', 'mod');
@@ -113,6 +128,7 @@ class ModServiceProvider extends ServiceProvider
         });
     }
 
+    /** @internal */
     public function boot(): void
     {
         ToolRegistrar::register($this->app);

@@ -79,6 +79,8 @@ use Tey\Mod\Layout\CompiledLayout;
  * a keyed map the host can extend through `mod.generators` or, from a
  * package's service provider, Mod::generators()->use(); a class-shaped kind
  * nobody claims gets the declarative generic generator.
+ *
+ * @api
  */
 final class GeneratorRegistry
 {
@@ -160,6 +162,8 @@ final class GeneratorRegistry
 
     /**
      * @param  array<array-key, mixed>  $overrides  kind id => adapter class (config `mod.generators`)
+     *
+     * @internal
      */
     public function __construct(array $overrides = [])
     {
@@ -188,6 +192,17 @@ final class GeneratorRegistry
      * Generate a kind with this adapter (a subclass of a mod:* command, or any
      * command implementing GeneratorAdapter), replacing the built-in one.
      */
+    /**
+     * @param  class-string<Command>  $command
+     *
+     * @api
+     */
+    public function useFileType(string $fileType, string $command): self
+    {
+        return $this->use($fileType, $command);
+    }
+
+    /** @internal */
     public function use(string $kindId, string $adapter, string $source = 'Mod::generators()->use()'): self
     {
         if (! is_subclass_of($adapter, GeneratorAdapter::class) || ! is_subclass_of($adapter, Command::class)) {
@@ -203,6 +218,8 @@ final class GeneratorRegistry
      * The adapter class for a kind, or null when the kind cannot be generated.
      *
      * @return class-string<GeneratorAdapter&Command>|null
+     *
+     * @internal
      */
     public function adapterFor(ArtifactKind $kind): ?string
     {
@@ -217,6 +234,8 @@ final class GeneratorRegistry
      * One command per preset kind that declares a command name.
      *
      * @return list<GeneratorAdapter&Command>
+     *
+     * @internal
      */
     public function commands(CompiledLayout $preset, Container $container): array
     {
@@ -238,7 +257,9 @@ final class GeneratorRegistry
             }
 
             /** @var GeneratorAdapter&Command $command */
-            $command = $container->make($adapter);
+            $command = is_a($adapter, MigrationCommand::class, true)
+                ? $container->makeWith($adapter, ['creator' => $container->make(ModMigrationCreator::class)])
+                : $container->make($adapter);
 
             $commands[] = $command->forKind($preset, $kind);
         }

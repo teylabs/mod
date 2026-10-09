@@ -8,6 +8,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:cast generator, placed by the preset.
+ *
+ * @api
  */
 class CastCommand extends CastMakeCommand implements GeneratorAdapter
 {

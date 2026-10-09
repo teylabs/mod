@@ -32,6 +32,8 @@ use Tey\Mod\Templates\TemplateCatalog;
  * commands that read it (--area=, named by ->path()). Declaring a file type, root or relation id again
  * overrides the arguments given and keeps the rest, so built-in layouts
  * can be customized the same way. Everything is checked when the layout is compiled.
+ *
+ * @api
  */
 final class Layout
 {
@@ -75,15 +77,27 @@ final class Layout
 
     private bool $sealed = false;
 
-    /**
-     * @internal created by LayoutRegistry::layout()
-     */
+    /** Create a shipped or empty layout independent of the application. @api */
+    public static function fresh(string $name): self
+    {
+        return (new LayoutRegistry)->layout($name);
+    }
+
+    /** Compile without sealing this host-owned definition. @api */
+    public function compiled(): CompiledLayout
+    {
+        return $this->compile();
+    }
+
+    /** @internal */
     public function __construct(public readonly string $name, private readonly ?LayoutRegistry $registry = null) {}
 
     /**
      * A namespace ↔ folder mapping file types are placed in; a null namespace makes a root for plain files.
      *
      * @param  (Closure(Root): mixed)|null  $fn  declares file types that live in this root
+     *
+     * @api
      */
     public function mounts(string $name, ?string $namespace, string $path, ?Closure $fn = null): self
     {
@@ -114,6 +128,8 @@ final class Layout
      * @param  list<string>|null  $discoverExcept  folders discovery skips, relative to the dimension folder
      * @param  (Closure(FileType): mixed)|null  $using  for what the named arguments do not cover
      * @param  list<string>|null  $aliases  other names for the file type's command
+     *
+     * @api
      */
     public function generates(
         string $id,
@@ -211,6 +227,8 @@ final class Layout
      * @param  string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null  $scope  'same' (default), the placeholders the target keeps, e.g. ['area'], or ['keep' => [...], 'nested' => 'drop'] to drop the source's nested folders; 'name' => 'operation' fills a missing target dimension from the source stem
      * @param  string|array<string, string>|null  $name  how the target's name derives from the source's: 'explicit' (the caller always names it), or a map of 'strip-suffix' (removed from the source name first), 'prefix' and 'suffix' (added around it); the target file type's own name policy (suffix()/fixed()) still applies afterwards, so a controller→request relation needs no 'Request' suffix when the request kind declares one
      * @param  string|RelationMode|null  $mode  'generate' (default), 'reference' or 'none'
+     *
+     * @api
      */
     public function relates(
         string $from,
@@ -240,6 +258,8 @@ final class Layout
      * reports classes below them as not owned, and discovery skips them. Use
      * it for hand-maintained corners of a root that would otherwise match a
      * nested or discover-anywhere kind.
+     *
+     * @api
      */
     public function excludes(string ...$excluded): self
     {
@@ -254,7 +274,7 @@ final class Layout
         return $this;
     }
 
-    /** Where groups live, relative to the project root (absolute paths also work). */
+    /** Where groups live, relative to the project root (absolute paths also work). @api */
     public function path(string $path): self
     {
         $this->guard();
@@ -264,7 +284,7 @@ final class Layout
         return $this;
     }
 
-    /** Declare project-relative frontend paths; omitted arguments keep their current values. */
+    /** Declare project-relative frontend paths; omitted arguments keep their current values. @api */
     public function frontend(?string $pages = null, ?string $components = null, ?string $css = null, ?string $views = null, ?string $pageName = null): self
     {
         $this->guard();
@@ -280,13 +300,13 @@ final class Layout
         return $this;
     }
 
-    /** @internal built-in page folders follow the application's casing. */
+    /** built-in page folders follow the application's casing. @internal */
     public function mirrorsPages(): void
     {
         $this->mirrorPages = true;
     }
 
-    /** Copy one parent as it stands now. This must be the first call. */
+    /** Copy one parent as it stands now. This must be the first call. @api */
     public function extends(string $parent): self
     {
         if ($this->sealed) {
@@ -326,7 +346,7 @@ final class Layout
         return $this;
     }
 
-    /** Allow slash or dot separated group values, for one dimension. */
+    /** Allow slash or dot separated group values, for one dimension. @api */
     public function allowsNesting(?string $dimension = null): self
     {
         $this->guard();
@@ -335,13 +355,13 @@ final class Layout
         return $this;
     }
 
-    /** @internal built-ins with name-derived tokens keep a movable default path. */
+    /** built-ins with name-derived tokens keep a movable default path. @internal */
     public function defaultPath(string $path): void
     {
         $this->groupPath = $path;
     }
 
-    /** @internal registry initialization is not part of the user's chain. */
+    /** registry initialization is not part of the user's chain. @internal */
     public function beginChain(): void
     {
         $this->touched = false;
@@ -351,6 +371,8 @@ final class Layout
      * Removed methods have no compatibility aliases.
      *
      * @param  array<mixed>  $arguments
+     *
+     * @internal
      */
     public function __call(string $method, array $arguments): never
     {
@@ -363,7 +385,11 @@ final class Layout
      * and several file types may then share one (a host that places the same
      * command's output in different roots).
      */
-    /** @param Closure(Scaffold): mixed $recipe */
+    /**
+     * @param  Closure(Scaffold): mixed  $recipe
+     *
+     * @internal
+     */
     public function scaffolds(string $name, Closure $recipe): self
     {
         $this->guard();
@@ -373,15 +399,16 @@ final class Layout
     }
 
     /**
-     * @internal
-     *
      * @return array<string, Scaffold>
+     *
+     * @internal
      */
     public function scaffoldRecipes(): array
     {
         return $this->scaffoldRecipes;
     }
 
+    /** @api */
     public function withoutCommands(): self
     {
         $this->guard();
@@ -393,6 +420,8 @@ final class Layout
 
     /**
      * @throws InvalidLayout
+     *
+     * @internal
      */
     public function compile(?TemplateCatalog $templates = null): CompiledLayout
     {
@@ -400,7 +429,9 @@ final class Layout
     }
 
     /**
-     * @internal the layout is in use; later changes would never apply
+     *  the layout is in use; later changes would never apply
+     *
+     * @internal
      */
     public function seal(): void
     {
@@ -416,9 +447,11 @@ final class Layout
     }
 
     /**
-     * @internal exclude the folders generated bases go in (app/Support/Data,
+     *  exclude the folders generated bases go in (app/Support/Data,
      * ...) when they lie inside a root, so a base is never taken for a group
      * or a file type's class
+     *
+     * @internal
      */
     public function reserveBaseFolders(StubRegistry $stubs, string $basesPath): void
     {
@@ -444,9 +477,9 @@ final class Layout
     }
 
     /**
-     * @internal
-     *
      * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, FileType>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, mode: string|RelationMode|null}>, excluded: list<string>, commands: bool, path: ?string, nesting: list<string>, errors: list<string>, frontend: array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string}, mirror_pages: bool}
+     *
+     * @internal
      */
     public function toArray(): array
     {
@@ -498,7 +531,7 @@ final class Layout
         ];
     }
 
-    /** @internal The parent named by extends(), for mod:list. */
+    /** The parent named by extends(), for mod:list. @internal */
     public function parentName(): ?string
     {
         return $this->parent;
