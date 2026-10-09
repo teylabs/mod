@@ -1,6 +1,7 @@
 <?php
 
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
+use Tey\Mod\Tests\Feature\Scaffolds\Support\Examples;
 
 it('previews route generators without writes and resolves ddd application paths', function (string $command, string $layout, string $path) {
     Workspace::run(null, function (Workspace $w) use ($command, $layout, $path) {
@@ -25,7 +26,7 @@ it('offers overwriting in a terminal', function (string $command, string $path) 
     Workspace::run(null, function (Workspace $w) use ($command, $path) {
         config()->set('mod.layout', 'modules');
         $w->write($path, 'keep me');
-        \Tey\Mod\Tests\Feature\Scaffolds\Support\Examples::testCase()->artisan($command, ['module' => 'Inventory'])
+        Examples::testCase()->artisan($command, ['module' => 'Inventory'])
             ->expectsConfirmation("{$command}: {$path} already exists. Overwrite it?", 'no')->assertSuccessful();
         expect($w->read($path))->toBe('keep me');
     });

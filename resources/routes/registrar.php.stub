@@ -1,0 +1,19 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Support\Facades\Route;
+use Tey\Mod\Routing\RegistersRoutes;
+
+class {{ class }} implements RegistersRoutes
+{
+    public static function web(): void
+    {
+        // mod:routes
+    }
+
+    public static function api(): void
+    {
+        // mod:api-routes
+    }
+}

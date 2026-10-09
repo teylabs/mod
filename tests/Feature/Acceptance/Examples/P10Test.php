@@ -1,15 +1,16 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use Tey\Mod\Facades\Mod;
+use Tey\Mod\Scaffolds\Part;
+use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 
 it('P10 starts a missing route file by alias with a machine readable insert plan', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'modules');
-        Mod::scaffold('route-example', function (\Tey\Mod\Scaffolds\Scaffold $s) {
+        Mod::scaffold('route-example', function (Scaffold $s) {
             $s->makes('class');
-            $s->part('tab', fn (\Tey\Mod\Scaffolds\Part $p) => $p->inserts(into: 'routes', at: 'routes', stub: 'tab-route'));
+            $s->part('tab', fn (Part $p) => $p->inserts(into: 'routes', at: 'routes', stub: 'tab-route'));
         });
         $w->write('stubs/mod.insert.tab-route.stub', "Route::get('history', fn () => 'history');\n");
         $w->artisan('mod:route-example', ['name' => 'Inventory:Widget'])->assertSuccessful();
@@ -24,9 +25,9 @@ it('P10 starts a missing route file by alias with a machine readable insert plan
 it('P10 writes and inserts through the routes alias in modules and ddd', function (string $layout) {
     Workspace::run(null, function (Workspace $w) use ($layout) {
         config()->set('mod.layout', $layout);
-        Mod::scaffold('route-insert', function (\Tey\Mod\Scaffolds\Scaffold $s) {
+        Mod::scaffold('route-insert', function (Scaffold $s) {
             $s->makes('class')->asks('tabs', type: 'list', default: ['History'])
-                ->part('tab', fn (\Tey\Mod\Scaffolds\Part $p) => $p->inserts(into: 'routes', at: 'routes', stub: 'tab-route'))
+                ->part('tab', fn (Part $p) => $p->inserts(into: 'routes', at: 'routes', stub: 'tab-route'))
                 ->each('tabs', part: 'tab');
         });
         $w->write('stubs/mod.insert.tab-route.stub', "Route::get('history', fn () => 'history');\n");
@@ -40,13 +41,13 @@ it('P10 writes and inserts through the routes alias in modules and ddd', functio
 it('P10 inserts into registrar methods and preserves the other method', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'modules');
-        $w->artisan('mod:route-registrar', ['module' => 'RegistrarProof'])->assertSuccessful();
-        Mod::scaffold('registrar-insert', function (\Tey\Mod\Scaffolds\Scaffold $s) {
+        Mod::scaffold('registrar-insert', function (Scaffold $s) {
             $s->makes('class')->asks('tabs', type: 'list', default: ['History'])
-                ->part('tab', fn (\Tey\Mod\Scaffolds\Part $p) => $p->inserts(into: 'routes.web', at: 'routes', stub: 'registrar-route'))
+                ->part('tab', fn (Part $p) => $p->inserts(into: 'routes.web', at: 'routes', stub: 'registrar-route'))
                 ->each('tabs', part: 'tab');
         });
         $w->write('stubs/mod.insert.registrar-route.stub', "        Route::get('history', fn () => 'history');\n");
+        $w->artisan('mod:route-registrar', ['module' => 'RegistrarProof'])->assertSuccessful();
         $w->artisan('mod:registrar-insert', ['name' => 'RegistrarProof:Widget'])->assertSuccessful();
         $source = $w->read('app/Modules/RegistrarProof/Http/Routing/RegistrarProofRoutes.php');
         expect($source)->toContain("        Route::get('history', fn () => 'history');\n        // mod:routes")

@@ -10,6 +10,7 @@ use Tey\Mod\Layout\Layout;
 use Tey\Mod\ModManager;
 
 /**
+ * @method static void routes(?list<string> $only = null, list<string> $except = []) load module routes inside the current route group
  * @method static ModManager scaffold(string $name, \Closure $recipe) declare a scaffold recipe
  * @method static ModManager scaffolds(array<array-key, \Closure|class-string> $recipes) declare keyed recipes or invokable classes
  * @method static Layout layout(string $name) define a layout, or extend a built-in or defined one

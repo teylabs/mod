@@ -453,5 +453,6 @@
         "inertia": false,
         "vite_alias": false,
         "tailwind": false
-    }
+    },
+    "routes": []
 }

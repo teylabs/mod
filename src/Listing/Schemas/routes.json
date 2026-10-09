@@ -1,0 +1,54 @@
+{
+    "type": "object",
+    "required": [
+        "routes"
+    ],
+    "properties": {
+        "routes": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "group",
+                    "entrypoint",
+                    "kind",
+                    "middleware_group",
+                    "order",
+                    "loaded_by"
+                ],
+                "properties": {
+                    "group": {
+                        "type": "string"
+                    },
+                    "entrypoint": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string",
+                        "enum": [
+                            "file",
+                            "registrar"
+                        ]
+                    },
+                    "middleware_group": {
+                        "type": "string",
+                        "enum": [
+                            "web",
+                            "api",
+                            "console"
+                        ]
+                    },
+                    "order": {
+                        "type": "integer"
+                    },
+                    "loaded_by": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}

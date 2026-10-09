@@ -4,6 +4,7 @@ namespace Tey\Mod;
 
 use Closure;
 use Illuminate\Container\Container;
+use Illuminate\Support\Facades\Facade;
 use Tey\Mod\Discovery\DiscoveryCandidates;
 use Tey\Mod\Discovery\DiscoveryDefinition;
 use Tey\Mod\Generation\GeneratorRegistry;
@@ -12,6 +13,7 @@ use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
+use Tey\Mod\Routing\ModRoutes;
 use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
@@ -92,6 +94,21 @@ final readonly class ModManager
         }
 
         return $this;
+    }
+
+    /** @param list<string>|null $only
+     * @param  list<string>  $except
+     */
+    public function routes(?array $only = null, array $except = []): void
+    {
+        $call = 'unknown';
+        foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) as $frame) {
+            if (isset($frame['file']) && ! in_array($frame['file'], [__FILE__, (new \ReflectionClass(Facade::class))->getFileName()], true)) {
+                $call = $frame['file'].':'.($frame['line'] ?? 0);
+                break;
+            }
+        }
+        ($this->container ?? Container::getInstance())->make(ModRoutes::class)->load($only, $except, $call);
     }
 
     public function hasLayout(string $name): bool

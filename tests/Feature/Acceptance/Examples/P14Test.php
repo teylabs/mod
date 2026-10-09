@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 

@@ -4,6 +4,7 @@
  * Configuration for tey/mod.
  */
 return [
+    'routes' => ['order' => []],
 
     /*
      * Register the built-in mod:* generator commands. A host that owns its
