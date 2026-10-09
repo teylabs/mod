@@ -1,0 +1,39 @@
+{
+  "type": "object",
+  "required": [
+    "layout",
+    "extends",
+    "path",
+    "token",
+    "groups"
+  ],
+  "properties": {
+    "layout": {
+      "type": "string"
+    },
+    "extends": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "token": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

@@ -200,7 +200,7 @@
             "aliases": [],
             "folder": "app/Features/{feature}/Database/Migrations",
             "source": "Laravel",
-            "stub": "/Users/jasper/Dev/projects/mod-l03-2/vendor/laravel/framework/src/Illuminate/Database/Migrations/stubs/migration.stub",
+            "stub": "<package>/vendor/laravel/framework/src/Illuminate/Database/Migrations/stubs/migration.stub",
             "base": null,
             "discovery": [],
             "classes": [],

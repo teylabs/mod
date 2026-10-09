@@ -1,0 +1,150 @@
+{
+  "type": "object",
+  "required": [
+    "discovery"
+  ],
+  "properties": {
+    "discovery": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "source",
+        "counts",
+        "entries",
+        "rejections",
+        "stale_cache"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "counts": {
+          "type": "object",
+          "required": [
+            "provider",
+            "command",
+            "listener",
+            "subscriber",
+            "directory",
+            "factory",
+            "policy",
+            "rejected"
+          ],
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "kind",
+              "type",
+              "class",
+              "path",
+              "context",
+              "events"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "class": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "context": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "events": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "event",
+                    "method"
+                  ],
+                  "properties": {
+                    "event": {
+                      "type": "string"
+                    },
+                    "method": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "target": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "rejections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path",
+              "reason",
+              "detail",
+              "kind",
+              "class",
+              "candidates"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "string"
+              },
+              "kind": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "class": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "stale_cache": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}
