@@ -55,7 +55,7 @@ Use `->generates()` to refine a template or declare a file type in PHP; `->mount
 
 ## Scaffolds
 
-Use a scaffold when several file types form a reusable recipe. Register it in a provider with `Mod::scaffold()` and import `Tey\Mod\Scaffolds\Scaffold`. Chain `->makes('model', as: 'model')` and other members; their paths follow the active layout. `Mod::scaffolds()` also accepts invokable recipe classes, and a layout's `->scaffolds()` overrides a global recipe.
+Use a scaffold when several file types form a reusable recipe. Register it in a provider with `Mod::scaffold()` and include `use Tey\Mod\Scaffolds\Scaffold;` in every scaffold example. Include `use Tey\Mod\Scaffolds\Part;` when typing a part closure. Chain `->makes('model', as: 'model')` and other members; their paths follow the active layout. `Mod::scaffolds()` also accepts invokable recipe classes, and a layout's `->scaffolds()` overrides a global recipe.
 
 - `as:` names sibling aliases: `{{ model }}` is the short class name, `{{ model.fqcn }}` is the full name. Name forms chain left to right (`{{ name.plural.kebab }}`).
 - `stub: 'crud'` selects `stubs/mod.<type>.crud.stub`. Create that variant before non-interactive generation; variant publication happens only after the plan is accepted.
