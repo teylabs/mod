@@ -1,15 +1,44 @@
 {
-    "layout": "type-first",
+    "layout": "modules",
     "extends": null,
-    "path": "app/*/{feature}",
-    "token": "feature",
-    "groups": [],
+    "path": "app/Modules/{module}",
+    "token": "module",
+    "groups": [
+        "Inventory"
+    ],
     "types": [
+        {
+            "id": "action",
+            "command": "mod:action",
+            "aliases": [],
+            "folder": "app/Modules/{module}/Actions",
+            "source": "starter",
+            "stub": "<package>/src/Generation/stubs/starters/action.stub",
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "card",
+            "plain": true,
+            "extension": ".blade.php",
+            "case": "kebab",
+            "command": "mod:card",
+            "aliases": [],
+            "folder": "app/Modules/{module}/resources/views",
+            "source": "layout",
+            "stub": "stubs/mod/@module/resources/views/card.blade.php.stub",
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
         {
             "id": "cast",
             "command": "mod:cast",
             "aliases": [],
-            "folder": "app/Casts/{feature}",
+            "folder": "app/Modules/{module}/Casts",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -21,7 +50,7 @@
             "id": "channel",
             "command": "mod:channel",
             "aliases": [],
-            "folder": "app/Broadcasting/{feature}",
+            "folder": "app/Modules/{module}/Channels",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -33,7 +62,7 @@
             "id": "class",
             "command": "mod:class",
             "aliases": [],
-            "folder": "app/{feature}",
+            "folder": "app/Modules/{module}",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -45,7 +74,7 @@
             "id": "command",
             "command": "mod:command",
             "aliases": [],
-            "folder": "app/Console/Commands/{feature}",
+            "folder": "app/Modules/{module}/Console",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -57,19 +86,7 @@
             "id": "component",
             "command": "mod:component",
             "aliases": [],
-            "folder": "app/View/Components/{feature}",
-            "source": "Laravel",
-            "stub": null,
-            "base": null,
-            "discovery": [],
-            "classes": [],
-            "relations": []
-        },
-        {
-            "id": "config",
-            "command": "mod:config",
-            "aliases": [],
-            "folder": "config",
+            "folder": "app/Modules/{module}/View/Components",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -81,7 +98,7 @@
             "id": "controller",
             "command": "mod:controller",
             "aliases": [],
-            "folder": "app/Http/Controllers/{feature}",
+            "folder": "app/Modules/{module}/Http/Controllers",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -93,10 +110,24 @@
             ]
         },
         {
+            "id": "dto",
+            "command": "mod:dto",
+            "aliases": [
+                "mod:data"
+            ],
+            "folder": "app/Modules/{module}/Data",
+            "source": "starter",
+            "stub": "<package>/src/Generation/stubs/starters/dto.stub",
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
             "id": "enum",
             "command": "mod:enum",
             "aliases": [],
-            "folder": "app/Enums/{feature}",
+            "folder": "app/Modules/{module}/Enums",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -108,7 +139,7 @@
             "id": "event",
             "command": "mod:event",
             "aliases": [],
-            "folder": "app/Events/{feature}",
+            "folder": "app/Modules/{module}/Events",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -120,7 +151,7 @@
             "id": "exception",
             "command": "mod:exception",
             "aliases": [],
-            "folder": "app/Exceptions/{feature}",
+            "folder": "app/Modules/{module}/Exceptions",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -132,7 +163,7 @@
             "id": "factory",
             "command": "mod:factory",
             "aliases": [],
-            "folder": "database/factories/{feature}",
+            "folder": "app/Modules/{module}/Database/Factories",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -146,7 +177,7 @@
             "id": "interface",
             "command": "mod:interface",
             "aliases": [],
-            "folder": "app/{feature}",
+            "folder": "app/Modules/{module}",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -158,7 +189,7 @@
             "id": "job",
             "command": "mod:job",
             "aliases": [],
-            "folder": "app/Jobs/{feature}",
+            "folder": "app/Modules/{module}/Jobs",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -172,7 +203,7 @@
             "aliases": [
                 "mod:jobmiddleware"
             ],
-            "folder": "app/Jobs/Middleware/{feature}",
+            "folder": "app/Modules/{module}/Jobs/Middleware",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -184,7 +215,7 @@
             "id": "listener",
             "command": "mod:listener",
             "aliases": [],
-            "folder": "app/Listeners/{feature}",
+            "folder": "app/Modules/{module}/Listeners",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -198,7 +229,7 @@
             "id": "mail",
             "command": "mod:mail",
             "aliases": [],
-            "folder": "app/Mail/{feature}",
+            "folder": "app/Modules/{module}/Mail",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -210,7 +241,7 @@
             "id": "middleware",
             "command": "mod:middleware",
             "aliases": [],
-            "folder": "app/Http/Middleware/{feature}",
+            "folder": "app/Modules/{module}/Http/Middleware",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -222,7 +253,7 @@
             "id": "migration",
             "command": "mod:migration",
             "aliases": [],
-            "folder": "database/migrations/{feature}",
+            "folder": "app/Modules/{module}/Database/Migrations",
             "source": "Laravel",
             "stub": "<package>/vendor/laravel/framework/src/Illuminate/Database/Migrations/stubs/migration.stub",
             "base": null,
@@ -234,7 +265,7 @@
             "id": "model",
             "command": "mod:model",
             "aliases": [],
-            "folder": "app/Models/{feature}",
+            "folder": "app/Modules/{module}/Models",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -254,7 +285,7 @@
             "id": "notification",
             "command": "mod:notification",
             "aliases": [],
-            "folder": "app/Notifications/{feature}",
+            "folder": "app/Modules/{module}/Notifications",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -266,7 +297,22 @@
             "id": "observer",
             "command": "mod:observer",
             "aliases": [],
-            "folder": "app/Observers/{feature}",
+            "folder": "app/Modules/{module}/Observers",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "page",
+            "plain": true,
+            "extension": ".vue",
+            "case": "studly",
+            "command": "mod:page",
+            "aliases": [],
+            "folder": "app/Modules/{module}/resources/js/pages",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -278,7 +324,7 @@
             "id": "policy",
             "command": "mod:policy",
             "aliases": [],
-            "folder": "app/Policies/{feature}",
+            "folder": "app/Modules/{module}/Policies",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -290,7 +336,7 @@
             "id": "provider",
             "command": "mod:provider",
             "aliases": [],
-            "folder": "app/Providers/{feature}",
+            "folder": "app/Modules/{module}/Providers",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -302,7 +348,7 @@
             "id": "query",
             "command": "mod:query",
             "aliases": [],
-            "folder": "app/Queries/{feature}",
+            "folder": "app/Modules/{module}/Queries",
             "source": "empty class",
             "stub": null,
             "base": null,
@@ -314,7 +360,7 @@
             "id": "request",
             "command": "mod:request",
             "aliases": [],
-            "folder": "app/Http/Requests/{feature}",
+            "folder": "app/Modules/{module}/Http/Requests",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -326,7 +372,7 @@
             "id": "resource",
             "command": "mod:resource",
             "aliases": [],
-            "folder": "app/Http/Resources/{feature}",
+            "folder": "app/Modules/{module}/Http/Resources",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -338,7 +384,7 @@
             "id": "rule",
             "command": "mod:rule",
             "aliases": [],
-            "folder": "app/Rules/{feature}",
+            "folder": "app/Modules/{module}/Rules",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -350,7 +396,7 @@
             "id": "scope",
             "command": "mod:scope",
             "aliases": [],
-            "folder": "app/Models/Scopes/{feature}",
+            "folder": "app/Modules/{module}/Scopes",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -362,7 +408,7 @@
             "id": "seeder",
             "command": "mod:seeder",
             "aliases": [],
-            "folder": "database/seeders/{feature}",
+            "folder": "app/Modules/{module}/Database/Seeders",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -374,7 +420,7 @@
             "id": "test",
             "command": "mod:test",
             "aliases": [],
-            "folder": "tests/Feature/{feature}",
+            "folder": "tests/Feature/Modules/{module}",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -386,9 +432,24 @@
             "id": "trait",
             "command": "mod:trait",
             "aliases": [],
-            "folder": "app/{feature}",
+            "folder": "app/Modules/{module}",
             "source": "Laravel",
             "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "value-object",
+            "command": "mod:value-object",
+            "aliases": [
+                "mod:value",
+                "mod:valueobject"
+            ],
+            "folder": "app/Modules/{module}/ValueObjects",
+            "source": "starter",
+            "stub": "<package>/src/Generation/stubs/starters/value-object.stub",
             "base": null,
             "discovery": [],
             "classes": [],
@@ -398,9 +459,23 @@
             "id": "view",
             "command": "mod:view",
             "aliases": [],
-            "folder": "resources/views/{feature}",
+            "folder": "app/Modules/{module}/resources/views",
             "source": "Laravel",
             "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "view-model",
+            "command": "mod:view-model",
+            "aliases": [
+                "mod:viewmodel"
+            ],
+            "folder": "app/Modules/{module}/ViewModels",
+            "source": "starter",
+            "stub": "<package>/src/Generation/stubs/starters/view-model.stub",
             "base": null,
             "discovery": [],
             "classes": [],
@@ -408,12 +483,44 @@
         }
     ],
     "templates": {
-        "items": [],
+        "items": [
+            {
+                "type": "card",
+                "source": "app",
+                "path": "stubs/mod/@module/resources/views/card.blade.php.stub"
+            },
+            {
+                "type": "card",
+                "source": "module:Inventory",
+                "path": "app/Modules/Inventory/stubs/mod/@module/resources/views/card.blade.php.stub"
+            }
+        ],
         "problems": [],
         "notices": []
     },
     "scaffolds": {
-        "items": [],
+        "items": [
+            {
+                "name": "stock-report",
+                "command": "mod:stock-report",
+                "source": "module:Inventory",
+                "members": [
+                    {
+                        "alias": "card",
+                        "type": "card",
+                        "name": "{name}",
+                        "stub": null,
+                        "options": [],
+                        "folder": "app/Modules/{module}/resources/views",
+                        "ungrouped": false,
+                        "group": null,
+                        "existing": "keep"
+                    }
+                ],
+                "from": "module:Inventory",
+                "origin": "app/Modules/Inventory/Scaffolds/A2StockReport.php"
+            }
+        ],
         "problems": []
     },
     "discovery": {
@@ -433,28 +540,49 @@
         "rejections": [],
         "stale_cache": null
     },
-    "views": [],
+    "views": [
+        {
+            "group": "Inventory",
+            "namespace": "inventory",
+            "path": "app/Modules/Inventory/resources/views",
+            "components": [
+                {
+                    "path": "app/Modules/Inventory/resources/views/components/widget-card.blade.php",
+                    "tag": "x-inventory::widget-card"
+                }
+            ]
+        }
+    ],
     "frontend": {
-        "pages": "resources/js/pages",
-        "components": "resources/js/components",
-        "css": "resources/css",
-        "views": "resources/views/{feature?}",
-        "page_name": "{feature}::{path}",
-        "view_namespace": "{feature.kebab}",
+        "pages": "app/Modules/{module}/resources/js/pages",
+        "components": "app/Modules/{module}/resources/js/components",
+        "css": "app/Modules/{module}/resources/css",
+        "views": "app/Modules/{module}/resources/views",
+        "page_name": "{module}::{path}",
+        "view_namespace": "{module.kebab}",
         "import_alias": {
             "alias": "@modules",
-            "root": "resources/views"
+            "root": "app/Modules"
         }
     },
     "stack": {
-        "inertia": null,
-        "typescript": false,
+        "inertia": "vue",
+        "typescript": true,
         "pages": "resources/js/pages"
     },
     "wiring": {
-        "inertia": false,
-        "vite_alias": false,
-        "tailwind": false
+        "inertia": true,
+        "vite_alias": true,
+        "tailwind": true
     },
-    "routes": []
+    "routes": [
+        {
+            "group": "Inventory",
+            "entrypoint": "app/Modules/Inventory/routes/web.php",
+            "kind": "file",
+            "middleware_group": "web",
+            "order": 1,
+            "loaded_by": "bootstrap/app.php:18"
+        }
+    ]
 }

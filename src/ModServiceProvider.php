@@ -12,6 +12,7 @@ use Symfony\Component\Console\Exception\CommandNotFoundException;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Output\OutputInterface;
+use Tey\Mod\Boost\ToolRegistrar;
 use Tey\Mod\Commands\AutoloadCommand;
 use Tey\Mod\Commands\BasesCommand;
 use Tey\Mod\Commands\CreateTemplateCommand;
@@ -114,6 +115,8 @@ class ModServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        ToolRegistrar::register($this->app);
+
         $this->app->booted(fn (Application $app) => ViewNamespaceRegistrar::register($app));
 
         // Model::factory() through the layout's factory relation; a resolver registered

@@ -428,7 +428,11 @@
         "css": "resources/css",
         "views": "resources/views",
         "page_name": "{path}",
-        "view_namespace": null
+        "view_namespace": null,
+        "import_alias": {
+            "alias": "@modules",
+            "root": "app"
+        }
     },
     "stack": {
         "inertia": null,

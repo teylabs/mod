@@ -12,7 +12,8 @@
         "css",
         "views",
         "page_name",
-        "view_namespace"
+        "view_namespace",
+        "import_alias"
       ],
       "properties": {
         "pages": {
@@ -50,6 +51,24 @@
             "string",
             "null"
           ]
+        },
+        "import_alias": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "required": [
+            "alias",
+            "root"
+          ],
+          "properties": {
+            "alias": {
+              "type": "string"
+            },
+            "root": {
+              "type": "string"
+            }
+          }
         }
       }
     }

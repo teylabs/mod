@@ -208,3 +208,17 @@ A member with `existing: 'keep'` is written once, then retained without a collis
 A module can carry generator templates in its own `stubs/mod/`; every template there must use an `@module` path. Commands against that module choose its template or recipe before the app's, then the package's. Invokable classes in the module's `Scaffolds/` folder declare a public `$name` and `__invoke(Scaffold $scaffold)`; include `use Tey\Mod\Scaffolds\Scaffold;`. Alternatively register them with `Mod::scaffolds([...])` in a provider whose namespace is inside the module's namespace. Copying the module folder carries both kinds of generators. Use `mod:class Inventory:Scaffolds/StockReport` to start an invokable class.
 
 Read `php artisan mod:list --json` for template and scaffold sources: `module:Inventory`, `app`, or `package:vendor/name`. `mod:list -v` shows the template file, scaffold file or provider. Review the selected source before extending a copied module.
+
+## L8: Read-only Boost tools and import metadata
+
+When connected to Laravel Boost, read `mod-inventory` before generating files. It returns `php artisan mod:list --json` with the complete inventory. Boost is optional; Mod appends `mod-inventory` and `mod-plan` through `boost.mcp.tools.include` while preserving other includes.
+
+Request a plan with an exact registered command and positional arguments/option tokens:
+
+```json
+{"command":"mod:resource-tabs.tab","arguments":["Inventory:Widget","History"]}
+```
+
+`mod-plan` enforces `--dry-run --json` and non-interactivity; it never applies the command. Check files, inserts, warnings and `would_write`. Missing answers remain warnings, and commands without preview support are refused. Neither tool writes files. Apply reviewed plans with `php artisan mod:*`.
+
+The additive `frontend.import_alias` is an object such as `{"alias":"@modules","root":"app/Modules"}`, or null without frontend declarations. `frontend.view_namespace` remains unchanged. Use `@/` for files under `resources/js/`; use `@modules/` relative to the reported root for module files. Never traverse an alias with `../`. This metadata describes the intended mapping; check `wiring.vite_alias` to know whether it is installed.

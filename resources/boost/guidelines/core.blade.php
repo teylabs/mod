@@ -52,3 +52,11 @@ A member with `existing: 'keep'` is written once, then retained without a collis
 A module can carry generator templates in its own `stubs/mod/`; every template there must use an `@module` path. Commands against that module choose its template or recipe before the app's, then the package's. Invokable classes in the module's `Scaffolds/` folder declare a public `$name` and `__invoke(Scaffold $scaffold)`; include `use Tey\Mod\Scaffolds\Scaffold;`. Alternatively register them with `Mod::scaffolds([...])` in a provider whose namespace is inside the module's namespace. Copying the module folder carries both kinds of generators. Use `mod:class Inventory:Scaffolds/StockReport` to start an invokable class.
 
 Read `php artisan mod:list --json` for template and scaffold sources: `module:Inventory`, `app`, or `package:vendor/name`. `mod:list -v` shows the template file, scaffold file or provider. Review the selected source before extending a copied module.
+
+## L8: Read-only Boost tools and import metadata
+
+Read `mod-inventory` first when connected to Laravel Boost. It returns the same inventory as `php artisan mod:list --json`, including file types, templates, scaffolds, stack, frontend paths, views, routes and wiring. Mod adds its tools through `boost.mcp.tools.include` only when Boost is installed; preserve other included tools. Boost is optional.
+
+Use `mod-plan` with an exact registered `mod:*` command and an array of positional arguments and option tokens: `{"command":"mod:resource-tabs.tab","arguments":["Inventory:Widget","History"]}`. The tool enforces `--dry-run --json` and non-interactivity. Missing answers remain plan warnings; inspect `would_write`, files and inserts before proceeding. Commands without JSON preview support are refused. Both tools are read-only; apply reviewed changes with `php artisan mod:*`.
+
+`frontend.import_alias` describes the alias and its project-relative root, for example `{"alias":"@modules","root":"app/Modules"}`. `frontend.view_namespace` remains available. For imports, files under `resources/js/` use the app alias `@/`; module files use `@modules/` relative to the reported root. Do not put `../` into an alias import. The alias metadata describes the intended mapping; `wiring.vite_alias` reports whether the app has that mapping. A layout without frontend declarations reports a null import alias.
