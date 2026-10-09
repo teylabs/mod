@@ -1,5 +1,6 @@
 <?php
 
+use Tey\Mod\Facades\Mod;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Support\Stack;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
@@ -36,5 +37,16 @@ it('resolves the stack service and applies app casing to the active compiled lay
         $w->write('resources/js/Pages/.gitkeep', '');
         expect(app(Stack::class)->inertia())->toBe('react')
             ->and(app(CompiledLayout::class)->frontend()['pages'])->toBe('app/Modules/{module}/resources/js/Pages');
+    });
+});
+
+it('mirrors the pages directory while preserving a trailing group token in a star path', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', 'modules');
+        Mod::layout('modules')->path('app/*/{module}');
+        $w->write('resources/js/Pages/.gitkeep', '');
+        $layout = app(CompiledLayout::class);
+        expect($layout->frontend()['pages'])->toBe('app/resources/js/Pages/{module}')
+            ->and($layout->isPlainFilePath('app/resources/js/Pages/Inventory/Widget.vue'))->toBeTrue();
     });
 });

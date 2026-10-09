@@ -2,6 +2,7 @@
 
 use Symfony\Component\Console\Exception\CommandNotFoundException;
 use Tey\Mod\Discovery\DiscoveryType;
+use Tey\Mod\Discovery\RejectionReason;
 use Tey\Mod\Exceptions\InvalidDiscoveryConfig;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
