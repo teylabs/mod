@@ -91,3 +91,25 @@ jobs:
 
       - name: Execute tests
         run: vendor/bin/pest --ci --no-coverage
+
+  boost:
+    name: Verify Boost resources
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, sqlite, pdo_sqlite
+          tools: composer:v2
+          coverage: none
+      - name: Locate Composer cache
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: boost-composer-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: boost-composer-${{ runner.os }}-
+      - name: Verify the Boost skill in fresh Laravel apps
+        run: tests/boost/verify-boost.sh "$RUNNER_TEMP/boost-verify" 12 13
