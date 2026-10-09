@@ -103,6 +103,9 @@ it('returns a schema-valid plan for every registered writing command without cre
                 continue;
             }
             $arguments = ['--dry-run' => true, '--json' => true];
+            if ($definition->hasArgument('stack')) {
+                $arguments['stack'] = 'inertia';
+            }
             if ($definition->hasArgument('name')) {
                 $arguments['name'] = match ($layout) {
                     'modules', 'ddd', 'features' => 'Inventory:Widget',

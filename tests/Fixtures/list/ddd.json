@@ -448,5 +448,10 @@
         "views": "app/Modules/{domain}/resources/views",
         "page_name": "{domain}::{path}",
         "view_namespace": "{domain.kebab}"
+    },
+    "wiring": {
+        "inertia": false,
+        "vite_alias": false,
+        "tailwind": false
     }
 }

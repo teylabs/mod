@@ -9,7 +9,7 @@ import { initializeFlashToast } from '@/lib/flashToast';
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 void createInertiaApp({
-    resolve: (name) => resolveModulePage(name, import.meta.glob('./pages/**/*.vue'), import.meta.glob('../../app/Modules/*/resources/js/pages/**/*.vue')),
+    resolve: (name) => resolveModulePage(name, import.meta.glob<import('vue').DefineComponent>('./pages/**/*.vue'), import.meta.glob<import('vue').DefineComponent>('../../app/Modules/*/resources/js/pages/**/*.vue')),
     title: (title) => (title ? `${title} - ${appName}` : appName),
     layout: (name) => {
         switch (true) {

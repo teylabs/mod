@@ -10,7 +10,7 @@ import SettingsLayout from '@/layouts/settings/layout';
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 void createInertiaApp({
-    resolve: (name) => resolveModulePage(name, import.meta.glob('./pages/**/*.tsx'), import.meta.glob('../../app/Modules/*/resources/js/pages/**/*.tsx')),
+    resolve: (name) => resolveModulePage(name, import.meta.glob<import('react').ComponentType>('./pages/**/*.tsx'), import.meta.glob<import('react').ComponentType>('../../app/Modules/*/resources/js/pages/**/*.tsx')),
     title: (title) => (title ? `${title} - ${appName}` : appName),
     layout: (name) => {
         switch (true) {

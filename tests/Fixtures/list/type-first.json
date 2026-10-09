@@ -415,5 +415,10 @@
         "views": "resources/views",
         "page_name": "{feature}::{path}",
         "view_namespace": "{feature.kebab}"
+    },
+    "wiring": {
+        "inertia": false,
+        "vite_alias": false,
+        "tailwind": false
     }
 }

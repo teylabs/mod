@@ -16,7 +16,7 @@ export default defineConfig({
     plugins: lazyPlugins(() => [
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.ts'],
-            refresh: ['resources/views/**', 'routes/**', 'app/Modules/**/resources/views/**'],
+            refresh: ['app/Livewire/**', 'app/View/Components/**', 'lang/**', 'resources/lang/**', 'resources/views/**', 'routes/**', 'app/Modules/**/resources/views/**'],
             fonts: [
                 bunny('Instrument Sans', {
                     weights: [400, 500, 600],

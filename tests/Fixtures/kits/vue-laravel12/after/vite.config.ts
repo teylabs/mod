@@ -15,7 +15,7 @@ export default defineConfig({
         laravel({
             input: ['resources/js/app.ts'],
             ssr: 'resources/js/ssr.ts',
-            refresh: ['resources/views/**', 'routes/**', 'app/Modules/**/resources/views/**'],
+            refresh: ['app/Livewire/**', 'app/View/Components/**', 'lang/**', 'resources/lang/**', 'resources/views/**', 'routes/**', 'app/Modules/**/resources/views/**'],
         }),
         tailwindcss(),
         wayfinder({

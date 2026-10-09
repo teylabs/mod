@@ -403,5 +403,10 @@
         "views": "resources/views",
         "page_name": "{path}",
         "view_namespace": null
+    },
+    "wiring": {
+        "inertia": false,
+        "vite_alias": false,
+        "tailwind": false
     }
 }
