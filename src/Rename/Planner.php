@@ -42,7 +42,7 @@ final readonly class Planner
         try {
             $active = $this->app->make(CompiledLayout::class);
             $snapshot = new Snapshot;
-            $roots = $snapshot->roots($active);
+            $roots = $snapshot->roots($active, $basePath);
             $plan->rename['scan_roots'] = $roots;
             if ($request->scaffold === null || $request->scaffold === '') {
                 $plan->warning('mod:rename requires --scaffold. Run mod:list --json to find recipes, then retry with --scaffold=crud. Nothing was written.');
@@ -84,9 +84,9 @@ final readonly class Planner
             if ($old === []) {
                 $plan->warning('mod:rename recipe has no resolved members. Choose a recipe matching the cluster. Nothing was written.');
             }
-            $roots = $snapshot->roots($sourceLayout);
+            $roots = $snapshot->roots($sourceLayout, $basePath);
             foreach ($old as $entry) {
-                $roots = array_values(array_unique([...$roots, ...$snapshot->roots($entry['layout'])]));
+                $roots = array_values(array_unique([...$roots, ...$snapshot->roots($entry['layout'], $basePath)]));
             }
             sort($roots);
             $roots = array_values(array_filter($roots, static fn (string $root): bool => array_filter($roots, static fn (string $parent): bool => $root !== $parent && Path::relative($parent, $root) !== null) === []));

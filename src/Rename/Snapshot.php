@@ -15,9 +15,12 @@ final class Snapshot
     public function __construct(private readonly ExcludedPaths $excluded = new ExcludedPaths) {}
 
     /** @return list<string> */
-    public function roots(CompiledLayout $layout): array
+    public function roots(CompiledLayout $layout, ?string $basePath = null): array
     {
         $roots = ['app', 'bootstrap', 'config', 'resources', 'routes', 'tests'];
+        if ($basePath !== null && is_dir($basePath.'/lang')) {
+            $roots[] = 'lang';
+        }
         foreach ($layout->roots() as $root) {
             $literal = rtrim(substr($root->path, 0, strcspn($root->path, '{')), '/');
             if ($literal !== '' && Path::relative('', $literal) !== null) {

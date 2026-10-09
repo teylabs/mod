@@ -7,6 +7,17 @@ use Tey\Mod\Rename\Snapshot;
 use Tey\Mod\Tests\Feature\Acceptance\Examples\Rename\Support\RenameScenario as S;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 
+it('includes root translation files in the immutable scan snapshot', function () {
+    Workspace::run(null, function (Workspace $w) {
+        S::setup($w);
+        $w->write('lang/en/inventory.php', "<?php return ['title' => 'Widget'];\n");
+        S::commit($w);
+        $result = app(Planner::class)->build(new Request('Inventory:Widget', 'Inventory:Gadget', 'model-only'));
+        expect($result->plan->wouldWrite)->toBeTrue()->and($result->inputs?->roots)->toContain('lang')
+            ->and($result->inputs?->files)->toHaveKey('lang/en/inventory.php');
+    });
+});
+
 it('reports every kind of dirty Git state but ignores build output', function (string $case) {
     Workspace::run(null, function (Workspace $w) use ($case) {
         S::setup($w);
