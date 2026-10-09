@@ -31,7 +31,7 @@ it('registers one command per preset kind with a command name', function () {
     Workspace::run('modules', function () {
         // routes is a file kind without a generator: not registered.
         expect(modCommands())->toBe([
-            'mod:action', 'mod:bases', 'mod:controller', 'mod:data', 'mod:event', 'mod:factory', 'mod:migration',
+            'mod:action', 'mod:autoload', 'mod:bases', 'mod:controller', 'mod:data', 'mod:event', 'mod:factory', 'mod:migration',
             'mod:model', 'mod:policy', 'mod:provider', 'mod:query', 'mod:request', 'mod:seeder',
         ]);
     });
