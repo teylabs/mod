@@ -18,7 +18,6 @@ it('autoloads E17 moved areas and then generates the model', function (bool $int
                 throw new LogicException('E17 needs Testbench.');
             }
             $workspace->write('composer.json', "{\n    \"name\": \"tey-mod/owned-app\",\n    \"autoload\": {\n        \"psr-4\": {\n            \"App\\\\\": \"app/\"\n        }\n    },\n    \"autoload-dev\": {\n        \"psr-4\": {\n            \"Tests\\\\\": \"tests/\"\n        }\n    }\n}\n");
-            // This is the actual E17 declaration, enabled by the lead after merging lane 3.
             Mod::layout('areas')->extends('modules')->path('src/Areas/{area}');
             config()->set('mod.layout', 'areas');
             $composer = Mockery::mock(Composer::class);
@@ -48,8 +47,7 @@ it('autoloads E17 moved areas and then generates the model', function (bool $int
     } finally {
         putenv($columns === false ? 'COLUMNS' : 'COLUMNS='.$columns);
     }
-})->with([[true, null], [false, null], [false, 'Areas\\']])
-    ->skip('needs the lead’s namespaceFor() autoload integration');
+})->with([[true, null], [false, null], [false, 'Areas\\']]);
 
 it('E17 extends modules with the area token in options and notices', function () {
     putenv('COLUMNS=72');

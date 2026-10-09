@@ -3,9 +3,7 @@
 use Illuminate\Support\Composer;
 use Illuminate\Support\Facades\Artisan;
 use Pest\TestSuite;
-use Tey\Mod\Commands\AutoloadCommand;
 use Tey\Mod\Facades\Mod;
-use Tey\Mod\Tests\Feature\Generation\Support\InferredAreasAutoloadCommand;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\TestCase;
 
@@ -48,7 +46,7 @@ it('adds the missing ddd root and dumps autoloads once in the application', func
 
         $result = $workspace->artisan('mod:autoload')->assertSuccessful();
 
-        expect(str_replace("\r\n", "\n", $result->output))->toBe("\n   INFO  composer.json is missing 1 autoload entry for the ddd layout.  \n\n  \"Domain\\\\\": \"src/Domain/\" .................................... added  \n  composer dump-autoload ........................................ DONE  \n\n")
+        expect($result->normalisedOutput())->toBe("\n   INFO  composer.json is missing 1 autoload entry for the ddd layout.  \n\n  \"Domain\\\\\": \"src/Domain/\" .................................... added  \n  composer dump-autoload ........................................ DONE  \n\n")
             ->and(json_decode($workspace->read('composer.json'), true)['autoload']['psr-4'])
             ->toBe(['App\\' => 'app/', 'Domain\\' => 'src/Domain/']);
 
@@ -185,7 +183,9 @@ it('does not register mod:autoload when mod commands are disabled', function () 
 
 it('asks for an inferred namespace and writes the answer', function () {
     Workspace::run(null, function (Workspace $workspace) {
-        app()->bind(AutoloadCommand::class, InferredAreasAutoloadCommand::class);
+        autoloadFixture($workspace);
+        Mod::layout('areas')->extends('modules')->path('src/Areas/{area}');
+        config()->set('mod.layout', 'areas');
         app()->instance(Composer::class, Mockery::mock(Composer::class));
         autoloadCommandTestCase()->artisan('mod:autoload', ['--no-dump' => true])
             ->expectsQuestion("src/Areas isn't autoloaded. Which namespace should it use?", 'Company\\Areas\\')
@@ -195,9 +195,11 @@ it('asks for an inferred namespace and writes the answer', function () {
     });
 });
 
-it('uses the inferred default without interaction or the explicit namespace flag', function (?string $namespace) {
-    Workspace::run(null, function (Workspace $workspace) use ($namespace) {
-        app()->bind(AutoloadCommand::class, InferredAreasAutoloadCommand::class);
+it('uses the inferred default without interaction or the explicit namespace flag', function (?string $namespace, string $path) {
+    Workspace::run(null, function (Workspace $workspace) use ($namespace, $path) {
+        autoloadFixture($workspace);
+        Mod::layout('areas')->extends('modules')->path($path === 'absolute' ? $workspace->root->path('src/Areas/{area}') : $path);
+        config()->set('mod.layout', 'areas');
         app()->instance(Composer::class, Mockery::mock(Composer::class));
         $options = ['--no-dump' => true, ...($namespace === null ? [] : ['--namespace' => $namespace])];
         $result = $workspace->artisan('mod:autoload', $options)->assertSuccessful();
@@ -207,7 +209,7 @@ it('uses the inferred default without interaction or the explicit namespace flag
         expect(json_decode($workspace->read('composer.json'), true)['autoload']['psr-4'])
             ->toBe(['App\\' => 'app/', ($namespace === null ? 'Areas\\' : 'Company\\Areas\\') => 'src/Areas/']);
     });
-})->with([null, 'Company\\Areas']);
+})->with([null, 'Company\\Areas'])->with(['src/Areas/{area}', 'src\\Areas\\{area}', 'absolute']);
 
 it('rejects invalid composer.json without writing or dumping', function (string $json) {
     Workspace::run(null, function (Workspace $workspace) use ($json) {
