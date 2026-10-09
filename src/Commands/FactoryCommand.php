@@ -6,6 +6,7 @@ use Illuminate\Console\GeneratorCommand;
 use Illuminate\Database\Console\Factories\FactoryMakeCommand;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Commands\Concerns\PlacesGeneratedClass;
+use Tey\Mod\Generation\ClassMembers;
 use Tey\Mod\Generation\FactoryConvention;
 use Tey\Mod\Generation\GeneratorAdapter;
 use Tey\Mod\Relation\RelationResolution;
@@ -60,7 +61,8 @@ class FactoryCommand extends FactoryMakeCommand implements GeneratorAdapter
         $nativeModel = $this->qualifyModel($this->guessModelName($name));
 
         if (! (new FactoryConvention($this->laravel->getNamespace()))->links($model, (string) $primary->fqcn())
-            && ($this->option('model') || $model !== $nativeModel)) {
+            && ($this->option('model') || $model !== $nativeModel)
+            && ! (new ClassMembers($stub))->hasProperty($basename, 'model')) {
             $stub = preg_replace(
                 '/(class '.preg_quote($basename, '/').' extends Factory\R\{\R)/',
                 '$1    protected $model = '.$this->modelReference($stub, $model, $basename).'::class;'."\n\n",

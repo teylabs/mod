@@ -11,6 +11,7 @@ use Tey\Mod\Commands\GenericClassCommand;
 use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\BaseWriter;
+use Tey\Mod\Generation\ClassMembers;
 use Tey\Mod\Generation\GeneratedBase;
 use Tey\Mod\Generation\GenerationPlan;
 use Tey\Mod\Generation\GroupFolders;
@@ -527,7 +528,8 @@ trait PlacesGeneratedClass
         $base = $this->modStub?->base;
         $short = $base !== null ? class_basename($base) : '';
         // "\n", not PHP_EOL: generated PHP is LF on every OS, like the stubs.
-        $import = $base !== null ? "\nuse {$base};\n" : '';
+        $rendered = str_replace(['{{ base }}', '{{base}}', '{{ baseClass }}', '{{baseClass}}', '{{ baseImport }}', '{{baseImport}}'], [$base ?? '', $base ?? '', $short, $short, '', ''], $stub);
+        $import = $base !== null && ! (new ClassMembers($rendered))->hasImport($base) ? "\nuse {$base};\n" : '';
         $extends = $base !== null ? ' extends '.$short : '';
 
         return str_replace(

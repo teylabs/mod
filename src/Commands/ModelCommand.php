@@ -2,10 +2,12 @@
 
 namespace Tey\Mod\Commands;
 
+use Illuminate\Console\GeneratorCommand;
 use Illuminate\Foundation\Console\ModelMakeCommand;
 use Illuminate\Support\Str;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Commands\Concerns\PlacesGeneratedClass;
+use Tey\Mod\Generation\ClassMembers;
 use Tey\Mod\Generation\FactoryConvention;
 use Tey\Mod\Generation\GeneratorAdapter;
 use Tey\Mod\Generation\ModMigrationCreator;
@@ -132,15 +134,20 @@ class ModelCommand extends ModelMakeCommand implements GeneratorAdapter
             return parent::buildFactoryReplacements();
         }
 
-        $code = "/** @use HasFactory<\\{$factory}> */\n    use HasFactory;";
+        $source = GeneratorCommand::buildClass((string) $this->primary()->fqcn());
+        $source = str_replace(['{{ factory }}', '{{ factoryImport }}'], '', $source);
+        $members = new ClassMembers($source);
+        $class = (string) $this->primary()->class()?->basename;
+        $code = $members->hasTrait($class, 'HasFactory') || $members->hasTrait($class, 'Illuminate\\Database\\Eloquent\\Factories\\HasFactory') ? '' : "/** @use HasFactory<\\{$factory}> */\n    use HasFactory;";
 
-        if (! (new FactoryConvention($this->laravel->getNamespace()))->links((string) $this->primary()->fqcn(), $factory)) {
+        if (! (new FactoryConvention($this->laravel->getNamespace()))->links((string) $this->primary()->fqcn(), $factory)
+            && ! $members->hasMethod($class, 'newFactory')) {
             $code .= "\n\n    protected static function newFactory(): \\{$factory}\n    {\n        return \\{$factory}::new();\n    }";
         }
 
         return [
             '{{ factory }}' => $code,
-            '{{ factoryImport }}' => 'use Illuminate\Database\Eloquent\Factories\HasFactory;',
+            '{{ factoryImport }}' => $members->hasImport('Illuminate\\Database\\Eloquent\\Factories\\HasFactory') ? '' : 'use Illuminate\Database\Eloquent\Factories\HasFactory;',
         ];
     }
 
