@@ -134,3 +134,14 @@ it('reads skill frontmatter checked out with CRLF line endings', function () {
     expect($frontmatter)->toBe(['name' => 'mod-development', 'license' => 'MIT'])
         ->and($body)->toBe("# Body\r\n");
 });
+
+it('guides agents through inventory, templates and scaffold planning', function () {
+    $guideline = (string) file_get_contents(boostPath('guidelines/core.blade.php'));
+    [, $skill] = boostSkill('mod-development');
+
+    foreach ([$guideline, $skill] as $text) {
+        expect($text)->toContain('php artisan mod:list --json', 'mod:template', '--no-interaction', 'scaffold');
+    }
+
+    expect($skill)->toContain('Tey\\Mod\\Scaffolds\\Scaffold', '->makes(', '->include(', '.fqcn', '--skip-existing', '->asks(', '->part(', '->inserts(');
+});

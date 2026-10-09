@@ -2,7 +2,7 @@
 
 Mod registers the providers, Artisan commands, event listeners and event subscribers your layout places, adds its migration folders to Laravel's migrator, and finds the factory and policy of each model it places. This page covers what is discovered where, caching, and supplying your own candidate files.
 
-## What Is Discovered
+## What is discovered
 
 | File type | Registered as |
 | --- | --- |
@@ -14,38 +14,38 @@ Mod registers the providers, Artisan commands, event listeners and event subscri
 
 Discovery runs after every provider has booted. Only classes that really are providers, commands, listeners or subscribers are registered; everything else is skipped.
 
-Route files, views and translations aren't discovered. A module loads its routes from a provider of its own, which is discovered; [Module Routes](../README.md#module-routes) shows how.
+Route files, views and translations aren't discovered. A module loads its routes from a provider of its own, which is discovered; [Module routes](../README.md#module-routes) shows how.
 
-A subscriber in a `Listeners` folder is treated the way Laravel's own event discovery treats it: its typed `handle*()` methods are registered as listeners, and `subscribe()` isn't called. To register subscribers, give them a `subscriber` file type of their own:
+A subscriber in a `Listeners` folder is treated the way Laravel's own event discovery treats it: its typed `handle*()` methods are registered as listeners, and `subscribe()` isn't called. To register subscribers, give them a `subscriber` file type of their own. Imports belong at file scope; registration goes in the provider's `boot()`:
 
 ```php
 // app/Providers/AppServiceProvider.php
 use Tey\Mod\Facades\Mod;
 
-Mod::layout('modules')->kind('subscriber', in: 'Modules/{module}/Subscribers');
+Mod::layout('modules')->generates('subscriber', in: 'Modules/{module}/Subscribers');
 ```
 
-### Discovering Another File Type
+### Discovering another file type
 
-`discovery.kinds` is keyed by file type id. The built-in layouts call their Artisan commands `command`, so those are discovered already. To discover a file type of your own, map its id to what it is discovered as:
+`discovery.file_types` is keyed by file type id. The built-in layouts call their Artisan commands `command`, so those are discovered already. To discover a file type of your own, map its id to what it is discovered as:
 
 ```php
 // app/Providers/AppServiceProvider.php
 use Tey\Mod\Facades\Mod;
 
-Mod::layout('modules')->kind('handler', in: 'Modules/{module}/Handlers');
+Mod::layout('modules')->generates('handler', in: 'Modules/{module}/Handlers');
 ```
 
 ```php
 // config/mod.php
 'discovery' => [
-    'kinds' => ['handler' => 'listener'],
+    'file_types' => ['handler' => 'listener'],
 ],
 ```
 
 A key that isn't a file type of the active layout stops the app with an error listing the layout's file type ids.
 
-### Where Discovery Looks
+### Where discovery looks
 
 A file type is discovered in its own folder, such as `src/Domain/<Domain>/Listeners`. With `discover: 'anywhere'`, it is discovered in every PHP file below its group folder, and `discoverExcept:` skips folders below the group folder, such as `src/Domain/Knowledge/Tests`:
 
@@ -53,12 +53,12 @@ A file type is discovered in its own folder, such as `src/Domain/<Domain>/Listen
 // app/Providers/AppServiceProvider.php
 use Tey\Mod\Facades\Mod;
 
-Mod::layout('ddd')->kind('listener', in: '{domain+}/Listeners', discover: 'anywhere', discoverExcept: ['Tests']);
+Mod::layout('ddd')->generates('listener', in: '{domain+}/Listeners', discover: 'anywhere', discoverExcept: ['Tests']);
 ```
 
-A file type placed by a callback (`using:`) is discovered in its own folder only.
+A file type with a custom `FileType::place()` callback is discovered in its own folder only.
 
-### Listeners Are Registered Once
+### Listeners are registered once
 
 A listener is never registered twice. Whatever Laravel's own event discovery covers (`app/Listeners`, or the paths given to `withEvents()`), its events cache, or a manual `Event::listen()` already holds is left alone.
 
@@ -71,11 +71,11 @@ To manage migration folders yourself, turn this off:
 ```php
 // config/mod.php
 'discovery' => [
-    'kinds' => ['migration' => false],
+    'file_types' => ['migration' => false],
 ],
 ```
 
-## Factories and Policies
+## Factories and policies
 
 A model the layout places finds its factory and policy through the layout:
 
@@ -96,7 +96,7 @@ php artisan mod:cache   # also run by php artisan optimize
 php artisan mod:clear   # also run by php artisan optimize:clear
 ```
 
-`mod:cache` prints what it registered, and a second line for any files it found but didn't register. For the two modules in [Self-Contained Modules](../README.md#self-contained-modules), with the Knowledge provider that loads its routes:
+`mod:cache` prints what it registered, and a second line for any files it found but didn't register. For the two modules in [Self-contained modules](../README.md#self-contained-modules), with the Knowledge provider that loads its routes:
 
 ```text
 INFO  Discovery cached in [bootstrap/cache/mod-discovery.php]: 1 providers, 0 commands, 1 listeners, 0 subscribers, 2 directories, 6 rejected.
@@ -116,7 +116,7 @@ With a cache present, mod registers from the cache without scanning. When the la
 
 Like Laravel's own caches, the discovery cache doesn't pick up new classes. After adding a provider, command or listener while the cache exists, run `php artisan optimize:clear`.
 
-## Supplying Your Own Candidate Files
+## Supplying your own candidate files
 
 A package can supply the files discovery considers, for example to reuse an existing finder or skip generated folders. Pass a callback to `Mod::discoverUsing()` in a provider's `boot()`:
 
@@ -126,12 +126,9 @@ use Tey\Mod\Discovery\DiscoveryDefinition;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Layout\CompiledRoot;
 
-public function boot(): void
-{
-    Mod::discoverUsing(fn (CompiledRoot $root, string $basePath, DiscoveryDefinition $definition): iterable => [
-        'app/Modules/Knowledge/Listeners/GenerateEmbeddings.php',
-    ]);
-}
+Mod::discoverUsing(fn (CompiledRoot $root, string $basePath, DiscoveryDefinition $definition): iterable => [
+    'app/Modules/Knowledge/Listeners/GenerateEmbeddings.php',
+]);
 ```
 
 The callback replaces the scan of each root. It returns paths relative to the application. The definition says which file type (and discovery type) is being collected, so candidates can be scoped per type. Mod still decides which candidates are registered, in what order, and how, and factory and policy lookup stay on.

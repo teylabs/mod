@@ -73,6 +73,32 @@ chk "module routes via a provider" 'art mod:provider Knowledge:Knowledge | grep 
 
 chk "optimize runs mod" 'art optimize | grep -q " mod " && art optimize:clear | grep -q " mod "'
 chk "package docs installed" 'test -f vendor/tey/mod/docs/layouts.md'
+lay modules
+chk "inventory JSON first" 'art mod:list --json > inventory.json && "$PHP" -r '\''$i=json_decode(file_get_contents("inventory.json"),true,512,JSON_THROW_ON_ERROR); exit(isset($i["layout"],$i["types"],$i["templates"],$i["scaffolds"])?0:1);'\'''
+chk "create a generator template" 'art mod:template class tool --no-interaction | grep -q "stubs/mod/@module/Tools/tool.stub"'
+chk "generate from the template" 'art mod:tool Knowledge:SearchDocuments --no-interaction | grep -q "app/Modules/Knowledge/Tools/SearchDocuments.php"'
+chk "extract a template without loading the class" 'art mod:template --from=SearchDocuments --into=@module/Tools/search --no-interaction | grep -q "stubs/mod/@module/Tools/search.stub"'
+cat > app/Providers/AppServiceProvider.php <<'PHP'
+<?php
+namespace App\Providers;
+use Illuminate\Support\ServiceProvider;
+use Tey\Mod\Facades\Mod;
+use Tey\Mod\Scaffolds\Scaffold;
+class AppServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        Mod::scaffold('document', fn (Scaffold $s) => $s
+            ->makes('model', as: 'model')
+            ->makes('controller', name: '{name}Controller', as: 'controller',
+                options: ['--resource']));
+    }
+}
+PHP
+chk "README scaffold recipe" 'art mod:document Knowledge:Document --no-interaction | grep -q "app/Modules/Knowledge/Controllers/DocumentController.php" && test -f app/Modules/Knowledge/Models/Document.php'
+chk "scaffold collision choice" 'art mod:document Knowledge:Document --skip-existing --no-interaction && test -f app/Modules/Knowledge/Models/Document.php'
+lay ddd
+chk "autoload Domain roots" 'art mod:autoload --no-dump --no-interaction && "$PHP" -r '\''$i=json_decode(file_get_contents("composer.json"),true); exit(($i["autoload"]["psr-4"]["Domain\\"]??null)==="src/Domain/"?0:1);'\'''
 lay slices
 chk "slices: handler --in=feature/slice, no name" 'art mod:handler --in=Knowledge/IndexDocument | grep -q "app/Knowledge/IndexDocument/Handler.php"'
 chk "slices: command fallback" 'art mod:command PruneDocuments | grep -q "app/Console/Commands/PruneDocuments.php"'
