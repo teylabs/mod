@@ -40,6 +40,7 @@ use Tey\Mod\Scaffolds\ScaffoldRegistry;
 use Tey\Mod\Support\Path;
 use Tey\Mod\Templates\TemplateCatalog;
 use Tey\Mod\Templates\TemplateDiagnostics;
+use Throwable;
 
 class ModServiceProvider extends ServiceProvider
 {
@@ -227,16 +228,6 @@ class ModServiceProvider extends ServiceProvider
     }
 
     /**
-     * The active layout, compiled by its container binding.
-     *
-     * @throws InvalidLayout when the layout configuration is invalid
-     */
-    private function compiledLayout(): CompiledLayout
-    {
-        return $this->app->make(CompiledLayout::class);
-    }
-
-    /**
      * A hidden placeholder for each mod:* command another built-in layout has
      * and nothing here registers: running it names the layouts that have it.
      */
@@ -250,8 +241,12 @@ class ModServiceProvider extends ServiceProvider
         }
 
         try {
-            $preset = $this->compiledLayout();
-        } catch (InvalidLayout $exception) {
+            $preset = $this->app->make(CompiledLayout::class);
+        } catch (Throwable $exception) {
+            if (! $exception instanceof InvalidLayout) {
+                throw $exception;
+            }
+
             // Keep mod:list available to report configuration errors with exit 1.
             return;
         }
@@ -287,8 +282,12 @@ class ModServiceProvider extends ServiceProvider
         }
 
         try {
-            $preset = $this->compiledLayout();
-        } catch (InvalidLayout $exception) {
+            $preset = $this->app->make(CompiledLayout::class);
+        } catch (Throwable $exception) {
+            if (! $exception instanceof InvalidLayout) {
+                throw $exception;
+            }
+
             // Keep mod:list available to report configuration errors with exit 1.
             $artisan->resolveCommands([ListCommand::class]);
 
