@@ -5,9 +5,9 @@ namespace Tey\Mod\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Composer;
 use RuntimeException;
-use Symfony\Component\Process\Exception\ProcessStartFailedException;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Support\ComposerJson;
+use Throwable;
 
 use function Laravel\Prompts\text;
 
@@ -93,7 +93,9 @@ class AutoloadCommand extends Command
         $name = is_string($configured) ? $configured : 'active';
 
         if ($missing === []) {
-            $this->components->info("Every root of the {$name} layout is autoloaded.");
+            $this->components->info("Every root of the {$name} layout has its Composer mapping configured.");
+
+            $this->components->info('If classes do not load, run composer dump-autoload.');
 
             return self::SUCCESS;
         }
@@ -117,18 +119,18 @@ class AutoloadCommand extends Command
         $json->save();
 
         if (! $this->option('no-dump')) {
-            $composer = $this->laravel->make(Composer::class)->setWorkingPath($this->laravel->basePath());
-
             try {
+                $composer = $this->laravel->make(Composer::class)->setWorkingPath($this->laravel->basePath());
                 $status = $composer->dumpAutoloads();
-            } catch (ProcessStartFailedException) {
-                $status = 127;
+            } catch (Throwable $exception) {
+                $this->components->error($exception->getMessage());
+                $this->components->warn('composer.json was updated; run composer dump-autoload.');
+
+                return self::FAILURE;
             }
 
-            if (in_array($status, [126, 127, 9009], true)) {
-                $this->components->warn('Run composer dump-autoload to load the new entries.');
-            } elseif ($status !== 0) {
-                $this->components->warn('mod:autoload added the entries, but composer dump-autoload failed. Fix the Composer error and run composer dump-autoload again.');
+            if ($status !== 0) {
+                $this->components->warn('mod:autoload: composer dump-autoload failed. composer.json was updated; run composer dump-autoload.');
 
                 return self::FAILURE;
             } else {

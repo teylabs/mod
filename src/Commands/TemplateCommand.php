@@ -57,7 +57,7 @@ class TemplateCommand extends GenericClassCommand
         return parent::execute($input, $output);
     }
 
-    /** @return array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool} */
+    /** @return array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>} */
     private function template(): array
     {
         return $this->layout()->templates()[$this->kind()->id];
@@ -195,9 +195,27 @@ class TemplateCommand extends GenericClassCommand
         }
     }
 
+    protected function buildClass($name)
+    {
+        $rendered = parent::buildClass($name);
+        preg_match_all('/\{\{\s*([^{}]+?)\s*\}\}/', $rendered, $matches);
+        $unresolved = array_values(array_unique(array_map(static fn (string $name): string => '{{ '.trim($name).' }}', $matches[1])));
+        if ($unresolved !== []) {
+            $this->components->warn($this->getName().' has unresolved template placeholders: '.implode(', ', $unresolved).'. Check the template body.');
+        }
+
+        return $rendered;
+    }
+
     protected function replaceClass($stub, $name)
     {
-        $stub = (new PlaceholderFiller)->fill($stub, class_basename($name), $this->primary()->context->toArray(), $this->rootNamespace());
+        $values = $this->primary()->context->toArray();
+        foreach ($this->template()['body_aliases'] ?? [] as $alias => $group) {
+            if (isset($values[$group])) {
+                $values[$alias] = $values[$group];
+            }
+        }
+        $stub = (new PlaceholderFiller)->fill($stub, class_basename($name), $values, $this->rootNamespace());
 
         return parent::replaceClass($stub, $name);
     }
