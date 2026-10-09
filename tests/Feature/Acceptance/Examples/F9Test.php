@@ -20,7 +20,7 @@ it('F9 inserts a widget import and card at separate Vue anchors', function () {
         Mod::scaffold('dashboard', fn (Scaffold $s) => $s->makes('view-model', name: '{name}DashboardViewModel', as: 'dashboard', stub: 'dashboard')->makes('page', name: '{name}/Dashboard', as: 'view', stub: 'dashboard')->part('widget', uses: 'metric', configure: fn (Part $p) => $p->inserts(into: 'dashboard', at: 'widgets', stub: 'dashboard-metric')->inserts(into: 'view', at: 'card-imports', stub: 'dashboard-card-import')->inserts(into: 'view', at: 'widgets', stub: 'dashboard-card')));
         $w->artisan('mod:dashboard', ['name' => 'Inventory:Stock'])->assertSuccessful();
         $result = $w->artisan('mod:dashboard.widget', ['name' => 'Inventory:Stock', 'value' => 'LowStock'])->assertSuccessful();
-        expect($result->normalisedOutput())->toBe(Frontend::output('F9'));
+        expect($result->normalisedOutput())->toEqualText(Frontend::output('F9'));
         expect($result->normalisedOutput())->toContain('will write 2 files and 3 inserts', '<!-- mod:widgets -->')
             ->and($w->read('app/Modules/Inventory/resources/js/pages/Stock/Dashboard.vue'))->toContain("import LowStockCard from '@modules/Inventory/resources/js/components/LowStockCard.vue';", '<LowStockCard :metric="metrics.lowStock" />');
     });

@@ -5,6 +5,16 @@ use Symfony\Component\Process\Process;
 use Tey\Mod\Support\Path;
 use Tey\Mod\Tests\Feature\Generation\Support\CommandResult;
 
+// Text snapshots compare content and spacing independently of checkout newlines.
+// Copy/no-write guarantees continue to use strict byte comparisons.
+expect()->extend('toEqualText', function (string $expected, string $message = '') {
+    $actual = $this->value;
+    Assert::assertIsString($actual);
+    Assert::assertSame(str_replace("\r\n", "\n", $expected), str_replace("\r\n", "\n", $actual), $message);
+
+    return $this;
+});
+
 expect()->extend('toEqualPath', function (string $expected) {
     $actual = $this->value;
     Assert::assertIsString($actual);

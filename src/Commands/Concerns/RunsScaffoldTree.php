@@ -40,6 +40,7 @@ trait RunsScaffoldTree
 
     /** @var array<string, true> */
     private array $treeRouteGroups = [];
+
     /** @var array<string, string> project-relative variant => source, staged until acceptance */
     private array $treeVariants = [];
 

@@ -11,6 +11,6 @@ it('F7 derives card from a multi-dot template and preserves Blade expressions', 
         $path = 'app/Modules/Inventory/resources/views/components/widget-summary.blade.php';
         $result = $w->artisan('mod:card', ['name' => 'Inventory:WidgetSummary'])->assertSuccessful();
         expect($w->read($path))->toBe($stub)
-            ->and($result->normalisedOutput())->toBe("\n   INFO  Card [{$path}] created successfully. Use it as <x-inventory::widget-summary />.  \n\n");
+            ->and($result->normalisedOutput())->toEqualText("\n   INFO  Card [{$path}] created successfully. Use it as <x-inventory::widget-summary />.  \n\n");
     });
 });

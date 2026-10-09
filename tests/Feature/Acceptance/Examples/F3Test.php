@@ -7,9 +7,9 @@ it('F3 writes twelve CRUD members and uses page identities in the controller', f
     Workspace::run(null, function (Workspace $w) {
         Frontend::crud($w);
         $result = $w->artisan('mod:crud-pages', ['name' => 'Inventory:Widget'])->assertSuccessful();
-        expect($result->normalisedOutput())->toBe(Frontend::output('F3'));
+        expect($result->normalisedOutput())->toEqualText(Frontend::output('F3'));
         $path = 'app/Modules/Inventory/resources/js/pages/Widget/Index.vue';
-        expect(str_replace("\r\n", "\n", $w->read($path)))->toBe(Frontend::source('F3', $path))
+        expect($w->read($path))->toEqualText(Frontend::source('F3', $path))
             ->and($result->normalisedOutput())->toContain('will write 12 files for Inventory:Widget', 'indexPage', 'createPage', 'editPage', 'showPage')
             ->and($w->read('app/Modules/Inventory/Http/Controllers/WidgetController.php'))->toContain("Inertia::render('Inventory::Widget/Index'", "Inertia::render('Inventory::Widget/Edit'");
     });

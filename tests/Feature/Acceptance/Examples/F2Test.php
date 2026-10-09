@@ -8,7 +8,7 @@ it('F2 writes the exact minimal React page using kebab-case paths', function () 
         Frontend::setup($w, 'react');
         $path = 'app/Modules/Inventory/resources/js/pages/widget/index.tsx';
         $result = $w->artisan('mod:page', ['name' => 'Inventory:Widget/Index'])->assertSuccessful();
-        expect(str_replace("\r\n", "\n", $w->read($path)))->toBe(Frontend::source('F2', $path)."\n")
-            ->and($result->normalisedOutput())->toBe("\n   INFO  Page [{$path}] created successfully. Render it with Inertia::render('Inventory::widget/index').  \n\n");
+        expect($w->read($path))->toEqualText(Frontend::source('F2', $path)."\n")
+            ->and($result->normalisedOutput())->toEqualText("\n   INFO  Page [{$path}] created successfully. Render it with Inertia::render('Inventory::widget/index').  \n\n");
     });
 });

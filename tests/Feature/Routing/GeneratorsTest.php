@@ -45,6 +45,6 @@ it('preflights every route file before writing and previews collisions without p
         expect($data['would_write'])->toBeFalse()->and(array_column($data['files'], 'exists'))->toBe([false, true, false]);
         expect($w->read('app/Modules/Inventory/routes/api.php'))->toBe('keep api');
         $w->artisan('mod:routes', ['module' => 'Inventory', '--api' => true, '--console' => true, '--force' => true])->assertSuccessful();
-        expect(str_replace("\r\n", "\n", $w->read('app/Modules/Inventory/routes/console.php')))->toBe("<?php\n\nuse Illuminate\\Support\\Facades\\Artisan;\n\n// mod:routes\n");
+        expect($w->read('app/Modules/Inventory/routes/console.php'))->toEqualText("<?php\n\nuse Illuminate\\Support\\Facades\\Artisan;\n\n// mod:routes\n");
     });
 });

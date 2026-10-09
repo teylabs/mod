@@ -9,8 +9,8 @@ it('F12 writes Markdown below an arbitrary resources folder with headline forms'
         $w->write('stubs/mod/@module/resources/prompts/prompt.md.stub', Frontend::source('F12', 'stubs/mod/@module/resources/prompts/prompt.md.stub'));
         $path = 'app/Modules/Agents/resources/prompts/answer-question.md';
         $result = $w->artisan('mod:prompt', ['name' => 'Agents:AnswerQuestion'])->assertSuccessful();
-        expect($result->normalisedOutput())->toBe(Frontend::output('F12'));
-        expect($w->read($path))->toBe(Frontend::source('F12', $path))
+        expect($result->normalisedOutput())->toEqualText(Frontend::output('F12'));
+        expect($w->read($path))->toEqualText(Frontend::source('F12', $path))
             ->and($result->normalisedOutput())->toContain("Prompt [{$path}] created successfully.");
     });
 });
