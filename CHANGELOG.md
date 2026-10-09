@@ -2,14 +2,13 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## [0.3.1] - Unreleased
+## [0.3.1] - 2026-10-09
 
 ### Fixed
-
-- Keep the `ddd` preset free of frontend folders; frontend generation explains how to opt in with `->frontend()`.
-- Keep `ddd` views unqualified and markdown mail and notification views in Laravel's `resources/views` folder.
-- Restore `ddd` controllers, requests and middleware to `Controllers`, `Requests` and `Middleware` under `app/Modules/<Domain>`.
-- Remove the `ddd` routes mount; extended layouts can opt in with `->mounts('routes', null, ...)`.
+- The `ddd` layout matches laravel-ddd again: controllers, requests and middleware live in `app/Modules/<Domain>/Controllers`, `Requests` and `Middleware`.
+- The `ddd` layout declares no frontend folders. `mod:page`, frontend templates and Blade components explain how to opt in with `->frontend()`.
+- The `ddd` layout registers no view namespaces: markdown mail and notification views go to the app's `resources/views`, as `make:mail --markdown` does.
+- The `ddd` layout has no routes folder; an extended layout can add one.
 
 ## [0.3.0] - 2026-10-09
 
