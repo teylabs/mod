@@ -15,7 +15,7 @@ Work within the application's layout and existing conventions. Mod places files 
 - `config/mod.php` names the layout with `'layout'`. Without that file, the package default is `laravel`, which places files exactly like `make:*`.
 - The built-in layouts are `laravel`, `modules` (`app/Modules/<Module>`), `features` (`app/Features/<Feature>`), `slices` (`app/<Feature>/<Slice>`), `type-first` (`app/Models/<Feature?>`) and `ddd` (`src/Domain/<Domain>`, with controllers, requests and middleware in `app/Modules/<Domain>`).
 - Search the service providers for `Mod::layout(`. A call with a built-in name extends that layout; another name defines a new one. `->kind('validator', in: 'Modules/{module}/Validators')` adds a file type, and each `{placeholder}` in a folder becomes an option of that type's command (`--module=`).
-- Folders outside `app/` need a PSR-4 entry in `composer.json` (for `ddd`: `"Domain\\": "src/Domain/"`). Without one, files are generated but their classes don't load.
+- After choosing `ddd` or a custom layout with roots outside `app/`, run `php artisan mod:autoload`. It adds each missing PSR-4 entry in `composer.json` (for `ddd`: `"Domain\\": "src/Domain/"`). It then runs Composer. Use `--dry-run` to preview, or `--no-dump` when a script runs Composer itself. Resolve conflicting mappings in `composer.json` before running the command again.
 - `php artisan list mod` lists the generators this layout has. `php artisan help mod:<type>` shows a generator's placement options and Laravel's own options.
 - The installed package's `vendor/tey/mod/docs/layouts.md` lists every built-in layout's folders.
 

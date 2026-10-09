@@ -5,6 +5,7 @@ namespace Tey\Mod;
 use Illuminate\Console\Application as Artisan;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
+use Tey\Mod\Commands\AutoloadCommand;
 use Tey\Mod\Commands\BasesCommand;
 use Tey\Mod\Commands\OtherLayoutCommand;
 use Tey\Mod\Discovery\Console\DiscoveryCacheCommand;
@@ -238,7 +239,7 @@ class ModServiceProvider extends ServiceProvider
             return;
         }
 
-        $artisan->resolveCommands([BasesCommand::class]);
+        $artisan->resolveCommands([BasesCommand::class, AutoloadCommand::class]);
 
         foreach ($this->app->make(GeneratorRegistry::class)->commands($preset, $this->app) as $command) {
             $artisan->resolveCommands([$command]);
