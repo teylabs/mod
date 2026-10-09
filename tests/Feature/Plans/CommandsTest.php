@@ -44,7 +44,7 @@ it('plans tree files and inserts without changing the parent', function () {
         $before = array_map($w->read(...), array_combine($w->files(), $w->files()));
         $data = json_decode($w->artisan('mod:resource-tabs.tab', ['name' => 'Inventory:Widget', 'value' => 'History', '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
         expect(array_column($data['files'], 'path'))->toBe([TreeExamples::page('History')])
-            ->and(array_column($data['inserts'], 'into'))->toBe([TreeExamples::base(), 'app/Modules/Inventory/Controllers/WidgetController.php'])
+            ->and(array_column($data['inserts'], 'into'))->toBe([TreeExamples::base(), 'app/Modules/Inventory/Http/Controllers/WidgetController.php'])
             ->and(array_column($data['inserts'], 'at'))->toBe(['tabs', 'actions'])
             ->and($data['inserts'][0]['stub'])->toContain('History')
             ->and($data['warnings'])->toBe([])->and($data['would_write'])->toBeTrue()
