@@ -57,7 +57,7 @@ class TemplateCommand extends GenericClassCommand
         return parent::execute($input, $output);
     }
 
-    /** @return array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string} */
+    /** @return array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool} */
     private function template(): array
     {
         return $this->layout()->templates()[$this->kind()->id];

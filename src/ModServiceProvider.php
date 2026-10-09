@@ -4,10 +4,14 @@ namespace Tey\Mod;
 
 use Illuminate\Console\Application as Artisan;
 use Illuminate\Console\Events\CommandStarting;
-use Illuminate\Console\OutputStyle;
-use Illuminate\Console\View\Components\Factory;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Support\ServiceProvider;
+use Symfony\Component\Console\Exception\CommandNotFoundException;
+use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Console\Output\ConsoleOutput;
+use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Commands\AutoloadCommand;
 use Tey\Mod\Commands\BasesCommand;
 use Tey\Mod\Commands\DisabledScaffoldCommand;
@@ -16,6 +20,7 @@ use Tey\Mod\Commands\ScaffoldCommand;
 use Tey\Mod\Discovery\Console\DiscoveryCacheCommand;
 use Tey\Mod\Discovery\Console\DiscoveryClearCommand;
 use Tey\Mod\Discovery\Discovery;
+use Tey\Mod\Discovery\DiscoveryCache;
 use Tey\Mod\Discovery\DiscoveryCandidates;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryRegistrar;
@@ -31,7 +36,9 @@ use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Resolution\ModelConventions;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
+use Tey\Mod\Support\Path;
 use Tey\Mod\Templates\TemplateCatalog;
+use Tey\Mod\Templates\TemplateDiagnostics;
 
 class ModServiceProvider extends ServiceProvider
 {
@@ -40,7 +47,13 @@ class ModServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../config/mod.php', 'mod');
 
         $this->app->singleton(ScaffoldRegistry::class);
-        $this->app->singleton(TemplateCatalog::class, fn (Application $app): TemplateCatalog => new TemplateCatalog($app->basePath()));
+        $this->app->singleton(TemplateCatalog::class, function (Application $app): TemplateCatalog {
+            $options = DiscoveryOptions::fromConfig((array) $app->make('config')->get('mod.discovery', []));
+            $cache = new DiscoveryCache(Path::resolve($app->basePath(), $options->cachePath));
+
+            return new TemplateCatalog($app->basePath(), $app->make(StubRegistry::class), ! $app->runningInConsole() && $options->enabled ? $cache->templates() : null);
+        });
+        $this->app->singleton(TemplateDiagnostics::class);
         $this->app->singleton(LayoutRegistry::class);
         $this->app->singleton(StubRegistry::class, fn (): StubRegistry => Starters::register(new StubRegistry));
         $this->app->bind(BaseWriter::class, fn (Application $app): BaseWriter => new BaseWriter(
@@ -100,13 +113,17 @@ class ModServiceProvider extends ServiceProvider
         }
 
         $this->app->make('events')->listen(CommandStarting::class, function (CommandStarting $event): void {
-            $catalog = $this->app->make(TemplateCatalog::class);
-            $components = new Factory(new OutputStyle($event->input, $event->output));
-            foreach ($catalog->skipped() as $path => $fix) {
-                $components->warn("Skipped template [{$path}]: {$fix}");
-            }
-            foreach ($catalog->notices() as $notice) {
-                $components->info($notice);
+            $this->app->make(TemplateDiagnostics::class)->report($event->input, $event->output);
+        });
+        // Symfony fails lookup before CommandStarting. Keep scan diagnostics visible
+        // when Laravel reports that exception, without registering the skipped command.
+        $this->callAfterResolving(ExceptionHandler::class, function (ExceptionHandler $handler): void {
+            if ($handler instanceof Handler) {
+                $handler->reportable(function (CommandNotFoundException $exception): void {
+                    $input = new ArgvInput;
+                    $quiet = $input->hasParameterOption(['--quiet', '-q']);
+                    $this->app->make(TemplateDiagnostics::class)->report($input, new ConsoleOutput($quiet ? OutputInterface::VERBOSITY_QUIET : OutputInterface::VERBOSITY_NORMAL));
+                });
             }
         });
 

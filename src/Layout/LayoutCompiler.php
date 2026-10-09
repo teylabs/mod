@@ -42,7 +42,9 @@ final class LayoutCompiler
         }
         [$types, $roots, $rename] = GroupPath::resolve($this->layout->name, $chain['path'], $chain['kinds'], $chain['roots'], $chain['nesting']);
 
-        $types = $this->templates?->merge($this->layout->name, $chain['path'], $types, $roots) ?? $types;
+        if ($this->templates !== null) {
+            [$types, $roots] = $this->templates->merge($this->layout->name, $chain['path'], $types, $roots);
+        }
 
         $kinds = [];
         $placeholders = [];

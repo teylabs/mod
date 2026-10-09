@@ -6,9 +6,9 @@ use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 it('M2 suggests a likely typo in a terminal', function () {
     Workspace::run(null, function (Workspace $workspace) {
         TemplateScenario::tool($workspace);
-        $this->artisan('mod:tool', ['name' => 'Agnets:SearchDocuments'])
+        TemplateScenario::testCase()->artisan('mod:tool', ['name' => 'Agnets:SearchDocuments'])
             ->expectsQuestion("Agnets doesn't exist. Did you mean Agents?", 'Agents')
-            ->expectsOutputToContain('Tool [app/Modules/Agents/Tools/SearchDocuments.php] created successfully.')
+            ->expectsOutput(TemplateScenario::output($workspace, 'Tool [app/Modules/Agents/Tools/SearchDocuments.php] created successfully.'))
             ->assertSuccessful();
         expect($workspace->exists('app/Modules/Agnets'))->toBeFalse();
     });

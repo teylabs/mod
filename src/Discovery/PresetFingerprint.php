@@ -46,6 +46,7 @@ final readonly class PresetFingerprint
             'excluded' => array_map($describeRoot, $preset->excludedRoots()),
             'dimensions' => $preset->dimensionNames(),
             'kinds' => $kinds,
+            'templates' => array_map(static fn (array $template): array => [$template['path'], $template['source'], $template['digest']], $preset->templates()),
         ]));
     }
 

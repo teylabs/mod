@@ -6,9 +6,9 @@ use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 it('M16 offers the source option for a slash value in a terminal', function () {
     Workspace::run(null, function (Workspace $workspace) {
         TemplateScenario::webhook($workspace, true);
-        $this->artisan('mod:webhook', ['name' => 'Knowledge/Drive:FileChanged'])
+        TemplateScenario::testCase()->artisan('mod:webhook', ['name' => 'Knowledge/Drive:FileChanged'])
             ->expectsConfirmation('[Drive] looks like a source. Use --source=Drive?', 'yes')
-            ->expectsOutputToContain('Webhook [app/Modules/Knowledge/Webhooks/Drive/FileChanged.php] created successfully.')
+            ->expectsOutput(TemplateScenario::output($workspace, 'Webhook [app/Modules/Knowledge/Webhooks/Drive/FileChanged.php] created successfully.'))
             ->assertSuccessful();
         expect($workspace->exists('app/Modules/Knowledge/Webhooks/Drive/FileChanged.php'))->toBeTrue();
     });

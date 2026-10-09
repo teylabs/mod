@@ -3,6 +3,7 @@
 namespace Tey\Mod\Generation;
 
 use Illuminate\Support\ServiceProvider;
+use Tey\Mod\Support\Path;
 
 /**
  * Stubs that packages register for a kind, in any layout:
@@ -22,6 +23,23 @@ final class StubRegistry
 
     /** @var array<string, Stub> */
     private array $starters = [];
+
+    /** @var array<string, ?string> template folder => registering provider */
+    private array $folders = [];
+
+    /** Add a package's generator template folder. The application's templates win. */
+    public function folder(string $path): self
+    {
+        $this->folders[Path::normalize($path)] = $this->caller();
+
+        return $this;
+    }
+
+    /** @return array<string, ?string> */
+    public function folders(): array
+    {
+        return $this->folders;
+    }
 
     public function for(string $kind, Stub $stub): self
     {

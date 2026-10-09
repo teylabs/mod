@@ -8,7 +8,7 @@ use RecursiveIteratorIterator;
 use SplFileInfo;
 use Tey\Mod\Support\Path;
 
-/** A literal directory walk, including @anchor and [slot] folders. */
+/** @internal A literal directory walk, including @anchor and [slot] folders. */
 final class TemplateScanner
 {
     /** @return array<string, string> relative path => absolute file */

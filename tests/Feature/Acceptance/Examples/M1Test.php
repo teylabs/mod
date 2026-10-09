@@ -6,9 +6,9 @@ use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 it('M1 asks for a missing module in a terminal', function () {
     Workspace::run(null, function (Workspace $workspace) {
         TemplateScenario::tool($workspace);
-        $this->artisan('mod:tool', ['name' => 'SearchDocuments'])
+        TemplateScenario::testCase()->artisan('mod:tool', ['name' => 'SearchDocuments'])
             ->expectsQuestion('Which module?', 'Agents')
-            ->expectsOutputToContain('Tool [app/Modules/Agents/Tools/SearchDocuments.php] created successfully.')
+            ->expectsOutput(TemplateScenario::output($workspace, 'Tool [app/Modules/Agents/Tools/SearchDocuments.php] created successfully.'))
             ->assertSuccessful();
         expect(str_replace("\r\n", "\n", $workspace->read('app/Modules/Agents/Tools/SearchDocuments.php')))
             ->toBe(TemplateScenario::content('App\\Modules\\Agents\\Tools', 'SearchDocuments'));

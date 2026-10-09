@@ -16,9 +16,9 @@ it('E12 writes a template without an anchor relative to app', function () {
 it('E12 offers to drop placement in a terminal', function () {
     Workspace::run(null, function (Workspace $workspace) {
         TemplateScenario::tool($workspace, 'laravel');
-        $this->artisan('mod:tool', ['name' => 'Agents:SearchDocuments'])
+        TemplateScenario::testCase()->artisan('mod:tool', ['name' => 'Agents:SearchDocuments'])
             ->expectsConfirmation('Layout [laravel] takes no placement. Write app/Tools/SearchDocuments.php without [Agents:]?', 'yes')
-            ->expectsOutputToContain('Tool [app/Tools/SearchDocuments.php] created successfully.')
+            ->expectsOutput(TemplateScenario::output($workspace, 'Tool [app/Tools/SearchDocuments.php] created successfully.'))
             ->assertSuccessful();
         expect($workspace->exists('app/Tools/SearchDocuments.php'))->toBeTrue();
     });

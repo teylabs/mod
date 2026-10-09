@@ -7,10 +7,10 @@ it('E8 fills a source slot from its option or prompt', function (bool $interacti
     Workspace::run(null, function (Workspace $workspace) use ($interactive) {
         TemplateScenario::webhook($workspace);
         if ($interactive) {
-            $this->artisan('mod:webhook', ['name' => 'Knowledge:FileChanged'])
+            TemplateScenario::testCase()->artisan('mod:webhook', ['name' => 'Knowledge:FileChanged'])
                 ->expectsQuestion('Which source?', 'Drive')
                 ->expectsOutputToContain('Created new source Drive.')
-                ->expectsOutputToContain('Webhook [app/Modules/Knowledge/Webhooks/Drive/FileChanged.php] created successfully.')
+                ->expectsOutput(TemplateScenario::output($workspace, 'Webhook [app/Modules/Knowledge/Webhooks/Drive/FileChanged.php] created successfully.'))
                 ->assertSuccessful();
         } else {
             $result = $workspace->artisan('mod:webhook', ['name' => 'Knowledge:FileChanged', '--source' => 'Drive'])->assertSuccessful();

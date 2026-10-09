@@ -95,11 +95,11 @@ it('refuses unknown schema versions and malformed files', DiscoveryFixture::arou
     $header = "'preset' => '{$discovery->presetFingerprint()}', 'definitions' => '{$discovery->definitionsFingerprint()}'";
 
     foreach ([
-        "<?php return ['schema' => 999, {$header}, 'inventory' => ['entries' => [], 'rejections' => []]];" => 'schema version [999] is not the supported version [1]',
+        "<?php return ['schema' => 999, {$header}, 'inventory' => ['entries' => [], 'rejections' => []]];" => 'schema version [999] is not the supported version [2]',
         "<?php return 'inventory';" => 'does not return an array',
         '<?php return [' => 'is not valid PHP',
-        "<?php return ['schema' => 1, {$header}, 'inventory' => ['entries' => 'none', 'rejections' => []]];" => 'malformed inventory',
-        "<?php return ['schema' => 1, {$header}, 'inventory' => ['entries' => [['kind' => 'provider', 'type' => 'widget', 'class' => 'X', 'path' => 'x.php', 'context' => [], 'events' => []]], 'rejections' => []]];" => 'unknown discovery type [widget]',
+        "<?php return ['schema' => 2, {$header}, 'inventory' => ['entries' => 'none', 'rejections' => []]];" => 'malformed inventory',
+        "<?php return ['schema' => 2, {$header}, 'inventory' => ['entries' => [['kind' => 'provider', 'type' => 'widget', 'class' => 'X', 'path' => 'x.php', 'context' => [], 'events' => []]], 'rejections' => []]];" => 'unknown discovery type [widget]',
     ] as $contents => $problem) {
         file_put_contents($file, $contents);
 

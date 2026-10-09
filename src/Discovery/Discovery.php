@@ -124,7 +124,7 @@ final class Discovery
     public function writeCache(): Inventory
     {
         $inventory = $this->scan();
-        $this->cache()->write($inventory, $this->presetFingerprint(), $this->definitionsFingerprint());
+        $this->cache()->write($inventory, $this->presetFingerprint(), $this->definitionsFingerprint(), $this->preset->templates());
 
         return $inventory;
     }

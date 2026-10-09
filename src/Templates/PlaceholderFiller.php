@@ -4,7 +4,7 @@ namespace Tey\Mod\Templates;
 
 use Illuminate\Support\Str;
 
-/** The value and name placeholders generator templates add to Laravel's stubs. */
+/** @internal The value and name placeholders generator templates add to Laravel's stubs. */
 final class PlaceholderFiller
 {
     /** @param array<string, string> $values */

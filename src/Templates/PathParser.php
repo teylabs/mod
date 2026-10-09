@@ -4,13 +4,14 @@ namespace Tey\Mod\Templates;
 
 use Illuminate\Support\Str;
 use Symfony\Component\Filesystem\Filesystem;
+use Tey\Mod\Artifact\Identifier;
 use Tey\Mod\Layout\BuiltIn\TemplateAnchors;
 use Tey\Mod\Layout\FileType;
 use Tey\Mod\Layout\GroupPath;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Support\Path;
 
-/** Parses folder segments literally; brackets never become filesystem patterns. */
+/** @internal Parses folder segments literally; brackets never become filesystem patterns. */
 final class PathParser
 {
     private const RESERVED = ['help', 'quiet', 'verbose', 'version', 'ansi', 'no-ansi', 'no-interaction', 'env', 'in', 'force'];
@@ -105,9 +106,16 @@ final class PathParser
             if ($anchor !== 'group' && $anchor !== $resolved) {
                 $notice = "Template anchor @{$anchor} resolves to @{$resolved} in layout [{$layout}].";
             }
-            $prefix = array_slice($parts, 0, $anchorIndex);
+            $prefix = [];
+            $suffix = [];
+            foreach ($parts as $index => $part) {
+                if ($index < $anchorIndex) {
+                    $prefix[] = $part;
+                } elseif ($index > $anchorIndex) {
+                    $suffix[] = $part;
+                }
+            }
             $literalPrefix = array_values(array_filter($prefix, static fn (string $part): bool => ! str_starts_with($part, '{')));
-            $suffix = array_slice($parts, $anchorIndex + 1);
             $target = null;
             if ($literalPrefix === [] && $groupPath !== null) {
                 $candidate = $this->throughToken(GroupPath::projectPath($groupPath), $resolved);
@@ -138,7 +146,7 @@ final class PathParser
             [$root, $below] = $this->rootFor(Path::join($target, ...$suffix), $roots);
             $below = Path::join(...[...$leadingSlots, $below]);
             // Template groups are required, even where a native generator allows no placement.
-            $below = (string) preg_replace('/\{(\w+)\??\}/', '{$1}', $below);
+            $below = (string) preg_replace('/\{(\w+)(\+?)\??\}/', '{$1$2}', $below);
             foreach ($types as $type) {
                 $in = $type->toArray()['in'] ?? '';
                 foreach ($tokens as $token) {
@@ -160,6 +168,11 @@ final class PathParser
         }
         if ($roots[$root]['namespace'] === null) {
             throw new InvalidTemplate("plain-file templates aren't supported yet. Choose a namespaced root.");
+        }
+        foreach (explode('/', $below) as $part) {
+            if ($part !== '' && ! str_starts_with($part, '{') && ! Identifier::isClassSegment($part)) {
+                throw new InvalidTemplate("Folder [{$part}] cannot form a PHP namespace. Use letters, numbers and underscores.");
+            }
         }
         $groups = array_values(array_filter($tokens, static fn (string $token): bool => preg_match('/\{'.preg_quote($token, '/').'[+?]*\}/', $below) === 1));
 
