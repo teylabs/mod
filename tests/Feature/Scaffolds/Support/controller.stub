@@ -1,0 +1,34 @@
+<?php
+
+namespace {{ namespace }};
+
+use App\Http\Controllers\Controller;
+use {{ model.fqcn }};
+use {{ resource.fqcn }};
+use {{ storeRequest.fqcn }};
+use {{ updateRequest.fqcn }};
+
+class {{ class }} extends Controller
+{
+    public function index()
+    {
+        return {{ resource }}::collection({{ model }}::paginate());
+    }
+
+    public function store({{ storeRequest }} $request)
+    {
+        return new {{ resource }}({{ model }}::create($request->validated()));
+    }
+
+    public function show({{ model }} ${{ model.camel }})
+    {
+        return new {{ resource }}(${{ model.camel }});
+    }
+
+    public function update({{ updateRequest }} $request, {{ model }} ${{ model.camel }})
+    {
+        ${{ model.camel }}->update($request->validated());
+
+        return new {{ resource }}(${{ model.camel }});
+    }
+}
