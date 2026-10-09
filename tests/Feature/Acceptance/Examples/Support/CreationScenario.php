@@ -3,6 +3,7 @@
 namespace Tey\Mod\Tests\Feature\Acceptance\Examples\Support;
 
 use Illuminate\Contracts\Console\Kernel;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 
 final class CreationScenario
@@ -26,7 +27,7 @@ final class CreationScenario
 
     public static function rebootConsole(): void
     {
-        app()->forgetInstance(\Tey\Mod\Layout\CompiledLayout::class);
+        app()->forgetInstance(CompiledLayout::class);
         $kernel = app(Kernel::class);
         $kernel->setArtisan(null);
     }
@@ -40,7 +41,7 @@ final class CreationScenario
     public static function output(string $path, array $details, bool $extracted = false, ?string $class = null): string
     {
         $out = $class === null ? '' : "\n   INFO  Using {$class}.  \n\n";
-        $out .= ($class === null ? "\n" : "")."   INFO  Template [stubs/mod/{$path}.stub] created.  \n\n";
+        $out .= ($class === null ? "\n" : '')."   INFO  Template [stubs/mod/{$path}.stub] created.  \n\n";
         foreach ($details as $label => $value) {
             $out .= '  '.$label.' '.str_repeat('.', max(1, 66 - strlen($label) - strlen($value))).' '.$value."  \n";
         }
@@ -55,7 +56,7 @@ final class CreationScenario
     /** @param list<string> $messages */
     public static function errors(array $messages): string
     {
-        return "\n".implode("", array_map(static fn (string $message): string => ltrim(self::error($message), "\n"), $messages));
+        return "\n".implode('', array_map(static fn (string $message): string => ltrim(self::error($message), "\n"), $messages));
     }
 
     public static function error(string $message): string

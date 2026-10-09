@@ -57,6 +57,7 @@ final class TokenExtractor
                 if ($i === $namespaceRange[0]) {
                     $contents .= '{{ namespace }}';
                 }
+
                 continue;
             }
             if ($token->id === T_STRING && $token->text === $name) {
@@ -82,7 +83,7 @@ final class TokenExtractor
         }
 
         return ['name' => $name, 'namespace' => $namespace, 'class' => ($namespace === '' ? '' : $namespace.'\\').$name, 'contents' => $contents,
-            'replaced' => ($namespaceLine === null ? 'namespace (added)' : 'namespace (line '.$namespaceLine.')').', '.$name.' ('.$this->lines($lines).')', 'left' => $left];
+            'replaced' => ($namespaceLine === null ? 'namespace (not declared)' : 'namespace (line '.$namespaceLine.')').', '.$name.' ('.$this->lines($lines).')', 'left' => $left];
     }
 
     /** @param list<int> $lines */

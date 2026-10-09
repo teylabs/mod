@@ -1,0 +1,31 @@
+<?php
+
+namespace App\Modules\Knowledge\Stories;
+
+use App\Models\User;
+use App\Modules\Knowledge\Models\Document;
+use Storyfeed\PendingActivity;
+use Storyfeed\Stories\Story;
+
+class DocumentWasUploaded extends Story
+{
+    public function __construct(
+        public Document $document,
+        public User $actor,
+    ) {}
+
+    public function toFeedActivity(): ?PendingActivity
+    {
+        return $this->activity($this->document)->by($this->actor);
+    }
+
+    public function headline(): string
+    {
+        return ':actor uploaded :object';
+    }
+
+    public function icon(): ?string
+    {
+        return 'document';
+    }
+}

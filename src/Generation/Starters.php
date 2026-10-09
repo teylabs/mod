@@ -86,6 +86,17 @@ final class Starters
         return $registry;
     }
 
+    /** @internal A template creation label; base placeholders are kept unresolved. */
+    public static function templateLabel(string $type): ?string
+    {
+        return match ($type) {
+            'class' => 'a class', 'interface' => 'an interface', 'trait' => 'a trait', 'enum' => 'an enum',
+            'dto', 'data', 'data-transfer-object' => 'a DTO (extends the DataTransferObject base)',
+            'action' => 'an action (a class with handle())', 'view-model', 'viewmodel' => 'a view model',
+            'value-object', 'value' => 'a value object', default => null,
+        };
+    }
+
     private static function base(string $name, string $in, string $stub, ?string $baseIn): GeneratedBase
     {
         $base = GeneratedBase::named($name, in: $baseIn ?? $in, stub: self::STUBS."/bases/{$stub}.stub");

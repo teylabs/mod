@@ -2,6 +2,7 @@
 
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Support\ComposerJson;
+use Tey\Mod\Tests\Feature\Acceptance\Examples\Support\CreationScenario;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 
 it('E10 places workflow actions in slash and dot nested domains', function (string $prefix) {
@@ -22,3 +23,15 @@ it('E10 places workflow actions in slash and dot nested domains', function (stri
             ->and(str_replace("\r\n", "\n", $workspace->read('src/Domain/Agents/Chat/Workflows/EscalateConversation.php')))->toBe("<?php\n\nnamespace Domain\\Agents\\Chat\\Workflows;\n\nclass EscalateConversation\n{\n    public function handle(): void\n    {\n        //\n    }\n}\n");
     });
 })->with(['Agents/Chat', 'Agents.Chat']);
+
+it('E10 creates its generator template with exact output', function () {
+    Workspace::run(null, function (Workspace $w) {
+        CreationScenario::setup($w, 'ddd');
+        $result = $w->artisan('mod:template', ['type' => 'action', 'path' => 'workflow'])->assertSuccessful();
+        expect($result->normalisedOutput())->toBe(CreationScenario::output('@domain/Workflows/workflow', [
+            'Starts as' => 'an action (a class with handle())', 'Command' => 'mod:workflow',
+            'Writes' => 'src/Domain/<domain>/Workflows/<Name>.php', 'Try' => 'php artisan mod:workflow Agents:<Name>',
+        ]))->and(str_replace("\r\n", "\n", $w->read('stubs/mod/@domain/Workflows/workflow.stub')))->toBe(CreationScenario::fixture('action'))
+            ->and($w->files())->toBe(['stubs/mod/@domain/Workflows/workflow.stub']);
+    });
+});
