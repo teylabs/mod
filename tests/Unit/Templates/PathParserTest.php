@@ -55,6 +55,8 @@ it('rejects broken paths with a fix', function (string $path, string $fix) {
     ['@module/[no-interaction]/tool.stub', '--no-interaction'],
     ['@module/[env]/tool.stub', '--env'],
     ['../Tools/tool.stub', 'outside'],
+    ['@group/../Tools/tool.stub', 'outside'],
+    ['@group\\..\\Tools\\tool.stub', 'outside'],
     ['/Tools/tool.stub', 'relative'],
     ['@module/[source]/[source]/tool.stub', 'once'],
 ]);

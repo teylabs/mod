@@ -16,6 +16,7 @@ use Tey\Mod\Commands\AutoloadCommand;
 use Tey\Mod\Commands\BasesCommand;
 use Tey\Mod\Commands\CreateTemplateCommand;
 use Tey\Mod\Commands\DisabledScaffoldCommand;
+use Tey\Mod\Commands\DisabledTemplateCommand;
 use Tey\Mod\Commands\ListCommand;
 use Tey\Mod\Commands\OtherLayoutCommand;
 use Tey\Mod\Commands\ScaffoldCommand;
@@ -307,6 +308,12 @@ class ModServiceProvider extends ServiceProvider
             // A placement option that would shadow one of the command's own is left out; say so.
             foreach (method_exists($command, 'placementOptionIssues') ? $command->placementOptionIssues() : [] as $issue) {
                 $this->app->make('log')->warning('mod layout: '.$issue->describe());
+            }
+        }
+
+        foreach ($this->app->make(TemplateCatalog::class)->conflicts() as $command => $warning) {
+            if (! $artisan->has($command)) {
+                $artisan->resolve(new DisabledTemplateCommand($command, $warning));
             }
         }
 

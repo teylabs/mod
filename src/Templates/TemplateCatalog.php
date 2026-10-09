@@ -3,6 +3,7 @@
 namespace Tey\Mod\Templates;
 
 use Illuminate\Support\Str;
+use Symfony\Component\Filesystem\Path as FilesystemPath;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Layout\FileType;
@@ -17,6 +18,9 @@ final class TemplateCatalog
 
     /** @var array<string, string> */
     private array $skipped = [];
+
+    /** @var array<string, string> command => conflict warning */
+    private array $conflicts = [];
 
     /** @var list<string> */
     private array $notices = [];
@@ -38,6 +42,7 @@ final class TemplateCatalog
         $this->templates = [];
         $this->skipped = [];
         $this->notices = [];
+        $this->conflicts = [];
         $records = $this->files();
         if ($records === []) {
             return [$types, $roots];
@@ -73,7 +78,17 @@ final class TemplateCatalog
             }
         }
         foreach ($candidates as $id => $entries) {
-            $app = array_values(array_filter($entries, static fn (array $entry): bool => $entry[1]['source'] === 'app'));
+            $app = array_values(array_filter($entries, static fn (array $entry): bool => ($entry[1]['source'] === 'app' || str_starts_with($entry[1]['source'], 'app (overrides '))));
+            if ($app !== []) {
+                $packages = array_values(array_unique(array_map(static fn (array $entry): string => $entry[1]['source'], array_filter($entries, static fn (array $entry): bool => $entry[1]['source'] !== 'app' && ! str_starts_with($entry[1]['source'], 'app (overrides ')))));
+                sort($packages);
+                if ($packages !== []) {
+                    foreach ($app as &$entry) {
+                        $entry[1]['source'] = 'app (overrides '.implode(', ', $packages).')';
+                    }
+                    unset($entry);
+                }
+            }
             $candidates[$id] = $app === [] ? $entries : $app;
         }
         $owners = [];
@@ -89,8 +104,13 @@ final class TemplateCatalog
                 continue;
             }
             $paths = implode(', ', array_map(static fn (array $entry): string => $entry[1]['path'].' ('.$entry[1]['source'].')', $entries));
+            $warning = "Templates [{$paths}] give the same command {$command}. Define the template in the app's stubs/mod folder to override the packages, or rename one template.";
+            $this->conflicts[$command] = $warning;
             foreach ($entries as [$id, $record]) {
-                $this->skipped[$record['path']] = "Templates [{$paths}] give the same command {$command}. Rename one template.";
+                $this->skipped[$record['path']] = $warning;
+                foreach ($this->commands($id, $types[$id] ?? null) as $disabled) {
+                    $this->conflicts[$disabled] = $warning;
+                }
                 unset($candidates[$id]);
             }
         }
@@ -153,7 +173,7 @@ final class TemplateCatalog
         $folders[Path::join($this->basePath, 'stubs/mod')] = null;
         $files = [];
         foreach ($folders as $folder => $provider) {
-            $folder = Path::resolve($this->basePath, $folder);
+            $folder = FilesystemPath::canonicalize(Path::resolve($this->basePath, $folder));
             $app = Path::same($folder, Path::join($this->basePath, 'stubs/mod'));
             $source = $app ? 'app' : ($provider ?? (Path::relative(Path::join($this->basePath, 'vendor'), $folder) ?? $folder));
             if (! $app && preg_match('#^([^/]+/[^/]+)/#', $source, $match) === 1) {
@@ -239,6 +259,12 @@ final class TemplateCatalog
     public function skipped(): array
     {
         return $this->skipped;
+    }
+
+    /** @return array<string, string> command => actionable conflict warning */
+    public function conflicts(): array
+    {
+        return $this->conflicts;
     }
 
     /** @return list<string> */
