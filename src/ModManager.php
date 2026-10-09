@@ -12,6 +12,8 @@ use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
+use Tey\Mod\Scaffolds\Scaffold;
+use Tey\Mod\Scaffolds\ScaffoldRegistry;
 
 /**
  * What the Mod facade reaches: layouts, stubs and generators, callable from
@@ -27,6 +29,7 @@ final readonly class ModManager
         private GeneratorRegistry $generators,
         private ?Container $container = null,
         private DiscoveryCandidates $candidates = new DiscoveryCandidates,
+        private ScaffoldRegistry $scaffoldRegistry = new ScaffoldRegistry,
     ) {}
 
     /**
@@ -59,6 +62,35 @@ final readonly class ModManager
     public function layout(string $name): Layout
     {
         return $this->layouts->layout($name);
+    }
+
+    /** @param Closure(Scaffold): mixed $recipe */
+    public function scaffold(string $name, Closure $recipe): self
+    {
+        $this->scaffoldRegistry->register($name, $recipe);
+
+        return $this;
+    }
+
+    /** @param array<array-key, Closure|class-string> $recipes */
+    public function scaffolds(array $recipes): self
+    {
+        foreach ($recipes as $name => $recipe) {
+            if (is_string($recipe)) {
+                $instance = ($this->container ?? Container::getInstance())->make($recipe);
+                if (! is_callable($instance) || ! isset($instance->name) || ! is_string($instance->name)) {
+                    throw new \InvalidArgumentException('A scaffold class must be invokable and declare a string $name.');
+                }
+                $name = $instance->name;
+                $recipe = Closure::fromCallable($instance);
+            }
+            if (! is_string($name)) {
+                throw new \InvalidArgumentException('Scaffold closures must be keyed by name.');
+            }
+            $this->scaffold($name, $recipe);
+        }
+
+        return $this;
     }
 
     public function hasLayout(string $name): bool

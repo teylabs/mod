@@ -4,6 +4,7 @@ namespace Tey\Mod\Layout;
 
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Layout\BuiltIn\BuiltInLayouts;
+use Tey\Mod\Scaffolds\ScaffoldRegistry;
 
 /**
  * The application's layouts by name: the built-in ones, extended or not,
@@ -16,7 +17,7 @@ final class LayoutRegistry
     /** @var array<string, Layout> */
     private array $layouts = [];
 
-    public function __construct(private readonly BuiltInLayouts $builtIn = new BuiltInLayouts) {}
+    public function __construct(private readonly BuiltInLayouts $builtIn = new BuiltInLayouts, private readonly ScaffoldRegistry $scaffoldRegistry = new ScaffoldRegistry) {}
 
     /**
      * The layout of this name, to define or extend. A built-in layout starts
@@ -33,6 +34,12 @@ final class LayoutRegistry
         $layout->beginChain();
 
         return $this->layouts[$name] = $layout;
+    }
+
+    /** @internal */
+    public function scaffoldRegistry(): ScaffoldRegistry
+    {
+        return $this->scaffoldRegistry;
     }
 
     public function has(string $name): bool

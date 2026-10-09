@@ -25,6 +25,7 @@ use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Resolution\ModelConventions;
+use Tey\Mod\Scaffolds\ScaffoldRegistry;
 
 class ModServiceProvider extends ServiceProvider
 {
@@ -32,6 +33,7 @@ class ModServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__.'/../config/mod.php', 'mod');
 
+        $this->app->singleton(ScaffoldRegistry::class);
         $this->app->singleton(LayoutRegistry::class);
         $this->app->singleton(StubRegistry::class, fn (): StubRegistry => Starters::register(new StubRegistry));
         $this->app->bind(BaseWriter::class, fn (Application $app): BaseWriter => new BaseWriter(
