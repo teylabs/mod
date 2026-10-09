@@ -30,7 +30,8 @@
         "config": "config",
         "test": "tests/Feature",
         "view": "resources/views",
-        "component": "app/View/Components"
+        "component": "app/View/Components",
+        "page": "resources/js/pages"
     },
     "features": {
         "model": "app/Features/{feature}/Models",
@@ -64,7 +65,8 @@
         "validator": "app/Features/{feature}/Validation",
         "test": "tests/Feature/{feature}",
         "view": "app/Features/{feature}/resources/views",
-        "component": "app/Features/{feature}/View/Components"
+        "component": "app/Features/{feature}/View/Components",
+        "page": "app/Features/{feature}/resources/js/pages"
     },
     "slices": {
         "message": "app/{feature}/{slice}",
@@ -100,7 +102,8 @@
         "migration": "app/{feature}/Database/Migrations",
         "test": "tests/Feature/{feature}/{slice}",
         "view": "app/{feature}/{slice}/resources/views",
-        "component": "app/{feature}/{slice}/View/Components"
+        "component": "app/{feature}/{slice}/View/Components",
+        "page": "app/{feature}/{slice}/resources/js/pages"
     },
     "type-first": {
         "model": "app/Models/{feature}",
@@ -134,7 +137,8 @@
         "config": "config",
         "test": "tests/Feature/{feature}",
         "view": "resources/views/{feature}",
-        "component": "app/View/Components/{feature}"
+        "component": "app/View/Components/{feature}",
+        "page": "resources/js/pages"
     },
     "modules": {
         "model": "app/Modules/{module}/Models",
@@ -171,7 +175,8 @@
         "query": "app/Modules/{module}/Queries",
         "test": "tests/Feature/Modules/{module}",
         "view": "app/Modules/{module}/resources/views",
-        "component": "app/Modules/{module}/View/Components"
+        "component": "app/Modules/{module}/View/Components",
+        "page": "app/Modules/{module}/resources/js/pages"
     },
     "ddd": {
         "model": "src/Domain/{domain+}/Models",
@@ -207,6 +212,7 @@
         "middleware": "app/Modules/{domain+}/Http/Middleware",
         "test": "tests/Feature/{domain+}",
         "view": "app/Modules/{domain+}/resources/views",
-        "component": "app/Modules/{domain+}/View/Components"
+        "component": "app/Modules/{domain+}/View/Components",
+        "page": "app/Modules/{domain+}/resources/js/pages"
     }
 }

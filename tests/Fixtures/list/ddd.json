@@ -474,6 +474,11 @@
         "page_name": "{domain}::{path}",
         "view_namespace": "{domain.kebab}"
     },
+    "stack": {
+        "inertia": null,
+        "typescript": false,
+        "pages": "resources/js/pages"
+    },
     "wiring": {
         "inertia": false,
         "vite_alias": false,

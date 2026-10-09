@@ -67,6 +67,9 @@ it('ships only plain or abstract classes in Laravel style', function () {
     expect(shippedStubs())->not->toBeEmpty();
 
     foreach (shippedStubs() as $stub) {
+        if (str_contains(str_replace('\\', '/', $stub), '/Generation/PlainFile/stubs/')) {
+            continue; // Minimal Inertia pages are tested by their exact Vue/React contents.
+        }
         $body = (string) file_get_contents($stub);
 
         expect($body)->not->toMatch('/\bfinal\b/', $stub)

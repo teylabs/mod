@@ -45,7 +45,7 @@ it('lists every built-in layout and areas with exact console snapshots', functio
             Mod::layout('areas')->extends('modules');
         }
         $result = $w->artisan('mod:list')->assertSuccessful();
-        expect($result->normalisedOutput())->toBe(str_replace("\r\n", "\n", file_get_contents(__DIR__.'/../Fixtures/list/'.$name.'.txt')));
+        expect($result->normalisedOutput())->toEqualText(file_get_contents(__DIR__.'/../Fixtures/list/'.$name.'.txt'));
     });
 })->with(['laravel', 'modules', 'ddd', 'features', 'slices', 'type-first', 'areas']);
 

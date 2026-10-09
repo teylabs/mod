@@ -3,6 +3,8 @@
 namespace Tey\Mod\Plans;
 
 use Tey\Mod\Artifact\ResolvedArtifact;
+use Tey\Mod\Generation\PlainFile\Identity;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Support\Path;
 use Tey\Mod\Views\ViewIdentity;
 
@@ -21,6 +23,9 @@ final class Plan
     /** @var list<array{anchor: string, label: string}> Human labels retained by tree planners. */
     public array $insertDetails = [];
 
+    /** @var list<array{name: string, line: int}> */
+    public array $mentions = [];
+
     public bool $wouldWrite = true;
 
     public function __construct(public readonly string $command, public ?string $group = null, public ?string $name = null) {}
@@ -30,7 +35,7 @@ final class Plan
         $group = implode('/', $artifact->context->toArray()) ?: null;
         $exists = is_file(Path::resolve($basePath, $artifact->path()));
         $class = $artifact->fqcn();
-        $identity = $class === null ? ['identity' => ['path' => $artifact->path()]] : ['class' => $class];
+        $identity = $class === null ? ['identity' => Identity::forms($artifact, app(CompiledLayout::class))] : ['class' => $class];
         if ($artifact->identity instanceof ViewIdentity) {
             $identity = ['identity' => ['path' => $artifact->path(), 'name' => $artifact->identity->name(), 'tag' => $artifact->identity->tag()]];
         }
@@ -44,13 +49,15 @@ final class Plan
         $this->files[] = ['alias' => $alias, 'type' => $type, 'path' => $path, ...($class === null ? ['identity' => $identity] : ['class' => $class]), 'group' => $this->group, 'existing' => $exists, 'exists' => $exists];
     }
 
-    public function warning(string $message, ?string $file = null, ?int $line = null): void
+    public function warning(string $message, bool $blocking = true, ?string $file = null, ?int $line = null): void
     {
         $warning = ['file' => $file, 'line' => $line, 'message' => $message];
         if (! in_array($warning, $this->warnings, true)) {
             $this->warnings[] = $warning;
         }
-        $this->wouldWrite = false;
+        if ($blocking) {
+            $this->wouldWrite = false;
+        }
     }
 
     public function collisions(bool $force = false, bool $skipExisting = false): void
@@ -63,6 +70,6 @@ final class Plan
     /** @return array<string, mixed> */
     public function toArray(): array
     {
-        return ['command' => $this->command, 'group' => $this->group, 'name' => $this->name, 'files' => $this->files, 'inserts' => $this->inserts, 'warnings' => $this->warnings, 'would_write' => $this->wouldWrite];
+        return ['command' => $this->command, 'group' => $this->group, 'name' => $this->name, 'files' => $this->files, 'inserts' => $this->inserts, 'warnings' => $this->warnings, 'would_write' => $this->wouldWrite, ...($this->mentions === [] ? [] : ['mentions' => $this->mentions])];
     }
 }

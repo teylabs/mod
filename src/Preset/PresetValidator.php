@@ -501,7 +501,7 @@ final class PresetValidator
                 }
             }
 
-            $kinds[$id] = new ArtifactKind($id, $shape, $policy, $command, $names, $label);
+            $kinds[$id] = new ArtifactKind($id, $shape, $policy, $command, $names, $label, is_string($entry['extension'] ?? null) ? $entry['extension'] : null, is_string($entry['case'] ?? null) ? $entry['case'] : null);
             $rules[$id] = $rule;
         }
 
@@ -992,7 +992,7 @@ final class PresetValidator
             }
 
             if ($extra !== []) {
-                $kinds[$id] = new ArtifactKind($kind->id, $kind->shape, $kind->namePolicy, $kind->command, [...$kind->aliases, ...$extra], $kind->label);
+                $kinds[$id] = new ArtifactKind($kind->id, $kind->shape, $kind->namePolicy, $kind->command, [...$kind->aliases, ...$extra], $kind->label, $kind->extension, $kind->case);
             }
         }
 

@@ -66,6 +66,10 @@ function codeTokensMatching(string $pattern, bool $withBuiltInLayouts = false): 
     $hits = [];
 
     foreach (engineCodeTokens($withBuiltInLayouts) as $token) {
+        // @modules is the fixed public import alias, independent of layout placement.
+        if ($token['file'] === 'Generation/PlainFile/Identity.php' && $token['text'] === "'@modules/'") {
+            continue;
+        }
         if (preg_match($pattern, $token['text']) === 1) {
             $hits[] = "{$token['file']}:{$token['line']} {$token['text']}";
         }

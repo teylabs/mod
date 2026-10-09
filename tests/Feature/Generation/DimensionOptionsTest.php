@@ -65,7 +65,7 @@ function placedKinds(): array
         $preset = (new LayoutRegistry)->compile($layout);
 
         foreach ($preset->kinds() as $kind) {
-            if ($kind->command !== null && $kind->id !== 'migration' && $preset->rule($kind->id)->dimensions() !== []) {
+            if ($kind->extension === null && $kind->command !== null && $kind->id !== 'migration' && $preset->rule($kind->id)->dimensions() !== []) {
                 $cases["{$layout} {$kind->id}"] = [$layout, $kind->id];
             }
         }

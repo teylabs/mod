@@ -48,6 +48,7 @@ final class TemplateCatalog
             return [$types, $roots];
         }
         $roots = $this->composerRoots($roots, $records);
+        $roots['app-resources'] = ['namespace' => null, 'path' => 'resources'];
         $candidates = [];
         foreach ($records as $record) {
             ['relative' => $path, 'file' => $file, 'path' => $display, 'source' => $source] = $record;
@@ -120,6 +121,9 @@ final class TemplateCatalog
             $type = isset($types[$id]) ? clone $types[$id] : new FileType($id);
             $stub = $this->stub($file, $parsed, $types, $record['uses_base']);
             $type->withinRoot($parsed->root)->in($parsed->in)->stub($stub);
+            if ($parsed->extension !== null && $parsed->extension !== '.php') {
+                $type->extension($parsed->extension)->nested();
+            }
             if ($type->toArray()['priority'] === null) {
                 $type->priority(100 + count($this->templates));
             }

@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "required": ["stack"],
+  "properties": {
+    "stack": {
+      "type": "object",
+      "required": ["inertia", "typescript", "pages"],
+      "properties": {
+        "inertia": {"type": ["string", "null"]},
+        "typescript": {"type": "boolean"},
+        "pages": {"type": "string"}
+      }
+    }
+  }
+}

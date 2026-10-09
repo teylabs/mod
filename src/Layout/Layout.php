@@ -131,10 +131,14 @@ final class Layout
         ?array $aliases = null,
         ?Stub $stub = null,
         ?string $label = null,
+        ?string $case = null,
     ): self {
         $this->guard();
 
         $kind = $this->kinds[$id] ??= new FileType($id);
+        if ($case !== null) {
+            $kind->case($case);
+        }
 
         if ($ungrouped !== null) {
             $kind->ungrouped($ungrouped);

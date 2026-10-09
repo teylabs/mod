@@ -30,3 +30,15 @@ Module routes load only through `Mod::routes(only: [...], except: [...])`. Put t
 Use `mod:routes Inventory --api --console` for route files: web uses `web`, API uses `api` and `/api`, console loads only in the console. Use `mod:route-registrar Inventory` for a `RegistersRoutes` implementation with static `web()` and `api()` methods. Files load before registrars, and provider-loaded files are skipped. Both commands accept `--force` for replacement and `--dry-run --json` for a plan without writes. Refusals without a terminal name `--force`.
 
 Scaffold inserts use `into: 'routes'` for the module's web file or `into: 'routes.web'` / `into: 'routes.api'` for registrar methods when present. Missing files start with the route anchor. Keep bindings and rate limiters in providers. `mod:list --json` reports the `routes` entries with `group`, `entrypoint`, `kind`, `middleware_group`, `order`, and `loaded_by`; listing never calls a registrar.
+
+## Frontend and plain files
+
+Use `mod:page Inventory:Widget/Index` to create a minimal Inertia page. The detected Vue or React stack determines its extension and casing; without Inertia in `package.json`, the command explains how to declare it. The app's `stubs/mod.page.vue.stub`, `.tsx.stub` or `.jsx.stub` replaces the default. Page names follow the compiled `page_name` pattern; take `identity.name` from `--dry-run --json` rather than deriving it.
+
+Generator templates below `stubs/mod/` may write plain files under resources or routes. The first dot separates the command name from the extension: `card.blade.php.stub` gives the `card` command. Vue files are StudlyCase, React/Blade/Markdown/CSS are kebab-case, and `.ts`/`.js` keep the typed name. Override a file type with `case:`.
+
+Only known `name` between double braces placeholders are replaced. Unknown Vue and Blade expressions pass through; `name` between double braces prefixed by @ emits a literal `name` between double braces. Bare known placeholders in Vue and Blade generate a warning with the template path and line; use the explicit `name.studly` form explicitly. Nested a nested `name.camel` placeholder inside a framework expression leaves the framework expression intact. Lists support `.json` and `.array`; prose supports `.headline`.
+
+Plain scaffold members expose the component name through their bare alias, plus `.name`, `.import` through `@modules` for files under the group root or `@` for files under `resources/js`, `.tag` for Blade components, and `.path`. A `file` question accepts a project-relative plain file and exposes the same forms. Variants use `stubs/mod.page.<variant>.<extension>.stub`; a missing variant prompts to create it, and a non-interactive run names the file to supply. Inserts use explicit anchors in any comment style, including Vue script and template anchors.
+
+`mod:template --from=<plain-file> --into=<template-path>` copies the source unchanged, derives its extension, and reports name/group mentions for manual generalization. Its JSON preview includes `mentions[]` and writes nothing.

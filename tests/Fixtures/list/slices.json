@@ -467,6 +467,11 @@
         "page_name": "{feature}::{path}",
         "view_namespace": "{feature.kebab}.{slice.kebab}"
     },
+    "stack": {
+        "inertia": null,
+        "typescript": false,
+        "pages": "resources/js/pages"
+    },
     "wiring": {
         "inertia": false,
         "vite_alias": false,

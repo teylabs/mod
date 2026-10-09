@@ -18,7 +18,7 @@ it('F15 previews every edit before one confirmation and wires a Vue app', functi
             ->expectsConfirmation('Apply these changes?', 'yes')
             ->assertSuccessful();
         Kit::assertAfter($w, 'vue-laravel12');
-        expect($w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful()->normalisedOutput())->toBe("\n   INFO  Already wired.  \n\n");
+        expect($w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful()->normalisedOutput())->toEqualText("\n   INFO  Already wired.  \n\n");
     });
 });
 

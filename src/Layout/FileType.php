@@ -25,6 +25,10 @@ final class FileType
 
     private bool $file = false;
 
+    private ?string $extension = null;
+
+    private ?string $case = null;
+
     private string|false|null $command = null;
 
     /** @var list<string> */
@@ -113,6 +117,21 @@ final class FileType
     /**
      * A plain file rather than a PHP class (a routes file, say).
      */
+    public function extension(string $extension): self
+    {
+        $this->extension = $extension;
+        $this->file = true;
+
+        return $this;
+    }
+
+    public function case(string $case): self
+    {
+        $this->case = $case;
+
+        return $this;
+    }
+
     public function file(): self
     {
         $this->file = true;
@@ -231,7 +250,7 @@ final class FileType
     /**
      * @internal
      *
-     * @return array{in: ?string, fallback: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, aliases: list<string>, stub: ?Stub, label: ?string, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: (Closure(string, PlacementContext): string)|null, reads: list<string>}
+     * @return array{in: ?string, fallback: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, extension: ?string, case: ?string, command: string|false|null, aliases: list<string>, stub: ?Stub, label: ?string, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: (Closure(string, PlacementContext): string)|null, reads: list<string>}
      */
     public function toArray(): array
     {
@@ -241,6 +260,8 @@ final class FileType
             'root' => $this->root,
             'name' => $this->name,
             'file' => $this->file,
+            'extension' => $this->extension,
+            'case' => $this->case,
             'command' => $this->command,
             'aliases' => $this->aliases,
             'stub' => $this->stub,

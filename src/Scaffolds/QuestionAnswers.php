@@ -8,6 +8,7 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
 use Tey\Mod\Exceptions\GenerationRefused;
+use Tey\Mod\Generation\PlainFile\Identity;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Support\Path;
@@ -79,6 +80,28 @@ final readonly class QuestionAnswers
             }
 
             return $matches[0];
+        }
+
+        if ($question->type === 'file') {
+            $path = Path::normalize($value);
+            if (str_contains($path, '../') || str_starts_with($path, '/') || str_contains($path, ':')) {
+                throw GenerationRefused::because("{$command}: --{$question->name} needs a project-relative plain file path.");
+            }
+            foreach ($this->layout->kinds() as $kind) {
+                if ($kind->extension !== null) {
+                    $matches = $this->layout->rule($kind->id)->recognise($kind, $path, true);
+                    if ($matches !== []) {
+                        return $matches[0];
+                    }
+                }
+            }
+            if (is_file(Path::resolve($this->basePath, $path))) {
+                $artifact = Identity::fromPath($path, $this->layout);
+                if ($artifact !== null) {
+                    return $artifact;
+                }
+            }
+            throw GenerationRefused::because("{$command}: --{$question->name}={$value} is not a known plain file. Pass its project-relative path.");
         }
 
         return $value;

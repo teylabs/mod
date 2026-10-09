@@ -23,3 +23,13 @@ it('checks generated files and reports PHP lint failures clearly', function () {
             ->toThrow(ExpectationFailedException::class, 'is not valid PHP:');
     });
 });
+
+it('compares text newlines on both sides without losing spacing or final newlines', function () {
+    expect("line one\r\n  line two\n")->toEqualText("line one\n  line two\r\n");
+    expect(function (): void {
+        expect("line\r\n")->toEqualText('line');
+    })->toThrow(ExpectationFailedException::class);
+    expect(function (): void {
+        expect("  line\r\n")->toEqualText("line\n");
+    })->toThrow(ExpectationFailedException::class);
+});

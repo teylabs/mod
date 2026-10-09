@@ -41,6 +41,8 @@ final readonly class ArtifactKind
         public ?string $command = null,
         public array $aliases = [],
         public ?string $label = null,
+        public ?string $extension = null,
+        public ?string $case = null,
     ) {}
 
     public static function phpClass(string $id, ?NamePolicy $namePolicy = null, ?string $command = null): self

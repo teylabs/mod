@@ -15,6 +15,7 @@ namespace Pest;
  * @mixin Mixins\Expectation<TValue>
  * @mixin Arch\PendingArchExpectation
  *
+ * @method $this toEqualText(string $expected, string $message = '')
  * @method $this toEqualPath(string $expected)
  * @method $this toContainPath(string $expected)
  * @method $this toContainCreated(string $label, string $path)

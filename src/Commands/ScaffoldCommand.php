@@ -20,6 +20,7 @@ use Tey\Mod\Scaffolds\QuestionAnswers;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Scaffolds\ScaffoldExecution;
 use Tey\Mod\Scaffolds\ScaffoldPlan;
+use Tey\Mod\Support\Path;
 use Throwable;
 
 use function Laravel\Prompts\confirm;
@@ -102,7 +103,19 @@ final class ScaffoldCommand extends Command
         if ($this->dryPlan === null) {
             return;
         }
+        $scope = $this->scaffoldExecution();
         foreach ($plan->files() as $file) {
+            if ($scope !== null && $file['artifact']->kind->extension !== null) {
+                $artifact = $file['artifact'];
+                $source = $scope->variants[$artifact->path()] ?? $scope->defaultStubs[$artifact->path()] ?? '';
+                if (is_file($source)) {
+                    $warnings = [];
+                    (new Placeholders(['name' => $artifact->name, ...$scope->values[$artifact->path()]]))->renderPlain((string) file_get_contents($source), $artifact->kind->extension ?? '', Path::relative($this->laravel->basePath(), $source) ?? $source, $warnings);
+                    foreach ($warnings as $warning) {
+                        $this->dryPlan->warning($warning['message'], blocking: false, file: $warning['file'], line: $warning['line']);
+                    }
+                }
+            }
             $this->dryPlan->artifact($file['alias'], $file['artifact'], $this->laravel->basePath());
         }
         $this->dryPlan->collisions((bool) $this->option('force'), (bool) $this->option('skip-existing'));
@@ -177,14 +190,15 @@ final class ScaffoldCommand extends Command
             }
 
             foreach ($plan->files() as ['artifact' => $artifact]) {
-                $scope->values[$artifact->path()] = [...$values, ...$scope->aliases];
+                $scope->values[$artifact->path()] = [...$scope->aliases, ...$values];
             }
             foreach ($this->recipe->members() as $alias => $member) {
                 if ($member->stub === null) {
                     continue;
                 }
                 $primary = $scope->aliases[$alias];
-                $relative = 'stubs/mod.'.$member->fileType.'.'.$member->stub.'.stub';
+                $extension = $primary->kind->extension ?? '';
+                $relative = 'stubs/mod.'.$member->fileType.'.'.$member->stub.$extension.'.stub';
                 $registry = $this->laravel->make(StubRegistry::class);
                 $file = $this->laravel->basePath($relative);
                 $variant = is_file($file) ? $file : $registry->get($member->fileType.'.'.$member->stub)?->path;

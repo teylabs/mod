@@ -17,7 +17,7 @@ it('pins inventory bytes with the intended 0.3 HTTP placements and additive fron
         $output = $w->artisan('mod:list', ['--json' => true])->assertSuccessful()->normalisedOutput();
         // Package templates have absolute source paths; normalize only the checkout root.
         $output = str_replace(Path::normalize(dirname(__DIR__, 3)), '<package>', $output);
-        expect($output)->toBe(str_replace("\r\n", "\n", file_get_contents(__DIR__.'/../../Fixtures/list/'.$layout.'.json')));
+        expect($output)->toEqualText(file_get_contents(__DIR__.'/../../Fixtures/list/'.$layout.'.json'));
     });
 })->with(['laravel', 'modules', 'ddd', 'features', 'slices', 'type-first']);
 

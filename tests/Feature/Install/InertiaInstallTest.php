@@ -19,9 +19,12 @@ it('matches pinned kit files exactly and is idempotent', function (string $kit) 
     });
 })->with(['vue-laravel12', 'react-laravel12', 'vue-current', 'react-current']);
 
-it('lists machine-readable before and after edits without writing or prompting', function () {
-    Workspace::run(null, function (Workspace $w) {
+it('lists machine-readable before and after edits without writing or prompting', function (string $newline) {
+    Workspace::run(null, function (Workspace $w) use ($newline) {
         Kit::setup($w);
+        foreach (Kit::files('vue-laravel12', 'before') as $path => $contents) {
+            $w->write($path, str_replace("\n", $newline, $contents));
+        }
         $result = $w->artisan('mod:install', ['stack' => 'inertia', '--dry-run' => true, '--json' => true])->assertSuccessful();
         $plan = json_decode($result->output, true, flags: JSON_THROW_ON_ERROR);
         $schema = json_decode(file_get_contents(__DIR__.'/../../Fixtures/schema/plan.json'), true, flags: JSON_THROW_ON_ERROR);
@@ -29,11 +32,13 @@ it('lists machine-readable before and after edits without writing or prompting',
             ->and($plan['would_write'])->toBeTrue()
             ->and(array_column($plan['files'], 'path'))->toBe(['resources/js/app.ts', 'vite.config.ts', 'tsconfig.json', 'resources/css/app.css']);
         foreach ($plan['files'] as $file) {
-            expect(str_replace("\r\n", "\n", $w->read($file['path'])))->toBe($file['identity']['before']);
-            expect($file['identity']['after'])->toBe(Kit::files('vue-laravel12', 'after')[$file['path']]);
+            expect($w->read($file['path']))->toEqualText($file['identity']['before']);
+            expect($file['identity']['after'])->toEqualText(Kit::files('vue-laravel12', 'after')[$file['path']]);
+            // Preview must preserve the actual source bytes and write nothing.
+            expect($w->read($file['path']))->toBe($file['identity']['before']);
         }
     });
-});
+})->with(["\n", "\r\n"]);
 
 it('leaves all files alone when confirmation is declined', function () {
     Workspace::run(null, function (Workspace $w) {
@@ -41,7 +46,7 @@ it('leaves all files alone when confirmation is declined', function () {
         app(Kernel::class)->rerouteSymfonyCommandEvents();
         TemplateScenario::testCase()->artisan('mod:install', ['stack' => 'inertia'])->expectsConfirmation('Apply these changes?', 'no')->assertSuccessful();
         foreach (Kit::files('vue-laravel12', 'before') as $path => $contents) {
-            expect(str_replace("\r\n", "\n", $w->read($path)))->toBe($contents);
+            expect($w->read($path))->toEqualText($contents);
         }
     });
 });
@@ -53,9 +58,9 @@ it('refuses to rewrite a custom resolver and prints manual lines before any writ
         $w->write('resources/js/app.ts', $custom);
         $w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful()->expectsOutputToContain('custom resolve')->expectsOutputToContain('resolveModulePage')->expectsOutputToContain('@modules');
         expect($w->read('resources/js/app.ts'))->toBe($custom)
-            ->and($w->read('vite.config.ts'))->toBe(Kit::files('vue-current', 'before')['vite.config.ts']);
+            ->and($w->read('vite.config.ts'))->toEqualText(Kit::files('vue-current', 'before')['vite.config.ts']);
         $plan = json_decode($w->artisan('mod:install', ['stack' => 'inertia', '--dry-run' => true, '--json' => true])->output, true, flags: JSON_THROW_ON_ERROR);
-        expect($plan['would_write'])->toBeFalse()->and($plan['warnings'])->not->toBeEmpty();
+        expect($plan['would_write'])->toBeFalse()->and($plan['warnings'][0]['file'])->toBe('resources/js/app.ts');
     });
 });
 
@@ -200,6 +205,6 @@ it('names the non-interactive flag when there is no terminal and no answer', fun
         TemplateScenario::testCase()->artisan('mod:install', ['stack' => 'inertia'])
             ->expectsOutputToContain('mod:install inertia needs confirmation. Pass --no-interaction to apply these changes.')
             ->assertExitCode(1);
-        expect($w->read('resources/js/app.ts'))->toBe(Kit::files('vue-laravel12', 'before')['resources/js/app.ts']);
+        expect($w->read('resources/js/app.ts'))->toEqualText(Kit::files('vue-laravel12', 'before')['resources/js/app.ts']);
     });
 });

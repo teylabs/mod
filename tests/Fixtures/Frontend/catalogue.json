@@ -1,0 +1,291 @@
+{
+  "F1": [
+    [
+      "run",
+      "php artisan mod:page Inventory:Widget/Index"
+    ],
+    [
+      "out",
+      "   INFO  Page [app/Modules/Inventory/resources/js/pages/Widget/Index.vue] created successfully. Render it with Inertia::render('Inventory::Widget/Index')."
+    ],
+    [
+      "file",
+      "app/Modules/Inventory/resources/js/pages/Widget/Index.vue (no template of the app's own: mod's minimal page)",
+      "<script setup lang=\"ts\">\nimport { Head } from '@inertiajs/vue3';\n</script>\n\n<template>\n    <Head title=\"Index\" />\n</template>"
+    ],
+    [
+      "p",
+      "`page` is a built-in plain file type. mod reads the stack from `package.json` (Inertia with Vue, so `.vue`; `typescript` installed, so `lang=\"ts\"`) and writes the smallest valid page. The app's own `stubs/mod.page.vue.stub` replaces it. Vue page files are StudlyCase, as in the Vue starter kit (`pages/settings/Profile.vue`). The Inertia name is the module, `::`, then the path below `pages/`."
+    ]
+  ],
+  "F2": [
+    [
+      "run",
+      "php artisan mod:page Inventory:Widget/Index"
+    ],
+    [
+      "out",
+      "   INFO  Page [app/Modules/Inventory/resources/js/pages/widget/index.tsx] created successfully. Render it with Inertia::render('Inventory::widget/index')."
+    ],
+    [
+      "file",
+      "app/Modules/Inventory/resources/js/pages/widget/index.tsx",
+      "import { Head } from '@inertiajs/react';\n\nexport default function Index() {\n    return <Head title=\"Index\" />;\n}"
+    ],
+    [
+      "p",
+      "React pages use kebab-case file and folder names, as in the React starter kit (`pages/settings/profile.tsx`), so the Inertia name follows. The typed name (`Widget/Index`) is the same in both apps; the extension decides the casing."
+    ]
+  ],
+  "F3": [
+    [
+      "file",
+      "app/Providers/AppServiceProvider.php, boot()",
+      "Mod::scaffold('crud-pages', fn (Scaffold $s) => $s\n    ->include('crud')\n    ->makes('page', name: '{name}/Index', as: 'indexPage', stub: 'crud-index')\n    ->makes('page', name: '{name}/Create', as: 'createPage', stub: 'crud-form')\n    ->makes('page', name: '{name}/Edit', as: 'editPage', stub: 'crud-form')\n    ->makes('page', name: '{name}/Show', as: 'showPage', stub: 'crud-show')\n    ->makes('controller', name: '{name}Controller', stub: 'inertia-crud'));"
+    ],
+    [
+      "file",
+      "stubs/mod.controller.inertia-crud.stub (index and edit)",
+      "    public function index()\n    {\n        return Inertia::render('{{ indexPage.name }}', [\n            '{{ name.plural.camel }}' => {{ resource }}::collection({{ model }}::paginate()),\n        ]);\n    }\n\n    public function edit({{ model }} ${{ model.camel }})\n    {\n        return Inertia::render('{{ editPage.name }}', [\n            '{{ model.camel }}' => new {{ resource }}(${{ model.camel }}),\n        ]);\n    }"
+    ],
+    [
+      "file",
+      "stubs/mod.page.crud-index.vue.stub",
+      "<script setup lang=\"ts\">\nimport { Head } from '@inertiajs/vue3';\n\ndefineProps<{\n    {{ name.plural.camel }}: { data: Array<{ id: number }> };\n}>();\n</script>\n\n<template>\n    <Head title=\"{{ name.plural }}\" />\n    <ul>\n        <li v-for=\"{{ name.camel }} in {{ name.plural.camel }}.data\" :key=\"{{ name.camel }}.id\">{{ {{ name.camel }}.id }}</li>\n    </ul>\n</template>"
+    ],
+    [
+      "run",
+      "php artisan mod:crud-pages Inventory:Widget --no-interaction"
+    ],
+    [
+      "out",
+      "   INFO  mod:crud-pages will write 12 files for Inventory:Widget.\n\n  app/Modules/Inventory/Models/Widget.php .................................. model\n  \u2026\n  app/Modules/Inventory/Http/Controllers/WidgetController.php .......... controller\n  app/Modules/Inventory/resources/js/pages/Widget/Index.vue ............ indexPage\n  app/Modules/Inventory/resources/js/pages/Widget/Create.vue .......... createPage\n  app/Modules/Inventory/resources/js/pages/Widget/Edit.vue .............. editPage\n  app/Modules/Inventory/resources/js/pages/Widget/Show.vue .............. showPage"
+    ],
+    [
+      "file",
+      "app/Modules/Inventory/resources/js/pages/Widget/Index.vue",
+      "<script setup lang=\"ts\">\nimport { Head } from '@inertiajs/vue3';\n\ndefineProps<{\n    widgets: { data: Array<{ id: number }> };\n}>();\n</script>\n\n<template>\n    <Head title=\"Widgets\" />\n    <ul>\n        <li v-for=\"widget in widgets.data\" :key=\"widget.id\">{{ widget.id }}</li>\n    </ul>\n</template>"
+    ],
+    [
+      "file",
+      "app/Modules/Inventory/Http/Controllers/WidgetController.php (index)",
+      "        return Inertia::render('Inventory::Widget/Index', [\n            'widgets' => WidgetResource::collection(Widget::paginate()),\n        ]);"
+    ],
+    [
+      "p",
+      "Page members are placed like class members and listed in the same plan. `{{ indexPage.name }}` is the page's Inertia name, so the controller and the page can't drift. In the page, only known placeholders are replaced: `{{ {{ name.camel }}.id }}` becomes Vue's own `{{ widget.id }}`. The variant `crud-index` with the extension `.vue` is `stubs/mod.page.crud-index.vue.stub`."
+    ]
+  ],
+  "F4": [
+    [
+      "file",
+      "app/Providers/AppServiceProvider.php, boot()",
+      "Mod::scaffold('tab-page', fn (Scaffold $s) => $s\n    ->asks('base', type: 'class')\n    ->asks('layout', type: 'file')\n    ->asks('tab', type: 'text')\n    ->makes('view-model', name: '{name}{tab}ViewModel', as: 'page', stub: 'tab-page')\n    ->makes('page', name: '{name}/{tab}', as: 'view', stub: 'tab-page'));\n\nMod::scaffold('resource-tabs', fn (Scaffold $s) => $s\n    ->asks('model', type: 'model', default: '{name}')\n    ->asks('tabs', type: 'list', default: ['Overview', 'Details', 'Notes'])\n    ->makes('view-model', name: 'Manage{name}ViewModel', as: 'base', stub: 'tabs-layout')\n    ->makes('tabs-layout', name: '{name}Layout', as: 'layout')\n    ->makes('controller', name: '{name}Controller', stub: 'tabs')\n    ->part('tab', uses: 'tab-page', with: ['base' => '{{ base.fqcn }}', 'layout' => '{{ layout.path }}'], fn (Part $p) => $p\n        ->inserts(into: 'base', at: 'tabs', stub: 'tabs-entry')\n        ->inserts(into: 'controller', at: 'actions', stub: 'tabs-action'))\n    ->each('tabs', part: 'tab'));"
+    ],
+    [
+      "file",
+      "stubs/mod/@module/resources/js/components/tabs-layout.vue.stub (a template: mod:tabs-layout)",
+      "<script setup lang=\"ts\">\nimport { Link, usePage } from '@inertiajs/vue3';\n\ndefineProps<{ title: string }>();\n\nconst page = usePage<{ layout: { tabs: Array<{ label: string; href: string; active: boolean }> } }>();\n</script>\n\n<template>\n    <nav>\n        <Link v-for=\"item in page.props.layout.tabs\" :key=\"item.href\" :href=\"item.href\" :class=\"{ active: item.active }\">{{ item.label }}</Link>\n    </nav>\n    <h1>{{ title }}</h1>\n    <slot />\n</template>"
+    ],
+    [
+      "file",
+      "stubs/mod.page.tab-page.vue.stub",
+      "<script setup lang=\"ts\">\nimport {{ layout }} from '{{ layout.import }}';\n</script>\n\n<template>\n    <{{ layout }} title=\"{{ tab }}\">\n        <!-- {{ tab }} -->\n    </{{ layout }}>\n</template>"
+    ],
+    [
+      "file",
+      "stubs/mod.insert.tabs-action.stub",
+      "    public function {{ tab.camel }}({{ model }} ${{ model.camel }})\n    {\n        return Inertia::render('{{ tab.view.name }}', new \\{{ tab.page.fqcn }}(${{ model.camel }}));\n    }\n"
+    ],
+    [
+      "run",
+      "php artisan mod:resource-tabs Inventory:Widget --no-interaction"
+    ],
+    [
+      "out",
+      "   INFO  mod:resource-tabs will write 9 files and 6 inserts for Inventory:Widget.\n\n  app/Modules/Inventory/ViewModels/ManageWidgetViewModel.php ............... base\n  app/Modules/Inventory/resources/js/components/WidgetLayout.vue .......... layout\n  app/Modules/Inventory/Http/Controllers/WidgetController.php ......... controller\n  app/Modules/Inventory/ViewModels/WidgetOverviewViewModel.php ... tab.Overview.page\n  app/Modules/Inventory/resources/js/pages/Widget/Overview.vue ... tab.Overview.view\n  \u2026"
+    ],
+    [
+      "file",
+      "app/Modules/Inventory/resources/js/pages/Widget/Notes.vue",
+      "<script setup lang=\"ts\">\nimport WidgetLayout from '@modules/Inventory/resources/js/components/WidgetLayout.vue';\n</script>\n\n<template>\n    <WidgetLayout title=\"Notes\">\n        <!-- Notes -->\n    </WidgetLayout>\n</template>"
+    ],
+    [
+      "p",
+      "The `file` question type takes a plain file and gives its forms: `{{ layout }}` (the component name, `WidgetLayout`) and `{{ layout.import }}` (an import through the stable `@modules` alias, never a relative path). The layout itself has no tab list: it reads `layout.tabs` from the base view model, which the part already fills, so growing a tab (F5) never touches the Vue layout. `<!-- {{ tab }} -->` is a known placeholder, so it's replaced even inside an HTML comment."
+    ]
+  ],
+  "F5": [
+    [
+      "run",
+      "php artisan mod:resource-tabs.tab Inventory:Widget History"
+    ],
+    [
+      "out",
+      "   INFO  mod:resource-tabs.tab will write 2 files and 2 inserts for Inventory:Widget.\n\n  app/Modules/Inventory/ViewModels/WidgetHistoryViewModel.php ............. page\n  app/Modules/Inventory/resources/js/pages/Widget/History.vue ............. view\n  + at // mod:tabs in ManageWidgetViewModel.php ............................ entry\n  + at // mod:actions in WidgetController.php .............................. action"
+    ],
+    [
+      "out",
+      "In a terminal",
+      " \u250c Write these 2 files and 2 inserts? \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n \u2502 \u25cf Yes / \u25cb No                                                  \u2502\n \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518"
+    ],
+    [
+      "p",
+      "Creating (with `each()`) and growing run the same part, so the new tab matches the first three exactly, front and back. The layout parent doesn't need to know a `layout` member exists: the part passes it down by its path."
+    ]
+  ],
+  "F7": [
+    [
+      "file",
+      "stubs/mod/@module/resources/views/components/card.blade.php.stub",
+      "@props(['title'])\n\n<div {{ $attributes->class('rounded border p-4') }}>\n    <h3>{{ $title }}</h3>\n    {{ $slot }}\n</div>"
+    ],
+    [
+      "run",
+      "php artisan mod:card Inventory:WidgetSummary"
+    ],
+    [
+      "out",
+      "   INFO  Card [app/Modules/Inventory/resources/views/components/widget-summary.blade.php] created successfully. Use it as <x-inventory::widget-summary />."
+    ],
+    [
+      "p",
+      "The command name is the file name up to its first dot (`card`), and the extension is everything after it except `.stub` (`.blade.php`). Blade files are kebab-case. `{{ $attributes\u2026 }}`, `{{ $title }}` and `{{ $slot }}` aren't known placeholders, so they pass through untouched. mod:list shows the template as `card` with the extension `.blade.php`."
+    ]
+  ],
+  "F9": [
+    [
+      "file",
+      "app/Providers/AppServiceProvider.php, boot()",
+      "Mod::scaffold('metric', fn (Scaffold $s) => $s\n    ->makes('class', name: 'Metrics/{name}Metric', as: 'metric', stub: 'metric')\n    ->makes('metric-card', name: '{name}Card', as: 'card'));\n\nMod::scaffold('dashboard', fn (Scaffold $s) => $s\n    ->makes('view-model', name: '{name}DashboardViewModel', as: 'dashboard', stub: 'dashboard')\n    ->makes('page', name: '{name}/Dashboard', as: 'view', stub: 'dashboard')\n    ->part('widget', uses: 'metric', fn (Part $p) => $p\n        ->inserts(into: 'dashboard', at: 'widgets', stub: 'dashboard-metric')\n        ->inserts(into: 'view', at: 'card-imports', stub: 'dashboard-card-import')\n        ->inserts(into: 'view', at: 'widgets', stub: 'dashboard-card')));"
+    ],
+    [
+      "file",
+      "stubs/mod.page.dashboard.vue.stub",
+      "<script setup lang=\"ts\">\n// mod:card-imports\ndefineProps<{ metrics: Record<string, unknown> }>();\n</script>\n\n<template>\n    <div class=\"grid gap-4 md:grid-cols-3\">\n        <!-- mod:widgets -->\n    </div>\n</template>"
+    ],
+    [
+      "file",
+      "stubs/mod.insert.dashboard-card.stub and dashboard-card-import.stub",
+      "        <{{ widget.card }} :metric=\"metrics.{{ widget.camel }}\" />\n\nimport {{ widget.card }} from '{{ widget.card.import }}';"
+    ],
+    [
+      "run",
+      "php artisan mod:dashboard.widget Inventory:Stock LowStock --no-interaction"
+    ],
+    [
+      "out",
+      "   INFO  mod:dashboard.widget will write 2 files and 3 inserts for Inventory:Stock.\n\n  app/Modules/Inventory/Metrics/LowStockMetric.php ........................ metric\n  app/Modules/Inventory/resources/js/components/LowStockCard.vue ............. card\n  + at // mod:widgets in StockDashboardViewModel.php ...................... metric\n  + at // mod:card-imports in Stock/Dashboard.vue ......................... import\n  + at <!-- mod:widgets --> in Stock/Dashboard.vue ......................... card"
+    ],
+    [
+      "p",
+      "Anchors work in any comment style, so a Vue file takes two: one in `<script setup>` for the import, one in the template for the card. Inserts never parse a file; they add lines before a marker. A record-dependent widget goes into a record page's own list, not a global one, which is exactly what an explicit anchor gives."
+    ]
+  ],
+  "F10": [
+    [
+      "file",
+      "the stubs",
+      "stubs/mod.page.crud-index.vue.stub\nstubs/mod.page.crud-index.tsx.stub\nstubs/mod.page.crud-form.vue.stub\nstubs/mod.page.crud-form.tsx.stub\n\u2026"
+    ],
+    [
+      "run",
+      "php artisan mod:crud-pages Inventory:Widget --no-interaction"
+    ],
+    [
+      "out",
+      "  \u2026\n  app/Modules/Inventory/resources/js/pages/widget/index.tsx ........... indexPage\n  \u2026"
+    ],
+    [
+      "p",
+      "A page variant is chosen by name and by the app's stack: `crud-index` plus `.tsx` in a React app with TypeScript. When the stack's variant is missing, a terminal offers to create it from the minimal page (R41); without one, the command stops naming the file to create (`stubs/mod.page.crud-index.tsx.stub`). The controller is shared: `{{ indexPage.name }}` gives `Inventory::widget/index` here."
+    ]
+  ],
+  "F11": [
+    [
+      "file",
+      "stubs/mod/@module/resources/js/components/badge.vue.stub",
+      "<template>\n    <span>{{ name }}</span>\n    <span>@{{ name.kebab }}</span>\n    <span>{{ count }}</span>\n</template>"
+    ],
+    [
+      "run",
+      "php artisan mod:badge Inventory:StockBadge"
+    ],
+    [
+      "out",
+      "   WARN  stubs/mod/@module/resources/js/components/badge.vue.stub line 2: {{ name }} is a mod placeholder, so it was replaced with StockBadge. In a .vue file, write {{ name.studly }} to mean mod's value, or @{{ name }} for Vue's own.\n   INFO  Badge [app/Modules/Inventory/resources/js/components/StockBadge.vue] created successfully."
+    ],
+    [
+      "file",
+      "app/Modules/Inventory/resources/js/components/StockBadge.vue",
+      "<template>\n    <span>StockBadge</span>\n    <span>{{ name.kebab }}</span>\n    <span>{{ count }}</span>\n</template>"
+    ],
+    [
+      "p",
+      "A bare known name (`{{ name }}`) in a `.vue` or `.blade.php` file is replaced, with a warning, because it may have been meant for Vue. `@{{ \u2026 }}` (Blade's own escape) writes a literal `{{ \u2026 }}`. Anything that isn't a known name (`{{ count }}`) passes through untouched."
+    ]
+  ],
+  "F12": [
+    [
+      "file",
+      "stubs/mod/@module/resources/prompts/prompt.md.stub",
+      "# {{ name.headline }}\n\nYou are the {{ module }} assistant. Answer using only the documents provided."
+    ],
+    [
+      "run",
+      "php artisan mod:prompt Agents:AnswerQuestion"
+    ],
+    [
+      "out",
+      "   INFO  Prompt [app/Modules/Agents/resources/prompts/answer-question.md] created successfully."
+    ],
+    [
+      "file",
+      "app/Modules/Agents/resources/prompts/answer-question.md",
+      "# Answer Question\n\nYou are the Agents assistant. Answer using only the documents provided."
+    ],
+    [
+      "p",
+      "`resources/` takes any folder a team wants (`prompts/` here); only `js`, `css` and `views` have built-in meanings. Markdown files are kebab-case. `.headline` (Laravel's `Str::headline`) is a name form for prose."
+    ]
+  ],
+  "F13": [
+    [
+      "run",
+      "php artisan mod:template --from=app/Modules/Inventory/resources/js/pages/Widget/Index.vue --into=@module/resources/js/pages/list-page"
+    ],
+    [
+      "out",
+      "   INFO  Template [stubs/mod/@module/resources/js/pages/list-page.vue.stub] created.\n\n  Starts as ........ app/Modules/Inventory/resources/js/pages/Widget/Index.vue (copied as it is)\n  Mentions ......... Widget (line 9), widgets (lines 5, 12), widget (line 12): replace them with\n                     {{ name }} forms where they should change\n  Command ................................................ mod:list-page\n  Writes .......... app/Modules/<module>/resources/js/pages/<Name>.vue\n\n  Edit the template to generalize the rest."
+    ],
+    [
+      "p",
+      "For a plain file, `--from` copies the file as it is and replaces nothing: there's no declaration to find safely. It lists every line that mentions the typed name or the group in any name form, so the edit is quick. The extension comes from the source."
+    ]
+  ],
+  "F14": [
+    [
+      "file",
+      "identities",
+      "{{ indexPage.name }}     Inventory::Widget/Index                       Inertia::render(\u2026)\n{{ layout.import }}      @modules/Inventory/resources/js/components/WidgetLayout.vue   import \u2026 from\n{{ layout }}             WidgetLayout                                  <WidgetLayout>\n{{ mail.view.name }}     inventory::mail.widget-restocked              view(\u2026), markdown: \u2026\n{{ badge.tag }}          x-inventory::stock-badge                      <x-inventory::stock-badge />\n{{ card.path }}          app/Modules/Inventory/resources/js/components/LowStockCard.vue"
+    ],
+    [
+      "p",
+      "`.name` is how the framework refers to the file (an Inertia page name, a view name). `.import` is an import through `@modules`, `.tag` a Blade component tag, and `.path` the project-relative path. The bare alias is the file's component name. Each is computed from the layout, so moving the frontend root (P3) changes every reference consistently."
+    ]
+  ],
+  "A1": [
+    [
+      "run",
+      "php artisan mod:crud-pages Inventory:Widget --dry-run --json"
+    ],
+    [
+      "out",
+      "{\n    \"command\": \"mod:crud-pages\",\n    \"group\": \"Inventory\",\n    \"name\": \"Widget\",\n    \"files\": [\n        {\"alias\": \"model\", \"type\": \"model\", \"path\": \"app/Modules/Inventory/Models/Widget.php\", \"class\": \"App\\\\Modules\\\\Inventory\\\\Models\\\\Widget\", \"exists\": false},\n        {\"alias\": \"indexPage\", \"type\": \"page\", \"path\": \"app/Modules/Inventory/resources/js/pages/Widget/Index.vue\", \"identity\": {\"name\": \"Inventory::Widget/Index\", \"import\": \"@modules/Inventory/resources/js/pages/Widget/Index.vue\"}, \"exists\": false},\n        \u2026\n    ],\n    \"inserts\": [],\n    \"warnings\": [],\n    \"would_write\": true\n}"
+    ],
+    [
+      "p",
+      "The keys are stable and pinned by a schema test. `exists` and `would_write` tell the agent whether the real run would refuse. Nothing is written with `--dry-run`, and the JSON is the only output (no prompts, no notices)."
+    ]
+  ]
+}

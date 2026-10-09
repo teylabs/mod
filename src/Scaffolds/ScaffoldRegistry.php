@@ -308,7 +308,7 @@ final class ScaffoldRegistry
                     $this->problems[$name] = "Scaffold [{$name}] makes a {$type}, which the {$layoutName} layout doesn't have, so mod:{$name} is disabled. Add it (Mod::layout('{$layoutName}')->generates('{$type}', in: '@{$token}/{$folder}')) or override {$name} for this layout.";
                     break;
                 }
-                if ((! $layout->kind($member->fileType)->isClass() && ! MigrationCommand::supports($layout->kind($member->fileType))) || $layout->kind($member->fileType)->command === null) {
+                if ((! $layout->kind($member->fileType)->isClass() && $layout->kind($member->fileType)->extension === null && ! MigrationCommand::supports($layout->kind($member->fileType))) || $layout->kind($member->fileType)->command === null) {
                     $this->problems[$name] = "Scaffold [{$name}] cannot generate the {$member->fileType} file type, so mod:{$name} is disabled. Use a file type with a class or migration generator.";
                     break;
                 }

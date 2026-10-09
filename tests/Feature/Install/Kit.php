@@ -37,7 +37,7 @@ final class Kit
     public static function assertAfter(Workspace $w, string $kit): void
     {
         foreach (self::files($kit, 'after') as $path => $contents) {
-            expect(str_replace("\r\n", "\n", $w->read($path)))->toBe($contents, $path);
+            expect($w->read($path))->toEqualText($contents, $path);
         }
     }
 }
