@@ -36,7 +36,7 @@ it('S14 writes three tab pages and shows all six inserts before success', functi
             expect($w->read(Tree::page($tab)))->toContain('extends ManageWidgetViewModel', "return '$tab';")
                 ->and($w->read(Tree::base()))->toContain("['label' => '$tab'");
         }
-        expect(str_replace("\r\n", "\n", $w->read(Tree::base())))->toBe(Tree::expectedBase());
+        expect(str_replace("\r\n", "\n", $w->read(Tree::base())))->toBe(str_replace("\r\n", "\n", Tree::expectedBase()));
         expect(substr_count($w->read(Tree::base()), '// mod:tabs'))->toBe(1);
         $output = $result->normalisedOutput();
         expect(substr_count(substr($output, 0, (int) strpos($output, 'created successfully')), '+ at '))->toBe(6);
