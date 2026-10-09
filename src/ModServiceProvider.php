@@ -22,6 +22,7 @@ use Tey\Mod\Commands\DisabledTemplateCommand;
 use Tey\Mod\Commands\InstallCommand;
 use Tey\Mod\Commands\ListCommand;
 use Tey\Mod\Commands\OtherLayoutCommand;
+use Tey\Mod\Commands\RenameCommand;
 use Tey\Mod\Commands\ScaffoldCommand;
 use Tey\Mod\Discovery\Console\DiscoveryCacheCommand;
 use Tey\Mod\Discovery\Console\DiscoveryClearCommand;
@@ -41,6 +42,7 @@ use Tey\Mod\Generation\Starters;
 use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\LayoutRegistry;
+use Tey\Mod\Rename\Contributors;
 use Tey\Mod\Resolution\ModelConventions;
 use Tey\Mod\Routing\RouteServiceRegistrar;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
@@ -74,6 +76,7 @@ class ModServiceProvider extends ServiceProvider
         RouteServiceRegistrar::register($this->app);
 
         $this->app->singleton(ScaffoldRegistry::class);
+        $this->app->singleton(Contributors::class);
         $this->app->singleton(TemplateCatalog::class, function (Application $app): TemplateCatalog {
             $options = DiscoveryOptions::fromConfig((array) $app->make('config')->get('mod.discovery', []));
             $cache = new DiscoveryCache(Path::resolve($app->basePath(), $options->cachePath));
@@ -351,9 +354,10 @@ class ModServiceProvider extends ServiceProvider
         $layoutName = $this->app->make('config')->get('mod.layout', 'laravel');
         $overrides = is_string($layoutName) && $this->app->make(LayoutRegistry::class)->has($layoutName)
             ? $this->app->make(LayoutRegistry::class)->layout($layoutName)->scaffoldRecipes() : [];
-        foreach ($registry->resolve($preset, is_string($layoutName) ? $layoutName : 'layout', $overrides, [...array_keys($artisan->all()), 'mod:cache', 'mod:clear', 'mod:list']) as $name => $recipe) {
+        foreach ($registry->resolve($preset, is_string($layoutName) ? $layoutName : 'layout', $overrides, [...array_keys($artisan->all()), 'mod:cache', 'mod:clear', 'mod:list', 'mod:rename']) as $name => $recipe) {
             $artisan->resolve(new ScaffoldCommand($name, $recipe, $preset));
         }
+        $artisan->resolve(new RenameCommand($registry, $preset));
         foreach ($registry->problems() as $name => $warning) {
             $this->app->make('log')->warning($warning);
             if (! $artisan->has('mod:'.$name)) {

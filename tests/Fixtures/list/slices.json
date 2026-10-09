@@ -482,5 +482,25 @@
         "vite_alias": false,
         "tailwind": false
     },
-    "routes": []
+    "routes": [],
+    "rename": {
+        "command": "mod:rename",
+        "preview": true,
+        "execution": false,
+        "requires_git": true,
+        "requires_clean_tree": true,
+        "requires_scaffold": true,
+        "flags": [
+            "--scaffold",
+            "--answer",
+            "--yes",
+            "--no-interaction",
+            "--dry-run",
+            "--json",
+            "--table-migration",
+            "--recover"
+        ],
+        "nested_answer": "--answer=part.Item.question=<JSON>",
+        "recipes": []
+    }
 }

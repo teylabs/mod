@@ -32,7 +32,7 @@ it('registers one command per preset kind with a command name', function () {
         // Route entrypoint generators are registered alongside the preset kinds.
         expect(modCommands())->toBe([
             'mod:action', 'mod:autoload', 'mod:bases', 'mod:controller', 'mod:data', 'mod:event', 'mod:factory', 'mod:install', 'mod:list', 'mod:migration',
-            'mod:model', 'mod:policy', 'mod:provider', 'mod:query', 'mod:request', 'mod:route-registrar', 'mod:routes', 'mod:seeder', 'mod:template',
+            'mod:model', 'mod:policy', 'mod:provider', 'mod:query', 'mod:rename', 'mod:request', 'mod:route-registrar', 'mod:routes', 'mod:seeder', 'mod:template',
         ]);
     });
 });
