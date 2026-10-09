@@ -16,7 +16,7 @@ Everything below goes in that provider. Mod reads it when Artisan starts, so the
 
 ### Adding file types and commands
 
-Customise a built-in layout with `Mod::layout()`. A new file type gets a `mod:<type>` command; `command:` renames it, `aliases:` adds other names and `label:` sets the noun its output uses:
+Customize a built-in layout with `Mod::layout()`. A new file type gets a `mod:<type>` command; `command:` renames it, `aliases:` adds other names and `label:` sets the noun its output uses:
 
 ```php
 // src/KnowledgeToolsServiceProvider.php
@@ -40,7 +40,7 @@ php artisan mod:query-builder Knowledge:Chunk
 - Without `label:`, the output names the type's id in title case (`Builder`). File types with a Laravel generator keep Laravel's wording.
 - A hyphenated command or alias also gets a dash-free alias, so `mod:query-builder` works as `mod:querybuilder`. When that name is already a command or alias, the existing one keeps it.
 - A command or alias that another file type already uses stops the layout from compiling, with an error naming both.
-- `Mod::hasLayout('ddd')` checks that a layout exists before customising it, and `Mod::layouts()` lists every layout name.
+- `Mod::hasLayout('ddd')` checks that a layout exists before customizing it, and `Mod::layouts()` lists every layout name.
 - The layout methods are listed in [Defining a layout](layouts.md#defining-a-layout).
 
 ### Registering stubs

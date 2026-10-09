@@ -25,7 +25,7 @@ All notable changes to `mod` will be documented in this file.
 - `mod:list` includes factory and policy counts and targets, and identifies package templates overridden by the application.
 - Package template folders accept relative paths containing `..`. Conflicting template commands explain how to override or rename the templates.
 - `mod:autoload` distinguishes configured mappings from loaded classes and reports Composer failures while retaining the written entries.
-- Scaffold replays recognise existing migrations by name across timestamps, so refusal, `--skip-existing` and `--force` use the original migration file.
+- Scaffold replays recognize existing migrations by name across timestamps, so refusal, `--skip-existing` and `--force` use the original migration file.
 - Generation avoids false autoload warnings for Composer-covered folders and repeated new-group notices for companion files.
 - House factory stubs retain their `$model` value. Migrations can be scaffold members.
 
