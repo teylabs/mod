@@ -1,22 +1,21 @@
 <?php
 
-use Composer\Autoload\ClassLoader;
 use Tey\Mod\Facades\Mod;
+use Tey\Mod\Support\ComposerJson;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 
 it('E10 places workflow actions in slash and dot nested domains', function (string $prefix) {
     putenv('COLUMNS=72');
     Workspace::run(null, function (Workspace $workspace) use ($prefix) {
         config()->set('mod.layout', 'ddd');
-        $loader = new ClassLoader;
-        $loader->addPsr4('Domain\\', $workspace->root->path('src/Domain'));
-        $loader->register();
+        $composer = new ComposerJson($workspace->root->path('composer.json'));
+        $composer->register('Domain\\', 'src/Domain');
+        $composer->save();
         Mod::layout('ddd')->generates('workflow', in: '{domain}/Workflows');
         $workspace->write('stubs/mod.workflow.stub', "<?php\n\nnamespace {{ namespace }};\n\nclass {{ class }}\n{\n    public function handle(): void\n    {\n        //\n    }\n}\n");
         // Existing group: this example's output contains no new-group notice.
         mkdir($workspace->root->path('src/Domain/Agents/Chat'), 0700, true);
         $result = $workspace->artisan('mod:workflow', ['name' => $prefix.':EscalateConversation']);
-        $loader->unregister();
         $result->assertSuccessful();
         expect($result->normalisedOutput())->toBe("\n   INFO  Workflow [src/Domain/Agents/Chat/Workflows/EscalateConversation.php] created successfully.  \n\n")
             ->and($workspace->files())->toBe(['src/Domain/Agents/Chat/Workflows/EscalateConversation.php', 'stubs/mod.workflow.stub'])
