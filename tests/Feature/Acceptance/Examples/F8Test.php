@@ -52,8 +52,8 @@ VUE);
         expect($result->normalisedOutput())->toContain('will write 4 files for Inventory:Widget.', 'composable (ungrouped)')
             ->and($w->read('app/Modules/Inventory/resources/js/components/WidgetFilters.vue'))->toContain('useIndexFilter(["status","category"])')
             ->and($w->read('resources/js/composables/useIndexFilter.ts'))->toEqualText("export function useIndexFilter(fields: string[]) {\n    // the house filter state, synced to the query string\n}\n")
-            ->and($w->exists('app/Modules/Inventory/Data/WidgetFilterData.php'))->toBeTrue()
-            ->and($w->exists('app/Modules/Inventory/Queries/QueryWidgets.php'))->toBeTrue();
+            ->and($w->read('app/Modules/Inventory/Data/WidgetFilterData.php'))->toEqualText("<?php\nnamespace App\\Modules\\Inventory\\Data;\nclass WidgetFilterData {}\n")
+            ->and($w->read('app/Modules/Inventory/Queries/QueryWidgets.php'))->toEqualText("<?php\nnamespace App\\Modules\\Inventory\\Queries;\nclass QueryWidgets {}\n");
         $shared = $w->read('resources/js/composables/useIndexFilter.ts');
         $next = $w->artisan('mod:index-filter', ['name' => 'Knowledge:Document', '--fields' => ['status']])->assertSuccessful();
         expect($next->normalisedOutput())->toContain('will write 3 files', 'composable (kept, exists)')

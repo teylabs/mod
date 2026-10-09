@@ -23,11 +23,13 @@ final class StockReport
     public function __invoke(Scaffold $s): void { $s->makes('tool', name: 'Report{name}'); }
 }
 PHP);
-        $w->artisan('mod:tool', ['name' => 'Inventory:CountStock'])->assertSuccessful();
-        $w->artisan('mod:tool', ['name' => 'Knowledge:SearchDocuments'])->assertSuccessful();
+        $inventory = $w->artisan('mod:tool', ['name' => 'Inventory:CountStock'])->assertSuccessful();
+        $knowledge = $w->artisan('mod:tool', ['name' => 'Knowledge:SearchDocuments'])->assertSuccessful();
+        expect($inventory->normalisedOutput())->toEqualText("\n   INFO  Tool [app/Modules/Inventory/Tools/CountStock.php] created successfully.  \n\n")
+            ->and($knowledge->normalisedOutput())->toEqualText("\n   INFO  Tool [app/Modules/Knowledge/Tools/SearchDocuments.php] created successfully.  \n\n");
         $w->artisan('mod:stock-report', ['name' => 'Inventory:Stock'])->assertSuccessful();
-        expect($w->read('app/Modules/Inventory/Tools/CountStock.php'))->toContain('// Inventory template')
-            ->and($w->read('app/Modules/Knowledge/Tools/SearchDocuments.php'))->toContain('// app template')
+        expect($w->read('app/Modules/Inventory/Tools/CountStock.php'))->toEqualText(str_replace('class CountStock', "// Inventory template\nclass CountStock", TemplateScenario::content('App\\Modules\\Inventory\\Tools', 'CountStock')))
+            ->and($w->read('app/Modules/Knowledge/Tools/SearchDocuments.php'))->toEqualText(str_replace('class SearchDocuments', "// app template\nclass SearchDocuments", TemplateScenario::content('App\\Modules\\Knowledge\\Tools', 'SearchDocuments')))
             ->and($w->read('app/Modules/Inventory/Tools/ReportStock.php'))->toContain('// Inventory template')
             ->and(app(ScaffoldRegistry::class)->sources()['stock-report'])->toContain('module:Inventory');
         $json = json_decode($w->artisan('mod:list', ['--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
@@ -45,7 +47,7 @@ it('P13 copies Inventory into a fresh testbench app with its template and both s
         $files = [
             'stubs/mod/@module/Tools/tool.stub' => TemplateScenario::CLASS_STUB,
             'Scaffolds/'.$class.'.php' => '<?php namespace App\\Modules\\Inventory\\Scaffolds; final class '.$class.' { public string $name = "stock-report"; public function __invoke(\\Tey\\Mod\\Scaffolds\\Scaffold $s): void { $s->makes("tool", name: "Report{name}"); } }',
-            'Providers/'.$provider.'.php' => '<?php namespace App\\Modules\\Inventory\\Providers; final class '.$provider.' extends \\Illuminate\\Support\\ServiceProvider { public function boot(): void { \\Tey\\Mod\\Facades\\Mod::scaffolds(["stock-count" => fn (\\Tey\\Mod\\Scaffolds\\Scaffold $s) => $s->makes("tool", name: "Count{name}")]); } }',
+            'Providers/'.$provider.'.php' => '<?php namespace App\\Modules\\Inventory\\Providers; final class '.$provider.' extends \\Illuminate\\Support\\ServiceProvider { public function boot(): void { \\Tey\\Mod\\Facades\\Mod::scaffolds(["stock-count" => fn (\\Tey\\Mod\\Scaffolds\\Scaffold $s) => $s->makes("tool", name: "Count{name}")->makes("job", name: "Recount{name}")]); } }',
         ];
         foreach ($files as $relative => $body) {
             $path = $source->path('app/Modules/Inventory/'.$relative);
@@ -68,6 +70,7 @@ it('P13 copies Inventory into a fresh testbench app with its template and both s
             expect($kernel->call('mod:tool', ['name' => 'Inventory:CountStock', '--no-interaction' => true]))->toBe(0, $kernel->output());
             expect($kernel->call('mod:stock-report', ['name' => 'Inventory:Stock', '--no-interaction' => true]))->toBe(0, $kernel->output());
             expect($kernel->call('mod:stock-count', ['name' => 'Inventory:Widgets', '--no-interaction' => true]))->toBe(0, $kernel->output());
+            expect(is_file($target->path('app/Modules/Inventory/Jobs/RecountWidgets.php')))->toBeTrue();
             foreach (['CountStock', 'ReportStock', 'CountWidgets'] as $name) {
                 expect(file_get_contents($target->path('app/Modules/Inventory/Tools/'.$name.'.php')))->toEqualText(TemplateScenario::content('App\\Modules\\Inventory\\Tools', $name));
             }
