@@ -2,7 +2,6 @@
 
 use Symfony\Component\Console\Exception\CommandNotFoundException;
 use Tey\Mod\Discovery\DiscoveryType;
-use Tey\Mod\Discovery\RejectionReason;
 use Tey\Mod\Exceptions\InvalidDiscoveryConfig;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Tests\Feature\Acceptance\Support\AcceptanceApp;
@@ -48,7 +47,7 @@ it('runs the whole loop on the modules layout', function () {
         $generated = [
             "app/Modules/Billing/Actions/Pay{$t}Invoice.php" => ['action', "{$ns}\\Actions\\Pay{$t}Invoice"],
             "app/Modules/Billing/Console/Prune{$t}Invoices.php" => ['command', "{$ns}\\Console\\Prune{$t}Invoices"],
-            "app/Modules/Billing/Controllers/Invoice{$t}Controller.php" => ['controller', "{$ns}\\Controllers\\Invoice{$t}Controller"],
+            "app/Modules/Billing/Http/Controllers/Invoice{$t}Controller.php" => ['controller', "{$ns}\\Http\\Controllers\\Invoice{$t}Controller"],
             "app/Modules/Billing/Data/Invoice{$t}Data.php" => ['dto', "{$ns}\\Data\\Invoice{$t}Data"],
             "app/Modules/Billing/Database/Factories/Invoice{$t}Factory.php" => ['factory', "{$ns}\\Database\\Factories\\Invoice{$t}Factory"],
             "app/Modules/Billing/Database/Seeders/Invoice{$t}Seeder.php" => ['seeder', "{$ns}\\Database\\Seeders\\Invoice{$t}Seeder"],
@@ -57,8 +56,8 @@ it('runs the whole loop on the modules layout', function () {
             "app/Modules/Billing/Models/Invoice{$t}.php" => ['model', "{$ns}\\Models\\Invoice{$t}"],
             "app/Modules/Billing/Providers/Billing{$t}ServiceProvider.php" => ['provider', "{$ns}\\Providers\\Billing{$t}ServiceProvider"],
             "app/Modules/Billing/Queries/Overdue{$t}Invoices.php" => ['query', "{$ns}\\Queries\\Overdue{$t}Invoices"],
-            "app/Modules/Billing/Requests/StoreInvoice{$t}Request.php" => ['request', "{$ns}\\Requests\\StoreInvoice{$t}Request"],
-            "app/Modules/Billing/Requests/UpdateInvoice{$t}Request.php" => ['request', "{$ns}\\Requests\\UpdateInvoice{$t}Request"],
+            "app/Modules/Billing/Http/Requests/StoreInvoice{$t}Request.php" => ['request', "{$ns}\\Http\\Requests\\StoreInvoice{$t}Request"],
+            "app/Modules/Billing/Http/Requests/UpdateInvoice{$t}Request.php" => ['request', "{$ns}\\Http\\Requests\\UpdateInvoice{$t}Request"],
             $migration => ['migration', null],
         ];
         ksort($generated);
@@ -73,9 +72,9 @@ it('runs the whole loop on the modules layout', function () {
             ->and($app->read("app/Modules/Billing/Models/Invoice{$t}.php"))
             ->toContain("HasFactory<\\{$ns}\\Database\\Factories\\Invoice{$t}Factory>")
             ->toContain("return \\{$ns}\\Database\\Factories\\Invoice{$t}Factory::new();")
-            ->and($app->read("app/Modules/Billing/Controllers/Invoice{$t}Controller.php"))
-            ->toContain("use {$ns}\\Requests\\StoreInvoice{$t}Request;")
-            ->toContain("use {$ns}\\Requests\\UpdateInvoice{$t}Request;");
+            ->and($app->read("app/Modules/Billing/Http/Controllers/Invoice{$t}Controller.php"))
+            ->toContain("use {$ns}\\Http\\Requests\\StoreInvoice{$t}Request;")
+            ->toContain("use {$ns}\\Http\\Requests\\UpdateInvoice{$t}Request;");
 
         foreach ($generated as $path => [$kind, $fqcn]) {
             $app->assertOwned($path, $kind, $ctx, $fqcn);
@@ -103,9 +102,9 @@ it('runs the whole loop on the modules layout', function () {
             ->and($cold->classes(DiscoveryType::Command))->toBe(["{$ns}\\Console\\Prune{$t}Invoices"])
             ->and($cold->classes(DiscoveryType::Listener))->toBe(["{$ns}\\Listeners\\Audit{$t}Payment", "{$ns}\\Listeners\\Send{$t}Receipt"])
             ->and(array_unique(array_map(fn ($entry) => $entry->context, $cold->entries), SORT_REGULAR))->toBe([$ctx])
-            ->and($cold->rejection('app/Modules/Billing/routes/web.php')?->reason)->toBe(RejectionReason::NotOwned)
+            ->and($cold->rejection('app/Modules/Billing/routes/web.php'))->toBeNull()
             ->and($cold->rejection($base)?->detail)->toContain('inside excluded root')
-            ->and($cold->rejections)->toHaveCount(2);
+            ->and($cold->rejections)->toHaveCount(1);
 
         $assertRegistered = function () use ($app, $t, $ns, $event) {
             expect($app->app()->getProvider("{$ns}\\Providers\\Billing{$t}ServiceProvider"))->not->toBeNull()

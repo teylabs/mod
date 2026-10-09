@@ -14,7 +14,7 @@ it('needs no name for a file type with a fixed name', function (string $command,
         config()->set('mod.layout', 'slices');
 
         expect($workspace->artisan($command, ['--in' => 'Billing/CreateInvoice']))
-            ->toHaveGenerated("app/Billing/CreateInvoice/{$file}.php", 'App\\Billing\\CreateInvoice');
+            ->toHaveGenerated('app/Billing/CreateInvoice/'.($file === 'Request' ? 'Http/Requests/' : '')."{$file}.php", 'App\\Billing\\CreateInvoice'.($file === 'Request' ? '\\Http\\Requests' : ''));
     });
 })->with([
     'generic' => ['mod:handler', 'Handler'],

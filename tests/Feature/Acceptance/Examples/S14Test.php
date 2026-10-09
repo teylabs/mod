@@ -8,7 +8,7 @@ it('S14 writes three tab pages and shows all six inserts before success', functi
         Tree::setup($w);
         $result = $w->artisan('mod:resource-tabs', ['name' => 'Inventory:Widget'])->assertSuccessful();
         expect($result->normalisedOutput())->toContain('will write 5 files and 6 inserts', 'tab.Overview.page', 'tab.Details.page', 'tab.Notes.page');
-        $paths = [Tree::base(), 'app/Modules/Inventory/Controllers/WidgetController.php', Tree::page('Overview'), Tree::page('Details'), Tree::page('Notes')];
+        $paths = [Tree::base(), 'app/Modules/Inventory/Http/Controllers/WidgetController.php', Tree::page('Overview'), Tree::page('Details'), Tree::page('Notes')];
         $aliases = ['base', 'controller', 'tab.Overview.page', 'tab.Details.page', 'tab.Notes.page'];
         $output = "\n   INFO  mod:resource-tabs will write 5 files and 6 inserts for Inventory:Widget.  \n\n";
         foreach ($paths as $index => $path) {

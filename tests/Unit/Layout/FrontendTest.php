@@ -31,3 +31,24 @@ it('refuses case-only collisions between class folders too', function () {
         ->generates('one', in: '@area/Reports')->generates('two', in: '@area/reports');
     expect(fn () => $layout->compile())->toThrow(InvalidLayout::class, 'app/{area}/Reports and app/{area}/reports differ only by case. Move one of them.');
 });
+
+it('checks case-only root declarations before any files exist', function () {
+    $layout = (new Layout('custom'))->path('app')
+        ->mounts('upper', null, 'app/Assets')
+        ->mounts('lower', null, 'app/assets');
+    expect(fn () => $layout->compile())->toThrow(InvalidLayout::class, 'app/Assets and app/assets differ only by case. Move one of them.');
+});
+
+it('excludes plain files in nested groups and normalizes path separators', function () {
+    $registry = new LayoutRegistry;
+    $layout = $registry->compile('ddd');
+    expect($layout->isPlainFilePath('app\\Modules\\Billing\\Reports\\resources\\views\\summary.blade.php'))->toBeTrue()
+        ->and($layout->isPlainFilePath('app/Modules/Billing/Reports/routes/web.php'))->toBeTrue()
+        ->and($layout->isPlainFilePath('src/Domain/Billing/Reports/Resources/SummaryResource.php'))->toBeFalse();
+});
+
+it('resolves frontend anchors for star paths as it does class placement', function () {
+    $registry = new LayoutRegistry;
+    $registry->layout('modules')->path('app/*/{module}');
+    expect($registry->compile('modules')->frontend()['pages'])->toBe('app/resources/js/pages/{module}');
+});

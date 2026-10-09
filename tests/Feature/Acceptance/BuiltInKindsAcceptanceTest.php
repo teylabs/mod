@@ -20,7 +20,7 @@ function builtInFolders(string $layout, string $group, string $slice): array
         ];
         $folders = array_map(static fn (string $folder): string => rtrim("src/Domain/{$group}/{$folder}", '/'), $domain);
 
-        foreach (['controller' => 'Controllers', 'request' => 'Requests', 'middleware' => 'Middleware'] as $kind => $folder) {
+        foreach (['controller' => 'Http/Controllers', 'request' => 'Http/Requests', 'middleware' => 'Http/Middleware'] as $kind => $folder) {
             $folders[$kind] = "app/Modules/{$group}/{$folder}";
         }
 
@@ -43,7 +43,7 @@ function builtInFolders(string $layout, string $group, string $slice): array
         $folders += ['factory' => 'Database/Factories', 'seeder' => 'Database/Seeders', 'migration' => 'Database/Migrations'];
     }
     if ($layout === 'modules') {
-        $folders = array_replace($folders, ['controller' => 'Controllers', 'request' => 'Requests', 'resource' => 'Resources', 'middleware' => 'Middleware', 'channel' => 'Channels', 'command' => 'Console']);
+        $folders = array_replace($folders, ['channel' => 'Channels', 'command' => 'Console']);
         $folders += ['action' => 'Actions', 'dto' => 'Data', 'value-object' => 'ValueObjects', 'view-model' => 'ViewModels', 'query' => 'Queries'];
     }
     if ($layout === 'features') {
@@ -64,9 +64,10 @@ function builtInFolders(string $layout, string $group, string $slice): array
     }
     unset($folder);
     if ($layout === 'slices') {
-        foreach (['message', 'handler', 'request', 'validator', 'query'] as $kind) {
+        foreach (['message', 'handler', 'validator', 'query'] as $kind) {
             $folders[$kind] = "app/{$group}/{$slice}";
         }
+        $folders['request'] = "app/{$group}/{$slice}/Http/Requests";
     }
     if (in_array($layout, ['laravel', 'type-first'], true)) {
         foreach (['factory' => 'factories', 'seeder' => 'seeders', 'migration' => 'migrations'] as $kind => $folder) {
@@ -156,7 +157,7 @@ it('generates model companions including policy alone in every built-in', functi
         foreach (['model' => '', 'factory' => 'Factory', 'seeder' => 'Seeder', 'policy' => 'Policy', 'controller' => 'Controller'] as $kind => $suffix) {
             expect(is_file($app->root->path($folders[$kind].'/'.$name.$suffix.'.php')))->toBeTrue("{$layout}: {$kind}");
         }
-        $requestFolder = $layout === 'slices' ? "app/{$group}/{$name}" : $folders['request'];
+        $requestFolder = $layout === 'slices' ? "app/{$group}/{$name}/Http/Requests" : $folders['request'];
         $requestNames = $layout === 'slices' ? ['Request'] : ['Store'.$name.'Request', 'Update'.$name.'Request'];
         foreach ($requestNames as $request) {
             expect(is_file($app->root->path($requestFolder.'/'.$request.'.php')))->toBeTrue("{$layout}: {$request}");
@@ -182,7 +183,7 @@ it('generates standalone model request companions in every built-in', function (
         $name = 'Create'.$app->tag;
         $placement = $layout === 'laravel' ? [] : ['--in' => $group];
         $app->artisan('mod:model', ['name' => $name, '--requests' => true, ...$placement])->assertSuccessful();
-        $folder = $layout === 'slices' ? "app/{$group}/{$name}" : builtInFolders($layout, $group, '')['request'];
+        $folder = $layout === 'slices' ? "app/{$group}/{$name}/Http/Requests" : builtInFolders($layout, $group, '')['request'];
         $requests = $layout === 'slices' ? ['Request'] : ['Store'.$name.'Request', 'Update'.$name.'Request'];
         foreach ($requests as $request) {
             expect($app->root->path($folder.'/'.$request.'.php'))->toBeValidPhp();

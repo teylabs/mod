@@ -158,7 +158,7 @@ it('restores existing bytes and removes generated files if applying an insert fa
         Tree::setup($w);
         Tree::create($w);
         $before = $w->read(Tree::base());
-        $controller = $w->read('app/Modules/Inventory/Controllers/WidgetController.php');
+        $controller = $w->read('app/Modules/Inventory/Http/Controllers/WidgetController.php');
         $files = $w->files();
         $command = new class(app('files')) extends GenericClassCommand
         {
@@ -178,7 +178,7 @@ it('restores existing bytes and removes generated files if applying an insert fa
         $preset = app(CompiledLayout::class);
         app(Kernel::class)->registerCommand($command->forKind($preset, $preset->kind('view-model')));
         $w->artisan('mod:resource-tabs.tab', ['name' => 'Inventory:Widget', 'value' => 'History'])->assertFailed();
-        expect($w->read(Tree::base()))->toBe($before)->and($w->read('app/Modules/Inventory/Controllers/WidgetController.php'))->toBe($controller)
+        expect($w->read(Tree::base()))->toBe($before)->and($w->read('app/Modules/Inventory/Http/Controllers/WidgetController.php'))->toBe($controller)
             ->and($w->files())->toBe($files);
     });
 });

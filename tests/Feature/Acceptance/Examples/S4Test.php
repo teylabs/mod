@@ -12,9 +12,9 @@ it('S4 includes a snapshot and replaces the controller', function () {
         $w->write('stubs/mod.controller.api.stub', (string) file_get_contents(__DIR__.'/../../Scaffolds/Support/controller.stub'));
         $result = $w->artisan('mod:api', ['name' => 'Knowledge:Document'])->assertSuccessful();
         $paths = Examples::paths();
-        $paths[7] = 'app/Modules/Knowledge/Controllers/ApiDocumentController.php';
+        $paths[7] = 'app/Modules/Knowledge/Http/Controllers/ApiDocumentController.php';
         expect($result->normalisedOutput())->toStartWith(Examples::plan($paths, 'api'))
-            ->and($w->exists('app/Modules/Knowledge/Controllers/DocumentController.php'))->toBeFalse()
+            ->and($w->exists('app/Modules/Knowledge/Http/Controllers/DocumentController.php'))->toBeFalse()
             ->and(str_replace("\r\n", "\n", $w->read($paths[7])))->toBe(str_replace('class DocumentController', 'class ApiDocumentController', Examples::controller()));
     });
 });

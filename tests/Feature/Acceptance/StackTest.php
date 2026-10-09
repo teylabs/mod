@@ -1,5 +1,6 @@
 <?php
 
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Support\Stack;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 
@@ -27,3 +28,13 @@ it('detects the stack without installing anything', function (?string $package, 
     'legacy Pages' => ['{"devDependencies":{"@inertiajs/vue3":"^2"}}', false, 'vue', 'Pages'],
     'invalid package' => ['{broken', false, null, 'pages'],
 ]);
+
+it('resolves the stack service and applies app casing to the active compiled layout', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', 'modules');
+        $w->write('package.json', '{"dependencies":{"@inertiajs/react":"^2"}}');
+        $w->write('resources/js/Pages/.gitkeep', '');
+        expect(app(Stack::class)->inertia())->toBe('react')
+            ->and(app(CompiledLayout::class)->frontend()['pages'])->toBe('app/Modules/{module}/resources/js/Pages');
+    });
+});

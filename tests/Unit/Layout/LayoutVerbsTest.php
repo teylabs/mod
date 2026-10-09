@@ -23,8 +23,15 @@ it('rejects the old discovery key and names its replacement', function () {
         ->toThrow(InvalidDiscoveryConfig::class, 'Use mod.discovery.file_types instead.');
 });
 
-it('keeps every built-in placement exactly as 0.1.1', function () {
+it('keeps every built-in placement from 0.1.1 except the 0.3 HTTP move', function () {
     $snapshot = json_decode(file_get_contents(__DIR__.'/../../Fixtures/Layout/v0.1.1.json'), true, flags: JSON_THROW_ON_ERROR);
+    foreach (['controller' => 'Controllers', 'request' => 'Requests', 'middleware' => 'Middleware', 'resource' => 'Resources'] as $id => $folder) {
+        $snapshot['modules'][$id] = ['App\\|app|Modules/{module}/Http/'.$folder];
+        if ($id !== 'resource') {
+            $snapshot['ddd'][$id] = ['App\\Modules\\|app/Modules|{domain+}/Http/'.$folder];
+        }
+    }
+    $snapshot['slices']['request'] = ['App\\|app|{feature}/{slice}/Http/Requests'];
     $actual = [];
     foreach (array_keys($snapshot) as $name) {
         foreach ((new LayoutRegistry)->compile($name)->rules() as $id => $rule) {

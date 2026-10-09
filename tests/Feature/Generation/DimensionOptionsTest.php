@@ -183,7 +183,7 @@ it('reads several dimension options in the layout order, like --in', function ()
         config()->set('mod.layout', 'slices');
 
         expect($workspace->artisan('mod:request', ['name' => 'CreateInvoice', '--slice' => 'CreateInvoice', '--feature' => 'Billing']))
-            ->toHaveGenerated('app/Billing/CreateInvoice/Request.php', 'App\\Billing\\CreateInvoice');
+            ->toHaveGenerated('app/Billing/CreateInvoice/Http/Requests/Request.php', 'App\\Billing\\CreateInvoice\\Http\\Requests');
     });
 });
 

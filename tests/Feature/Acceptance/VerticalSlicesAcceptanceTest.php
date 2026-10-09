@@ -51,7 +51,7 @@ it('runs the whole loop on vertical slices', function () {
             "app/Billing/{$slice}/Command.php" => ['message', $sliceCtx, "{$sliceNs}\\Command"],
             "app/Billing/{$slice}/Handler.php" => ['handler', $sliceCtx, "{$sliceNs}\\Handler"],
             "app/Billing/{$slice}/Query.php" => ['query', $sliceCtx, "{$sliceNs}\\Query"],
-            "app/Billing/{$slice}/Request.php" => ['request', $sliceCtx, "{$sliceNs}\\Request"],
+            "app/Billing/{$slice}/Http/Requests/Request.php" => ['request', $sliceCtx, "{$sliceNs}\\Http\\Requests\\Request"],
             "app/Billing/{$slice}/Validator.php" => ['validator', $sliceCtx, "{$sliceNs}\\Validator"],
             "app/Billing/Database/Factories/Invoice{$t}Factory.php" => ['factory', $featureCtx, "App\\Billing\\Database\\Factories\\Invoice{$t}Factory"],
             "app/Billing/Events/Invoice{$t}Paid.php" => ['event', $featureCtx, "App\\Billing\\Events\\Invoice{$t}Paid"],
@@ -65,7 +65,7 @@ it('runs the whole loop on vertical slices', function () {
 
         expect($app->files())->toBe(array_keys($generated))
             ->and($app->read("app/Billing/Models/Invoice{$t}.php"))->toContain("HasFactory<\\App\\Billing\\Database\\Factories\\Invoice{$t}Factory>")
-            ->and($app->read("app/Billing/{$slice}/Request.php"))->toContain('class Request extends FormRequest');
+            ->and($app->read("app/Billing/{$slice}/Http/Requests/Request.php"))->toContain('class Request extends FormRequest');
 
         foreach ($generated as $path => [$kind, $context, $fqcn]) {
             $app->assertOwned($path, $kind, $context, $fqcn);
@@ -78,7 +78,7 @@ it('runs the whole loop on vertical slices', function () {
         $model = $relations->resolve($request->target ?? throw new RuntimeException('unresolved request'), 'request-model', "Invoice{$t}");
 
         expect($request->status)->toBe(RelationStatus::Resolved)
-            ->and($request->target->fqcn())->toBe("{$sliceNs}\\Request")
+            ->and($request->target->fqcn())->toBe("{$sliceNs}\\Http\\Requests\\Request")
             ->and($model->status)->toBe(RelationStatus::Resolved)
             ->and($model->target?->fqcn())->toBe("App\\Billing\\Models\\Invoice{$t}");
 

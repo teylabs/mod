@@ -12,7 +12,7 @@ it('S19 inserts a route using chained forms and literal parameter braces', funct
         $w->artisan('mod:resource-tabs', ['name' => 'RouteProof:Widget', '--model' => 'Widget', '--tabs' => ['History']])->assertSuccessful();
         expect($w->read('app/Modules/RouteProof/routes/web.php'))->toContain('widgets/{widget}/history', "->name('widget.history')");
         require_once $w->root->path('app/Http/Controllers/Controller.php');
-        require_once $w->root->path('app/Modules/RouteProof/Controllers/WidgetController.php');
+        require_once $w->root->path('app/Modules/RouteProof/Http/Controllers/WidgetController.php');
         require $w->root->path('app/Modules/RouteProof/routes/web.php');
         $w->artisan('route:list', ['--name' => 'widget.history'])->assertSuccessful()->expectsOutputToContain('widget.history');
     });
