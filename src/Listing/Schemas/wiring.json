@@ -1,0 +1,15 @@
+{
+    "type": "object",
+    "required": ["wiring"],
+    "properties": {
+        "wiring": {
+            "type": "object",
+            "required": ["inertia", "vite_alias", "tailwind"],
+            "properties": {
+                "inertia": {"type": "boolean"},
+                "vite_alias": {"type": "boolean"},
+                "tailwind": {"type": "boolean"}
+            }
+        }
+    }
+}

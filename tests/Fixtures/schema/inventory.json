@@ -11,7 +11,8 @@
     "templates",
     "scaffolds",
     "discovery",
-    "frontend"
+    "frontend",
+    "wiring"
   ],
   "properties": {
     "layout": {
@@ -487,6 +488,25 @@
             "string",
             "null"
           ]
+        }
+      }
+    },
+    "wiring": {
+      "type": "object",
+      "required": [
+        "inertia",
+        "vite_alias",
+        "tailwind"
+      ],
+      "properties": {
+        "inertia": {
+          "type": "boolean"
+        },
+        "vite_alias": {
+          "type": "boolean"
+        },
+        "tailwind": {
+          "type": "boolean"
         }
       }
     }

@@ -1,0 +1,19 @@
+{
+    "entry_description": "resolve: module pages through resolveModulePage()",
+    "vite_missing": "mod:install inertia needs a Vite config. Add the @modules alias and module views to your refresh paths manually.",
+    "vite_custom": "mod:install inertia does not recognize [%s]. Add the @modules alias to [%s] and refresh path [%s] manually.",
+    "vite_description": "the @modules alias, module views in refresh paths",
+    "typescript_custom": "mod:install inertia does not recognize [tsconfig.json]. Add \"@modules/*\": [\"./%s/*\"] to paths and \"%s\" to include manually.",
+    "typescript_description": "\"@modules/*\" path, %s in include",
+    "content_description": "module files in Tailwind content",
+    "tailwind_missing": "mod:install inertia needs Tailwind wiring. Add @source \"%s\" to your Tailwind v4 CSS entry, or the module glob to Tailwind v3 content.",
+    "alias_pattern": "/[\\'\\\"]@modules[\\'\\\"]\\s*:/",
+    "import": "import { resolveModulePage } from '../../vendor/tey/mod/resources/js/inertia';",
+    "resolver": "resolveModulePage",
+    "entry_line": "    resolve: (name) => resolveModulePage(name, %s, %s),",
+    "alias": "@modules",
+    "alias_line": "'@modules': modFileURLToPath(new URL('./%s', import.meta.url)),",
+    "typescript_alias": "\"@modules/*\"",
+    "typescript_line": "\n            \"@modules/*\": [\"./%s/*\"],",
+    "alias_target_pattern": "~['\"]@modules['\"]\\s*:\\s*(?:\\w+\\(new URL\\(['\"]\\./%s['\"]|\\w+\\((?:__dirname,\\s*)?['\"](?:\\./)?%s['\"]|['\"](?:\\./)?%s['\"])~"
+}

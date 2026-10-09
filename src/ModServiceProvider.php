@@ -17,6 +17,7 @@ use Tey\Mod\Commands\BasesCommand;
 use Tey\Mod\Commands\CreateTemplateCommand;
 use Tey\Mod\Commands\DisabledScaffoldCommand;
 use Tey\Mod\Commands\DisabledTemplateCommand;
+use Tey\Mod\Commands\InstallCommand;
 use Tey\Mod\Commands\ListCommand;
 use Tey\Mod\Commands\OtherLayoutCommand;
 use Tey\Mod\Commands\ScaffoldCommand;
@@ -302,7 +303,7 @@ class ModServiceProvider extends ServiceProvider
             return;
         }
 
-        $artisan->resolveCommands([ListCommand::class, BasesCommand::class, AutoloadCommand::class, CreateTemplateCommand::class]);
+        $artisan->resolveCommands([ListCommand::class, BasesCommand::class, AutoloadCommand::class, CreateTemplateCommand::class, InstallCommand::class]);
 
         foreach ($this->app->make(GeneratorRegistry::class)->commands($preset, $this->app) as $command) {
             $artisan->resolveCommands([$command]);

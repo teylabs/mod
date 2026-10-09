@@ -166,3 +166,9 @@ These names describe application-registered examples, rather than extra built-in
 - A generator template at `stubs/mod/@module/Tools/[source]/probe.stub` registers `mod:probe Inventory:Widget --source=Drive --dry-run --json`. Its `--source` answer supplies the slot folder and template value.
 
 Every new command and option must be mentioned with its command on the same line in this skill or the Boost guideline. The shared-options block covers only the options listed there. `BoostCoverageTest` checks all built-in layouts and the registered recipe/template examples; A4 pins its missing-option diagnostic.
+
+## Installing Inertia (0.3 · L7)
+
+Before generating module pages, run `mod:install inertia --no-interaction`. Use `mod:install inertia --dry-run --json` to inspect the shared plan, including each file's before and after contents, warnings and `would_write`. Human `--dry-run` previews the same changes. The command detects Vue or React, preserves app page casing and reads the compiled layout's frontend paths. It wires the vendor resolver, `@modules` in Vite and TypeScript, module view refresh paths and Tailwind v3 or v4 scanning. A second run says "Already wired." Blade apps need no install. Mirrored pages already resolve through the app's glob, so their app entry is left alone.
+
+The package exports `resolveModulePage(name, appPages, modulePages)` from `vendor/tey/mod/resources/js/inertia`; pass literal `import.meta.glob` maps from the app. Render a module page as `Inventory::Widget/Index`. Missing pages throw with the file name; module names never fall back to app pages. A custom resolver or unrecognized config is preserved; read the warning and add the printed manual wiring. `mod:list --json` exposes the boolean `wiring.inertia`, `wiring.vite_alias` and `wiring.tailwind` values detected from the current files.
