@@ -3,6 +3,7 @@
 namespace Tey\Mod\Scaffolds;
 
 use Closure;
+use Tey\Mod\Exceptions\GenerationRefused;
 
 /** A recipe of file types, placed by the active layout. */
 class Scaffold
@@ -87,6 +88,33 @@ class Scaffold
         return $this;
     }
 
+    /**
+     * @param  array<string, mixed>  $with
+     * @param  (Closure(Part): mixed)|null  $configure
+     */
+    public function part(string $name, ?string $uses = null, array $with = [], ?Closure $configure = null): static
+    {
+        if (str_contains($name, '.')) {
+            throw GenerationRefused::because("Part names cannot contain dots. Declare {$name} as nested parts.");
+        }
+        $part = new Part($this->resolve);
+        if ($uses !== null) {
+            $part->uses($uses, $with);
+        }
+        if ($configure !== null) {
+            $configure($part);
+        }
+        $this->parts[$name] = $part;
+
+        return $this;
+    }
+
+    /** @return array<string, Part> */
+    public function parts(): array
+    {
+        return $this->parts;
+    }
+
     /** @return array<string, Question> */
     public function questions(): array
     {
@@ -103,6 +131,15 @@ class Scaffold
     public function includes(): array
     {
         return $this->includes;
+    }
+
+    /** @internal Combine an inline part with its referenced recipe. */
+    public function overlay(self $part): void
+    {
+        $this->questions = [...$this->questions, ...$part->questions];
+        $this->members = [...$this->members, ...$part->members];
+        $this->parts = [...$this->parts, ...$part->parts];
+        $this->repetitions = [...$this->repetitions, ...$part->repetitions];
     }
 
     /** @return array<string, Member> */

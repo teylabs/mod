@@ -43,7 +43,7 @@ final readonly class QuestionAnswers
                 $value = match ($question->type) {
                     'choice' => select($label, $question->options, default: is_string($default) ? $default : null),
                     'confirm' => confirm($label, default: (bool) $default),
-                    'model', 'class' => search($label, fn (string $query): array => array_filter($this->classes($question->type === 'model'), static fn (string $class): bool => str_contains(strtolower($class), strtolower($query))), default: is_string($default) ? $default : null),
+                    'model', 'class' => search($label, fn (string $query): array => array_filter($this->classes($question->type === 'model'), static fn (string $class): bool => str_contains(strtolower($class), strtolower($query))), placeholder: is_string($default) ? $default : ''),
                     default => text($label, default: is_array($default) ? implode(', ', $default) : (is_string($default) ? $default : ''), hint: $question->type === 'list' ? 'Separate with commas' : '', required: $default === null),
                 };
             }

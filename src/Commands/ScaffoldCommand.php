@@ -5,10 +5,12 @@ namespace Tey\Mod\Commands;
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Tey\Mod\Commands\Concerns\InteractsWithLayout;
+use Tey\Mod\Commands\Concerns\RunsScaffoldTree;
 use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Placeholders;
 use Tey\Mod\Scaffolds\QuestionAnswers;
 use Tey\Mod\Scaffolds\Scaffold;
@@ -22,6 +24,7 @@ use function Laravel\Prompts\select;
 final class ScaffoldCommand extends Command
 {
     use InteractsWithLayout;
+    use RunsScaffoldTree;
 
     /** @var array<string, list<string>> file type => template slot options */
     private array $memberSlots = [];
@@ -33,13 +36,16 @@ final class ScaffoldCommand extends Command
         parent::__construct();
         $this->setName('mod:'.$recipeName);
         $this->setDescription('Generate the '.$recipeName.' scaffold');
+        $this->treeOptions();
         foreach ($recipe->questions() as $question) {
             $mode = match ($question->type) {
                 'list' => InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
                 'confirm' => InputOption::VALUE_NEGATABLE,
                 default => InputOption::VALUE_REQUIRED,
             };
-            $this->getDefinition()->addOption(new InputOption($question->name, null, $mode, $question->label ?? $question->name));
+            if (! $this->getDefinition()->hasOption($question->name)) {
+                $this->getDefinition()->addOption(new InputOption($question->name, null, $mode, $question->label ?? $question->name));
+            }
         }
         foreach ($preset->placementOptions() as $dimension => $option) {
             $this->getDefinition()->addOption(new InputOption($option, null, InputOption::VALUE_REQUIRED, 'Place in this '.$dimension));
@@ -73,6 +79,9 @@ final class ScaffoldCommand extends Command
 
     public function handle(): int
     {
+        if ($this->recipe->parts() !== [] || $this->recipe instanceof Part) {
+            return $this->handleTree();
+        }
         $scope = new ScaffoldExecution;
         $previous = $this->scaffoldExecution();
         $this->laravel->instance(ScaffoldExecution::class, $scope);
