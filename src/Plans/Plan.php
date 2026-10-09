@@ -26,6 +26,11 @@ final class Plan
     /** @var list<array{name: string, line: int}> */
     public array $mentions = [];
 
+    /**
+     * @var array{selection: array{scaffold: ?string, source: ?string, answers: array<string, mixed>}, target: array{group: ?string, name: ?string}, moves: list<array{alias: string, type: string, from: string, to: string, old_class: ?string, new_class: ?string}>, rewrites: list<array{file: string, after_file: string, line: int, category: string, before: string, after: string}>, retained: list<array{alias: string, path: string, reason: string}>, checklist: list<array{file: string, after_file: string, line: int, category: string, message: string, suggestion: ?string}>, scan_roots: list<string>}
+     */
+    public array $rename = ['selection' => ['scaffold' => null, 'source' => null, 'answers' => []], 'target' => ['group' => null, 'name' => null], 'moves' => [], 'rewrites' => [], 'retained' => [], 'checklist' => [], 'scan_roots' => []];
+
     public bool $wouldWrite = true;
 
     public function __construct(public readonly string $command, public ?string $group = null, public ?string $name = null) {}
@@ -68,8 +73,19 @@ final class Plan
     }
 
     /** @return array<string, mixed> */
+    private function renameFields(): array
+    {
+        $fields = $this->rename;
+        if ($fields['selection']['answers'] === []) {
+            $fields['selection']['answers'] = (object) [];
+        }
+
+        return $fields;
+    }
+
+    /** @return array<string, mixed> */
     public function toArray(): array
     {
-        return ['command' => $this->command, 'group' => $this->group, 'name' => $this->name, 'files' => $this->files, 'inserts' => $this->inserts, 'warnings' => $this->warnings, 'would_write' => $this->wouldWrite, ...($this->mentions === [] ? [] : ['mentions' => $this->mentions])];
+        return ['command' => $this->command, 'group' => $this->group, 'name' => $this->name, 'files' => $this->files, 'inserts' => $this->inserts, 'warnings' => $this->warnings, 'would_write' => $this->wouldWrite, ...($this->command === 'mod:rename' ? $this->renameFields() : []), ...($this->mentions === [] ? [] : ['mentions' => $this->mentions])];
     }
 }

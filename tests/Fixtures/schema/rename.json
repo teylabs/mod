@@ -8,11 +8,18 @@
     "files",
     "inserts",
     "warnings",
-    "would_write"
+    "would_write",
+    "selection",
+    "target",
+    "moves",
+    "rewrites",
+    "retained",
+    "checklist",
+    "scan_roots"
   ],
   "properties": {
     "command": {
-      "type": "string"
+      "const": "mod:rename"
     },
     "group": {
       "type": [

@@ -138,6 +138,9 @@ final class OwnedAppRoot
             } elseif ($item->isLink() && PHP_OS_FAMILY === 'Windows' && is_dir($pathname)) {
                 rmdir($pathname); // a directory link is removed with rmdir on Windows, never followed
             } else {
+                if (PHP_OS_FAMILY === 'Windows' && ! $item->isLink()) {
+                    chmod($pathname, 0666); // clear the read-only attribute before unlinking Git objects
+                }
                 unlink($pathname);
             }
         }

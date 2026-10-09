@@ -46,6 +46,11 @@ final class PlanWriter
 
             return;
         }
+        if ($plan->command === 'mod:rename') {
+            $this->rename($command, $plan);
+
+            return;
+        }
         if ($plan->command === 'mod:autoload' && $plan->files === [] && $plan->warnings === []) {
             $command->outputComponents()->info('Every root has its Composer mapping configured.');
 
@@ -74,6 +79,37 @@ final class PlanWriter
         $command->newLine();
         foreach ($plan->warnings as $warning) {
             $command->outputComponents()->warn($warning['message']);
+        }
+    }
+
+    private function rename(Command $command, Plan $plan): void
+    {
+        $old = ($plan->group === null ? '' : $plan->group.':').($plan->name ?? '');
+        $target = $plan->rename['target'];
+        $new = ($target['group'] === null ? '' : $target['group'].':').($target['name'] ?? '');
+        $command->line('Rename '.$old.' -> '.$new.' ('.($plan->rename['selection']['scaffold'] ?? 'select --scaffold').')');
+        foreach ($plan->rename['moves'] as $move) {
+            $command->line($move['from'].' -> '.$move['to']);
+        }
+        foreach ($plan->rename['rewrites'] as $edit) {
+            $command->line('Rewrite '.$edit['file'].':'.$edit['line'].' ['.$edit['category'].']: '.$edit['before'].' -> '.$edit['after']);
+        }
+        foreach ($plan->rename['retained'] as $retained) {
+            $command->line('Retain '.$retained['path'].' ['.$retained['reason'].']');
+        }
+        foreach ($plan->rename['checklist'] as $item) {
+            $command->line('Review '.$item['file'].':'.$item['line'].' ['.$item['category'].']: '.$item['message']);
+        }
+        foreach ($plan->files as $file) {
+            $command->line('Create '.$file['path']);
+        }
+        foreach ($plan->warnings as $warning) {
+            $command->line($warning['message']);
+        }
+        $command->line('Move: '.count($plan->rename['moves']).' files');
+        $command->line('Review: '.count($plan->rename['checklist']).' items');
+        if ((bool) $command->option('dry-run')) {
+            $command->line('Dry run. Nothing was written.');
         }
     }
 
