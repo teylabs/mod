@@ -7,7 +7,7 @@ it('F10 selects React variants and shares the correctly cased identity with PHP'
     Workspace::run(null, function (Workspace $w) {
         Frontend::crud($w, 'react');
         $w->artisan('mod:crud-pages', ['name' => 'Inventory:Widget'])->assertSuccessful();
-        expect($w->read('app/Modules/Inventory/resources/js/pages/widget/index.tsx'))->toContain('export default function Index()')
+        expect($w->read('app/Modules/Inventory/resources/js/pages/widget/index.tsx'))->toContain('export default function Widget()')
             ->and($w->read('app/Modules/Inventory/Http/Controllers/WidgetController.php'))->toContain("Inertia::render('Inventory::widget/index'");
     });
 });

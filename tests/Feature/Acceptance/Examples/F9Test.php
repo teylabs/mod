@@ -16,10 +16,10 @@ it('F9 inserts a widget import and card at separate Vue anchors', function () {
         $w->write('stubs/mod.insert.dashboard-metric.stub', "'{{ widget.metric }}',\n");
         $w->write('stubs/mod.insert.dashboard-card.stub', '        <{{ widget.card }} :metric="metrics.{{ widget.camel }}" />');
         $w->write('stubs/mod.insert.dashboard-card-import.stub', "import {{ widget.card }} from '{{ widget.card.import }}';");
-        Mod::scaffold('metric', fn (Scaffold $s) => $s->makes('class', name: 'Metrics/{name}Metric', as: 'metric', stub: 'metric')->makes('metric-card', name: '{name}Card', as: 'card'));
+        Mod::scaffold('metric', fn (Scaffold $s) => $s->makes('class', name: 'Metrics/{widget}Metric', as: 'metric', stub: 'metric')->makes('metric-card', name: '{widget}Card', as: 'card'));
         Mod::scaffold('dashboard', fn (Scaffold $s) => $s->makes('view-model', name: '{name}DashboardViewModel', as: 'dashboard', stub: 'dashboard')->makes('page', name: '{name}/Dashboard', as: 'view', stub: 'dashboard')->part('widget', uses: 'metric', configure: fn (Part $p) => $p->inserts(into: 'dashboard', at: 'widgets', stub: 'dashboard-metric')->inserts(into: 'view', at: 'card-imports', stub: 'dashboard-card-import')->inserts(into: 'view', at: 'widgets', stub: 'dashboard-card')));
         $w->artisan('mod:dashboard', ['name' => 'Inventory:Stock'])->assertSuccessful();
-        $result = $w->artisan('mod:dashboard.widget', ['name' => 'Inventory:Stock', 'item' => 'LowStock'])->assertSuccessful();
+        $result = $w->artisan('mod:dashboard.widget', ['name' => 'Inventory:Stock', 'value' => 'LowStock'])->assertSuccessful();
         expect($result->normalisedOutput())->toContain('will write 2 files and 3 inserts', '<!-- mod:widgets -->')
             ->and($w->read('app/Modules/Inventory/resources/js/pages/Stock/Dashboard.vue'))->toContain("import LowStockCard from '@modules/Inventory/resources/js/components/LowStockCard.vue';", '<LowStockCard :metric="metrics.lowStock" />');
     });
