@@ -2,10 +2,12 @@
 
 namespace Tey\Mod\Commands;
 
+use Illuminate\Console\GeneratorCommand;
 use Illuminate\Routing\Console\ControllerMakeCommand;
 use InvalidArgumentException;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Commands\Concerns\PlacesGeneratedClass;
+use Tey\Mod\Generation\ClassMembers;
 use Tey\Mod\Generation\GeneratorAdapter;
 use Tey\Mod\Relation\RelationResolution;
 
@@ -134,7 +136,20 @@ class ControllerCommand extends ControllerMakeCommand implements GeneratorAdapte
             $namespacedRequests .= PHP_EOL.'use '.$updateImport.';';
         }
 
+        $source = GeneratorCommand::buildClass((string) $this->primary()->fqcn());
+        $source = str_replace(['use {{ namespacedRequests }}', 'use {{namespacedRequests}}'], '', $source);
+        $members = new ClassMembers($source);
+        $imports = [];
+        if (! $members->hasImport($store, $storeName)) {
+            $imports[] = 'use '.$store.';';
+        }
+        if ($store !== $update && ! $members->hasImport($update, $updateName)) {
+            $imports[] = 'use '.$updateImport.';';
+        }
+
         return array_merge($replace, [
+            'use {{ namespacedRequests }}' => implode("\n", $imports),
+            'use {{namespacedRequests}}' => implode("\n", $imports),
             '{{ storeRequest }}' => $storeName,
             '{{storeRequest}}' => $storeName,
             '{{ updateRequest }}' => $updateName,

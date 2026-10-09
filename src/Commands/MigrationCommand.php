@@ -3,6 +3,7 @@
 namespace Tey\Mod\Commands;
 
 use Illuminate\Database\Console\Migrations\MigrateMakeCommand;
+use Illuminate\Database\Console\Migrations\TableGuesser;
 use Illuminate\Support\Composer;
 use Illuminate\Support\Str;
 use Symfony\Component\Console\Input\InputInterface;
@@ -16,6 +17,7 @@ use Tey\Mod\Generation\GenerationPlan;
 use Tey\Mod\Generation\GeneratorAdapter;
 use Tey\Mod\Generation\ModMigrationCreator;
 use Tey\Mod\Generation\StubSelection;
+use Tey\Mod\Support\Path;
 
 /**
  * Native make:migration, placed by the preset.
@@ -47,9 +49,9 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
     }
 
     /** @internal The default native migration stub, shared with mod:list. */
-    public function stubSelection(): StubSelection
+    public function stubSelection(?string $table = null, bool $create = false): StubSelection
     {
-        return $this->modCreator->stubSelection();
+        return $this->modCreator->stubSelection($table, $create);
     }
 
     public static function supports(ArtifactKind $kind): bool
@@ -112,7 +114,7 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
             }
 
             if ($this->scaffoldExecution()?->planning) {
-                $this->scaffoldExecution()->collect($this->resolvePlan(), '');
+                $this->scaffoldExecution()->collect($this->resolvePlan(), $this->migrationStubFile());
 
                 return $exitCode = self::SUCCESS;
             }
@@ -128,6 +130,7 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
             return $exitCode = $this->reportRefusal($exception);
         } finally {
             $this->modCreator->pin(null);
+            $this->modCreator->useStub(null);
             $plan = $this->currentPlan();
 
             if ($plan !== null && ! $this->scaffoldExecution()?->planning) {
@@ -236,6 +239,31 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
         return dirname($this->existingArtifacts()->absolute($this->plan->primary->path()));
     }
 
+    private function migrationStubFile(?string $table = null, ?bool $create = null): string
+    {
+        $primary = $this->resolvePlan()->primary;
+        $variant = $this->scaffoldExecution()?->variants[$primary->path()] ?? null;
+        if ($variant !== null) {
+            return $variant;
+        }
+        if ($create === null) {
+            $tableOption = $this->option('table');
+            $table = is_string($tableOption) ? $tableOption : null;
+            $createOption = $this->option('create');
+            $create = (bool) $createOption;
+            if (! $table && is_string($createOption) && $createOption !== '') {
+                $table = $createOption;
+                $create = true;
+            }
+            if (! $table) {
+                [$table, $create] = TableGuesser::guess(Str::snake($this->getNameInput()));
+            }
+        }
+
+        return $this->stubSelection($table ?: null, (bool) $create)->file
+            ?? throw new \LogicException('The migration creator must select a stub file.');
+    }
+
     /**
      * @param  string  $name
      * @param  string|null  $table
@@ -244,9 +272,14 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
      */
     protected function writeMigration($name, $table, $create)
     {
+        if ($this->plan !== null) {
+            $source = $this->modCreator->getFilesystem()->get($this->migrationStubFile($table, (bool) $create));
+            $source = $this->scaffoldExecution()?->replace($source, $this->plan->primary) ?? $source;
+            $this->modCreator->useStub($source);
+        }
         $file = $this->creator->create($name, $this->getMigrationPath(), $table, $create);
 
-        if ($this->plan !== null && $file !== $this->existingArtifacts()->absolute($this->plan->primary->path())) {
+        if ($this->plan !== null && ! Path::same($file, $this->existingArtifacts()->absolute($this->plan->primary->path()))) {
             throw GenerationRefused::because("The native creator wrote [{$file}], not the resolved [{$this->plan->primary->path()}].");
         }
 

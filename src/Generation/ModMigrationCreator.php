@@ -18,6 +18,14 @@ class ModMigrationCreator extends MigrationCreator
 {
     private ?string $pinnedPrefix = null;
 
+    private ?string $selectedStub = null;
+
+    /** Select rendered house source for one native write; null restores native selection. */
+    public function useStub(?string $source): void
+    {
+        $this->selectedStub = $source;
+    }
+
     /**
      * The date prefix the native creator would use for a migration in the given directory.
      */
@@ -80,6 +88,9 @@ class ModMigrationCreator extends MigrationCreator
 
     protected function getStub($table, $create)
     {
+        if ($this->selectedStub !== null) {
+            return $this->selectedStub;
+        }
         $file = $this->stubSelection($table, (bool) $create)->file;
         if ($file === null) {
             throw new \LogicException('The migration creator must select a stub file.');
