@@ -14,6 +14,7 @@ use Tey\Mod\Artifact\NamePolicyKind;
 use Tey\Mod\Commands\Concerns\InteractsWithLayout;
 use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Exceptions\ModException;
+use Tey\Mod\Generation\CollisionPolicy;
 use Tey\Mod\Generation\GenerationPlan;
 use Tey\Mod\Generation\GeneratorAdapter;
 use Tey\Mod\Generation\ModMigrationCreator;
@@ -203,11 +204,13 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
         $directory = dirname($this->resolveArtifact($this->kind()->id, $name, $context, ['timestamp' => '0000_00_00_000000'])->path());
         $absoluteDirectory = $this->existingArtifacts()->absolute($directory);
         $timestamp = $this->modCreator->datePrefixFor($absoluteDirectory);
-        // A migration's identity is its name within this directory, regardless of its clock prefix.
-        foreach (glob(Path::join($absoluteDirectory, '*_'.$name.'.php')) ?: [] as $file) {
-            if (preg_match('/^(\d{4}_\d{2}_\d{2}_\d{6})_'.preg_quote($name, '/').'\.php$/', basename($file), $match) === 1) {
-                $timestamp = $match[1];
-                break;
+        // Scaffolds and mod's collision policy reuse identity by name; native writes keep the native clock.
+        if ($this->scaffoldExecution() !== null || $this->collisionPolicy() !== CollisionPolicy::Native) {
+            foreach (glob(Path::join($absoluteDirectory, '*_'.$name.'.php')) ?: [] as $file) {
+                if (preg_match('/^(\d{4}_\d{2}_\d{2}_\d{6})_'.preg_quote($name, '/').'\.php$/', basename($file), $match) === 1) {
+                    $timestamp = $match[1];
+                    break;
+                }
             }
         }
 
