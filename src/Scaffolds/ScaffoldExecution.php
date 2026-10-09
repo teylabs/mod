@@ -10,6 +10,8 @@ final class ScaffoldExecution
 {
     public bool $planning = true;
 
+    public bool $nestedNames = false;
+
     /** @var array<string, GenerationPlan> primary path => accepted plan */
     public array $plans = [];
 

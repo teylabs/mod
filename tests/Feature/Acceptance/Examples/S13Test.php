@@ -26,6 +26,7 @@ it('S13 asks model and channel in a terminal and can cancel the write', function
             ->asks('channel', type: 'choice', options: ['mail', 'database'], default: 'mail')->makes('notification'));
         Examples::testCase()->artisan('mod:notifier', ['name' => 'Inventory:WidgetShared'])
             ->expectsQuestion('Which model is it about?', 'App\\Modules\\Inventory\\Models\\Widget')
+            ->expectsChoice('Which model is it about?', 'App\\Modules\\Inventory\\Models\\Widget', ['App\\Modules\\Inventory\\Models\\Widget' => 'App\\Modules\\Inventory\\Models\\Widget'])
             ->expectsChoice('Channel', 'mail', ['mail', 'database'])->expectsConfirmation('Write these 1 files?', 'no')->assertSuccessful();
         expect($w->exists('app/Modules/Inventory/Notifications/WidgetShared.php'))->toBeFalse();
     });

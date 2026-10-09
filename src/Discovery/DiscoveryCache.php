@@ -14,6 +14,8 @@ use UnexpectedValueException;
  *
  * Replay never scans or reflects. A file that does not match is never used.
  *
+ * @phpstan-import-type Node from \Tey\Mod\Scaffolds\ScaffoldRegistry
+ *
  * @internal used by Discovery; read, write and clear the cache through Discovery.
  */
 final readonly class DiscoveryCache
@@ -27,8 +29,10 @@ final readonly class DiscoveryCache
         return is_file($this->path);
     }
 
-    /** @param array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool}> $templates */
-    public function write(Inventory $inventory, string $preset, string $definitions, array $templates = []): void
+    /** @param array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool}> $templates
+     * @param  array<string, Node>  $scaffolds
+     */
+    public function write(Inventory $inventory, string $preset, string $definitions, array $templates = [], array $scaffolds = []): void
     {
         $directory = dirname($this->path);
 
@@ -42,6 +46,7 @@ final readonly class DiscoveryCache
             'definitions' => $definitions,
             'inventory' => $inventory->toArray(),
             'templates' => $templates,
+            'scaffolds' => $scaffolds,
         ];
 
         $temporary = $this->path.'.'.bin2hex(random_bytes(6)).'.tmp';

@@ -60,7 +60,32 @@ trait RunsScaffoldTree
                 $recipes[] = $root;
             }
         }
+        $seen = [];
+        for ($i = 0; $i < count($recipes); $i++) {
+            $recipe = $recipes[$i];
+            $id = spl_object_id($recipe);
+            if (isset($seen[$id])) {
+                continue;
+            }
+            $seen[$id] = true;
+            foreach ($recipe->parts() as $part) {
+                $recipes[] = $part;
+            }
+            if ($recipe instanceof Part && $recipe->scaffold() !== null && ($used = $registry->get($recipe->scaffold())) !== null) {
+                $recipes[] = $used;
+            }
+        }
         foreach ($recipes as $recipe) {
+            foreach ($recipe->members() as $member) {
+                if (! $this->preset->hasKind($member->fileType)) {
+                    continue;
+                }
+                foreach ($this->preset->rule($member->fileType)->dimensions() as $slot) {
+                    if (! in_array($slot, $this->preset->dimensionNames(), true) && ! $this->getDefinition()->hasOption($slot)) {
+                        $this->getDefinition()->addOption(new InputOption($slot, null, InputOption::VALUE_REQUIRED, 'The '.$slot.' folder and template value'));
+                    }
+                }
+            }
             foreach ($recipe->questions() as $question) {
                 if (! $this->getDefinition()->hasOption($question->name)) {
                     $mode = match ($question->type) {
@@ -84,6 +109,7 @@ trait RunsScaffoldTree
         $this->treeCalls = $this->treeInserts = $this->treeStarts = $this->treeAliases = [];
         $this->treeCancelled = false;
         $scope = new ScaffoldExecution;
+        $scope->nestedNames = true;
         $previous = $this->scaffoldExecution();
         $this->laravel->instance(ScaffoldExecution::class, $scope);
         $backups = [];
@@ -112,6 +138,10 @@ trait RunsScaffoldTree
                     $absolute = $this->laravel->basePath($path);
                     $template = $scope->variants[$path] ?? $scope->defaultStubs[$path] ?? null;
                     $sources[$path] = $this->treeStarts[$path] ?? (is_file($absolute) ? (string) file_get_contents($absolute) : ($template !== null && is_file($template) ? (string) file_get_contents($template) : ''));
+                }
+                $entry = rtrim(str_replace("\r\n", "\n", $insert['stub']), "\n");
+                if ($entry !== '' && str_contains(str_replace("\r\n", "\n", $sources[$path]), $entry)) {
+                    throw GenerationRefused::because("Insert already exists in {$path} at mod:{$insert['at']}. Nothing was written.");
                 }
                 try {
                     $sources[$path] = $writer->insert($sources[$path], $insert['at'], $insert['stub'], $path);
@@ -226,13 +256,15 @@ trait RunsScaffoldTree
     }
 
     /** @param array<string, mixed> $given
-     * @return array<string, mixed>
+     * @return array<string, ResolvedArtifact>
      */
-    private function planTreeNode(Scaffold $recipe, string $name, PlacementContext $context, array $given, string $prefix, string $folder, ScaffoldPlan $plan, ScaffoldExecution $scope, int $depth): array
+    private function planTreeNode(Scaffold $recipe, string $name, PlacementContext $context, array $given, string $prefix, string $folder, ScaffoldPlan $plan, ScaffoldExecution $scope, int $depth, ?string $nodeKey = null): array
     {
         if ($depth > 10) {
             throw GenerationRefused::because('Scaffold path '.$prefix.' exceeds the depth limit of 10. Nothing was written.');
         }
+        $nodeKey ??= $this->recipeName;
+        $firstFile = count($plan->files());
         $values = $this->treeAnswers($recipe, $name, $given);
         $own = [];
         foreach ($recipe->members() as $alias => $member) {
@@ -272,8 +304,9 @@ trait RunsScaffoldTree
             }
             $this->treeAliases[$prefix.$alias] = $artifact;
         }
+        $lastFile = count($plan->files());
         foreach ($recipe->repetitions() as $question => $partName) {
-            $part = $this->treePart($recipe, $prefix, $partName);
+            $part = $this->treePart($recipe, $nodeKey, $partName);
             if ($part === null || ! is_array($values[$question] ?? null)) {
                 throw GenerationRefused::because("each('{$question}') needs a list question and a {$partName} part. Nothing was written.");
             }
@@ -281,7 +314,7 @@ trait RunsScaffoldTree
                 if (! is_string($item)) {
                     throw GenerationRefused::because("{$question} needs text items.");
                 }
-                $outputs = $this->planTreePart($part, $partName, $item, $name, $context, $values, $prefix.$partName.'.'.$item.'.', $folder, $plan, $scope, $depth + 1);
+                $outputs = $this->planTreePart($part, $partName, $item, $name, $context, $values, $prefix.$partName.'.'.$item.'.', $folder, $plan, $scope, $depth + 1, $nodeKey.'.'.$partName, array_keys($own));
                 foreach ($outputs as $key => $output) {
                     $values[$partName.'.'.$item.'.'.$key] = $output;
                 }
@@ -291,16 +324,18 @@ trait RunsScaffoldTree
             $scope->values[$artifact->path()] = [...$this->treeAliases, ...$values];
         }
         // Related generators and bases need the same node answers.
-        foreach ($plan->files() as ['artifact' => $artifact]) {
-            $scope->values[$artifact->path()] ??= [...$this->treeAliases, ...$values];
+        foreach ($plan->files() as $index => ['artifact' => $artifact]) {
+            if ($index >= $firstFile && $index < $lastFile) {
+                $scope->values[$artifact->path()] = [...$this->treeAliases, ...$values];
+            }
         }
 
         return $own;
     }
 
-    private function treePart(Scaffold $recipe, string $prefix, string $name): ?Part
+    private function treePart(Scaffold $recipe, string $nodeKey, string $name): ?Part
     {
-        $path = $prefix === '' ? $this->recipeName.'.'.$name : rtrim($prefix, '.').'.'.$name;
+        $path = $nodeKey.'.'.$name;
         $override = $this->laravelRegistry()->get($path);
 
         return $override instanceof Part ? $override : ($recipe->parts()[$name] ?? null);
@@ -310,7 +345,9 @@ trait RunsScaffoldTree
     {
         $file = $this->laravel->basePath('stubs/mod.'.$id.'.stub');
         if (! is_file($file)) {
-            $file = $this->laravel->make(StubRegistry::class)->get($id)?->path ?? '';
+            $registry = $this->laravel->make(StubRegistry::class);
+            $stub = $registry->get($id);
+            $file = $stub === null ? '' : $stub->path;
         }
         if ($file === '' || ! is_file($file)) {
             throw GenerationRefused::because("mod:{$this->recipeName} needs stubs/mod.{$id}.stub. Create the stub before running the command. Nothing was written.");
@@ -331,9 +368,10 @@ trait RunsScaffoldTree
     }
 
     /** @param array<string, mixed> $parent
+     * @param  list<string>  $owned
      * @return array<string, ResolvedArtifact>
      */
-    private function planTreePart(Part $part, string $partName, string $item, string $name, PlacementContext $context, array $parent, string $prefix, string $folder, ScaffoldPlan $plan, ScaffoldExecution $scope, int $depth): array
+    private function planTreePart(Part $part, string $partName, string $item, string $name, PlacementContext $context, array $parent, string $prefix, string $folder, ScaffoldPlan $plan, ScaffoldExecution $scope, int $depth, ?string $nodeKey = null, array $owned = []): array
     {
         $values = $parent;
         foreach ($part->values() as $key => $value) {
@@ -348,13 +386,13 @@ trait RunsScaffoldTree
         }
         $values[$partName] = $item;
         $recipe = $this->childRecipe($part);
-        $outputs = $this->planTreeNode($recipe, $name, $context, $values, $prefix, $folder, $plan, $scope, $depth);
+        $outputs = $this->planTreeNode($recipe, $name, $context, $values, $prefix, $folder, $plan, $scope, $depth, $nodeKey);
         foreach ($outputs as $alias => $artifact) {
             $values[$partName.'.'.$alias] = $artifact;
         }
         foreach ($part->insertions() as $insert) {
             $target = $parent[$insert->into] ?? null;
-            if ($target instanceof ResolvedArtifact) {
+            if ($target instanceof ResolvedArtifact && in_array($insert->into, $owned, true)) {
                 $path = $target->path();
             } elseif (str_starts_with($insert->into, '@')) {
                 $path = $this->treeInsertPath($insert->into, $context);
@@ -431,6 +469,33 @@ trait RunsScaffoldTree
             }
         }
         $values = $this->treeAnswers($root, $name, [], locating: true);
+        $pathParts = explode('.', $this->recipeName);
+        array_shift($pathParts);
+        if (count($pathParts) > 1) {
+            $inputs = explode('/', $value);
+            if (count($inputs) !== count($pathParts)) {
+                throw GenerationRefused::because('Pass a slash-separated input for each part in '.$this->recipeName.'. Nothing was written.');
+            }
+            $path = $rootName;
+            foreach ($pathParts as $index => $ancestor) {
+                if ($index === count($pathParts) - 1) {
+                    $value = $inputs[$index];
+                    break;
+                }
+                $path .= '.'.$ancestor;
+                $ancestorPart = $this->laravelRegistry()->get($path);
+                if (! $ancestorPart instanceof Part) {
+                    throw GenerationRefused::because("Part [{$path}] is not defined.");
+                }
+                $given = $values;
+                foreach ($ancestorPart->values() as $key => $answer) {
+                    $given[$key] = is_string($answer) ? (new Placeholders($values))->render($answer) : $answer;
+                }
+                $given[$ancestor] = $inputs[$index];
+                $root = $this->childRecipe($ancestorPart);
+                $values = $this->treeAnswers($root, $name, $given, locating: true);
+            }
+        }
         $values['name'] = $parentName;
         foreach ($root->members() as $alias => $member) {
             $stem = $member->name === null ? $parentName : (new Placeholders($values))->name($member->name);
@@ -461,6 +526,6 @@ trait RunsScaffoldTree
             $values[$alias] = $artifact;
         }
         $values['name'] = $name;
-        $this->planTreePart($part, $partName, $recursive ? $childName : $value, $childName, $context, $values, '', $folder, $plan, $scope, count(explode('/', $value)));
+        $this->planTreePart($part, $partName, $recursive ? $childName : $value, $childName, $context, $values, '', $folder, $plan, $scope, count(explode('/', $value)), $this->recipeName, array_keys($root->members()));
     }
 }

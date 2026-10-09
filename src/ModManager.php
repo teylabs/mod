@@ -12,6 +12,7 @@ use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
+use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
 
@@ -64,7 +65,7 @@ final readonly class ModManager
         return $this->layouts->layout($name);
     }
 
-    /** @param Closure(Scaffold): mixed $recipe */
+    /** @param (Closure(Scaffold): mixed)|(Closure(Part): mixed) $recipe */
     public function scaffold(string $name, Closure $recipe): self
     {
         $this->scaffoldRegistry->register($name, $recipe);

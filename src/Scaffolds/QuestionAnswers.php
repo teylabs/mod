@@ -32,6 +32,9 @@ final readonly class QuestionAnswers
         if ($value === null || $value === []) {
             if (! $interactive) {
                 if ($default === null) {
+                    if ($question->type === 'confirm') {
+                        throw GenerationRefused::because("{$command} needs a {$question->name}. Pass --{$question->name} or --no-{$question->name}.");
+                    }
                     $form = match ($question->type) {
                         'model', 'class' => $question->type, default => 'value'
                     };
@@ -44,7 +47,7 @@ final readonly class QuestionAnswers
                     'choice' => select($label, $question->options, default: is_string($default) ? $default : null),
                     'confirm' => confirm($label, default: (bool) $default),
                     'model', 'class' => search($label, fn (string $query): array => array_filter($this->classes($question->type === 'model'), static fn (string $class): bool => str_contains(strtolower($class), strtolower($query))), placeholder: is_string($default) ? $default : ''),
-                    default => text($label, default: is_array($default) ? implode(', ', $default) : (is_string($default) ? $default : ''), hint: $question->type === 'list' ? 'Separate with commas' : '', required: $default === null),
+                    default => text($label, default: is_array($default) ? implode(', ', array_filter($default, 'is_string')) : (is_string($default) ? $default : ''), hint: $question->type === 'list' ? 'Separate with commas' : '', required: $default === null),
                 };
             }
         }

@@ -474,6 +474,11 @@ trait InteractsWithLayout
      */
     protected function resolveArtifact(string $kindId, string $name, PlacementContext $context, array $attributes = []): ResolvedArtifact
     {
+        $rule = $this->layout()->rule($kindId);
+        if ($this->scaffoldExecution()?->nestedNames && $rule instanceof TemplateRule) {
+            return $rule->withNestedNames()->place($this->layout()->kind($kindId), $name, $context, $attributes);
+        }
+
         return (new PlacementResolver($this->layout()))->resolve(ArtifactRequest::for($kindId, $name, $context, $attributes));
     }
 

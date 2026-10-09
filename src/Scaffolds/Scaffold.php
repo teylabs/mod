@@ -36,7 +36,7 @@ class Scaffold
     public function __construct(private readonly ?Closure $resolve = null) {}
 
     /** @param array<array-key, mixed> $options flags passed to this file type's generator */
-    public function makes(string $fileType, ?string $name = null, ?string $as = null, ?string $stub = null, array $options = []): self
+    public function makes(string $fileType, ?string $name = null, ?string $as = null, ?string $stub = null, array $options = []): static
     {
         $alias = $as ?? $fileType;
         if (isset($this->members[$alias]) && ! isset($this->inherited[$alias])) {
@@ -49,7 +49,7 @@ class Scaffold
     }
 
     /** Copy the other recipe as it stands now. */
-    public function include(string $name): self
+    public function include(string $name): static
     {
         $this->includes[] = $name;
         $source = ($this->resolve) !== null ? ($this->resolve)($name) : null;
@@ -92,10 +92,14 @@ class Scaffold
      * @param  array<string, mixed>  $with
      * @param  (Closure(Part): mixed)|null  $configure
      */
-    public function part(string $name, ?string $uses = null, array $with = [], ?Closure $configure = null): static
+    public function part(string $name, string|Closure|null $uses = null, array $with = [], ?Closure $configure = null): static
     {
         if (str_contains($name, '.')) {
             throw GenerationRefused::because("Part names cannot contain dots. Declare {$name} as nested parts.");
+        }
+        if ($uses instanceof Closure) {
+            $configure = $uses;
+            $uses = null;
         }
         $part = new Part($this->resolve);
         if ($uses !== null) {

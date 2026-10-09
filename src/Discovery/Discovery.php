@@ -18,6 +18,8 @@ use WeakMap;
  * inventory or a registration record.
  *
  * @internal
+ *
+ * @phpstan-import-type Node from \Tey\Mod\Scaffolds\ScaffoldRegistry
  */
 final class Discovery
 {
@@ -120,11 +122,13 @@ final class Discovery
 
     /**
      * Scan cold and write the result to the cache file.
+     *
+     * @param  array<string, Node>  $scaffolds
      */
-    public function writeCache(): Inventory
+    public function writeCache(array $scaffolds = []): Inventory
     {
         $inventory = $this->scan();
-        $this->cache()->write($inventory, $this->presetFingerprint(), $this->definitionsFingerprint(), $this->preset->templates());
+        $this->cache()->write($inventory, $this->presetFingerprint(), $this->definitionsFingerprint(), $this->preset->templates(), $scaffolds);
 
         return $inventory;
     }

@@ -21,6 +21,7 @@ it('S16 copies the complete tree and swaps just the base or entry', function (st
             }
         });
         $w->artisan('mod:variant', ['name' => 'Inventory:Widget', '--tabs' => ['Current', 'Period']])->assertSuccessful();
+        Tree::assertClassesLoad($w);
         expect($w->read(Tree::page('Period')))->toContain('extends ManageWidgetViewModel')
             ->and($w->read(Tree::base()))->toContain($variant === 'C' ? "['href' => 'period']" : "['label' => 'Period'");
     });

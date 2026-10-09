@@ -32,7 +32,7 @@ final class AnchorWriter
         $anchor = $this->anchor($source, $at, $path);
         $newline = str_contains($source, "\r\n") ? "\r\n" : (str_contains($source, "\r") ? "\r" : "\n");
         $stub = str_replace(["\r\n", "\r"], "\n", $stub);
-        $stub = str_replace("\n", $newline, rtrim($stub, "\n")).$newline;
+        $stub = str_replace("\n", $newline, str_ends_with($stub, "\n") ? $stub : $stub."\n");
 
         return substr($source, 0, $anchor['offset']).$stub.substr($source, $anchor['offset']);
     }

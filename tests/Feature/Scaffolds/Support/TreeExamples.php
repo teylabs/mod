@@ -2,6 +2,7 @@
 
 namespace Tey\Mod\Tests\Feature\Scaffolds\Support;
 
+use Symfony\Component\Process\Process;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Scaffold;
@@ -101,9 +102,73 @@ STUB
             ->each('tabs', part: 'tab'));
     }
 
+    /** @param list<string> $tabs */
     public static function create(Workspace $w, array $tabs = ['Overview', 'Details', 'Notes']): void
     {
         $w->artisan('mod:resource-tabs', ['name' => 'Inventory:Widget', '--tabs' => $tabs])->assertSuccessful();
+    }
+
+    public static function assertClassesLoad(Workspace $w): void
+    {
+        $files = [];
+        foreach ($w->files() as $path) {
+            if (! str_starts_with($path, 'app/') || ! str_ends_with($path, '.php')) {
+                continue;
+            }
+            $lint = new Process([PHP_BINARY, '-l', $w->root->path($path)]);
+            $lint->run();
+            expect($lint->isSuccessful())->toBeTrue($lint->getErrorOutput().$lint->getOutput());
+            $files[] = $w->root->path($path);
+        }
+        $bootstrap = 'require '.var_export(dirname(__DIR__, 4).'/vendor/autoload.php', true).';';
+        $load = <<<'CODE'
+$files = json_decode($argv[1], true);
+spl_autoload_register(function ($class) use ($files) {
+    foreach ($files as $file) {
+        $source = file_get_contents($file);
+        if (preg_match('/namespace\\s+([^;]+);/', $source, $ns) && preg_match('/\\b(?:class|interface|trait|enum)\\s+(\\w+)/', $source, $name) && trim($ns[1]).'\\'.$name[1] === $class) {
+            require_once $file;
+            return;
+        }
+    }
+});
+foreach ($files as $file) { require_once $file; }
+CODE;
+        $process = new Process([PHP_BINARY, '-r', $bootstrap.$load, json_encode($files, JSON_THROW_ON_ERROR)]);
+        $process->run();
+        expect($process->isSuccessful())->toBeTrue($process->getErrorOutput().$process->getOutput());
+    }
+
+    public static function expectedBase(): string
+    {
+        return <<<'PHP'
+<?php
+
+namespace App\Modules\Inventory\ViewModels;
+
+use App\Modules\Inventory\Models\Widget;
+
+use App\Support\ViewModels\ViewModel;
+
+abstract class ManageWidgetViewModel extends ViewModel
+{
+    public function __construct(protected Widget $widget) {}
+
+    public function layout(): array
+    {
+        return [
+            'tabs' => [
+                ['label' => 'Overview', 'route' => 'widget.overview'],
+                ['label' => 'Details', 'route' => 'widget.details'],
+                ['label' => 'Notes', 'route' => 'widget.notes'],
+                // mod:tabs
+            ],
+        ];
+    }
+
+    abstract public function title(): string;
+}
+PHP;
     }
 
     public static function base(): string

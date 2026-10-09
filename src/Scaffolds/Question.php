@@ -4,6 +4,7 @@ namespace Tey\Mod\Scaffolds;
 
 use Tey\Mod\Exceptions\GenerationRefused;
 
+/** @internal */
 final readonly class Question
 {
     /** @param array<array-key, string> $options */

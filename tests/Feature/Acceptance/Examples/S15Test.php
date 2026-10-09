@@ -19,6 +19,7 @@ it('S15 searches for a base in a terminal', function () {
         Tree::setup($w);
         Examples::testCase()->artisan('mod:tab-page', ['name' => 'Inventory:Widget', '--tab' => 'Archive'])
             ->expectsQuestion('Which base view model does the page extend?', 'App\\Support\\ViewModels\\ViewModel')
+            ->expectsChoice('Which base view model does the page extend?', 'App\\Support\\ViewModels\\ViewModel', ['App\\Support\\ViewModels\\ViewModel' => 'App\\Support\\ViewModels\\ViewModel'])
             ->expectsConfirmation('Write these 1 files?', 'yes')->assertSuccessful();
         expect($w->read(Tree::page('Archive')))->toContain('extends ViewModel');
     });
