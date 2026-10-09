@@ -36,10 +36,7 @@ final class GroupPath
             }
         }
         if ($path === null && ! $hasPlaceholders) {
-            $token = Str::singular($name);
-            if ($token === $name) {
-                throw new InvalidLayout($name, [], "Layout [{$name}] is invalid:\nDeclare ->path('app/{group}') to name its group.");
-            }
+            $token = self::derivedToken($name);
             $root = reset($roots);
             $path = ($root === false ? 'app' : $root['path']).'/{'.$token.'}';
         }
@@ -114,6 +111,16 @@ final class GroupPath
         }
 
         return [self::nest($rewritten, $nesting, $tokens, $name), $roots, $rename];
+    }
+
+    public static function derivedToken(string $name): string
+    {
+        $token = Str::singular($name);
+        if ($token === $name || preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $token) !== 1) {
+            throw new InvalidLayout($name, [], "Layout [{$name}] is invalid:\n{$name} can't name a group; declare ->path('app/{group}').");
+        }
+
+        return $token;
     }
 
     /**

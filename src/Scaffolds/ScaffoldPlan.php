@@ -26,7 +26,7 @@ final class ScaffoldPlan
         $generated = $plan->generated();
         usort($generated, static fn (ResolvedArtifact $a, ResolvedArtifact $b): int => ($a->kind->id === 'migration' ? -1 : 0) <=> ($b->kind->id === 'migration' ? -1 : 0));
         foreach ($generated as $artifact) {
-            $child = $scope->plans[$artifact->path()] ?? new GenerationPlan($artifact);
+            $child = $scope->accepted($artifact) ?? new GenerationPlan($artifact);
             $this->add($alias.' ('.$artifact->kind->id.')', $child, $scope);
         }
     }
