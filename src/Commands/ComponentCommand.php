@@ -6,6 +6,7 @@ use Illuminate\Foundation\Console\ComponentMakeCommand;
 use Illuminate\Support\Str;
 use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Commands\Concerns\GeneratesViews;
+use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Generation\GenerationPlan;
 use Tey\Mod\Generation\GeneratorAdapter;
 use Tey\Mod\Views\ViewIdentity;
@@ -19,6 +20,9 @@ class ComponentCommand extends ComponentMakeCommand implements GeneratorAdapter
     {
         if ($this->option('inline') && ! $this->option('view')) {
             return null;
+        }
+        if ($this->layout()->frontend()['views'] === null) {
+            throw GenerationRefused::because($this->getName().' needs a frontend views folder. Declare ->frontend(views: ...) on the layout in a service provider. Nothing was written.');
         }
         $name = str_replace(['\\', '.'], '/', $this->getNameInput());
         $parts = array_map(Str::kebab(...), explode('/', $name));

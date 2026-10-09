@@ -95,6 +95,16 @@ it('refuses frontend templates without declared paths before writing', function 
     });
 });
 
+it('requires frontend views before generating a ddd Blade component', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', 'ddd');
+        config()->set('view.paths', [$w->root->path('resources/views')]);
+        $before = $w->files();
+        $w->artisan('mod:component', ['name' => 'Inventory:StockBadge'])->assertFailed()->expectsOutputToContain('->frontend(views: ...)');
+        expect($w->files())->toBe($before);
+    });
+});
+
 it('retains frontend and route roots in every other built-in', function (string $name) {
     $layout = (new LayoutRegistry)->compile($name);
     expect($layout->frontend()['pages'])->not->toBeNull()
