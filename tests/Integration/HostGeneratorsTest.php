@@ -64,12 +64,12 @@ final class HostGeneratorsTest extends TestCase
             $command->setLaravel($this->app);
             $command->setName('host:model');
             $console = new Application($this->app, $this->app->make('events'), 'test');
-            $console->add($command);
+            $console->resolve($command);
             $child = new HostChild;
-            $console->add($child);
+            $console->resolve($child);
             $migrationChild = new HostChild;
             $migrationChild->setName('host:migration');
-            $console->add($migrationChild);
+            $console->resolve($migrationChild);
             $output = new BufferedOutput;
             $code = $console->run(new ArrayInput(['command' => 'host:model', 'name' => 'Invoice', '--factory' => true, '--migration' => true]), $output);
             $this->assertSame(0, $code, $output->fetch());
@@ -120,8 +120,8 @@ final class HostGeneratorsTest extends TestCase
             $request = new HostRequest($this->app->make('files'), $layout);
             $request->setName('host:request');
             $console = new Application($this->app, $this->app->make('events'), 'test');
-            $console->add($controller);
-            $console->add($request);
+            $console->resolve($controller);
+            $console->resolve($request);
             $output = new BufferedOutput;
             $code = $console->run($this->input(['command' => 'host:controller', 'name' => 'Invoice', '--model' => 'Invoice', '--requests' => true]), $output);
             $this->assertSame(0, $code, $output->fetch());
