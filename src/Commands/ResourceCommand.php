@@ -8,6 +8,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:resource generator, placed by the preset.
+ *
+ * @api
  */
 class ResourceCommand extends ResourceMakeCommand implements GeneratorAdapter
 {

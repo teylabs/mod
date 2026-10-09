@@ -15,6 +15,8 @@ use Tey\Mod\Support\Path;
  * the stub the layout declares, then the starter for the kind, then the
  * generator's own. The registry keeps which service provider registered
  * each stub.
+ *
+ * @api
  */
 final class StubRegistry
 {
@@ -27,7 +29,7 @@ final class StubRegistry
     /** @var array<string, ?string> template folder => registering provider */
     private array $folders = [];
 
-    /** Add a package's generator template folder. The application's templates win. */
+    /** Add a package's generator template folder. The application's templates win. @api */
     public function folder(string $path): self
     {
         $this->folders[Path::normalize($path)] = $this->caller();
@@ -35,12 +37,23 @@ final class StubRegistry
         return $this;
     }
 
-    /** @return array<string, ?string> */
+    /**
+     * @return array<string, ?string>
+     *
+     * @api
+     */
     public function folders(): array
     {
         return $this->folders;
     }
 
+    /** @api */
+    public function forFileType(string $fileType, Stub $stub): self
+    {
+        return $this->for($fileType, $stub);
+    }
+
+    /** @internal */
     public function for(string $kind, Stub $stub): self
     {
         $this->stubs[$kind] = ['stub' => $stub, 'by' => $this->caller()];
@@ -48,13 +61,16 @@ final class StubRegistry
         return $this;
     }
 
+    /** @internal */
     public function get(string $kind): ?Stub
     {
         return $this->stubs[$kind]['stub'] ?? null;
     }
 
     /**
-     * @internal the starter a kind of this id gets in any layout, below a layout's own stub
+     *  the starter a kind of this id gets in any layout, below a layout's own stub
+     *
+     * @internal
      */
     public function starter(string $kind, Stub $stub): self
     {
@@ -72,7 +88,9 @@ final class StubRegistry
     }
 
     /**
-     * @internal the Stub a kind is generated from: registered, else the layout's, else the starter
+     *  the Stub a kind is generated from: registered, else the layout's, else the starter
+     *
+     * @internal
      */
     public function resolve(string $kind, ?Stub $layoutStub): ?Stub
     {
@@ -81,6 +99,8 @@ final class StubRegistry
 
     /**
      * The service provider class that registered the kind's stub, when one did.
+     *
+     * @internal
      */
     public function registeredBy(string $kind): ?string
     {
@@ -89,13 +109,15 @@ final class StubRegistry
 
     /**
      * Where an application publishes its own stub for the kind, relative to the base path.
+     *
+     * @internal
      */
     public function publishedPath(string $kind): string
     {
         return "stubs/mod.{$kind}.stub";
     }
 
-    /** @internal The published override, else the branch already chosen by Stub. */
+    /** The published override, else the branch already chosen by Stub. @internal */
     public function selectedFile(string $kind, string $basePath, ?string $fallback): ?string
     {
         $published = Path::join($basePath, $this->publishedPath($kind));
@@ -107,6 +129,8 @@ final class StubRegistry
      * Select the same stub branch for inspection and generation, without writing a base.
      *
      * @param  \Closure(string): mixed  $config
+     *
+     * @internal
      */
     public function select(string $kind, ?Stub $layoutStub, string $basePath, PackageDetector $detector, \Closure $config, ?string $configured = null, ?string $templateSource = null, bool $native = false, ?Stub $definition = null): StubSelection
     {

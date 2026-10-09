@@ -8,6 +8,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\ArtifactRequest;
+use Tey\Mod\Artifact\CompiledFileType;
 use Tey\Mod\Artifact\NamePolicyKind;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Exceptions\DimensionNotApplicable;
@@ -67,11 +68,17 @@ use function Laravel\Prompts\select;
  * MigrationCommand document) are the contract. The other protected methods
  * here are helpers the adapters share; a subclass may call them, but their
  * signatures may change between minor releases.
+ *
+ * @internal
  */
 trait InteractsWithLayout
 {
     /** Container key set while a mod:* command generates a related file through another one. */
-    /** @param callable(): int $collect */
+    /**
+     * @param  callable(): int  $collect
+     *
+     * @internal
+     */
     protected function previewGeneration(callable $collect): int
     {
         return (new PlanWriter)->preview($this, $this->input, function (Plan $preview) use ($collect): void {
@@ -158,23 +165,42 @@ trait InteractsWithLayout
     /**
      * The preset this invocation generates against. Bound by forKind(), or
      * resolved by the host through resolveLayout().
+     *
+     * @api
      */
     protected function layout(): CompiledLayout
     {
         return $this->modLayout ??= $this->resolveLayout();
     }
 
-    /**
-     * The kind this invocation generates. Bound by forKind(), or the kind
-     * named by kindId() in the preset.
-     */
+    /** The public metadata of this invocation's file type. @api */
+    protected function fileType(): CompiledFileType
+    {
+        return new CompiledFileType($this->kind());
+    }
+
+    /** @api */
+    protected function fileTypeId(): string
+    {
+        return $this->kindId();
+    }
+
+    /** Map one native related role to the host's canonical file type. @api */
+    protected function relatedFileType(string $role): string
+    {
+        return $role;
+    }
+
+    /** @internal */
     protected function kind(): ArtifactKind
     {
-        return $this->modKind ?? $this->layout()->kind($this->kindId());
+        return $this->modKind ?? $this->layout()->kind($this->fileTypeId());
     }
 
     /**
      * Hook: the preset when the command was not bound through forKind().
+     *
+     * @api
      */
     protected function resolveLayout(): CompiledLayout
     {
@@ -184,6 +210,8 @@ trait InteractsWithLayout
     /**
      * Hook: the kind id when the command was not bound through forKind().
      * A host may decide it per invocation (from its input, say).
+     *
+     * @internal
      */
     protected function kindId(): string
     {
@@ -199,6 +227,8 @@ trait InteractsWithLayout
      * A host that supplies placement its own way returns [].
      *
      * @return array<string, ?string>
+     *
+     * @api
      */
     protected function placementOptions(): array
     {
@@ -224,6 +254,7 @@ trait InteractsWithLayout
      * before (the set grows once the command is bound to a kind). A
      * dimension option the command already defines is left out and
      * recorded as an issue, so a native option is never shadowed.
+     *
      *
      * @internal
      */
@@ -310,6 +341,7 @@ trait InteractsWithLayout
     /**
      * The raw name argument, before the shorthand prefix is split off.
      *
+     *
      * @internal
      */
     protected function rawNameInput(): string
@@ -358,6 +390,7 @@ trait InteractsWithLayout
     /**
      * The basename every class of the bound kind gets (slices' "Handler"), or null.
      *
+     *
      * @internal
      */
     protected function fixedName(): ?string
@@ -385,6 +418,8 @@ trait InteractsWithLayout
      *
      * The default accepts `--in` or the shorthand prefix of the name
      * argument ("Billing:Invoice" ≡ "Invoice --in=Billing"), never both.
+     *
+     * @api
      */
     protected function placementInput(): ?string
     {
@@ -480,12 +515,13 @@ trait InteractsWithLayout
     /**
      * Hook: where the primary artifact is placed.
      */
-    /** @internal A template selects its group before the native adapter resets its plan. */
+    /** A template selects its group before the native adapter resets its plan. @internal */
     protected function resetGroupAnswers(): void
     {
         $this->modGroupValues = [];
     }
 
+    /** @api */
     protected function placementContext(): PlacementContext
     {
         $context = PlacementContext::fromOption($this->placementInput() ?? '', $this->layout());
@@ -500,6 +536,7 @@ trait InteractsWithLayout
     /**
      * Hook: the layout's name for messages.
      *
+     *
      * @internal
      */
     protected function layoutName(): string
@@ -511,6 +548,8 @@ trait InteractsWithLayout
 
     /**
      * Hook: refuse the plan on any collision (default) or leave it to the native generator.
+     *
+     * @api
      */
     protected function collisionPolicy(): CollisionPolicy
     {
@@ -547,6 +586,7 @@ trait InteractsWithLayout
      * slash-nested name is refused by placement with the --in hint unless the
      * kind accepts nested names.
      *
+     *
      * @internal
      */
     protected function placeSibling(string $kindId, string $name): string
@@ -569,6 +609,7 @@ trait InteractsWithLayout
     /**
      * Where an existing or planned class lives, when a preset rule owns it.
      *
+     *
      * @internal
      */
     protected function ownedPathOf(string $fqcn): ?string
@@ -580,6 +621,7 @@ trait InteractsWithLayout
 
     /**
      * Whether a class exists: known to the autoloader, or written where the preset places it.
+     *
      *
      * @internal
      */
@@ -598,21 +640,22 @@ trait InteractsWithLayout
      * Generate a class an option names (a missing --model, say) through the
      * command of the kind that owns it. Classes no rule places are refused.
      *
-     * @internal
+     *
+     * @api
      */
-    protected function generateOwnedClass(string $fqcn, string $kindId): void
+    protected function generateOwnedClass(string $fqcn, string $fileType): void
     {
         $match = (new ReverseMapper($this->layout()))->fromClass($fqcn);
         $artifact = $match->isMatched() ? $match->artifact : null;
 
-        if ($artifact === null || $artifact->kind->id !== $kindId || $artifact->kind->command === null) {
-            throw GenerationRefused::because("Cannot generate [{$fqcn}]: no {$kindId} rule of the layout places it ({$match->reason}).");
+        if ($artifact === null || $artifact->kind->id !== $fileType || $artifact->kind->command === null) {
+            throw GenerationRefused::because("Cannot generate [{$fqcn}]: no {$fileType} rule of the layout places it ({$match->reason}).");
         }
 
         $exitCode = $this->call($artifact->kind->command, $this->argumentsFor($artifact));
 
         if ($exitCode !== 0) {
-            throw GenerationRefused::because("Generating {$kindId} [{$fqcn}] failed.");
+            throw GenerationRefused::because("Generating {$fileType} [{$fqcn}] failed.");
         }
     }
 
@@ -658,7 +701,7 @@ trait InteractsWithLayout
      *
      * @param  array<string, mixed>  $arguments
      *
-     * @internal
+     * @api
      */
     protected function followRelation(RelationResolution $resolution, array $arguments = []): void
     {
@@ -706,7 +749,7 @@ trait InteractsWithLayout
      *
      * @return array<string, mixed>
      *
-     * @internal
+     * @api
      */
     protected function argumentsFor(ResolvedArtifact $target): array
     {
@@ -725,6 +768,7 @@ trait InteractsWithLayout
 
     /**
      * The --in value that reproduces a placement context.
+     *
      *
      * @internal
      */
@@ -753,13 +797,14 @@ trait InteractsWithLayout
     }
 
     /** @internal */
-    /** @internal the scaffold's planning/writing scope, absent for ordinary commands */
+    /** the scaffold's planning/writing scope, absent for ordinary commands @internal */
     protected function scaffoldExecution(): ?ScaffoldExecution
     {
         return $this->laravel->bound(ScaffoldExecution::class)
             ? $this->laravel->make(ScaffoldExecution::class) : null;
     }
 
+    /** @internal */
     protected function existingArtifacts(): ExistingArtifacts
     {
         return new ExistingArtifacts($this->laravel->basePath());
@@ -812,6 +857,8 @@ trait InteractsWithLayout
 
     /**
      * Hook: how a refusal is reported; returns the exit code.
+     *
+     * @api
      */
     protected function reportRefusal(ModException $exception): int
     {
@@ -828,6 +875,7 @@ trait InteractsWithLayout
     /**
      * A refusal in this command's own words: a missing or unused placement
      * value of the kind it generates names the command and its options.
+     *
      *
      * @internal
      */
@@ -903,6 +951,8 @@ trait InteractsWithLayout
 
     /**
      * Hook: how a reference-only relation is reported.
+     *
+     * @api
      */
     protected function reportReference(ResolvedArtifact $target): void
     {

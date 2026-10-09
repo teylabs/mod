@@ -6,6 +6,8 @@ use Tey\Mod\Preset\PresetIssue;
 
 /**
  * A layout that cannot compile; lists every problem at once, each naming the call that caused it.
+ *
+ * @api
  */
 final class InvalidLayout extends ModException
 {

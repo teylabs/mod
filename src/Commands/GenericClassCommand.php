@@ -16,6 +16,8 @@ use Tey\Mod\Layout\CompiledLayout;
  * enough. The class comes from the kind's Stub when a package or the layout
  * declares one, else a plain class; stubs/mod.<kind>.stub in the
  * application replaces either.
+ *
+ * @api
  */
 class GenericClassCommand extends GeneratorCommand implements GeneratorAdapter
 {

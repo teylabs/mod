@@ -2,6 +2,7 @@
 
 namespace Tey\Mod\Exceptions;
 
+/** @api */
 final class InvalidPlacementOption extends ModException
 {
     public static function noDimensions(string $option): self

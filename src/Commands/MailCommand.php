@@ -10,6 +10,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:mail generator, placed by the preset.
+ *
+ * @api
  */
 class MailCommand extends MailMakeCommand implements GeneratorAdapter
 {

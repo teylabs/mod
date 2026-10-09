@@ -11,6 +11,7 @@ use Tey\Mod\Layout\CompiledLayout;
  * Implemented by thin subclasses of Laravel's own make:* commands, so stubs,
  * options and prompts stay native; the adapter only places the output.
  */
+/** @internal The engine protocol; hosts extend the public command adapters. */
 interface GeneratorAdapter
 {
     /** Whether this adapter can generate artifacts of the given kind's shape and naming. */

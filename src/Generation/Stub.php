@@ -24,6 +24,8 @@ use Closure;
  * A stub fills `{{ base }}` (the base's full class name), `{{ baseClass }}` (its
  * short name), `{{ baseImport }}` (its `use` line, or nothing) and `{{ extends }}`
  * (` extends <baseClass>`, or nothing) besides `{{ namespace }}` and `{{ class }}`.
+ *
+ * @api
  */
 final class Stub
 {
@@ -40,7 +42,7 @@ final class Stub
 
     private function __construct(public readonly string $path) {}
 
-    /** @internal preserve base selection while rendering an edited template. */
+    /** preserve base selection while rendering an edited template. @api */
     public function forTemplate(string $path): self
     {
         $stub = new self($path);
@@ -54,6 +56,8 @@ final class Stub
 
     /**
      * The plain stub, used when no variant applies.
+     *
+     * @api
      */
     public static function file(string $path): self
     {
@@ -62,6 +66,8 @@ final class Stub
 
     /**
      * When the Composer package is installed, extend `base` and/or use `stub` instead.
+     *
+     * @api
      */
     public function whenInstalled(string $package, ?string $base = null, ?string $stub = null): self
     {
@@ -72,6 +78,8 @@ final class Stub
 
     /**
      * When the class exists, extend `base` and/or use `stub` instead.
+     *
+     * @api
      */
     public function whenClass(string $class, ?string $base = null, ?string $stub = null): self
     {
@@ -82,6 +90,8 @@ final class Stub
 
     /**
      * Always extend this base: a class name, or the config key that holds one.
+     *
+     * @api
      */
     public function base(?string $class = null, ?string $config = null): self
     {
@@ -93,6 +103,8 @@ final class Stub
 
     /**
      * Generate this base into the application on first use and extend it.
+     *
+     * @api
      */
     public function generatesBase(GeneratedBase $base): self
     {
@@ -103,6 +115,8 @@ final class Stub
 
     /**
      * The noun a kind generated from this stub prints, unless the kind has its own label.
+     *
+     * @api
      */
     public function label(string $label): self
     {
@@ -112,7 +126,7 @@ final class Stub
     }
 
     /**
-     * @internal
+     * @api
      */
     public function labelText(): ?string
     {
@@ -120,7 +134,9 @@ final class Stub
     }
 
     /**
-     * @internal the base generated when no explicit base or variant applies
+     *  the base generated when no explicit base or variant applies
+     *
+     * @api
      */
     public function generatedBase(): ?GeneratedBase
     {
@@ -128,9 +144,11 @@ final class Stub
     }
 
     /**
-     * @internal decide which branch applies; `$config` reads a config key
+     *  decide which branch applies; `$config` reads a config key
      *
      * @param  Closure(string): mixed  $config
+     *
+     * @internal
      */
     public function choose(PackageDetector $detector, Closure $config, ?string $configured): StubChoice
     {

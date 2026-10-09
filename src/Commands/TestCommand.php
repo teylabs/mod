@@ -12,6 +12,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 /**
  * Native make:test generator. The preset declares the default test folder;
  * --unit replaces that first folder with the native alternative, retaining placement.
+ *
+ * @api
  */
 class TestCommand extends TestMakeCommand implements GeneratorAdapter
 {
@@ -19,6 +21,7 @@ class TestCommand extends TestMakeCommand implements GeneratorAdapter
         plan as placedPlan;
     }
 
+    /** @api */
     protected function plan(): GenerationPlan
     {
         $plan = $this->placedPlan();

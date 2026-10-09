@@ -4,6 +4,8 @@ namespace Tey\Mod\Relation;
 
 /**
  * What a generator does with a related artifact.
+ *
+ * @api
  */
 enum RelationMode: string
 {

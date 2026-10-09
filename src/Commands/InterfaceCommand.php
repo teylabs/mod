@@ -8,6 +8,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:interface generator, placed by the preset.
+ *
+ * @api
  */
 class InterfaceCommand extends InterfaceMakeCommand implements GeneratorAdapter
 {

@@ -9,6 +9,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:notification generator, placed by the preset.
+ *
+ * @api
  */
 class NotificationCommand extends NotificationMakeCommand implements GeneratorAdapter
 {

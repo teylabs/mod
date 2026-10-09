@@ -8,6 +8,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:trait generator, placed by the preset.
+ *
+ * @api
  */
 class TraitCommand extends TraitMakeCommand implements GeneratorAdapter
 {

@@ -2,6 +2,7 @@
 
 namespace Tey\Mod\Exceptions;
 
+/** @api */
 final class InvalidDiscoveryCache extends ModException
 {
     public static function because(string $path, string $problem): self

@@ -8,6 +8,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:* request generator, placed by the preset.
+ *
+ * @api
  */
 class RequestCommand extends RequestMakeCommand implements GeneratorAdapter
 {

@@ -21,6 +21,8 @@ use function Laravel\Prompts\confirm;
  * natively) follows the declared controller -> request relations; the ones
  * with ids `store-request` and `update-request` fill the stub's store and
  * update request placeholders by resolved identity.
+ *
+ * @api
  */
 class ControllerCommand extends ControllerMakeCommand implements GeneratorAdapter
 {
@@ -28,6 +30,8 @@ class ControllerCommand extends ControllerMakeCommand implements GeneratorAdapte
 
     /**
      * @return list<RelationResolution>
+     *
+     * @api
      */
     protected function plannedRelations(ResolvedArtifact $primary): array
     {
@@ -35,12 +39,14 @@ class ControllerCommand extends ControllerMakeCommand implements GeneratorAdapte
             return [];
         }
 
-        return $this->relationsTo($primary, 'request');
+        return $this->relationsTo($primary, $this->relatedFileType('request'));
     }
 
     /**
      * @param  string  $model
      * @return string
+     *
+     * @internal
      */
     protected function parseModel($model)
     {
@@ -48,11 +54,13 @@ class ControllerCommand extends ControllerMakeCommand implements GeneratorAdapte
             throw new InvalidArgumentException('Model name contains invalid characters.');
         }
 
-        return $this->placeSibling('model', $model);
+        return $this->placeSibling($this->relatedFileType('model'), $model);
     }
 
     /**
      * @return array<string, string>
+     *
+     * @internal
      */
     protected function buildParentReplacements()
     {
@@ -60,7 +68,7 @@ class ControllerCommand extends ControllerMakeCommand implements GeneratorAdapte
 
         if (! $this->classExists($parentModelClass) &&
             confirm("A {$parentModelClass} model does not exist. Do you want to generate it?", default: true)) {
-            $this->generateOwnedClass($parentModelClass, 'model');
+            $this->generateOwnedClass($parentModelClass, $this->relatedFileType('model'));
         }
 
         return [
@@ -79,13 +87,15 @@ class ControllerCommand extends ControllerMakeCommand implements GeneratorAdapte
     /**
      * @param  array<string, string>  $replace
      * @return array<string, string>
+     *
+     * @internal
      */
     protected function buildModelReplacements(array $replace)
     {
         $modelClass = $this->parseModel($this->stringOption('model'));
 
         if (! $this->classExists($modelClass) && confirm("A {$modelClass} model does not exist. Do you want to generate it?", default: true)) {
-            $this->generateOwnedClass($modelClass, 'model');
+            $this->generateOwnedClass($modelClass, $this->relatedFileType('model'));
         }
 
         $replace = $this->buildFormRequestReplacements($replace, $modelClass);
@@ -107,6 +117,8 @@ class ControllerCommand extends ControllerMakeCommand implements GeneratorAdapte
      * @param  array<string, string>  $replace
      * @param  string  $modelClass
      * @return array<string, string>
+     *
+     * @internal
      */
     protected function buildFormRequestReplacements(array $replace, $modelClass)
     {
@@ -114,7 +126,7 @@ class ControllerCommand extends ControllerMakeCommand implements GeneratorAdapte
             return parent::buildFormRequestReplacements($replace, $modelClass);
         }
 
-        foreach ($this->plannedRelationsTo('request') as $relation) {
+        foreach ($this->plannedRelationsTo($this->relatedFileType('request')) as $relation) {
             $this->followRelation($relation);
         }
 

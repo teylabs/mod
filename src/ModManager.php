@@ -22,10 +22,13 @@ use Tey\Mod\Scaffolds\ScaffoldRegistry;
  * What the Mod facade reaches: layouts, stubs and generators, callable from
  * any package's service provider.
  *
- * @internal reached through the Mod facade
+ *  reached through the Mod facade
+ *
+ * @api
  */
 final readonly class ModManager
 {
+    /** @internal */
     public function __construct(
         private LayoutRegistry $layouts,
         private StubRegistry $stubs,
@@ -42,6 +45,8 @@ final readonly class ModManager
      * them are registered, in what order, and how.
      *
      * @param  Closure(CompiledRoot, string, DiscoveryDefinition): iterable<string>  $candidates
+     *
+     * @api
      */
     public function discoverUsing(Closure $candidates): self
     {
@@ -53,6 +58,8 @@ final readonly class ModManager
     /**
      * The active layout (config `mod.layout`), compiled: its kinds, roots,
      * dimensions and placement options.
+     *
+     * @api
      */
     public function current(): CompiledLayout
     {
@@ -61,13 +68,19 @@ final readonly class ModManager
 
     /**
      * Define a layout, or extend a built-in or defined one.
+     *
+     * @api
      */
     public function layout(string $name): Layout
     {
         return $this->layouts->layout($name);
     }
 
-    /** @param (Closure(Scaffold): mixed)|(Closure(Part): mixed) $recipe */
+    /**
+     * @param  (Closure(Scaffold): mixed)|(Closure(Part): mixed)  $recipe
+     *
+     * @api
+     */
     public function scaffold(string $name, Closure $recipe): self
     {
         $this->scaffoldRegistry->register($name, $recipe);
@@ -75,7 +88,11 @@ final readonly class ModManager
         return $this;
     }
 
-    /** @param array<array-key, Closure|class-string> $recipes */
+    /**
+     * @param  array<array-key, Closure|class-string>  $recipes
+     *
+     * @api
+     */
     public function scaffolds(array $recipes): self
     {
         foreach ($recipes as $name => $recipe) {
@@ -98,6 +115,8 @@ final readonly class ModManager
 
     /** @param list<string>|null $only
      * @param  list<string>  $except
+     *
+     * @api
      */
     public function routes(?array $only = null, array $except = []): void
     {
@@ -111,6 +130,7 @@ final readonly class ModManager
         ($this->container ?? Container::getInstance())->make(ModRoutes::class)->load($only, $except, $call);
     }
 
+    /** @api */
     public function hasLayout(string $name): bool
     {
         return $this->layouts->has($name);
@@ -118,6 +138,8 @@ final readonly class ModManager
 
     /**
      * @return list<string>
+     *
+     * @api
      */
     public function layouts(): array
     {
@@ -126,6 +148,8 @@ final readonly class ModManager
 
     /**
      * Stubs packages register for a kind: Mod::stubs()->for('record', Stub::file(...)).
+     *
+     * @api
      */
     public function stubs(): StubRegistry
     {
@@ -134,6 +158,8 @@ final readonly class ModManager
 
     /**
      * Generator commands by kind: Mod::generators()->use('record', RecordCommand::class).
+     *
+     * @api
      */
     public function generators(): GeneratorRegistry
     {

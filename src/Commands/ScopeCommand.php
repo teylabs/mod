@@ -8,6 +8,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:scope generator, placed by the preset.
+ *
+ * @api
  */
 class ScopeCommand extends ScopeMakeCommand implements GeneratorAdapter
 {

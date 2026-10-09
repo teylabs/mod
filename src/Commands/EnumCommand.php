@@ -8,6 +8,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:enum generator, placed by the preset.
+ *
+ * @api
  */
 class EnumCommand extends EnumMakeCommand implements GeneratorAdapter
 {

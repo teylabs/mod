@@ -8,6 +8,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:* seeder generator, placed by the preset.
+ *
+ * @api
  */
 class SeederCommand extends SeederMakeCommand implements GeneratorAdapter
 {

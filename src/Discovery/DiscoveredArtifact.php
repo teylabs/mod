@@ -9,27 +9,52 @@ use UnexpectedValueException;
  * was placed (context) and the file it came from. A relation type (factory,
  * policy) pairs the class with its target: the related class it resolves to.
  *
- * @internal
+ *
+ * @api
  */
 final readonly class DiscoveredArtifact
 {
+    /** @api */
+    public string $fileType;
+
     /**
      * @param  array<string, string>  $context  placement dimension values
      * @param  list<array{event: string, method: string}>  $events  listeners only
      * @param  string|null  $target  relation types only: the related class
+     *
+     * @internal
      */
     public function __construct(
+        /** @internal */
         public string $kindId,
+        /** @api */
         public DiscoveryType $type,
+        /** @api */
         public string $class,
+        /** @api */
         public string $path,
+        /**
+         * @api
+         *
+         * @var array<string,string>
+         */
         public array $context = [],
+        /**
+         * @api
+         *
+         * @var list<array{event:string,method:string}>
+         */
         public array $events = [],
+        /** @api */
         public ?string $target = null,
-    ) {}
+    ) {
+        $this->fileType = $kindId;
+    }
 
     /**
      * @return array{kind: string, type: string, class: string, path: string, context: array<string, string>, events: list<array{event: string, method: string}>, target?: string}
+     *
+     * @internal
      */
     public function toArray(): array
     {
@@ -51,6 +76,8 @@ final readonly class DiscoveredArtifact
 
     /**
      * @throws UnexpectedValueException
+     *
+     * @internal
      */
     public static function fromArray(mixed $data): self
     {

@@ -2,7 +2,9 @@
 
 namespace Tey\Mod\Scaffolds;
 
-/** A child recipe and the inserts its parent owns. */
+/** A child recipe and the inserts its parent owns.
+ * @api
+ */
 final class Part extends Scaffold
 {
     private ?string $uses = null;
@@ -13,7 +15,8 @@ final class Part extends Scaffold
     /** @var list<Insert> */
     private array $inserts = [];
 
-    /** @param array<string, mixed> $with */
+    /** @param array<string, mixed> $with * @api
+     */
     public function uses(string $scaffold, array $with = []): self
     {
         $this->uses = $scaffold;
@@ -22,6 +25,7 @@ final class Part extends Scaffold
         return $this;
     }
 
+    /** @api */
     public function inserts(string $into, string $at, string $stub): self
     {
         $this->inserts[] = new Insert($into, $at, $stub);

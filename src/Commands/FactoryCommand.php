@@ -19,6 +19,8 @@ use Tey\Mod\Relation\RelationResolution;
  * Laravel's naming convention would not link the pair, the factory names
  * its model with $model: by its short name when the stub imports it, else
  * fully qualified (older native stubs import nothing).
+ *
+ * @api
  */
 class FactoryCommand extends FactoryMakeCommand implements GeneratorAdapter
 {
@@ -26,10 +28,12 @@ class FactoryCommand extends FactoryMakeCommand implements GeneratorAdapter
 
     /**
      * @return list<RelationResolution>
+     *
+     * @api
      */
     protected function plannedRelations(ResolvedArtifact $primary): array
     {
-        return $this->option('model') ? [] : $this->relationsTo($primary, 'model', required: false);
+        return $this->option('model') ? [] : $this->relationsTo($primary, $this->relatedFileType('model'), required: false);
     }
 
     /**
@@ -91,10 +95,10 @@ class FactoryCommand extends FactoryMakeCommand implements GeneratorAdapter
         $option = $this->option('model');
 
         if (is_string($option) && $option !== '') {
-            return $this->placeSibling('model', $option);
+            return $this->placeSibling($this->relatedFileType('model'), $option);
         }
 
-        $related = ($this->plannedRelationsTo('model')[0] ?? null)?->target?->fqcn();
+        $related = ($this->plannedRelationsTo($this->relatedFileType('model'))[0] ?? null)?->target?->fqcn();
 
         // A conventional reference keeps Laravel's missing-model fallback. A
         // relation that names a different identity remains authoritative.

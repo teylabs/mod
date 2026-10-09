@@ -8,6 +8,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:* event generator, placed by the preset.
+ *
+ * @api
  */
 class EventCommand extends EventMakeCommand implements GeneratorAdapter
 {

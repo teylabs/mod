@@ -13,14 +13,24 @@ use Tey\Mod\Relation\RelationResolution;
  * Everything one mod:* invocation is about to write: the primary artifact and
  * the related artifacts its options ask for, resolved before anything is
  * written so collisions refuse the whole plan.
+ *
+ * @api
  */
 final readonly class GenerationPlan
 {
     /**
      * @param  list<RelationResolution>  $relations  resolved relations the invocation follows
+     *
+     * @api
      */
     public function __construct(
+        /** @api */
         public ResolvedArtifact $primary,
+        /**
+         * @api
+         *
+         * @var list<RelationResolution>
+         */
         public array $relations = [],
     ) {}
 
@@ -28,6 +38,8 @@ final readonly class GenerationPlan
      * Related artifacts this plan generates (policy Generate).
      *
      * @return list<ResolvedArtifact>
+     *
+     * @api
      */
     public function generated(): array
     {
@@ -46,6 +58,8 @@ final readonly class GenerationPlan
      * Collisions for every artifact the plan writes, against what exists and against each other.
      *
      * @return list<Collision>
+     *
+     * @internal
      */
     public function collisions(CollisionDiagnoser $diagnoser, ExistingArtifacts $existing, bool $overwritePrimary = false): array
     {

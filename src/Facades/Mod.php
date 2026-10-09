@@ -22,9 +22,12 @@ use Tey\Mod\ModManager;
  * @method static GeneratorRegistry generators() generator commands by kind
  *
  * @see ModManager
+ *
+ * @api
  */
 final class Mod extends Facade
 {
+    /** @internal */
     protected static function getFacadeAccessor(): string
     {
         return ModManager::class;

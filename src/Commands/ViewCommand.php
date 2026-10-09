@@ -9,7 +9,9 @@ use Tey\Mod\Commands\Concerns\GeneratesViews;
 use Tey\Mod\Generation\GenerationPlan;
 use Tey\Mod\Generation\GeneratorAdapter;
 
-/** Laravel's view generator, placed in the layout's views folder. */
+/** Laravel's view generator, placed in the layout's views folder.
+ * @api
+ */
 class ViewCommand extends ViewMakeCommand implements GeneratorAdapter
 {
     use GeneratesViews;
@@ -19,6 +21,7 @@ class ViewCommand extends ViewMakeCommand implements GeneratorAdapter
         return ! $kind->isClass();
     }
 
+    /** @api */
     protected function plan(): GenerationPlan
     {
         // Placement resolves the group through the declared file type; the native view name uses dots.

@@ -9,6 +9,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:config generator, placed as a class-less file by the preset.
+ *
+ * @api
  */
 class ConfigCommand extends ConfigMakeCommand implements GeneratorAdapter
 {

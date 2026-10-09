@@ -8,6 +8,8 @@ use Tey\Mod\Generation\GeneratorAdapter;
 
 /**
  * Native make:exception generator, placed by the preset.
+ *
+ * @api
  */
 class ExceptionCommand extends ExceptionMakeCommand implements GeneratorAdapter
 {
