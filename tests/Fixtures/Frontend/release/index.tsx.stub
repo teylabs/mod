@@ -1,0 +1,10 @@
+import { Head } from '@inertiajs/react';
+
+type Props = { {{ name.plural.camel }}: { data: Array<{ id: number }> } };
+
+export default function Index({ {{ name.plural.camel }} }: Props) {
+    return <>
+        <Head title="{{ name.plural }}" />
+        <ul>{ {{ name.plural.camel }}.data.map(({{ name.camel }}) => <li key={ {{ name.camel }}.id }>{ {{ name.camel }}.id }</li>)}</ul>
+    </>;
+}

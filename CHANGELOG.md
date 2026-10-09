@@ -2,6 +2,32 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## [0.3.0] - Unreleased
+
+### Added
+- Stack-aware Inertia page generation and plain generator templates with extension-preserving filenames and configurable casing.
+- Frontend path configuration with `->frontend()`, stack/page-casing detection, and case-only folder collision checks.
+- Plain scaffold members, file questions, framework identities, import aliases, stack-specific variants and anchored inserts in frontend files.
+- Known-only frontend placeholders, escaped expressions, warnings for ambiguous forms, and JSON/headline value forms.
+- Plain-file copying with `mod:template --from` and name/group mention reports.
+- Module view and Blade component namespaces, `mod:view` / `mod:component`, and grouped companion views for mail and notifications.
+- Explicit `Mod::routes()` loading with filters, Laravel group inheritance, configured order, route caching and duplicate-call diagnostics.
+- `RegistersRoutes` implementations, route generators and scaffold route aliases.
+- Independent scaffold member placement with `ungrouped` or question-backed `group` values, and write-once `existing: 'keep'` members.
+- Module-owned generator templates and convention/provider-registered scaffolds, selected before app and package generators.
+- Previewed, idempotent `mod:install inertia` wiring for Vue and React, a vendor page resolver, and manual instructions for custom setups.
+- JSON and text dry-run plans for file generators, scaffolds, template creation, autoload updates and missing bases.
+- Additive inventory sections for stack, frontend paths/imports, views, routes, wiring and canonical generator sources.
+- Optional read-only Laravel Boost inventory and plan tools, with command/option guidance coverage.
+
+### Changed
+- HTTP classes (controllers, requests, middleware, resources) now live under Http/
+- Plain resource and route roots are excluded from PHP class discovery.
+
+### Docs
+- Frontend, module routes and agent guides, sidebar-derived `llms.txt`, and Markdown copies of sidebar pages.
+- Starter-kit verification builds and type-checks Vue and React examples on Laravel 12 and 13 and checks the generated Inertia response.
+
 ## [0.2.0] - 2026-10-09
 
 ### Added

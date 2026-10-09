@@ -44,6 +44,7 @@ app/Modules/Knowledge/
 - [Auto-discovery](#auto-discovery) of providers, commands, listeners, migrations, factories and policies
 - [Your own file types](#your-own-file-types) in one line
 - **Modular templates**. Put a template in `stubs/mod/@module/Tools/` (or run `php artisan mod:template tool`) and you have `mod:tool`. See [Custom generators](https://mod.teylabs.com/going-further/custom-generators).
+- **Frontend members**. Generate a page and its controller in one command with a [frontend scaffold](https://mod.teylabs.com/going-further/frontend#generating-pages-with-their-controller).
 - [Scaffolds](#scaffolds): generate several file types together, with questions, repeated parts and anchored inserts
 
 The full documentation is at [mod.teylabs.com](https://mod.teylabs.com).
@@ -100,8 +101,6 @@ Each tree below is the result of `php artisan mod:model Knowledge:Document --all
 
 ```text
 app/Modules/Knowledge/
-├── Controllers/
-│   └── DocumentController.php
 ├── Database/
 │   ├── Factories/
 │   │   └── DocumentFactory.php
@@ -109,13 +108,16 @@ app/Modules/Knowledge/
 │   │   └── 2026_10_08_120000_create_documents_table.php
 │   └── Seeders/
 │       └── DocumentSeeder.php
+├── Http/
+│   ├── Controllers/
+│   │   └── DocumentController.php
+│   └── Requests/
+│       ├── StoreDocumentRequest.php
+│       └── UpdateDocumentRequest.php
 ├── Models/
 │   └── Document.php
-├── Policies/
-│   └── DocumentPolicy.php
-└── Requests/
-    ├── StoreDocumentRequest.php
-    └── UpdateDocumentRequest.php
+└── Policies/
+    └── DocumentPolicy.php
 ```
 
 </details>
@@ -153,15 +155,17 @@ A slice holds one operation's classes, each with a fixed name. This tree is the 
 
 ```text
 app/Knowledge/
-├── IndexDocument/
-│   ├── Command.php
-│   ├── Handler.php
-│   └── Request.php
 ├── Database/
 │   ├── Factories/
 │   │   └── DocumentFactory.php
 │   └── Migrations/
 │       └── 2026_10_08_120000_create_documents_table.php
+├── IndexDocument/
+│   ├── Command.php
+│   ├── Handler.php
+│   └── Http/
+│       └── Requests/
+│           └── Request.php
 └── Models/
     └── Document.php
 ```
@@ -206,11 +210,12 @@ database/
 
 ```text
 app/Modules/Knowledge/
-├── Controllers/
-│   └── DocumentController.php
-└── Requests/
-    ├── StoreDocumentRequest.php
-    └── UpdateDocumentRequest.php
+└── Http/
+    ├── Controllers/
+    │   └── DocumentController.php
+    └── Requests/
+        ├── StoreDocumentRequest.php
+        └── UpdateDocumentRequest.php
 src/Domain/Knowledge/
 ├── Database/
 │   ├── Factories/
@@ -231,7 +236,7 @@ src/Domain/Knowledge/
 
 ### Generating
 
-Each file type in your layout has a `mod:*` command. It is Laravel's own `make:*` command underneath, with the same arguments and options, so the generated code is what Laravel would write:
+Each file type in your layout has a `mod:*` command. Class and Blade adapters use Laravel's own `make:*` commands, with the same arguments and options:
 
 ```bash
 php artisan mod:event Knowledge:DocumentUploaded
@@ -388,7 +393,7 @@ php artisan mod:document Knowledge:Document --no-interaction
 
 Each member follows the active layout. Aliases such as `{{ model }}` and `{{ model.fqcn }}` expose sibling class names to templates. Use named variants (`stub: 'crud'`, stored in `stubs/mod.controller.crud.stub`) for a house pattern, and `->include('document')` to reuse a recipe. A later member with the same alias replaces an included member.
 
-Mod plans the whole scaffold before writing. Use `--skip-existing` to keep existing members and generate the rest, or `--force` to replace them. Questions, repeated parts and anchored inserts let a recipe grow later through `mod:<root>.<part>` commands. Members generate PHP classes and migrations; frontend pages, Blade, Vue and CSS stay manual. An insert can start a routes file; load it from a module provider.
+Mod plans the whole scaffold before writing. Use `--skip-existing` to keep existing members and generate the rest, or `--force` to replace them. Questions, repeated parts and anchored inserts let a recipe grow later through `mod:<root>.<part>` commands. Members generate PHP classes, migrations and plain frontend files. An insert can start an anchored routes file; load it with `Mod::routes()` or a module provider.
 
 See [Scaffolds](https://mod.teylabs.com/going-further/scaffolds) for recipes, packages and growing a cluster.
 
@@ -431,8 +436,6 @@ app/Modules/
 └── Knowledge/
     ├── Actions/
     │   └── IndexDocument.php
-    ├── Controllers/
-    │   └── DocumentController.php
     ├── Data/
     │   └── DocumentData.php
     ├── Database/
@@ -442,15 +445,18 @@ app/Modules/
     │       └── 2026_10_08_120000_create_documents_table.php
     ├── Events/
     │   └── DocumentUploaded.php
+    ├── Http/
+    │   ├── Controllers/
+    │   │   └── DocumentController.php
+    │   └── Requests/
+    │       ├── StoreDocumentRequest.php
+    │       └── UpdateDocumentRequest.php
     ├── Listeners/
     │   └── GenerateEmbeddings.php
     ├── Models/
     │   └── Document.php
     ├── Policies/
     │   └── DocumentPolicy.php
-    ├── Requests/
-    │   ├── StoreDocumentRequest.php
-    │   └── UpdateDocumentRequest.php
     └── ViewModels/
         └── ShowDocument.php
 ```
@@ -480,7 +486,7 @@ public function boot(): void
 // app/Modules/Knowledge/routes/web.php
 <?php
 
-use App\Modules\Knowledge\Controllers\DocumentController;
+use App\Modules\Knowledge\Http\Controllers\DocumentController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
