@@ -11,7 +11,7 @@ use Tey\Mod\ModManager;
 
 /**
  * @method static ModManager scaffold(string $name, \Closure $recipe) declare a scaffold recipe
- * @method static ModManager scaffolds(array $recipes) declare keyed recipes or invokable classes
+ * @method static ModManager scaffolds(array<array-key, \Closure|class-string> $recipes) declare keyed recipes or invokable classes
  * @method static Layout layout(string $name) define a layout, or extend a built-in or defined one
  * @method static CompiledLayout current() the active layout, compiled
  * @method static ModManager discoverUsing(\Closure $candidates) supply the files discovery considers: fn (CompiledRoot $root, string $basePath, DiscoveryDefinition $definition): iterable

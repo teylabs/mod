@@ -104,6 +104,18 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
                 $this->resolvePlan();
             }
 
+            if ($this->scaffoldExecution()?->planning) {
+                $this->scaffoldExecution()->collect($this->resolvePlan(), '');
+
+                return $exitCode = self::SUCCESS;
+            }
+            $resolved = $this->currentPlan();
+            if ($resolved !== null && $this->scaffoldExecution()?->keeps($resolved->primary)) {
+                $this->components->info('Kept '.$resolved->primary->path().'.');
+
+                return $exitCode = self::SUCCESS;
+            }
+
             return $exitCode = parent::execute($input, $output);
         } catch (ModException $exception) {
             return $exitCode = $this->reportRefusal($exception);

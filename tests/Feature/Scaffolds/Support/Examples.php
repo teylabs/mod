@@ -27,11 +27,17 @@ final class Examples
         mkdir($workspace->root->path('app/Modules/Agents'), 0700, true);
         app()->bind(ModMigrationCreator::class, fn () => new class(app('files'), $workspace->root->path('stubs')) extends ModMigrationCreator
         {
+            public function datePrefixFor(string $directory): string
+            {
+                return '2026_10_08_120000';
+            }
+
             protected function getDatePrefix(): string
             {
                 return '2026_10_08_120000';
             }
         });
+        $workspace->write('app/Http/Controllers/Controller.php', "<?php\n\nnamespace App\\Http\\Controllers;\n\nabstract class Controller {}\n");
         Mod::scaffold('crud', self::recipe(...));
         $workspace->write('stubs/mod.request.crud.stub', (string) file_get_contents(__DIR__.'/request.stub'));
         if ($controller) {

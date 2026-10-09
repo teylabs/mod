@@ -8,6 +8,7 @@ use Illuminate\Support\ServiceProvider;
 use Tey\Mod\Commands\AutoloadCommand;
 use Tey\Mod\Commands\BasesCommand;
 use Tey\Mod\Commands\OtherLayoutCommand;
+use Tey\Mod\Commands\ScaffoldCommand;
 use Tey\Mod\Discovery\Console\DiscoveryCacheCommand;
 use Tey\Mod\Discovery\Console\DiscoveryClearCommand;
 use Tey\Mod\Discovery\Discovery;
@@ -242,6 +243,15 @@ class ModServiceProvider extends ServiceProvider
         }
 
         $artisan->resolveCommands([BasesCommand::class, AutoloadCommand::class]);
+
+        $scaffolds = $this->app->make(ScaffoldRegistry::class)->all();
+        $layoutName = $this->app->make('config')->get('mod.layout', 'laravel');
+        if (is_string($layoutName) && $this->app->make(LayoutRegistry::class)->has($layoutName)) {
+            $scaffolds = array_replace($scaffolds, $this->app->make(LayoutRegistry::class)->layout($layoutName)->scaffoldRecipes());
+        }
+        foreach ($scaffolds as $name => $recipe) {
+            $artisan->resolve(new ScaffoldCommand($name, $recipe, $preset));
+        }
 
         foreach ($this->app->make(GeneratorRegistry::class)->commands($preset, $this->app) as $command) {
             $artisan->resolveCommands([$command]);

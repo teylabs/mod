@@ -31,6 +31,7 @@ use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Relation\RelationResolution;
 use Tey\Mod\Relation\RelationResolver;
 use Tey\Mod\Reverse\ReverseMapper;
+use Tey\Mod\Scaffolds\ScaffoldExecution;
 
 use function Laravel\Prompts\select;
 
@@ -614,6 +615,10 @@ trait InteractsWithLayout
             throw GenerationRefused::because("File type [{$target->kind->id}] has no command to generate [{$target->describe()}].");
         }
 
+        if ($this->scaffoldExecution()?->force && $this->getApplication()?->find($command)->getDefinition()->hasOption('force')) {
+            $arguments['--force'] = true;
+        }
+
         $depth = $this->laravel->bound(self::RELATED) ? (int) $this->laravel->make(self::RELATED) : 0;
         $this->laravel->instance(self::RELATED, $depth + 1);
 
@@ -687,6 +692,13 @@ trait InteractsWithLayout
     }
 
     /** @internal */
+    /** @internal the scaffold's planning/writing scope, absent for ordinary commands */
+    protected function scaffoldExecution(): ?ScaffoldExecution
+    {
+        return $this->laravel->bound(ScaffoldExecution::class)
+            ? $this->laravel->make(ScaffoldExecution::class) : null;
+    }
+
     protected function existingArtifacts(): ExistingArtifacts
     {
         return new ExistingArtifacts($this->laravel->basePath());
@@ -699,6 +711,10 @@ trait InteractsWithLayout
      */
     protected function refuseCollisions(GenerationPlan $plan, bool $overwritePrimary): void
     {
+        if ($this->scaffoldExecution() !== null) {
+            // The scaffold checks the combined plans before accepting any write.
+            return;
+        }
         if ($this->collisionPolicy() === CollisionPolicy::Native) {
             return;
         }

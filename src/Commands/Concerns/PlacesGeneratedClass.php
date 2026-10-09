@@ -6,6 +6,7 @@ use Composer\Autoload\ClassLoader;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Artifact\ArtifactKind;
+use Tey\Mod\Artifact\ClassIdentity;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Exceptions\ModException;
@@ -101,9 +102,30 @@ trait PlacesGeneratedClass
         try {
             $this->noteUnusedName();
 
+            $scaffold = $this->scaffoldExecution();
+            if ($scaffold?->planning) {
+                if ($this->isReservedName($this->getNameInput())) {
+                    throw GenerationRefused::because('The name "'.$this->getNameInput().'" is reserved by PHP. Nothing was written.');
+                }
+                [$preview] = $this->settleGroups($this->plan());
+                $this->plan = $preview;
+                $defaultStub = $this->getStub();
+                $this->generateScaffoldRelations();
+                $scaffold->collect($preview, $defaultStub);
+
+                return $exitCode = self::SUCCESS;
+            }
+
             if ($this->plansEagerly()) {
                 $this->resolvePlan();
                 $this->warnIfNotAutoloaded();
+            }
+
+            if ($scaffold !== null && $this->plan !== null && $scaffold->keeps($this->plan->primary)) {
+                $this->components->info('Kept '.$this->plan->primary->path().'.');
+                $this->generateScaffoldRelations();
+
+                return $exitCode = self::SUCCESS;
             }
 
             $exitCode = parent::execute($input, $output);
@@ -260,7 +282,9 @@ trait PlacesGeneratedClass
             return $this->plan;
         }
 
-        [$plan, $newGroup] = $this->settleGroups($this->plan());
+        $candidate = $this->plan();
+        $accepted = $this->scaffoldExecution()?->plans[$candidate->primary->path()] ?? null;
+        [$plan, $newGroup] = $accepted !== null ? [$accepted, null] : $this->settleGroups($candidate);
         // Read through the input itself: not every adapter's native command declares --force.
         $force = $this->input->hasOption('force') && (bool) $this->input->getOption('force');
         // Let native placement handle its own duplicate; custom placement keeps
@@ -299,6 +323,8 @@ trait PlacesGeneratedClass
     {
         $this->announceNewGroup();
 
+        $stub = $this->scaffoldExecution()?->replace($stub, $this->primary()) ?? $stub;
+
         return parent::sortImports($stub);
     }
 
@@ -336,6 +362,15 @@ trait PlacesGeneratedClass
      *
      * @internal
      */
+    /** @internal generate companions even when an existing primary is kept */
+    protected function generateScaffoldRelations(): void
+    {
+        foreach (($this->currentPlan() ?? throw new \LogicException('A plan is required to generate companions.'))->relations as $relation) {
+            $this->followRelation($relation);
+        }
+    }
+
+    /** @return list<RelationResolution> */
     protected function plannedRelations(ResolvedArtifact $primary): array
     {
         return [];
@@ -402,9 +437,20 @@ trait PlacesGeneratedClass
     }
 
     /**
-     * @param  string  $name
-     * @return string
+     * @param  string  $rawName
+     * @return bool
      */
+    protected function alreadyExists($rawName)
+    {
+        $scope = $this->scaffoldExecution();
+        if ($scope?->force && isset($scope->plans[$this->primary()->path()])) {
+            return false;
+        }
+
+        return parent::alreadyExists($rawName);
+    }
+
+    /** @return string */
     protected function getPath($name)
     {
         $primary = $this->primary();
@@ -436,6 +482,10 @@ trait PlacesGeneratedClass
      */
     protected function modStubFile(): ?string
     {
+        $variant = $this->scaffoldExecution()?->variants[$this->primary()->path()] ?? null;
+        if ($variant !== null) {
+            return $variant;
+        }
         $choice = $this->prepareStub();
         $published = $this->laravel->basePath('stubs/mod.'.$this->kind()->id.'.stub');
 
@@ -464,6 +514,7 @@ trait PlacesGeneratedClass
      */
     protected function replaceClass($stub, $name)
     {
+        $stub = $this->scaffoldExecution()?->replace($stub, $this->primary()) ?? $stub;
         $stub = parent::replaceClass($stub, $name);
         $base = $this->modStub?->base;
         $short = $base !== null ? class_basename($base) : '';
@@ -502,6 +553,25 @@ trait PlacesGeneratedClass
             static fn (string $key): mixed => $config->get($key),
             is_string($configured) ? $configured : null,
         );
+
+        $scaffold = $this->scaffoldExecution();
+        if ($scaffold?->planning) {
+            if ($choice->generatedBase !== null) {
+                $location = $this->laravel->make(BaseWriter::class)->locate($choice->generatedBase, $this->layout(), $this->kind()->id);
+                $basePath = $this->existingArtifacts()->absolute($location['path']);
+                if (! is_file($basePath) && ! class_exists($location['fqcn'])) {
+                    if (! is_file($choice->generatedBase->stub)) {
+                        throw GenerationRefused::because('Base template ['.$choice->generatedBase->stub.'] does not exist. Nothing was written.');
+                    }
+                    $scaffold->bases[$this->primary()->path()][] = new ResolvedArtifact(
+                        $this->kind(), $this->primary()->context, $choice->generatedBase->name,
+                        new ClassIdentity(substr($location['fqcn'], 0, (int) strrpos($location['fqcn'], '\\')), $choice->generatedBase->name, $location['path']),
+                    );
+                }
+            }
+
+            return $this->modStub = $choice;
+        }
 
         if ($choice->generatedBase !== null) {
             $choice = $choice->withBase($this->ensureBase($choice->generatedBase));

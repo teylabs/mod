@@ -9,8 +9,8 @@ it('S10 refuses the whole plan without a collision answer', function () {
         $path = Examples::paths()[0];
         $w->write($path, 'existing model');
         $result = $w->artisan('mod:crud', ['name' => 'Knowledge:Document'])->assertFailed();
-        expect($result->normalisedOutput())->toBe(Examples::plan(Examples::paths(), exists: [$path])."\n   ERROR  $path already exists.  \n\n   ERROR  Nothing was written. Pass --skip-existing to keep it and write the rest, or --force to overwrite it.  \n\n")
-            ->and(count($w->files()))->toBe(3)->and($w->read($path))->toBe('existing model');
+        expect($result->normalisedOutput())->toBe(Examples::plan(Examples::paths(), exists: [$path])."   ERROR  $path already exists.  \n\n   ERROR  Nothing was written. Pass --skip-existing to keep it and write the rest, or --force to overwrite it.  \n\n")
+            ->and(count($w->files()))->toBe(4)->and($w->read($path))->toBe('existing model');
     });
 });
 
@@ -43,7 +43,7 @@ it('S10 force overwrites and cancel writes nothing', function (bool $force) {
         } else {
             $this->artisan('mod:crud', ['name' => 'Knowledge:Document'])
                 ->expectsChoice('1 file already exists. What should happen?', 'Cancel', ['Keep it, and write the other 7', 'Overwrite it', 'Cancel'])->assertSuccessful();
-            expect(count($w->files()))->toBe(3);
+            expect(count($w->files()))->toBe(4);
         }
     });
 })->with([false, true]);

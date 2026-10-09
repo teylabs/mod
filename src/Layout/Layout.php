@@ -353,7 +353,11 @@ final class Layout
         return $this;
     }
 
-    /** @internal @return array<string, Scaffold> */
+    /**
+     * @internal
+     *
+     * @return array<string, Scaffold>
+     */
     public function scaffoldRecipes(): array
     {
         return $this->scaffoldRecipes;
