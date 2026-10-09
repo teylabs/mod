@@ -2,6 +2,7 @@
 
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Scaffolds\Scaffold;
+use Tey\Mod\Tests\Feature\Acceptance\Examples\Support\PlacementScenario;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 
 it('P11 places a shared contract outside the module and keeps it on the next run', function () {
@@ -11,11 +12,19 @@ it('P11 places a shared contract outside the module and keeps it on the next run
         $w->write('app/Modules/Inventory/ViewModels/.gitkeep', '');
         $w->write('app/Modules/Knowledge/ViewModels/.gitkeep', '');
         $w->write('stubs/mod.view-model.stub', "<?php\n\nnamespace {{ namespace }};\n\nclass {{ class }} {}\n");
-        $w->write('stubs/interface.stub', "<?php\n\nnamespace {{ namespace }};\n\ninterface {{ class }} {}\n");
+        $w->write('stubs/mod.interface.stub', "<?php\n\nnamespace {{ namespace }};\n\ninterface {{ class }} {}\n");
+        Mod::stubs()->for('view-model', \Tey\Mod\Generation\Stub::file($w->root->path('stubs/mod.view-model.stub')));
         Mod::scaffold('typed-page', fn (Scaffold $s) => $s
             ->makes('view-model', name: '{name}PageViewModel', as: 'page')
             ->makes('interface', name: 'Support/PageData', ungrouped: true, as: 'contract', existing: 'keep'));
         $first = $w->artisan('mod:typed-page', ['name' => 'Inventory:Widget'])->assertSuccessful();
+        expect($first->normalisedOutput())->toEqualText(PlacementScenario::output('mod:typed-page', 'Inventory:Widget', 2, [
+            'app/Modules/Inventory/ViewModels/WidgetPageViewModel.php' => 'page',
+            'app/Support/PageData.php' => 'contract (ungrouped)',
+        ], [
+            ['INFO', 'View model [app/Modules/Inventory/ViewModels/WidgetPageViewModel.php] created successfully.'],
+            ['INFO', 'Interface [app/Support/PageData.php] created successfully.'],
+        ]));
         expect($first->normalisedOutput())->toContain('will write 2 files for Inventory:Widget.', 'contract (ungrouped)')
             ->and($w->read('app/Modules/Inventory/ViewModels/WidgetPageViewModel.php'))->toEqualText("<?php\n\nnamespace App\\Modules\\Inventory\\ViewModels;\n\nclass WidgetPageViewModel {}\n")
             ->and($w->read('app/Support/PageData.php'))->toEqualText("<?php\n\nnamespace App\\Support;\n\ninterface PageData {}\n");
