@@ -59,7 +59,7 @@ it('supports roots declared only in Composer and rejects plain-file roots safely
         $workspace->write('stubs/mod/notes/invalid.stub', TemplateScenario::CLASS_STUB);
         $workspace->artisan('mod:extra', ['name' => 'Search'])->assertSuccessful();
         expect(TemplateScenario::normalise($workspace, $workspace->read('lib/Tools/Search.php')))->toBe(TemplateScenario::normalise($workspace, TemplateScenario::content('Acme\\Tools', 'Search')))
-            ->and(app(TemplateCatalog::class)->skipped()['stubs/mod/notes/invalid.stub'])->toContain("plain-file templates aren't supported yet");
+            ->and(app(TemplateCatalog::class)->skipped()['stubs/mod/notes/invalid.stub'])->toContain('A .php template needs a namespaced root.');
     });
 });
 

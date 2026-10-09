@@ -34,7 +34,11 @@ it('keeps every built-in placement from 0.1.1 except the 0.3 HTTP move', functio
     $snapshot['slices']['request'] = ['App\\|app|{feature}/{slice}/Http/Requests'];
     $actual = [];
     foreach (array_keys($snapshot) as $name) {
-        foreach ((new LayoutRegistry)->compile($name)->rules() as $id => $rule) {
+        $compiled = (new LayoutRegistry)->compile($name);
+        foreach ($compiled->rules() as $id => $rule) {
+            if ($compiled->kind($id)->extension !== null) {
+                continue; // New plain file types have separate 0.3 placement assertions.
+            }
             if (! $rule instanceof TemplateRule) {
                 throw new RuntimeException("Built-in {$name}/{$id} is no longer a declarative placement.");
             }

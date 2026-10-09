@@ -189,3 +189,12 @@ Module routes load only through `Mod::routes(only: [...], except: [...])`. Put t
 Use `mod:routes Inventory --api --console` for route files: web uses `web`, API uses `api` and `/api`, console loads only in the console. Use `mod:route-registrar Inventory` for a `RegistersRoutes` implementation with static `web()` and `api()` methods. Files load before registrars, and provider-loaded files are skipped. Both commands accept `--force` for replacement and `--dry-run --json` for a plan without writes. Refusals without a terminal name `--force`.
 
 Scaffold inserts use `into: 'routes'` for the module's web file or `into: 'routes.web'` / `into: 'routes.api'` for registrar methods when present. Missing files start with the route anchor. Keep bindings and rate limiters in providers. `mod:list --json` reports the `routes` entries with `group`, `entrypoint`, `kind`, `middleware_group`, `order`, and `loaded_by`; listing never calls a registrar.
+
+## Frontend members
+
+- `mod:page <group>:<nested-name> --dry-run --json` previews the detected stack's page path and identity; `mod:page <group>:<nested-name> --no-interaction` generates it. Use `--force` only when overwriting the existing page is intended.
+- Plain generator templates use their filename's first dot as the command/extension boundary. `{{ alias.name }}`, `.import`, `.tag`, `.path`, and the bare component alias come from the resolved layout. Keep Vue/Blade expressions unknown to mod, or escape them with `@{{ … }}`. Use explicit forms for known names to avoid informational bare-placeholder warnings.
+- Page variants include the extension, such as `stubs/mod.page.crud-index.tsx.stub`. Preview complete scaffold plans before writing; missing variants and anchors refuse before generated files change.
+- `mod:template --from=<plain-file> --into=<template-path> --dry-run --json` reports `mentions[]`. The real run copies the bytes unchanged. Generalize the reported mentions manually with known placeholders.
+
+Use `@modules/...` imports for files under the layout group root and `@/...` for files under `resources/js`. Never cross an alias root with `../`. A part keeps the cluster name in `{name}`; use its question placeholder (such as `{widget}`) for the part value.

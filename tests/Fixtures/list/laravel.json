@@ -429,6 +429,11 @@
         "page_name": "{path}",
         "view_namespace": null
     },
+    "stack": {
+        "inertia": null,
+        "typescript": false,
+        "pages": "resources/js/pages"
+    },
     "wiring": {
         "inertia": false,
         "vite_alias": false,

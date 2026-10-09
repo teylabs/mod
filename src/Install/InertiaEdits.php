@@ -42,7 +42,7 @@ final readonly class InertiaEdits
             $before = $this->read($entry);
             $after = $this->entryEdit($before, $pageGlob);
             if ($after === null) {
-                $plan->warning('mod:install inertia found a custom resolve or entry it does not recognize in ['.$entry.']. Keep it and add the manual lines below.', $entry);
+                $plan->warning('mod:install inertia found a custom resolve or entry it does not recognize in ['.$entry.']. Keep it and add the manual lines below.', file: $entry);
                 $this->edit($plan, $entry, $before, $this->manualEntry($pageGlob), $this->text('entry_description'));
             } else {
                 $this->edit($plan, $entry, $before, $after, $this->text('entry_description'));
@@ -55,7 +55,7 @@ final readonly class InertiaEdits
             $before = $this->read($vite);
             $after = $this->viteEdit($before, $root, $viewsGlob);
             if ($after === null) {
-                $plan->warning(sprintf($this->text('vite_custom'), $vite, $root, $viewsGlob), $vite);
+                $plan->warning(sprintf($this->text('vite_custom'), $vite, $root, $viewsGlob), file: $vite);
             } else {
                 $this->edit($plan, $vite, $before, $after, $this->text('vite_description'));
             }
@@ -64,7 +64,7 @@ final readonly class InertiaEdits
             $before = $this->read('tsconfig.json');
             $after = $this->typescriptEdit($before, $root, $jsGlob);
             if ($after === null) {
-                $plan->warning(sprintf($this->text('typescript_custom'), $root, $jsGlob), 'tsconfig.json');
+                $plan->warning(sprintf($this->text('typescript_custom'), $root, $jsGlob), file: 'tsconfig.json');
             } else {
                 $this->edit($plan, 'tsconfig.json', $before, $after, sprintf($this->text('typescript_description'), substr($jsGlob, 0, -5)));
             }
@@ -80,7 +80,7 @@ final readonly class InertiaEdits
             $content = './'.substr($source, 6);
             $after = str_contains($before, $content) ? $before : preg_replace('/(\bcontent:\s*\[)/', '$1'."'".$content."', ", $before, 1, $count);
             if ($after === null || (! str_contains($before, $content) && $count !== 1)) {
-                $plan->warning('mod:install inertia does not recognize ['.$tailwind.']. Add ['.$content.'] to content.', $tailwind);
+                $plan->warning('mod:install inertia does not recognize ['.$tailwind.']. Add ['.$content.'] to content.', file: $tailwind);
             } else {
                 $this->edit($plan, $tailwind, $before, $after, $this->text('content_description'));
             }

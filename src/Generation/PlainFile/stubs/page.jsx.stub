@@ -1,0 +1,5 @@
+import { Head } from '@inertiajs/react';
+
+export default function {{ name.studly }}() {
+    return <Head title="{{ name.studly }}" />;
+}

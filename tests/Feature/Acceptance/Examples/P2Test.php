@@ -1,7 +1,6 @@
 <?php
 
 use Tey\Mod\Layout\LayoutRegistry;
-use Tey\Mod\Facades\Mod;
 use Tey\Mod\Tests\Feature\Acceptance\Examples\Support\FrontendScenario as Frontend;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 
@@ -24,4 +23,3 @@ it('P2 generates a DDD page in the application root', function () {
             ->and($result->normalisedOutput())->toContain("Inertia::render('Inventory::Widget/Index')");
     });
 });
-

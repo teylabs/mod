@@ -137,7 +137,7 @@ final readonly class TemplateDestination
     public function preview(ParsedTemplate $parsed): array
     {
         $path = Path::join($this->compiled->roots()[$parsed->root]->path, $parsed->in);
-        $writes = (string) preg_replace_callback('/\{(\w+)([+?]*)\}/', static fn (array $m): string => '<'.$m[1].(str_contains($m[2], '?') ? '?' : '').'>', $path).'/<Name>.php';
+        $writes = (string) preg_replace_callback('/\{(\w+)([+?]*)\}/', static fn (array $m): string => '<'.$m[1].(str_contains($m[2], '?') ? '?' : '').'>', $path).'/<Name>'.($parsed->extension ?? '.php');
         $groupValues = [];
         $walk = $this->compiled->roots()[$parsed->root]->path;
         foreach (explode('/', $parsed->in) as $segment) {

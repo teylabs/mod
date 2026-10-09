@@ -18,5 +18,6 @@ final readonly class ParsedTemplate
         public ?string $notice = null,
         public ?string $anchor = null,
         public ?string $group = null,
+        public ?string $extension = null,
     ) {}
 }

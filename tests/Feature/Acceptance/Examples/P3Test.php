@@ -1,7 +1,7 @@
 <?php
 
-use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Facades\Mod;
+use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Tests\Feature\Acceptance\Examples\Support\FrontendScenario as Frontend;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 
@@ -33,4 +33,3 @@ it('P3 uses mirrored frontend folders and page identity patterns', function () {
         expect($w->exists('resources/js/pages/Inventory/Widget/Index.vue'))->toBeTrue();
     });
 });
-

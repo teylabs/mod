@@ -11,6 +11,7 @@ use Tey\Mod\Generation\Stub;
 use Tey\Mod\Placement\Dimension;
 use Tey\Mod\Placement\PlacementRule;
 use Tey\Mod\Placement\Segment;
+use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Preset\PresetValidator;
 use Tey\Mod\Relation\Relation;
 use Tey\Mod\Support\Path;
@@ -111,7 +112,18 @@ final readonly class CompiledLayout
             }
         }
 
-        return new self($roots, $this->dimensions, $this->kinds, $this->rules, $this->relations, $this->excludedRoots, $this->commandsEnabled, $this->placementOptions, $this->stubs, $this->templates, $paths, $this->mirrorPages);
+        $kinds = $this->kinds;
+        $rules = $this->rules;
+        if (isset($kinds['page'])) {
+            $kind = $kinds['page'];
+            $extension = $stack->inertia() === 'react' ? ($stack->typescript() ? '.tsx' : '.jsx') : '.vue';
+            $kinds['page'] = new ArtifactKind($kind->id, $kind->shape, $kind->namePolicy, $kind->command, $kind->aliases, $kind->label, $extension, $kind->case);
+            if ($this->mirrorPages && $rules['page'] instanceof TemplateRule) {
+                $rules['page'] = $rules['page']->withPageFolder(basename($stack->pagesPath()));
+            }
+        }
+
+        return new self($roots, $this->dimensions, $kinds, $rules, $this->relations, $this->excludedRoots, $this->commandsEnabled, $this->placementOptions, $this->stubs, $this->templates, $paths, $this->mirrorPages);
     }
 
     /** Whether a candidate lies inside a declared root that holds no classes. */

@@ -58,6 +58,8 @@ use Tey\Mod\Commands\MigrationCommand;
 use Tey\Mod\Commands\ModelCommand;
 use Tey\Mod\Commands\NotificationCommand;
 use Tey\Mod\Commands\ObserverCommand;
+use Tey\Mod\Commands\PageCommand;
+use Tey\Mod\Commands\PlainFileCommand;
 use Tey\Mod\Commands\PolicyCommand;
 use Tey\Mod\Commands\ProviderCommand;
 use Tey\Mod\Commands\RequestCommand;
@@ -84,6 +86,7 @@ final class GeneratorRegistry
     public const DEFAULTS = [
         'view' => ViewCommand::class,
         'component' => ComponentCommand::class,
+        'page' => PageCommand::class,
         'cast' => CastCommand::class,
         'channel' => ChannelCommand::class,
         'class' => ClassCommand::class,
@@ -220,7 +223,7 @@ final class GeneratorRegistry
         $commands = [];
 
         foreach ($preset->kinds() as $kind) {
-            if ($kind->command === null || ($adapter = (isset($preset->templates()[$kind->id]) ? TemplateCommand::class : $this->adapterFor($kind))) === null) {
+            if ($kind->command === null || ($adapter = (isset($preset->templates()[$kind->id]) ? ($kind->extension === null ? TemplateCommand::class : PlainFileCommand::class) : $this->adapterFor($kind))) === null) {
                 continue;
             }
 

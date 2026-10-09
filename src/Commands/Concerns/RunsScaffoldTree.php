@@ -40,6 +40,8 @@ trait RunsScaffoldTree
 
     /** @var array<string, true> */
     private array $treeRouteGroups = [];
+    /** @var array<string, string> project-relative variant => source, staged until acceptance */
+    private array $treeVariants = [];
 
     /** @var array<string, mixed> qualified aliases from all nodes */
     private array $treeAliases = [];
@@ -112,6 +114,7 @@ trait RunsScaffoldTree
     private function handleTree(): int
     {
         $this->treeCalls = $this->treeInserts = $this->treeStarts = $this->treeAliases = $this->treeRouteGroups = [];
+        $this->treeVariants = [];
         $this->treeCancelled = false;
         $scope = new ScaffoldExecution;
         $scope->nestedNames = true;
@@ -201,10 +204,18 @@ trait RunsScaffoldTree
             if ($this->interactive() && ! confirm($question, default: true)) {
                 return self::SUCCESS;
             }
-            $paths = array_unique([...array_map(static fn (array $file): string => $file['artifact']->path(), $plan->files()), ...array_column($this->treeInserts, 'path')]);
+            $paths = array_unique([...array_map(static fn (array $file): string => $file['artifact']->path(), $plan->files()), ...array_column($this->treeInserts, 'path'), ...array_keys($this->treeVariants)]);
             foreach ($paths as $path) {
                 $absolute = $this->laravel->basePath($path);
                 $backups[$path] = is_file($absolute) ? (string) file_get_contents($absolute) : null;
+            }
+            foreach ($this->treeVariants as $path => $source) {
+                $absolute = $this->laravel->basePath($path);
+                $this->laravel->make('files')->ensureDirectoryExists(dirname($absolute));
+                if (! $this->laravel->make('files')->copy($source, $absolute)) {
+                    throw GenerationRefused::because("Could not publish {$path}. Nothing was written.");
+                }
+                $this->components->info("Published stub [{$path}] from the page stub. Edit it to make it the house page.");
             }
             $scope->planning = false;
             foreach ($this->treeCalls as [$command, $arguments]) {
@@ -292,6 +303,10 @@ trait RunsScaffoldTree
         $failure = null;
         foreach ($recipe->questions() as $question) {
             if (array_key_exists($question->name, $given)) {
+                if ($question->type === 'file' && is_string($given[$question->name])) {
+                    $values[$question->name] = $resolver->answer($question, $given[$question->name], false, 'mod:'.$this->recipeName, $name);
+                }
+
                 continue;
             }
             $option = $this->getDefinition()->hasOption($question->name) ? $this->option($question->name) : null;
@@ -358,7 +373,26 @@ trait RunsScaffoldTree
             $this->treeCalls[] = [$command, $arguments];
             $context = $artifact->context;
             if ($member->stub !== null) {
-                $scope->variants[$artifact->path()] = $this->treeStub($member->fileType.'.'.$member->stub);
+                $id = $member->fileType.'.'.$member->stub.($artifact->kind->extension ?? '');
+                try {
+                    $scope->variants[$artifact->path()] = $this->treeStub($id);
+                } catch (GenerationRefused $exception) {
+                    if ($member->fileType !== 'page' || ! $this->interactive()) {
+                        throw $exception;
+                    }
+                    $relative = 'stubs/mod.'.$id.'.stub';
+                    if (! confirm("The {$this->recipeName} scaffold uses {$relative}, which doesn't exist. Create it from the page stub?", default: true)) {
+                        $this->treeCancelled = true;
+
+                        return $own;
+                    }
+                    $source = $scope->defaultStubs[$artifact->path()];
+                    if (! is_file($source)) {
+                        throw GenerationRefused::because("The page stub [{$source}] does not exist. Nothing was written.");
+                    }
+                    $this->treeVariants[$relative] = $source;
+                    $scope->variants[$artifact->path()] = $source;
+                }
             }
             $this->treeAliases[$prefix.$alias] = $artifact;
         }

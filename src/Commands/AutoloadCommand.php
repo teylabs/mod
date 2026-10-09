@@ -100,7 +100,7 @@ class AutoloadCommand extends Command
             if ($mapped !== null || (isset($missing[$namespace]) && $missing[$namespace] !== $path)) {
                 $folders = implode(', ', (array) ($mapped ?? $missing[$namespace]));
                 $message = "mod:autoload needs [{$namespace}] at [{$path}], but composer.json maps it to [{$folders}]. Resolve the mapping in composer.json and run mod:autoload again.";
-                $this->dryPlan?->warning($message, 'composer.json');
+                $this->dryPlan?->warning($message, file: 'composer.json');
                 $this->components->warn($message);
                 $conflict = true;
 

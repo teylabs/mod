@@ -45,7 +45,10 @@ final class PathParser
         if (! str_ends_with($filename, '.stub')) {
             throw new InvalidTemplate('Generator templates need a .stub extension.');
         }
-        $id = Str::kebab(Str::studly(substr($filename, 0, -5)));
+        $stem = substr($filename, 0, -5);
+        $dot = strpos($stem, '.');
+        $extension = $dot === false ? null : substr($stem, $dot);
+        $id = Str::kebab(Str::studly($dot === false ? $stem : substr($stem, 0, $dot)));
         if (preg_match('/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/', $id) !== 1) {
             throw new InvalidTemplate('Name the template with letters, numbers and dashes.');
         }
@@ -181,17 +184,17 @@ final class PathParser
             }
             [$root, $below] = $this->rootFor($known ? $target : Path::join('app', $target), $roots);
         }
-        if ($roots[$root]['namespace'] === null) {
-            throw new InvalidTemplate("plain-file templates aren't supported yet. Choose a namespaced root.");
+        if (($extension === null || $extension === '.php') && $roots[$root]['namespace'] === null) {
+            throw new InvalidTemplate('A .php template needs a namespaced root.');
         }
         foreach (explode('/', $below) as $part) {
-            if ($part !== '' && ! str_starts_with($part, '{') && ! Identifier::isClassSegment($part)) {
+            if (($extension === null || $extension === '.php') && $part !== '' && ! str_starts_with($part, '{') && ! Identifier::isClassSegment($part)) {
                 throw new InvalidTemplate("Folder [{$part}] cannot form a PHP namespace. Use letters, numbers and underscores.");
             }
         }
         $groups = array_values(array_filter($tokens, static fn (string $token): bool => preg_match('/\{'.preg_quote($token, '/').'[+?]*\}/', $below) === 1));
 
-        return new ParsedTemplate($id, $root, $below, $slots, $groups, $notice, $anchor, $resolved ?? ($groups === [] ? null : $groups[array_key_last($groups)]));
+        return new ParsedTemplate($id, $root, $below, $slots, $groups, $notice, $anchor, $resolved ?? ($groups === [] ? null : $groups[array_key_last($groups)]), $extension);
     }
 
     /**
@@ -215,6 +218,12 @@ final class PathParser
             }
         }
 
+        foreach ($roots as $root) {
+            if (str_contains($root['path'], '{')) {
+                $patterns[] = $root['path'];
+            }
+        }
+
         return array_values(array_unique($patterns));
     }
 
@@ -231,8 +240,11 @@ final class PathParser
      * @param  array<string, array{namespace: ?string, path: string}>  $roots
      * @return array{string, string}
      */
-    private function rootFor(string $target, array $roots): array
+    private function rootFor(string $target, array &$roots): array
     {
+        if (str_starts_with($target, 'resources/')) {
+            $roots['app-resources'] = ['namespace' => null, 'path' => 'resources'];
+        }
         $best = null;
         $below = '';
         foreach ($roots as $name => $root) {

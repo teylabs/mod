@@ -120,6 +120,15 @@
             "items": {
               "type": "string"
             }
+          },
+          "plain": {
+            "type": "boolean"
+          },
+          "extension": {
+            "type": "string"
+          },
+          "case": {
+            "type": "string"
           }
         }
       }

@@ -11,6 +11,7 @@ use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Exceptions\DimensionNotApplicable;
 use Tey\Mod\Exceptions\InvalidName;
 use Tey\Mod\Exceptions\MissingDimension;
+use Tey\Mod\Generation\PlainFile\Casing;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\CompiledRoot;
 
@@ -77,6 +78,14 @@ final readonly class TemplateRule implements PlacementRule
         return new self($this->kindId, $this->root, $this->segments, $this->priority, true, $this->anywhere, $this->except, $this->fallback?->withNestedNames());
     }
 
+    /** @internal Mirror the starter kit's pages folder without changing dimension slots. */
+    public function withPageFolder(string $folder): self
+    {
+        $segments = array_map(static fn (Segment $segment): Segment => $segment->literal === 'pages' ? Segment::literal($folder) : $segment, $this->segments);
+
+        return new self($this->kindId, $this->root, $segments, $this->priority, $this->nested, $this->anywhere, $this->except, $this->fallback?->withPageFolder($folder));
+    }
+
     public function nested(): bool
     {
         return $this->nested;
@@ -141,6 +150,9 @@ final readonly class TemplateRule implements PlacementRule
         }
 
         $nested = [];
+        if ($kind->extension !== null && (str_starts_with($name, '/') || str_starts_with($name, '\\') || preg_match('~(^|[/\\\\])\.\.?([/\\\\]|$)~', $name) === 1)) {
+            throw InvalidName::malformed($name, 'a relative plain file name without traversal');
+        }
 
         if (Identifier::isNested($name)) {
             if (! $this->nested) {
@@ -151,7 +163,7 @@ final readonly class TemplateRule implements PlacementRule
             [$nested, $name] = Identifier::splitNested($name);
 
             foreach ($nested as $folder) {
-                if (! Identifier::isClassSegment($folder)) {
+                if (! ($kind->extension === null ? Identifier::isClassSegment($folder) : preg_match('/^[A-Za-z0-9_][A-Za-z0-9_.-]*$/', $folder) === 1) || $folder === '.' || $folder === '..') {
                     throw InvalidName::malformed($folder, 'a folder name inside a nested name');
                 }
             }
@@ -198,8 +210,17 @@ final readonly class TemplateRule implements PlacementRule
             }
         }
 
-        $basename = $kind->namePolicy->basename($kind->id, $kind->shape, $name, $attributes);
-        $stem = $kind->namePolicy->stem($kind->shape, $basename) ?? $name;
+        if ($kind->extension !== null) {
+            $case = $kind->case ?? Casing::forExtension($kind->extension);
+            $nested = array_map(static fn (string $folder): string => Casing::folder($folder, $case), $nested);
+            $name = Casing::name($name, $case);
+        }
+
+        if ($kind->extension !== null && preg_match('/^[A-Za-z0-9_][A-Za-z0-9_.-]*$/', $name) !== 1) {
+            throw InvalidName::malformed($name, 'a plain file name');
+        }
+        $basename = $kind->extension !== null ? $name : $kind->namePolicy->basename($kind->id, $kind->shape, $name, $attributes);
+        $stem = $kind->extension !== null ? $name : ($kind->namePolicy->stem($kind->shape, $basename) ?? $name);
 
         return new ResolvedArtifact($kind, $context->only($used), $stem, $this->identity($kind, [...$parts, ...$nested], $basename), $nested);
     }
@@ -228,7 +249,7 @@ final readonly class TemplateRule implements PlacementRule
         }
 
         $basename = array_pop($parts);
-        $stem = $basename === null ? null : $kind->namePolicy->stem($kind->shape, $basename);
+        $stem = $basename === null ? null : ($kind->extension !== null ? $basename : $kind->namePolicy->stem($kind->shape, $basename));
 
         if ($basename === null || $stem === null) {
             return [];
@@ -282,7 +303,7 @@ final readonly class TemplateRule implements PlacementRule
         }
 
         $basename = array_pop($parts);
-        $stem = $basename === null ? null : $kind->namePolicy->stem($kind->shape, $basename);
+        $stem = $basename === null ? null : ($kind->extension !== null ? $basename : $kind->namePolicy->stem($kind->shape, $basename));
 
         if ($basename === null || $stem === null) {
             return null;
@@ -375,11 +396,12 @@ final readonly class TemplateRule implements PlacementRule
         if ($isPath) {
             $remainder = $this->root->pathRemainder($subject);
 
-            if ($remainder === null || ! str_ends_with($remainder, '.php')) {
+            $extension = $kind->extension ?? '.php';
+            if ($remainder === null || ! str_ends_with($remainder, $extension)) {
                 return null;
             }
 
-            $parts = explode('/', substr($remainder, 0, -4));
+            $parts = explode('/', substr($remainder, 0, -strlen($extension)));
         } else {
             if (! $kind->isClass()) {
                 return null;
@@ -493,7 +515,7 @@ final readonly class TemplateRule implements PlacementRule
      */
     private function identity(ArtifactKind $kind, array $parts, string $basename): ClassIdentity|FileIdentity
     {
-        $path = $this->root->pathFor($parts, $basename.'.php');
+        $path = $this->root->pathFor($parts, $basename.($kind->extension ?? '.php'));
 
         if ($kind->shape === IdentityShape::File || ! $this->root->isClassRoot()) {
             return new FileIdentity($path);

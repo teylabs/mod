@@ -42,10 +42,6 @@ final class LayoutCompiler
         }
         [$types, $roots, $rename] = GroupPath::resolve($this->layout->name, $chain['path'], $chain['kinds'], $chain['roots'], $chain['nesting']);
 
-        if ($this->templates !== null) {
-            [$types, $roots] = $this->templates->merge($this->layout->name, $chain['path'], $types, $roots);
-        }
-
         $frontend = [];
         foreach ($chain['frontend'] as $key => $value) {
             $frontend[$key] = $value === null ? null : $this->filePath($value, $chain['path'], $rename);
@@ -59,6 +55,39 @@ final class LayoutCompiler
         foreach (['pages' => 'resources-js', 'components' => 'resources-components', 'css' => 'resources-css', 'views' => 'resources-views'] as $key => $rootName) {
             if ($frontend[$key] !== null) {
                 $roots[$rootName] = ['namespace' => null, 'path' => $key === 'pages' ? dirname($frontend[$key]) : $frontend[$key]];
+            }
+        }
+
+        if ($this->templates !== null) {
+            [$types, $roots] = $this->templates->merge($this->layout->name, $chain['path'], $types, $roots);
+        }
+
+        if ($frontend['pages'] !== null && ! isset($types['page'])) {
+            $path = $frontend['pages'];
+            $prefix = rtrim(substr($path, 0, strcspn($path, '{')), '/');
+            $rootName = 'plain-pages';
+            foreach ($roots as $existingName => $existingRoot) {
+                if (! str_contains($existingRoot['path'], '{') && Path::relative($existingRoot['path'], $prefix) !== null) {
+                    $rootName = $existingName;
+                    break;
+                }
+            }
+            $roots[$rootName] ??= ['namespace' => null, 'path' => $prefix];
+            $types['page'] = (new FileType('page'))->withinRoot($rootName)->in((string) Path::relative($roots[$rootName]['path'], $path))->extension('.vue')->nested()->priority(200);
+        }
+
+        $grammar = [];
+        foreach ($types as $type) {
+            if ($type->toArray()['extension'] === null) {
+                preg_match_all('/\{(\w+)([+?]*)\}/', $type->toArray()['in'] ?? '', $matches, PREG_SET_ORDER);
+                foreach ($matches as $match) {
+                    $grammar[$match[1]] = $match[0];
+                }
+            }
+        }
+        foreach ($types as $type) {
+            if ($type->toArray()['extension'] !== null) {
+                $type->in((string) preg_replace_callback('/\{(\w+)[+?]*\}/', static fn (array $m): string => $grammar[$m[1]] ?? $m[0], $type->toArray()['in'] ?? ''));
             }
         }
 
@@ -162,11 +191,11 @@ final class LayoutCompiler
     }
 
     /**
-     * @param  array{in: ?string, fallback: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, command: string|false|null, aliases: list<string>, stub: ?Stub, label: ?string, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: ?\Closure, reads: list<string>}  $kind
+     * @param  array{in: ?string, fallback: ?string, root: ?string, name: 'as-given'|'timestamped'|array{suffix: string}|array{fixed: string}|null, file: bool, extension: ?string, case: ?string, command: string|false|null, aliases: list<string>, stub: ?Stub, label: ?string, priority: ?int, nested: ?bool, discover: ?string, except: list<string>|null, place: ?\Closure, reads: list<string>}  $kind
      * @param  array<string, array{namespace: ?string, path: string}>  $roots
      * @return array{array<string, mixed>, list<string>}|null the internal kind definition and the placeholders it reads
      */
-    private function kind(string $id, array $kind, array $roots): ?array
+    private function kind(string $id, array $kind, array &$roots): ?array
     {
         $call = "->generates('{$id}')";
         $in = $kind['in'];
@@ -198,6 +227,21 @@ final class LayoutCompiler
             return null;
         }
 
+        if ($kind['extension'] !== null && str_contains($roots[$rootName]['path'], '{')) {
+            $rootPath = $roots[$rootName]['path'];
+            $prefix = rtrim(substr($rootPath, 0, strcspn($rootPath, '{')), '/');
+            $path = Path::join(substr($rootPath, strlen($prefix) + 1), $path);
+            $rootName = 'plain-'.$id;
+            foreach ($roots as $existingName => $existingRoot) {
+                if (! str_contains($existingRoot['path'], '{') && Path::relative($existingRoot['path'], $prefix) !== null) {
+                    $rootName = $existingName;
+                    break;
+                }
+            }
+            $roots[$rootName] ??= ['namespace' => null, 'path' => $prefix];
+            $path = Path::join(Path::relative($roots[$rootName]['path'], $prefix) ?? '', $path);
+        }
+
         $name = $kind['name'] ?? 'as-given';
         $file = $kind['file'] || $name === 'timestamped' || $roots[$rootName]['namespace'] === null;
 
@@ -205,6 +249,8 @@ final class LayoutCompiler
             'shape' => $file ? 'file' : 'class',
             'name' => $name,
             'root' => $rootName,
+            'extension' => $kind['extension'],
+            'case' => $kind['case'],
         ];
 
         if ($kind['command'] !== false) {

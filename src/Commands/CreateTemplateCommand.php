@@ -15,6 +15,7 @@ use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Plans\Plan;
 use Tey\Mod\Plans\PlanWriter;
+use Tey\Mod\Scaffolds\Placeholders;
 use Tey\Mod\Support\Path;
 use Tey\Mod\Templates\ClassLookup;
 use Tey\Mod\Templates\InvalidTemplate;
@@ -280,7 +281,7 @@ class CreateTemplateCommand extends Command
         }
     }
 
-    /** @param array{replaced: string, left: list<string>}|null $extraction */
+    /** @param array{replaced: string, left: list<string>, mentions?: list<array{name: string, line: int}>}|null $extraction */
     private function create(TemplateDestination $destination, string $path, string $contents, string $starts, TemplateCatalog $catalog, ?array $extraction = null): int
     {
         $parsed = $destination->parse($path.'.stub');
@@ -311,6 +312,7 @@ class CreateTemplateCommand extends Command
         if ($this->dryPlan !== null) {
             $this->dryPlan->file($parsed->id, 'template', $display, ['command' => 'mod:'.$parsed->id], is_file($file));
             $this->dryPlan->collisions((bool) $this->option('force'));
+            $this->dryPlan->mentions = $extraction['mentions'] ?? [];
 
             return self::SUCCESS;
         }
@@ -322,7 +324,11 @@ class CreateTemplateCommand extends Command
         $this->components->info("Template [{$display}] created.");
         $this->detail('Starts as', $starts);
         if ($extraction !== null) {
-            $this->detail('Replaced', $extraction['replaced']);
+            if (isset($extraction['mentions'])) {
+                $this->detail('Mentions', implode(', ', array_map(static fn (array $mention): string => $mention['name'].' (line '.$mention['line'].')', $extraction['mentions'])).': replace them with {{ name }} forms where they should change');
+            } else {
+                $this->detail('Replaced', $extraction['replaced']);
+            }
             foreach ($extraction['left'] as $left) {
                 $this->detail('Left as it is', $left);
             }
@@ -361,6 +367,10 @@ class CreateTemplateCommand extends Command
             $from = $this->stringValue(search('Which class should the template start from?', static function (string $value) use ($lookup): array {
                 return array_values(array_map(static fn (array $r): string => $r['class'], array_filter($lookup->all(), static fn (array $r): bool => str_contains(strtolower($r['class']), strtolower($value)))));
             }));
+        }
+        $plain = Path::resolve($this->laravel->basePath(), $from);
+        if (is_file($plain) && (! str_ends_with($from, '.php') || str_ends_with($from, '.blade.php'))) {
+            return $this->extractPlain($layout, $destination, $from, $plain);
         }
         $matches = $lookup->matches($from);
         if ($matches === []) {
@@ -427,6 +437,50 @@ class CreateTemplateCommand extends Command
         $this->components->info('Using '.$record['class'].'.');
 
         return $this->create($destination, $into, $extracted['contents'], $record['class'], $this->laravel->make(TemplateCatalog::class), $extracted);
+    }
+
+    private function extractPlain(CompiledLayout $layout, TemplateDestination $destination, string $from, string $file): int
+    {
+        $extension = str_ends_with($from, '.blade.php') ? '.blade.php' : '.'.pathinfo($from, PATHINFO_EXTENSION);
+        $source = (string) file_get_contents($file);
+        $into = $this->option('into');
+        if (! is_string($into) || $into === '') {
+            throw new RuntimeException('mod:template --from='.$from.' needs --into=<template path>.');
+        }
+        if (! str_ends_with($into, $extension)) {
+            $into .= $extension;
+        }
+        $mentions = [];
+        $names = [substr(basename($from), 0, -strlen($extension)), basename(dirname($from))];
+        foreach ($layout->frontend() as $pattern) {
+            if (! is_string($pattern) || ! str_contains($pattern, '{')) {
+                continue;
+            }
+            $regex = preg_quote($pattern, '~');
+            $regex = (string) preg_replace('/\\\{\w+[+?]*\\\}/', '([^/]+)', $regex);
+            if (preg_match('~^'.$regex.'(?:/|$)~', Path::normalize($from), $match)) {
+                array_shift($match);
+                array_push($names, ...$match);
+            }
+        }
+        foreach ($names as $name) {
+            $names[] = Str::studly($name);
+        }
+        $forms = [];
+        foreach (array_unique($names) as $name) {
+            foreach (['', 'camel', 'kebab', 'snake', 'studly', 'plural', 'singular', 'lower', 'upper', 'title', 'headline', 'plural.camel', 'plural.kebab'] as $form) {
+                $forms[] = (new Placeholders(['name' => $name]))->render('{{ name'.($form === '' ? '' : '.'.$form).' }}');
+            }
+        }
+        foreach (explode("\n", str_replace("\r\n", "\n", $source)) as $index => $line) {
+            foreach (array_unique($forms) as $name) {
+                if ($name !== '' && preg_match('/(?<![A-Za-z0-9_])'.preg_quote($name, '/').'(?![A-Za-z0-9_])/', $line)) {
+                    $mentions[] = ['name' => $name, 'line' => $index + 1];
+                }
+            }
+        }
+
+        return $this->create($destination, $into, $source, $from.' (copied as it is)', $this->laravel->make(TemplateCatalog::class), ['replaced' => '', 'left' => [], 'mentions' => $mentions]);
     }
 
     /** @param list<string> $classes */
