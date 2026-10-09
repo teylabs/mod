@@ -12,7 +12,7 @@ use Tey\Mod\Support\Path;
 /** @internal The accepted templates and skip reasons for one active layout. */
 final class TemplateCatalog
 {
-    /** @var array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool}> */
+    /** @var array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}> */
     private array $templates = [];
 
     /** @var array<string, string> */
@@ -21,7 +21,7 @@ final class TemplateCatalog
     /** @var list<string> */
     private array $notices = [];
 
-    /** @param array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool}>|null $cached */
+    /** @param array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}>|null $cached */
     public function __construct(
         private readonly string $basePath,
         private readonly StubRegistry $stubs = new StubRegistry,
@@ -108,7 +108,11 @@ final class TemplateCatalog
                 $type->aliases($alias);
             }
             $types[$id] = $type;
-            $this->templates[$id] = [...$record, 'slots' => $parsed->slots, 'groups' => $parsed->groups];
+            $aliases = $parsed->group === null ? [] : ['group' => $parsed->group];
+            if ($parsed->anchor !== null && $parsed->group !== null) {
+                $aliases[$parsed->anchor] = $parsed->group;
+            }
+            $this->templates[$id] = [...$record, 'slots' => $parsed->slots, 'groups' => $parsed->groups, 'body_aliases' => $aliases];
             if ($parsed->notice !== null) {
                 $this->notices[] = $parsed->notice;
             }
@@ -139,7 +143,7 @@ final class TemplateCatalog
         return array_values(array_unique(array_map(strtolower(...), [$command, 'mod:'.str_replace('-', '', $id), ...($definition['aliases'] ?? [])])));
     }
 
-    /** @return list<array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool}> */
+    /** @return list<array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}> */
     private function files(): array
     {
         if ($this->cached !== null) {
@@ -225,7 +229,7 @@ final class TemplateCatalog
         return Stub::file($file);
     }
 
-    /** @return array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool}> */
+    /** @return array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}> */
     public function templates(): array
     {
         return $this->templates;

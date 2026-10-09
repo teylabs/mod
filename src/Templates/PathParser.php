@@ -98,6 +98,7 @@ final class PathParser
             }
         }
         $notice = null;
+        $resolved = null;
         if ($anchorIndex !== null) {
             if ($tokens === []) {
                 throw new InvalidTemplate("Layout [{$layout}] has no group. Remove @{$anchor} from the path.");
@@ -190,7 +191,7 @@ final class PathParser
         }
         $groups = array_values(array_filter($tokens, static fn (string $token): bool => preg_match('/\{'.preg_quote($token, '/').'[+?]*\}/', $below) === 1));
 
-        return new ParsedTemplate($id, $root, $below, $slots, $groups, $notice);
+        return new ParsedTemplate($id, $root, $below, $slots, $groups, $notice, $anchor, $resolved ?? ($groups === [] ? null : $groups[array_key_last($groups)]));
     }
 
     /**

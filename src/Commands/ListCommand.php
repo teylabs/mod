@@ -88,7 +88,7 @@ final class ListCommand extends Command
                 if ($filter !== null && $entry['kind'] !== $filter) {
                     continue;
                 }
-                $this->line('  '.$entry['type'].': '.$entry['class'].' ['.$entry['path'].']');
+                $this->line('  '.$entry['type'].': '.$entry['class'].(isset($entry['target']) ? ' -> '.$entry['target'] : '').' ['.$entry['path'].']');
             }
             foreach ($report['discovery']['rejections'] as $entry) {
                 if ($filter !== null && $entry['kind'] !== $filter) {
@@ -125,7 +125,7 @@ final class ListCommand extends Command
             return;
         }
         $counts = $report['discovery']['counts'];
-        $this->line(sprintf('  Discovery (%s): %d providers, %d commands, %d listeners, %d subscribers, %d directories, %d rejected.', $report['discovery']['source'] === 'cache' ? 'cache' : 'scanned, no cache', $counts['provider'], $counts['command'], $counts['listener'], $counts['subscriber'], $counts['directory'], $counts['rejected']));
+        $this->line(sprintf('  Discovery (%s): %d providers, %d commands, %d listeners, %d subscribers, %d factories, %d policies, %d directories, %d rejected.', $report['discovery']['source'] === 'cache' ? 'cache' : 'scanned, no cache', $counts['provider'], $counts['command'], $counts['listener'], $counts['subscriber'], $counts['factory'], $counts['policy'], $counts['directory'], $counts['rejected']));
     }
 
     /**

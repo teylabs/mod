@@ -16,5 +16,7 @@ final readonly class ParsedTemplate
         public array $slots,
         public array $groups,
         public ?string $notice = null,
+        public ?string $anchor = null,
+        public ?string $group = null,
     ) {}
 }

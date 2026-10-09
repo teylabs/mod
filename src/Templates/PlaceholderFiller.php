@@ -15,10 +15,10 @@ final class PlaceholderFiller
             if ($key === 'rootNamespace') {
                 return $rootNamespace;
             }
-            if ($key !== 'class') {
-                return $values[$key] ?? $match[0];
+            $value = $key === 'class' ? $class : ($values[$key] ?? null);
+            if ($value === null) {
+                return $match[0];
             }
-            $value = $class;
             foreach (explode('.', $match[2] ?? '') as $form) {
                 $value = match ($form) {
                     '' => $value,
@@ -32,8 +32,11 @@ final class PlaceholderFiller
                     'upper' => Str::upper($value),
                     'title' => Str::title($value),
                     'headline' => Str::headline($value),
-                    default => $match[0],
+                    default => null,
                 };
+                if ($value === null) {
+                    return $match[0];
+                }
             }
 
             return $value;

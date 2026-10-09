@@ -29,7 +29,7 @@ final readonly class DiscoveryCache
         return is_file($this->path);
     }
 
-    /** @param array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool}> $templates
+    /** @param array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}> $templates
      * @param  array<string, Node>  $scaffolds
      */
     public function write(Inventory $inventory, string $preset, string $definitions, array $templates = [], array $scaffolds = []): void
@@ -108,7 +108,7 @@ final readonly class DiscoveryCache
      * The saved template list lets web requests compile without walking folders.
      * An older or invalid cache falls back to the ordinary scan policy.
      *
-     * @return array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool}>|null
+     * @return array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}>|null
      */
     public function templates(): ?array
     {

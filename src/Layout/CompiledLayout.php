@@ -31,7 +31,7 @@ final readonly class CompiledLayout
      * @param  array<string, Relation>  $relations  keyed by relation id
      * @param  list<CompiledRoot>  $excludedRoots  never owned by any rule
      * @param  array<string, string>  $placementOptions  dimension name → command option name
-     * @param  array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool}>  $templates
+     * @param  array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}>  $templates
      * @param  array<string, Stub>  $stubs  kind id → the stub the layout declares for it
      */
     public function __construct(
@@ -50,7 +50,7 @@ final readonly class CompiledLayout
     /**
      * @internal
      *
-     * @param  array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool}>  $templates
+     * @param  array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}>  $templates
      */
     public function withTemplates(array $templates): self
     {
@@ -60,7 +60,7 @@ final readonly class CompiledLayout
         return new self($this->roots, $dimensions, $this->kinds, $this->rules, $this->relations, $this->excludedRoots, $this->commandsEnabled, $this->placementOptions, $this->stubs, $templates);
     }
 
-    /** @return array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool}> */
+    /** @return array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}> */
     public function templates(): array
     {
         return $this->templates;

@@ -51,7 +51,7 @@ it('adds the missing ddd root and dumps autoloads once in the application', func
             ->toBe(['App\\' => 'app/', 'Domain\\' => 'src/Domain/']);
 
         $workspace->artisan('mod:autoload')->assertSuccessful()
-            ->expectsOutputToContain('Every root of the ddd layout is autoloaded.');
+            ->expectsOutputToContain('Every root of the ddd layout has its Composer mapping configured.');
     });
 });
 
@@ -64,7 +64,7 @@ it('recognizes a parent mapping only when its namespace and folder both match', 
         $result = $workspace->artisan('mod:autoload', ['--no-dump' => true])->assertSuccessful();
 
         if ($covered) {
-            expect($result->output)->toContain('Every root of the areas layout is autoloaded.')
+            expect($result->output)->toContain('Every root of the areas layout has its Composer mapping configured.')
                 ->and($workspace->read('composer.json'))->toBe($before);
         } else {
             expect(json_decode($workspace->read('composer.json'), true)['autoload']['psr-4']['App\\Modules\\'])->toBe('src/Areas/');
@@ -170,8 +170,8 @@ it('keeps the added entries when Composer is unavailable', function () {
         $composer->shouldReceive('setWorkingPath')->once()->with($workspace->root->path)->andReturnSelf();
         $composer->shouldReceive('dumpAutoloads')->once()->andReturn(127);
         app()->instance(Composer::class, $composer);
-        $workspace->artisan('mod:autoload')->assertSuccessful()
-            ->expectsOutputToContain('Run composer dump-autoload to load the new entries.');
+        $workspace->artisan('mod:autoload')->assertFailed()
+            ->expectsOutputToContain('composer.json was updated; run composer dump-autoload.');
         expect(json_decode($workspace->read('composer.json'), true)['autoload']['psr-4'])->toHaveKey('Domain\\');
     });
 });
