@@ -3,6 +3,7 @@
 namespace Tey\Mod\Rename\Frontend;
 
 use PhpToken;
+use Tey\Mod\Rename\Checklist;
 use Tey\Mod\Rename\Contribution;
 use Tey\Mod\Rename\Edit;
 use Tey\Mod\Rename\InputFile;
@@ -16,6 +17,7 @@ final class Blade
     public static function contribute(InputFile $file, array $names, array $tags): Contribution
     {
         $edits = [];
+        $checklist = [];
         foreach (PhpToken::tokenize($file->bytes) as $token) {
             if ($token->id !== T_INLINE_HTML) {
                 continue;
@@ -59,7 +61,13 @@ final class Blade
                     $index = in_array($match[1], ['includeWhen', 'includeUnless'], true) ? self::secondArgument($arguments) : 0;
                     $literal = $arguments[$index] ?? null;
                     $next = $arguments[$index + 1] ?? null;
-                    if ($literal !== null && $literal->id === T_CONSTANT_ENCAPSED_STRING && ($next === null || $next->text === ',')) {
+                    $static = $literal !== null && $literal->id === T_CONSTANT_ENCAPSED_STRING && ($next === null || $next->text === ',');
+                    if (! $static) {
+                        $offset = $token->pos + $i;
+                        $suggestion = $literal !== null && $literal->id === T_CONSTANT_ENCAPSED_STRING ? ($names[substr($literal->text, 1, -1)] ?? null) : null;
+                        $checklist[] = new Checklist($file->path, substr_count(substr($file->bytes, 0, $offset), "\n") + 1, 'blade-identity', 'Computed Blade identity requires review.', $suggestion);
+                    }
+                    if ($static) {
                         $value = substr($literal->text, 1, -1);
                         if (isset($names[$value]) && ! str_contains($value, '\\') && ! str_contains($names[$value], $literal->text[0])) {
                             $offset = $token->pos + $start + $literal->pos - strlen('<?php ') + 1;
@@ -85,6 +93,10 @@ final class Blade
                     if ($cursor >= $size) {
                         return new Contribution;
                     }
+                    if ($match[1] === 'x-dynamic-component') {
+                        $offset = $token->pos + $i;
+                        $checklist[] = new Checklist($file->path, substr_count(substr($file->bytes, 0, $offset), "\n") + 1, 'blade-identity', 'Dynamic Blade component requires review.');
+                    }
                     if (isset($tags[$match[1]])) {
                         $offset = $token->pos + $i + (str_starts_with($match[0], '</') ? 2 : 1);
                         $edits[] = new Edit($file->path, $offset, $match[1], $tags[$match[1]], 'blade-identity', substr_count(substr($file->bytes, 0, $offset), "\n") + 1);
@@ -101,7 +113,7 @@ final class Blade
             }
         }
 
-        return new Contribution($edits);
+        return new Contribution($edits, $checklist);
     }
 
     /** @param list<PhpToken> $tokens */

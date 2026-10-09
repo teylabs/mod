@@ -31,3 +31,10 @@ it('uses PHP lexical boundaries for comments inside Blade arguments', function (
     $result = Blade::contribute($file, ['old' => 'new'], []);
     expect($result->edits)->toHaveCount(1)->and($result->edits[0]->line)->toBe(2);
 });
+
+it('locates computed Blade identities even when only a prefix or variable is visible', function () {
+    $source = "@include('inventory::' . \$name)\n@component(\$component)\n@include('inventory::widgets.show' . suffix())\n<x-dynamic-component :component=\"\$component\" />";
+    $file = new InputFile('resources/views/a.blade.php', $source, 0644);
+    $result = Blade::contribute($file, ['inventory::widgets.show' => 'inventory::gadgets.show'], []);
+    expect($result->edits)->toBe([])->and(array_column($result->checklist, 'line'))->toBe([1, 2, 3, 4])->and($result->checklist[2]->suggestion)->toBe('inventory::gadgets.show');
+});

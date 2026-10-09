@@ -70,6 +70,7 @@ final class Frontend implements Contributor
             if (str_ends_with($file->path, '.blade.php')) {
                 $blade = Blade::contribute($file, $names, $tags);
                 array_push($edits, ...$blade->edits);
+                array_push($checklist, ...$blade->checklist);
                 array_push($checklist, ...$this->identityReview($file, $names, $blade->edits));
 
                 continue;

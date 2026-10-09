@@ -38,11 +38,12 @@ it('R11 maps Blade directive and anonymous component identities without touching
         $w->write('stubs/mod/@module/resources/views/show-view.blade.php.stub', '<p>Template</p>');
         Mod::scaffold('view-only', fn (Scaffold $s) => $s->makes('show-view', as: 'view', name: '{name.kebab}s/show'));
         $w->write('app/Modules/Inventory/resources/views/widgets/show.blade.php', '<p>Edited body</p>');
-        $w->write('resources/views/consumer.blade.php', "@include('inventory::widgets.show')\n{{ 'inventory::widgets.show' }}\n{{-- @include('inventory::widgets.show') --}}\n");
+        $w->write('resources/views/consumer.blade.php', "@include('inventory::widgets.show')\n{{ 'inventory::widgets.show' }}\n{{-- @include('inventory::widgets.show') --}}\n@include(\$view)\n");
         app(Contributors::class)->set('frontend', new Frontend);
         S::commit($w);
         $data = S::preview($w, ['--scaffold' => 'view-only']);
         expect($data['warnings'])->toBe([])->and($data['rewrites'])->toHaveCount(1)->and($data['rewrites'][0]['before'])->toBe('inventory::widgets.show')->and($data['rewrites'][0]['after'])->toBe('inventory::gadgets.show')->and($data['rewrites'][0]['line'])->toBe(1);
         expect(in_array('identity-string', array_column($data['checklist'], 'category'), true))->toBeTrue();
+        expect(array_values(array_filter($data['checklist'], static fn (array $row): bool => $row['category'] === 'blade-identity'))[0]['line'])->toBe(4);
     });
 });
