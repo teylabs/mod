@@ -156,14 +156,21 @@ it('matches native migration bytes, output and exit code', function () {
 
             $adapter = $workspace->artisan('mod:migration', ['name' => 'create_examples_table'])->assertSuccessful();
 
-            expect($adapter->output)->toBe($native->output)
+            // Laravel 12 uses date(), so Date::setTestNow cannot freeze this filename.
+            // Compare each creator's exact output after replacing only its timestamped path.
+            $adapterPath = $workspace->migration('database/migrations', 'create_examples_table');
+            $filename = '#^database/migrations/[0-9]{4}(?:_[0-9]{2}){5}_create_examples_table\.php$#';
+            expect(str_replace('\\', '/', $path))->toMatch($filename)
+                ->and(str_replace('\\', '/', $adapterPath))->toMatch($filename)
+                ->and(str_replace(str_replace('\\', '/', $adapterPath), '<migration>', $adapter->normalisedOutput()))
+                ->toBe(str_replace(str_replace('\\', '/', $path), '<migration>', $native->normalisedOutput()))
                 ->and($adapter->exitCode)->toBe($native->exitCode)
-                ->and($workspace->read($path))->toBe($bytes);
+                ->and($workspace->read($adapterPath))->toBe($bytes);
 
             $duplicate = $workspace->artisan('mod:migration', ['name' => 'create_examples_table'])->assertSuccessful();
             expect($duplicate->exitCode)->toBe($nativeDuplicate->exitCode)
-                ->and($workspace->files())->toBe([$path])
-                ->and($workspace->read($path))->toBe($bytes);
+                ->and($workspace->files())->toBe([$adapterPath])
+                ->and($workspace->read($adapterPath))->toBe($bytes);
 
             // Mod keeps migration names unique even when Laravel advances the timestamp.
             $duplicate->expectsOutputToContain('.php already exists.');
