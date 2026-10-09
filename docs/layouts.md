@@ -24,7 +24,7 @@ The other layouts put each file in a folder below its group:
 | `mod:channel` | `Channels` | `Broadcasting` | `Broadcasting` | `Channels` |
 | `mod:class`, `mod:interface`, `mod:trait` | the group folder | the group folder | the group folder | the group folder |
 | `mod:command` | `Console` | `Console/Commands` | `Console/Commands` | `Commands` |
-| `mod:controller` | `Controllers` | `Http/Controllers` | `Http/Controllers` | `app/Modules/<Domain>/Controllers` |
+| `mod:controller` | `Http/Controllers` | `Http/Controllers` | `Http/Controllers` | `app/Modules/<Domain>/Http/Controllers` |
 | `mod:dto` | `Data` | | | `Data` |
 | `mod:enum` | `Enums` | `Enums` | `Enums` | `Enums` |
 | `mod:event` | `Events` | `Events` | `Events` | `Events` |
@@ -36,7 +36,7 @@ The other layouts put each file in a folder below its group:
 | `mod:listener` | `Listeners` | `Listeners` | `Listeners` | `Listeners` |
 | `mod:mail` | `Mail` | `Mail` | `Mail` | `Mail` |
 | `mod:message` | | | `<Slice>/Command.php` | |
-| `mod:middleware` | `Middleware` | `Http/Middleware` | `Http/Middleware` | `app/Modules/<Domain>/Middleware` |
+| `mod:middleware` | `Http/Middleware` | `Http/Middleware` | `Http/Middleware` | `app/Modules/<Domain>/Http/Middleware` |
 | `mod:migration` | `Database/Migrations` | `Database/Migrations` | `Database/Migrations` | `Database/Migrations` |
 | `mod:model` | `Models` | `Models` | `Models` | `Models` |
 | `mod:notification` | `Notifications` | `Notifications` | `Notifications` | `Notifications` |
@@ -44,8 +44,8 @@ The other layouts put each file in a folder below its group:
 | `mod:policy` | `Policies` | `Policies` | `Policies` | `Policies` |
 | `mod:provider` | `Providers` | `Providers` | `Providers` | `Providers` |
 | `mod:query` | `Queries` | `Queries` | `<Slice>/Query.php` | |
-| `mod:request` | `Requests` | `Http/Requests` | `<Slice>/Request.php` | `app/Modules/<Domain>/Requests` |
-| `mod:resource` | `Resources` | `Http/Resources` | `Http/Resources` | `Resources` |
+| `mod:request` | `Http/Requests` | `Http/Requests` | `<Slice>/Http/Requests/Request.php` | `app/Modules/<Domain>/Http/Requests` |
+| `mod:resource` | `Http/Resources` | `Http/Resources` | `Http/Resources` | `Resources` |
 | `mod:rule` | `Rules` | `Rules` | `Rules` | `Rules` |
 | `mod:scope` | `Scopes` | `Scopes` | `Scopes` | `Scopes` |
 | `mod:seeder` | `Database/Seeders` | `Database/Seeders` | `Database/Seeders` | `Database/Seeders` |
@@ -359,3 +359,7 @@ use Tey\Mod\Facades\Mod;
 
 Mod::layout('ddd')->generates('job', in: 'infrastructure:{domain+}/Jobs');
 ```
+
+## Frontend Files and Routes
+
+Configure frontend folders with `->frontend(pages:, components:, css:, views:, pageName:)`. Plain module resources and routes are excluded from class discovery. See [Frontend Files](https://mod.teylabs.com/going-further/frontend) for pages, views and generator templates, and [Module Routes](https://mod.teylabs.com/going-further/routes) for `Mod::routes()` and registrars.

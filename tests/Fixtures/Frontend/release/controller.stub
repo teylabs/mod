@@ -1,0 +1,24 @@
+<?php
+
+namespace {{ namespace }};
+
+use {{ resource.fqcn }};
+use {{ model.fqcn }};
+use Inertia\Inertia;
+
+class {{ class }}
+{
+    public function index()
+    {
+        return Inertia::render('{{ indexPage.name }}', [
+            '{{ name.plural.camel }}' => {{ resource }}::collection({{ model }}::paginate()),
+        ]);
+    }
+
+    public function edit({{ model }} ${{ model.camel }})
+    {
+        return Inertia::render('{{ editPage.name }}', [
+            '{{ model.camel }}' => new {{ resource }}(${{ model.camel }}),
+        ]);
+    }
+}

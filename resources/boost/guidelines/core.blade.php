@@ -8,8 +8,13 @@ Always pass `--no-interaction` and the options that answer required questions. W
 
 Before writing, run the chosen command with `--dry-run --json`. Read its files, inserts, warnings, and `would_write` flag. The preview writes nothing and emits only JSON; required answers come from flags or defaults. A missing answer appears as a warning with `would_write: false`, even though the preview exits 0. Use `--dry-run` alone for a text table. Each new command or option must be documented in this guideline or the mod-development skill; the package checks coverage in its test suite.
 
+## HTTP and frontend paths
 
-## Module views and Blade components (0.3)
+Module HTTP file types use Http/Controllers, Http/Requests, Http/Middleware and Http/Resources. DDD keeps domain API resources in src/Domain/<Domain>/Resources and application HTTP classes in app/Modules/<Domain>/Http. Module resources/ and routes/ roots contain plain files and are excluded from class discovery.
+
+Use ->frontend(pages: ..., components: ..., css: ..., views: ..., pageName: ...) to customize frontend paths. Omitted arguments retain defaults; ->extends() copies the configuration. Built-in page folders follow the app’s pages/Pages casing, while explicit overrides retain their spelling. Inspect frontend paths and page_name in mod:list --json rather than assuming an Inertia stack. Compilation checks case-only folder collisions; move frontend paths under ui/ when a custom API Resources/ folder would clash with resources/.
+
+## Module views and Blade components
 
 - `mod:view Inventory:widgets.show` runs Laravel's view generator in the group's views folder. Options: `mod:view --extension=blade.php --test --pest --phpunit --force --in --dry-run --json --no-interaction`. Use the result with `view('inventory::widgets.show')`.
 - `mod:component Inventory:StockBadge --view` creates an anonymous Blade component. `mod:component Inventory:WidgetTable` creates a class in `View/Components` and its view. Options: `mod:component --view --inline --path --test --pest --phpunit --force --in --dry-run --json --no-interaction`. Use `&lt;x-inventory::stock-badge /&gt;`; Vue and React components come from generator templates.
@@ -17,7 +22,7 @@ Before writing, run the chosen command with `--dry-run --json`. Read its files, 
 - View namespaces register after providers boot, even without route or class discovery. Groups without views are omitted. Reserved namespaces (`mail`, `notifications`, `pagination`) and existing namespace clashes are skipped with a warning. Module views participate in `view:cache`.
 - DDD views live under the application root. Type-first grouped views use kebab subfolders such as `resources/views/inventory`; ungrouped views stay in `resources/views` with no namespace. `mod:list --json` adds a `views` section with group, namespace, path and component tags. View identities expose name, tag and path for plain-file members.
 
-## Installing Inertia (0.3 · L7)
+## Installing Inertia
 
 Before generating module pages, run `mod:install inertia --no-interaction`. Use `mod:install inertia --dry-run --json` to inspect the shared plan, including each file's before and after contents, warnings and `would_write`. Human `--dry-run` previews the same changes. The command detects Vue or React, preserves app page casing and reads the compiled layout's frontend paths. It wires the vendor resolver, `@modules` in Vite and TypeScript, module view refresh paths and Tailwind v3 or v4 scanning. A second run says "Already wired." Blade apps need no install. Mirrored pages already resolve through the app's glob, so their app entry is left alone.
 
@@ -37,13 +42,13 @@ Use `mod:page Inventory:Widget/Index` to create a minimal Inertia page. The dete
 
 Generator templates below `stubs/mod/` may write plain files under resources or routes. The first dot separates the command name from the extension: `card.blade.php.stub` gives the `card` command. Vue files are StudlyCase, React/Blade/Markdown/CSS are kebab-case, and `.ts`/`.js` keep the typed name. Override a file type with `case:`.
 
-Only known `name` between double braces placeholders are replaced. Unknown Vue and Blade expressions pass through; `name` between double braces prefixed by @ emits a literal `name` between double braces. Bare known placeholders in Vue and Blade generate a warning with the template path and line; use the explicit `name.studly` form explicitly. Nested a nested `name.camel` placeholder inside a framework expression leaves the framework expression intact. Lists support `.json` and `.array`; prose supports `.headline`.
+Plain files replace only known placeholders. Unknown Vue and Blade expressions pass through; prefix a placeholder with @ to emit it literally. Bare known placeholders produce a warning with the template path and line; use explicit forms such as name.studly. A known placeholder nested inside a framework expression is replaced while the outer expression remains. Lists support .json and .array; prose supports .headline.
 
 Plain scaffold members expose the component name through their bare alias, plus `.name`, `.import` through `@modules` for files under the group root or `@` for files under `resources/js`, `.tag` for Blade components, and `.path`. A `file` question accepts a project-relative plain file and exposes the same forms. Variants use `stubs/mod.page.<variant>.<extension>.stub`; a missing variant prompts to create it, and a non-interactive run names the file to supply. Inserts use explicit anchors in any comment style, including Vue script and template anchors.
 
 `mod:template --from=<plain-file> --into=<template-path>` copies the source unchanged, derives its extension, and reports name/group mentions for manual generalization. Its JSON preview includes `mentions[]` and writes nothing.
 
-## Scaffold member placement and module-owned generators (0.3)
+## Scaffold member placement and module-owned generators
 
 Use `ungrouped: true` on a scaffold member to place it where its file type goes without a group: an interface under `app/`, or a plain template under the app's `resources/`. Use `group:` with the `area` question placeholder with `->asks('area')` to place that member in its own group; pass the question's `--area` flag with `--no-interaction`. Group values receive the ordinary typo suggestions and new-group notices. Other members keep the scaffold's default group.
 
@@ -53,7 +58,7 @@ A module can carry generator templates in its own `stubs/mod/`; every template t
 
 Read `php artisan mod:list --json` for template and scaffold sources: `module:Inventory`, `app`, or `package:vendor/name`. `mod:list -v` shows the template file, scaffold file or provider. Review the selected source before extending a copied module.
 
-## L8: Read-only Boost tools and import metadata
+## Read-only Boost tools and import metadata
 
 Read `mod-inventory` first when connected to Laravel Boost. It returns the same inventory as `php artisan mod:list --json`, including file types, templates, scaffolds, stack, frontend paths, views, routes and wiring. Mod adds its tools through `boost.mcp.tools.include` only when Boost is installed; preserve other included tools. Boost is optional.
 
