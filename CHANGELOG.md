@@ -2,7 +2,7 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## [Unreleased]
+## [0.2.0] - 2026-10-09
 
 ### Added
 - Generator templates in `stubs/mod/`: anchors, value slots, name and sibling placeholders, package template folders and PHP refinements. App templates take precedence over package templates.
