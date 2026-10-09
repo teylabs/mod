@@ -11,6 +11,7 @@ final class Contributors
     public function __construct()
     {
         $this->items['declarations'] = new Declarations;
+        $this->items['frontend'] = new Frontend\Frontend;
     }
 
     public function set(string $name, Contributor $contributor): void
