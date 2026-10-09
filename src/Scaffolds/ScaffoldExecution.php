@@ -2,14 +2,16 @@
 
 namespace Tey\Mod\Scaffolds;
 
-use Illuminate\Support\Str;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Generation\GenerationPlan;
+use Tey\Mod\Support\Path;
 
 /** @internal scoped to one scaffold invocation, shared with the normal adapters */
 final class ScaffoldExecution
 {
     public bool $planning = true;
+
+    public bool $nestedNames = false;
 
     /** @var array<string, GenerationPlan> primary path => accepted plan */
     public array $plans = [];
@@ -36,6 +38,9 @@ final class ScaffoldExecution
     public array $newGroups = [];
 
     public bool $force = false;
+
+    /** @var array<string, array<string, mixed>> path => values scoped to that node */
+    public array $values = [];
 
     private ?GenerationPlan $collected = null;
 
@@ -71,27 +76,25 @@ final class ScaffoldExecution
 
     public function keeps(ResolvedArtifact $artifact): bool
     {
-        return in_array($artifact->path(), $this->keep, true);
+        foreach ($this->keep as $path) {
+            if (Path::same($artifact->path(), $path)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function replace(string $stub, ResolvedArtifact $self): string
     {
-        return (string) preg_replace_callback('/\{\{\s*([\w-]+)(?:\.(fqcn|camel|snake|kebab|studly|plural))?\s*\}\}/', function (array $match) use ($self): string {
-            $artifact = $this->aliases[$match[1]] ?? null;
-            if ($artifact === null || $artifact->equals($self)) {
-                return $match[0];
+        $values = $this->values[$self->path()] ?? $this->aliases;
+        // Leave Laravel's own class placeholder to its native generator.
+        foreach ($values as $key => $value) {
+            if ($value instanceof ResolvedArtifact && $value->equals($self)) {
+                unset($values[$key]);
             }
-            $name = class_basename($artifact->fqcn() ?? $artifact->name);
+        }
 
-            return match ($match[2] ?? '') {
-                'fqcn' => $artifact->fqcn() ?? $name,
-                'camel' => Str::camel($name),
-                'snake' => Str::snake($name),
-                'kebab' => Str::kebab($name),
-                'studly' => Str::studly($name),
-                'plural' => Str::pluralStudly($name),
-                default => $name,
-            };
-        }, $stub);
+        return (new Placeholders($values))->render($stub);
     }
 }

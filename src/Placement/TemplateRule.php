@@ -71,6 +71,12 @@ final readonly class TemplateRule implements PlacementRule
         return $this->priority;
     }
 
+    /** @internal Scaffold recursion uses the ordinary name-subfolder grammar. */
+    public function withNestedNames(): self
+    {
+        return new self($this->kindId, $this->root, $this->segments, $this->priority, true, $this->anywhere, $this->except, $this->fallback?->withNestedNames());
+    }
+
     public function nested(): bool
     {
         return $this->nested;
