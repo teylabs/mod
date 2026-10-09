@@ -5,7 +5,11 @@ namespace Tey\Mod\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Composer;
 use RuntimeException;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Plans\Plan;
+use Tey\Mod\Plans\PlanWriter;
 use Tey\Mod\Support\ComposerJson;
 use Throwable;
 
@@ -15,6 +19,7 @@ class AutoloadCommand extends Command
 {
     protected $signature = 'mod:autoload
         {--dry-run : Show the missing entries without writing or running Composer}
+        {--json : Print the dry-run plan as JSON}
         {--no-dump : Add the missing entries without running Composer}
         {--namespace= : Namespace for a group path outside the layout roots}';
 
@@ -42,11 +47,29 @@ class AutoloadCommand extends Command
         return $roots;
     }
 
+    private ?Plan $dryPlan = null;
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $this->dryPlan = null;
+        if ($input->getOption('dry-run')) {
+            return (new PlanWriter)->preview($this, $input, function (Plan $preview) use ($input, $output): void {
+                $this->dryPlan = $preview;
+                parent::execute($input, $output);
+            });
+        }
+
+        return parent::execute($input, $output);
+    }
+
     public function handle(CompiledLayout $layout): int
     {
         try {
             return $this->sync($layout);
         } catch (RuntimeException $exception) {
+            if ($this->dryPlan !== null) {
+                throw $exception;
+            }
             $this->components->error($exception->getMessage());
 
             return self::FAILURE;
@@ -76,7 +99,9 @@ class AutoloadCommand extends Command
 
             if ($mapped !== null || (isset($missing[$namespace]) && $missing[$namespace] !== $path)) {
                 $folders = implode(', ', (array) ($mapped ?? $missing[$namespace]));
-                $this->components->warn("mod:autoload needs [{$namespace}] at [{$path}], but composer.json maps it to [{$folders}]. Resolve the mapping in composer.json and run mod:autoload again.");
+                $message = "mod:autoload needs [{$namespace}] at [{$path}], but composer.json maps it to [{$folders}]. Resolve the mapping in composer.json and run mod:autoload again.";
+                $this->dryPlan?->warning($message, 'composer.json');
+                $this->components->warn($message);
                 $conflict = true;
 
                 continue;
@@ -85,6 +110,15 @@ class AutoloadCommand extends Command
             $missing[$namespace] = $path;
         }
 
+        if ($this->dryPlan !== null) {
+            if ($missing !== []) {
+                $this->dryPlan->file('autoload', 'composer', 'composer.json', ['mappings' => $missing], true);
+            } else {
+                $this->dryPlan->wouldWrite = false;
+            }
+
+            return self::SUCCESS;
+        }
         if ($conflict) {
             return self::FAILURE;
         }

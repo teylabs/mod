@@ -89,6 +89,9 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        if ($input->getOption('dry-run') && $this->scaffoldExecution() === null) {
+            return $this->previewGeneration(fn (): int => $this->execute($input, $output));
+        }
         $previous = $this->plan;
         $this->plan = null;
         $exitCode = self::FAILURE;

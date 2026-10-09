@@ -1,10 +1,14 @@
 <?php
 
+use Illuminate\Support\Facades\Artisan;
+use Symfony\Component\Console\Tester\CommandTester;
 use Tey\Mod\Facades\Mod;
+use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Feature\Scaffolds\Support\Examples;
 use Tey\Mod\Tests\Feature\Scaffolds\Support\TreeExamples;
+use Tey\Mod\Tests\Support\JsonSchema;
 
 it('plans the S1 CRUD files as JSON without writing or printing notices', function () {
     Workspace::run(null, function (Workspace $w) {
@@ -12,6 +16,8 @@ it('plans the S1 CRUD files as JSON without writing or printing notices', functi
         $before = $w->files();
         $output = $w->artisan('mod:crud', ['name' => 'Knowledge:Document', '--dry-run' => true, '--json' => true])->assertSuccessful()->normalisedOutput();
         $data = json_decode($output, true, flags: JSON_THROW_ON_ERROR);
+        $schema = json_decode(file_get_contents(__DIR__.'/../../Fixtures/schema/plan.json'), true, flags: JSON_THROW_ON_ERROR);
+        expect(JsonSchema::errors($data, $schema))->toBe([]);
         expect(array_keys($data))->toBe(['command', 'group', 'name', 'files', 'inserts', 'warnings', 'would_write'])
             ->and($data['command'])->toBe('mod:crud')->and($data['group'])->toBe('Knowledge')->and($data['name'])->toBe('Document')
             ->and(array_column($data['files'], 'path'))->toBe(Examples::paths())
@@ -86,3 +92,61 @@ it('plans template creation and Composer mappings without writing', function (st
     ['mod:template', ['type' => 'class', 'path' => 'tool'], 'stubs/mod/@domain/Tools/tool.stub'],
     ['mod:autoload', [], 'composer.json'],
 ]);
+
+it('returns a schema-valid plan for every registered writing command without creating files', function (string $layout) {
+    Workspace::run(null, function (Workspace $w) use ($layout) {
+        config()->set('mod.layout', $layout);
+        $schema = json_decode(file_get_contents(__DIR__.'/../../Fixtures/schema/plan.json'), true, flags: JSON_THROW_ON_ERROR);
+        foreach (Artisan::all() as $command) {
+            $definition = $command->getDefinition();
+            if (! str_starts_with($command->getName() ?? '', 'mod:') || ! $definition->hasOption('dry-run')) {
+                continue;
+            }
+            $arguments = ['--dry-run' => true, '--json' => true];
+            if ($definition->hasArgument('name')) {
+                $arguments['name'] = match ($layout) {
+                    'modules', 'ddd', 'features' => 'Inventory:Widget',
+                    'slices' => 'Inventory/Index:Widget',
+                    default => 'Widget',
+                };
+            }
+            if ($command->getName() === 'mod:template') {
+                $arguments['type'] = 'class';
+                $arguments['path'] = 'tool';
+            }
+            $data = json_decode($w->artisan($command->getName(), $arguments)->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
+            expect(JsonSchema::errors($data, $schema))->toBe([], (string) $command->getName())
+                ->and($w->files())->toBe([]);
+        }
+    });
+})->with(['laravel', 'modules', 'ddd', 'features', 'slices', 'type-first']);
+
+it('never prompts for a missing answer even when preview input is interactive', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', 'modules');
+        Mod::scaffold('needs-answer', fn (Scaffold $s) => $s->asks('label', type: 'text')->makes('model'));
+        $command = Artisan::all()['mod:needs-answer'];
+        $tester = new CommandTester($command);
+        expect($tester->execute(['name' => 'Inventory:Widget', '--dry-run' => true, '--json' => true], ['interactive' => true]))->toBe(0);
+        $data = json_decode($tester->getDisplay(), true, flags: JSON_THROW_ON_ERROR);
+        expect($data['warnings'][0]['message'])->toBe('mod:needs-answer needs a label. Pass --label=<value>.')
+            ->and($data['would_write'])->toBeFalse()->and($w->files())->toBe([]);
+    });
+});
+
+it('collects every unanswered question in flat and tree plans', function (bool $tree) {
+    Workspace::run(null, function (Workspace $w) use ($tree) {
+        config()->set('mod.layout', 'modules');
+        Mod::scaffold('needs-answers', function (Scaffold $s) use ($tree): void {
+            $s->asks('first', type: 'text')->asks('second', type: 'text')->makes('model');
+            if ($tree) {
+                $s->part('child', configure: fn (Part $p) => $p->makes('controller'));
+            }
+        });
+        $data = json_decode($w->artisan('mod:needs-answers', ['name' => 'Inventory:Widget', '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
+        expect(array_column($data['warnings'], 'message'))->toBe([
+            'mod:needs-answers needs a first. Pass --first=<value>.',
+            'mod:needs-answers needs a second. Pass --second=<value>.',
+        ])->and($data['would_write'])->toBeFalse()->and($w->files())->toBe([]);
+    });
+})->with([false, true]);

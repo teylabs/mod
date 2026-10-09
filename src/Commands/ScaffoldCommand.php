@@ -3,13 +3,17 @@
 namespace Tey\Mod\Commands;
 
 use Illuminate\Console\Command;
+use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Commands\Concerns\InteractsWithLayout;
 use Tey\Mod\Commands\Concerns\RunsScaffoldTree;
 use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Plans\Plan;
+use Tey\Mod\Plans\PlanWriter;
 use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Placeholders;
 use Tey\Mod\Scaffolds\QuestionAnswers;
@@ -30,7 +34,7 @@ final class ScaffoldCommand extends Command
     /** @var array<string, list<string>> file type => template slot options */
     private array $memberSlots = [];
 
-    protected $signature = 'mod:scaffold {name} {--force} {--skip-existing}';
+    protected $signature = 'mod:scaffold {name} {--force} {--skip-existing} {--dry-run} {--json}';
 
     public function __construct(private readonly string $recipeName, private readonly Scaffold $recipe, private readonly CompiledLayout $preset)
     {
@@ -78,6 +82,32 @@ final class ScaffoldCommand extends Command
         return $options;
     }
 
+    private ?Plan $dryPlan = null;
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $this->dryPlan = null;
+        if ($input->getOption('dry-run')) {
+            return (new PlanWriter)->preview($this, $input, function (Plan $preview) use ($input, $output): void {
+                $this->dryPlan = $preview;
+                parent::execute($input, $output);
+            });
+        }
+
+        return parent::execute($input, $output);
+    }
+
+    private function describePlan(ScaffoldPlan $plan): void
+    {
+        if ($this->dryPlan === null) {
+            return;
+        }
+        foreach ($plan->files() as $file) {
+            $this->dryPlan->artifact($file['alias'], $file['artifact'], $this->laravel->basePath());
+        }
+        $this->dryPlan->collisions((bool) $this->option('force'), (bool) $this->option('skip-existing'));
+    }
+
     public function handle(): int
     {
         if ($this->recipe->parts() !== [] || $this->recipe instanceof Part) {
@@ -96,7 +126,17 @@ final class ScaffoldCommand extends Command
             $values = ['name' => $name];
             $answers = new QuestionAnswers($this->preset, $this->laravel->basePath());
             foreach ($this->recipe->questions() as $question) {
-                $values[$question->name] = $answers->answer($question, $this->option($question->name), $this->interactive(), 'mod:'.$this->recipeName, $name);
+                try {
+                    $values[$question->name] = $answers->answer($question, $this->option($question->name), $this->interactive(), 'mod:'.$this->recipeName, $name);
+                } catch (Throwable $exception) {
+                    if ($this->dryPlan === null || ! $exception instanceof ModException) {
+                        throw $exception;
+                    }
+                    $this->dryPlan->warning($exception->getMessage());
+                }
+            }
+            if ($this->dryPlan !== null && $this->dryPlan->warnings !== []) {
+                return self::SUCCESS;
             }
             foreach ($this->recipe->members() as $alias => $member) {
                 $kind = $this->preset->kind($member->fileType);
@@ -172,7 +212,11 @@ final class ScaffoldCommand extends Command
                     throw GenerationRefused::because("Template [{$selected}] does not exist. Create it before running mod:{$this->recipeName}. Nothing was written.");
                 }
             }
+            $this->describePlan($plan);
             $existing = $plan->existing($this->existingArtifacts());
+            if ($this->dryPlan !== null) {
+                return self::SUCCESS;
+            }
             $count = count($plan->files());
             $this->components->info("mod:{$this->recipeName} will write {$count} files for {$inputName}.");
             foreach ($plan->files() as ['artifact' => $artifact, 'alias' => $alias]) {
@@ -219,6 +263,9 @@ final class ScaffoldCommand extends Command
             return self::SUCCESS;
         } catch (Throwable $exception) {
             if (! $exception instanceof ModException) {
+                throw $exception;
+            }
+            if ($this->dryPlan !== null) {
                 throw $exception;
             }
             foreach (explode("\n", $exception->getMessage()) as $line) {
