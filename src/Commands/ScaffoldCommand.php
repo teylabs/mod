@@ -9,6 +9,8 @@ use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Scaffolds\Placeholders;
+use Tey\Mod\Scaffolds\QuestionAnswers;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Scaffolds\ScaffoldExecution;
 use Tey\Mod\Scaffolds\ScaffoldPlan;
@@ -31,6 +33,14 @@ final class ScaffoldCommand extends Command
         parent::__construct();
         $this->setName('mod:'.$recipeName);
         $this->setDescription('Generate the '.$recipeName.' scaffold');
+        foreach ($recipe->questions() as $question) {
+            $mode = match ($question->type) {
+                'list' => InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
+                'confirm' => InputOption::VALUE_NEGATABLE,
+                default => InputOption::VALUE_REQUIRED,
+            };
+            $this->getDefinition()->addOption(new InputOption($question->name, null, $mode, $question->label ?? $question->name));
+        }
         foreach ($preset->placementOptions() as $dimension => $option) {
             $this->getDefinition()->addOption(new InputOption($option, null, InputOption::VALUE_REQUIRED, 'Place in this '.$dimension));
         }
@@ -73,10 +83,15 @@ final class ScaffoldCommand extends Command
             $inputName = $this->rawNameInput();
             $name = $this->shorthand()[1];
             $context = $this->placementContext();
+            $values = ['name' => $name];
+            $answers = new QuestionAnswers($this->preset, $this->laravel->basePath());
+            foreach ($this->recipe->questions() as $question) {
+                $values[$question->name] = $answers->answer($question, $this->option($question->name), $this->interactive(), 'mod:'.$this->recipeName, $name);
+            }
             foreach ($this->recipe->members() as $alias => $member) {
                 $kind = $this->preset->kind($member->fileType);
                 $command = $kind->command ?? throw GenerationRefused::because("File type [{$member->fileType}] has no command. Enable its command to use mod:{$this->recipeName}.");
-                $arguments = ['name' => $member->name === null ? $name : str_replace('{name}', $name, $member->name)];
+                $arguments = ['name' => $member->name === null ? $name : (new Placeholders($values))->name($member->name)];
                 $placement = $this->inOption($context);
                 if ($placement !== '') {
                     $arguments['--in'] = $placement;
@@ -111,6 +126,9 @@ final class ScaffoldCommand extends Command
                 $context = $memberPlan->primary->context;
             }
 
+            foreach ($plan->files() as ['artifact' => $artifact]) {
+                $scope->values[$artifact->path()] = [...$values, ...$scope->aliases];
+            }
             foreach ($this->recipe->members() as $alias => $member) {
                 if ($member->stub === null) {
                     continue;
