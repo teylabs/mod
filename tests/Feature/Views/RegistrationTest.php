@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use Illuminate\View\FileViewFinder;
 use Pest\TestSuite;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Support\Path;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
 use Tey\Mod\Tests\TestCase;
 use Tey\Mod\Views\ViewDirectories;
@@ -53,7 +54,8 @@ it('registers only groups with views at boot even with discovery disabled and ca
             ->and(array_keys(moduleViewsFinder()->getHints()))->not->toContain('empty')
             ->and(View::file(moduleViewsFinder()->find('inventory::show'))->render())->toContain('<b>Stock</b>');
         expect(app(Kernel::class)->call('view:cache'))->toBe(0)
-            ->and(is_file(Blade::getCompiledPath($root->path('app/Modules/AgentTools/resources/views/show.blade.php'))))->toBeTrue();
+            // view:cache compiles Finder's real path, whose separators differ on Windows.
+            ->and(is_file(Blade::getCompiledPath((string) realpath($root->path('app/Modules/AgentTools/resources/views/show.blade.php')))))->toBeTrue();
         $inventory = json_decode(app(Kernel::class)->call('mod:list', ['--json' => true]) === 0 ? app(Kernel::class)->output() : '{}', true, flags: JSON_THROW_ON_ERROR);
         expect($inventory['views'][0])->toBe(['group' => 'AgentTools', 'namespace' => 'agent-tools', 'path' => 'app/Modules/AgentTools/resources/views', 'components' => [['path' => 'app/Modules/AgentTools/resources/views/components/stock-badge.blade.php', 'tag' => 'x-agent-tools::stock-badge']]]);
     });
@@ -92,7 +94,7 @@ it('registers type-first kebab group folders without exposing other app views', 
         });
         expect(View::file(moduleViewsFinder()->find('inventory::show'))->render())->toContain('<b>Stock</b>')
             ->and(View::exists('inventory::private'))->toBeFalse()
-            ->and(moduleViewsFinder()->getHints()['agent-tools'])->toBe([$root->path('resources/views/agent-tools')]);
+            ->and(moduleViewsFinder()->getHints()['agent-tools'])->toBe([Path::resolve($root->path, 'resources/views/agent-tools')]);
         $entries = (new ViewDirectories(app(CompiledLayout::class), $root->path))->entries();
         expect(array_column($entries, 'group'))->toBe([null, 'AgentTools', 'Inventory']);
     });
