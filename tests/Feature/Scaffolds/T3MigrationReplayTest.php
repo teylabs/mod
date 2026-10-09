@@ -1,15 +1,25 @@
 <?php
 
+use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Composer;
 use Tey\Mod\Facades\Mod;
+use Tey\Mod\Generation\ModMigrationCreator;
 use Tey\Mod\Scaffolds\Scaffold;
+use Tey\Mod\Tests\Feature\Generation\Support\PolicyMigrationCommand;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
+use Tey\Mod\Tests\Fixtures\Layouts;
 
-it('matches an existing migration by its name across timestamps', function (string $mode, bool $direct) {
-    Workspace::run(null, function (Workspace $w) use ($mode, $direct) {
+it('matches an existing migration by its name across timestamps', function (string $mode, bool $direct, bool $native) {
+    Workspace::run(null, function (Workspace $w) use ($mode, $direct, $native) {
         config()->set('mod.layout', 'modules');
         Mod::scaffold('crud', fn (Scaffold $s) => $direct
             ? $s->makes('migration', name: 'create_widgets_table')
             : $s->makes('model', options: ['--migration']));
+        if ($native) {
+            $command = new PolicyMigrationCommand(app(ModMigrationCreator::class), app(Composer::class));
+            $layout = Layouts::modules();
+            app(Kernel::class)->registerCommand($command->forKind($layout, $layout->kind('migration')));
+        }
         $path = 'app/Modules/Inventory/Database/Migrations/2020_01_02_030405_create_widgets_table.php';
         $original = '<?php // existing migration';
         $w->write($path, $original);
@@ -37,7 +47,7 @@ it('matches an existing migration by its name across timestamps', function (stri
             }
         }
     });
-})->with(['refuse', 'skip', 'force'])->with([false, true]);
+})->with(['refuse', 'skip', 'force'])->with([false, true])->with([false, true]);
 
 it('refuses a plain migration with the same name at an earlier timestamp', function () {
     Workspace::run(null, function (Workspace $w) {
@@ -46,6 +56,6 @@ it('refuses a plain migration with the same name at an earlier timestamp', funct
         $w->write($path, '<?php // existing');
         $before = $w->files();
         $w->artisan('mod:migration', ['name' => 'Inventory:create_widgets_table'])->assertSuccessful()->expectsOutputToContain($path);
-        expect($w->files())->toBe($before);
+        expect($w->files())->toBe($before)->and($w->read($path))->toBe('<?php // existing');
     });
 });
