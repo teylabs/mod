@@ -2,7 +2,7 @@
 
 namespace Tey\Mod\Scaffolds;
 
-/** One file type in a scaffold recipe. */
+/** @internal one file type in a scaffold recipe */
 final readonly class Member
 {
     /** @param array<array-key, mixed> $options */

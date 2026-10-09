@@ -19,7 +19,7 @@ it('S12 disables invalid scaffolds without breaking other commands', function (s
         $all = Artisan::all();
         expect($all)->toHaveKey('mod:model');
         if ($problem !== 'name') {
-            expect($all)->not->toHaveKey('mod:crud');
+            expect($all['mod:crud']->isHidden())->toBeTrue();
         }
         expect(app(ScaffoldRegistry::class)->problems())->not->toBeEmpty();
         $w->artisan('mod:model', ['name' => 'Knowledge:Document'])->assertSuccessful();

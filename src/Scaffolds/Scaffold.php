@@ -3,7 +3,6 @@
 namespace Tey\Mod\Scaffolds;
 
 use Closure;
-use Tey\Mod\Exceptions\ModException;
 
 /** A recipe of file types, placed by the active layout. */
 final class Scaffold
@@ -16,6 +15,9 @@ final class Scaffold
 
     /** @var list<string> */
     private array $duplicates = [];
+
+    /** @var list<string> */
+    private array $errors = [];
 
     /** @param (Closure(string): ?self)|null $resolve */
     public function __construct(private readonly ?Closure $resolve = null) {}
@@ -38,13 +40,16 @@ final class Scaffold
     {
         $source = ($this->resolve) !== null ? ($this->resolve)($name) : null;
         if ($source === null) {
-            throw new ModException("Scaffold [{$name}] is not defined. Define it before calling include('{$name}').");
+            $this->errors[] = "Scaffold [{$name}] is not defined. Define it before calling include('{$name}').";
+
+            return $this;
         }
         foreach ($source->members as $alias => $member) {
             $this->members[$alias] = $member;
             $this->inherited[$alias] = true;
         }
         array_push($this->duplicates, ...$source->duplicates);
+        array_push($this->errors, ...$source->errors);
 
         return $this;
     }
@@ -53,6 +58,16 @@ final class Scaffold
     public function members(): array
     {
         return $this->members;
+    }
+
+    /**
+     * @internal
+     *
+     * @return list<string>
+     */
+    public function errors(): array
+    {
+        return $this->errors;
     }
 
     /** @return list<string> */
