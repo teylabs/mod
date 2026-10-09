@@ -29,21 +29,45 @@ final readonly class CommandResult
 
     public function expectsOutputToContain(string $text): self
     {
-        expect($this->normalisedOutput())->toContain($text);
+        expect((string) preg_replace('/\s+/', ' ', $this->normalisedOutput()))->toContain($text);
 
         return $this;
     }
 
     public function doesntExpectOutputToContain(string $text): self
     {
-        expect($this->normalisedOutput())->not->toContain($text);
+        expect((string) preg_replace('/\s+/', ' ', $this->normalisedOutput()))->not->toContain($text);
 
         return $this;
     }
 
-    /** Console components wrap long lines; compare on single spaces. */
-    private function normalisedOutput(): string
+    /** Preserve console spacing while making workspace paths portable. */
+    public function normalisedOutput(): string
     {
-        return (string) preg_replace('/\s+/', ' ', $this->output);
+        $roots = $this->basePath === null ? [] : [$this->basePath];
+        if ($this->basePath !== null && ($real = realpath($this->basePath)) !== false) {
+            $roots[] = $real;
+        }
+
+        return (string) preg_replace_callback('/\[([^\]\r\n]+)\]/', function (array $match) use ($roots): string {
+            $path = str_replace('\\', '/', $match[1]);
+            foreach ($roots as $root) {
+                $prefix = rtrim(str_replace('\\', '/', $root), '/').'/';
+                $matches = PHP_OS_FAMILY === 'Windows'
+                    ? strncasecmp($path, $prefix, strlen($prefix)) === 0
+                    : str_starts_with($path, $prefix);
+                if ($matches) {
+                    return '['.substr($path, strlen($prefix)).']';
+                }
+            }
+
+            // Brackets also contain namespaces and class references; keep those intact.
+            if (! str_contains($match[1], '/') && ! str_contains($match[1], ':')
+                && ! str_starts_with($path, '//') && pathinfo($path, PATHINFO_EXTENSION) === '') {
+                return $match[0];
+            }
+
+            return '['.$path.']';
+        }, str_replace("\r\n", "\n", $this->output));
     }
 }

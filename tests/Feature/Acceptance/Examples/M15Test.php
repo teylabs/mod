@@ -2,6 +2,7 @@
 
 use Pest\TestSuite;
 use Tey\Mod\Facades\Mod;
+use Tey\Mod\Tests\Feature\Generation\Support\CommandResult;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\TestCase;
 
@@ -19,7 +20,7 @@ it('M15 refuses a nested module without a terminal and explains both fixes', fun
         m15Layout($workspace);
         $result = $workspace->artisan('mod:tool', ['name' => 'Knowledge/Drive:Search']);
         $result->assertFailed();
-        expect(str_replace("\r\n", "\n", $result->output))->toBe("\n   ERROR  Modules don't nest. Use a module of its own (Drive:Search), or a subfolder in the name (Knowledge:Drive/Search).  \n\n")
+        expect($result->normalisedOutput())->toBe("\n   ERROR  Modules don't nest. Use a module of its own (Drive:Search), or a subfolder in the name (Knowledge:Drive/Search).  \n\n")
             ->and($workspace->files())->toBe(['stubs/mod.tool.stub']);
     });
 });
@@ -31,11 +32,21 @@ it('M15 asks which flat form was intended and continues', function () {
         if (! $case instanceof TestCase) {
             throw new RuntimeException('M15 needs Testbench.');
         }
+        $createdOutput = '';
         $case->artisan('mod:tool', ['name' => 'Knowledge/Drive:Search'])
             ->expectsChoice("Modules don't nest. Which did you mean?", 'Knowledge:Drive/Search', ['Drive:Search', 'Knowledge:Drive/Search'])
-            ->expectsOutputToContain('Tool [app/Modules/Knowledge/Tools/Drive/Search.php] created successfully.')
+            ->expectsOutput(Mockery::on(function (string $output) use (&$createdOutput): bool {
+                if (! str_contains($output, 'created successfully.')) {
+                    return false;
+                }
+                $createdOutput = $output;
+
+                return true;
+            }))
             ->assertSuccessful();
-        expect($workspace->files())->toBe(['app/Modules/Knowledge/Tools/Drive/Search.php', 'stubs/mod.tool.stub'])
+        expect((new CommandResult(0, $createdOutput, $workspace->root->path))->normalisedOutput())
+            ->toContain('Tool [app/Modules/Knowledge/Tools/Drive/Search.php] created successfully.')
+            ->and($workspace->files())->toBe(['app/Modules/Knowledge/Tools/Drive/Search.php', 'stubs/mod.tool.stub'])
             ->and(str_replace("\r\n", "\n", $workspace->read('app/Modules/Knowledge/Tools/Drive/Search.php')))->toBe("<?php\n\nnamespace App\\Modules\\Knowledge\\Tools\\Drive;\n\nclass Search\n{\n}\n");
     });
 });

@@ -13,7 +13,7 @@ it('E13 follows the type-first wildcard with an optional feature', function () {
         foreach (['Agents:SearchDocuments' => ['Agents/', 'SearchDocuments'], 'SearchEverything' => ['', 'SearchEverything']] as $name => [$folder, $class]) {
             $result = $workspace->artisan('mod:tool', ['name' => $name]);
             $result->assertSuccessful();
-            expect(str_replace("\r\n", "\n", $result->output))->toBe("\n   INFO  Tool [app/Tools/{$folder}{$class}.php] created successfully.  \n\n")
+            expect($result->normalisedOutput())->toBe("\n   INFO  Tool [app/Tools/{$folder}{$class}.php] created successfully.  \n\n")
                 ->and(str_replace("\r\n", "\n", $workspace->read("app/Tools/{$folder}{$class}.php")))->toBe("<?php\n\nnamespace App\\Tools".($folder === '' ? '' : '\\Agents').";\n\nclass {$class}\n{\n}\n");
         }
         expect($workspace->files())->toBe(['app/Tools/Agents/SearchDocuments.php', 'app/Tools/SearchEverything.php', 'stubs/mod.tool.stub']);

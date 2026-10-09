@@ -18,7 +18,7 @@ it('E10 places workflow actions in slash and dot nested domains', function (stri
         $result = $workspace->artisan('mod:workflow', ['name' => $prefix.':EscalateConversation']);
         $loader->unregister();
         $result->assertSuccessful();
-        expect(str_replace("\r\n", "\n", $result->output))->toBe("\n   INFO  Workflow [src/Domain/Agents/Chat/Workflows/EscalateConversation.php] created successfully.  \n\n")
+        expect($result->normalisedOutput())->toBe("\n   INFO  Workflow [src/Domain/Agents/Chat/Workflows/EscalateConversation.php] created successfully.  \n\n")
             ->and($workspace->files())->toBe(['src/Domain/Agents/Chat/Workflows/EscalateConversation.php', 'stubs/mod.workflow.stub'])
             ->and(str_replace("\r\n", "\n", $workspace->read('src/Domain/Agents/Chat/Workflows/EscalateConversation.php')))->toBe("<?php\n\nnamespace Domain\\Agents\\Chat\\Workflows;\n\nclass EscalateConversation\n{\n    public function handle(): void\n    {\n        //\n    }\n}\n");
     });

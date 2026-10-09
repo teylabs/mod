@@ -35,7 +35,7 @@ it('autoloads E17 moved areas and then generates the model', function (bool $int
                 $options = $namespace === null ? [] : ['--namespace' => $namespace];
                 $result = $workspace->artisan('mod:autoload', $options)->assertSuccessful();
                 $notice = $namespace === null ? "\n   INFO  Using namespace [Areas\\] for [src/Areas]; pass --namespace to choose another.  \n" : '';
-                expect(str_replace("\r\n", "\n", $result->output))->toBe($notice."\n   INFO  composer.json is missing 1 autoload entry for the areas layout.  \n\n  \"Areas\\\\\": \"src/Areas/\" ...................................... added  \n  composer dump-autoload ........................................ DONE  \n\n");
+                expect($result->normalisedOutput())->toBe($notice."\n   INFO  composer.json is missing 1 autoload entry for the areas layout.  \n\n  \"Areas\\\\\": \"src/Areas/\" ...................................... added  \n  composer dump-autoload ........................................ DONE  \n\n");
             }
 
             expect(str_replace("\r\n", "\n", $workspace->read('composer.json')))->toBe("{\n    \"name\": \"tey-mod/owned-app\",\n    \"autoload\": {\n        \"psr-4\": {\n            \"App\\\\\": \"app/\",\n            \"Areas\\\\\": \"src/Areas/\"\n        }\n    },\n    \"autoload-dev\": {\n        \"psr-4\": {\n            \"Tests\\\\\": \"tests/\"\n        }\n    }\n}\n");
@@ -60,7 +60,7 @@ it('E17 extends modules with the area token in options and notices', function ()
         $workspace->artisan('mod:model', ['name' => 'Document', '--area' => 'Knowledge'])->assertSuccessful();
         $result = $workspace->artisan('mod:model', ['name' => 'Billing:Invoice']);
         $result->assertSuccessful();
-        expect(str_replace("\r\n", "\n", $result->output))->toBe("\n   INFO  Created new area Billing (existing: Knowledge).  \n\n   INFO  Model [app/Modules/Billing/Models/Invoice.php] created successfully.  \n\n")
+        expect($result->normalisedOutput())->toBe("\n   INFO  Created new area Billing (existing: Knowledge).  \n\n   INFO  Model [app/Modules/Billing/Models/Invoice.php] created successfully.  \n\n")
             ->and($workspace->files())->toBe(['app/Modules/Billing/Models/Invoice.php', 'app/Modules/Knowledge/Models/Document.php'])
             ->and(str_replace("\r\n", "\n", $workspace->read('app/Modules/Knowledge/Models/Document.php')))->toContain('namespace App\\Modules\\Knowledge\\Models;');
     });
@@ -108,7 +108,7 @@ it('E17 warns about an unautoloaded path or mount and still generates', function
         mkdir($workspace->root->path('src/Areas/Knowledge'), 0700, true);
         $result = $workspace->artisan('mod:tool', ['name' => 'Knowledge:Search']);
         $result->assertSuccessful();
-        expect(str_replace("\r\n", "\n", $result->output))->toContain("src/Areas isn't autoloaded yet. Run php artisan mod:autoload.")
+        expect($result->normalisedOutput())->toContain("src/Areas isn't autoloaded yet. Run php artisan mod:autoload.")
             ->and(str_replace("\r\n", "\n", $workspace->read('src/Areas/Knowledge/Tools/Search.php')))->toBe("<?php\n\nnamespace Areas\\Knowledge\\Tools;\n\nclass Search\n{\n}\n");
     });
 })->with([false, true]);
