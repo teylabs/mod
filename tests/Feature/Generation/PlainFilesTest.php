@@ -54,6 +54,16 @@ it('uses the app page template before the minimal default', function () {
     });
 });
 
+it('mirrors the detected Pages directory casing in the page placement rule', function () {
+    Workspace::run(null, function (Workspace $w) {
+        Frontend::setup($w);
+        $w->write('resources/js/Pages/.gitkeep', '');
+        $plan = json_decode($w->artisan('mod:page', ['name' => 'Inventory:Widget/Index', '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
+        expect($plan['files'][0]['path'])->toBe('app/Modules/Inventory/resources/js/Pages/Widget/Index.vue')
+            ->and($plan['files'][0]['identity']['name'])->toBe('Inventory::Widget/Index');
+    });
+});
+
 it('generates valid minimal pages without TypeScript', function (string $stack, string $extension) {
     Workspace::run(null, function (Workspace $w) use ($stack, $extension) {
         Frontend::setup($w, $stack, false);
