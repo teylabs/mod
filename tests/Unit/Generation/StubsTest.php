@@ -323,7 +323,7 @@ it('selects published registered layout starter and native stubs with provenance
         expect($select($layout)->source)->toBe('registered')->and($select($layout)->file)->toBe('/registered.stub');
         mkdir($root->path('stubs'));
         file_put_contents($root->path('stubs/mod.record.stub'), '<?php');
-        expect($select($layout)->source)->toBe('published stub')->and($select($layout)->file)->toBe($root->path('stubs/mod.record.stub'));
+        expect($select($layout)->source)->toBe('published stub')->and(str_replace('\\', '/', (string) $select($layout)->file))->toBe(str_replace('\\', '/', $root->path('stubs/mod.record.stub')));
         expect($registry->select('model', null, $root->path, $detector, $config, native: true)->source)->toBe('Laravel')
             ->and($registry->select('query', null, $root->path, $detector, $config)->source)->toBe('empty class');
     });
