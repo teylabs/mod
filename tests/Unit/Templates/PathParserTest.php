@@ -5,7 +5,7 @@ use Tey\Mod\Templates\InvalidTemplate;
 use Tey\Mod\Templates\PathParser;
 
 it('parses template paths literally through the active layout', function (string $layout, string $path, string $root, string $in, array $slots) {
-    $parsed = (new PathParser)->parse($path, (new LayoutRegistry)->layout($layout));
+    $parsed = (new PathParser)->parse($path, (new LayoutRegistry)->layout($layout)->mounts('infrastructure', 'Infrastructure\\', 'src/Infrastructure'));
     expect($parsed->root)->toBe($root)->and($parsed->in)->toBe($in)->and($parsed->slots)->toBe($slots);
 })->with([
     ['modules', '@module/Tools/tool.stub', 'app', 'Modules/{module}/Tools', []],
@@ -15,7 +15,7 @@ it('parses template paths literally through the active layout', function (string
     ['modules', '@slice/Tools/tool.stub', 'app', 'Modules/{module}/Tools', []],
     ['features', '@feature/Tools/tool.stub', 'app', 'Features/{feature}/Tools', []],
     ['ddd', '@domain/Tools/tool.stub', 'domain', '{domain+}/Tools', []],
-    ['ddd', 'Modules/@domain/Presenters/presenter.stub', 'app', 'Modules/{domain+}/Presenters', []],
+    ['ddd', 'Modules/@domain/Presenters/presenter.stub', 'application', '{domain+}/Presenters', []],
     ['slices', '@feature/Tools/tool.stub', 'app', '{feature}/Tools', []],
     ['slices', '@slice/presenter.stub', 'app', '{feature}/{slice}', []],
     ['type-first', '@feature/Tools/tool.stub', 'app', 'Tools/{feature}', []],
