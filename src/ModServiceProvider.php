@@ -14,6 +14,7 @@ use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Commands\AutoloadCommand;
 use Tey\Mod\Commands\BasesCommand;
+use Tey\Mod\Commands\CreateTemplateCommand;
 use Tey\Mod\Commands\DisabledScaffoldCommand;
 use Tey\Mod\Commands\ListCommand;
 use Tey\Mod\Commands\OtherLayoutCommand;
@@ -298,7 +299,7 @@ class ModServiceProvider extends ServiceProvider
             return;
         }
 
-        $artisan->resolveCommands([ListCommand::class, BasesCommand::class, AutoloadCommand::class]);
+        $artisan->resolveCommands([ListCommand::class, BasesCommand::class, AutoloadCommand::class, CreateTemplateCommand::class]);
 
         foreach ($this->app->make(GeneratorRegistry::class)->commands($preset, $this->app) as $command) {
             $artisan->resolveCommands([$command]);
