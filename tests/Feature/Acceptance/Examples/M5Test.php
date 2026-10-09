@@ -12,7 +12,7 @@ it('M5 skips braces and group brackets and exposes the skip list', function (str
         $workspace->write($path, TemplateScenario::CLASS_STUB);
         $result = $workspace->artisan('mod:tool', ['name' => 'Agents:SearchDocuments'])->assertSuccessful();
         $fix = "template folders use @module; {$group} is the Layout API's form.";
-        expect($result->normalisedOutput())->toBe("\n   WARN  Skipped template [{$path}]: {$fix}  \n\n   INFO  Tool [app/Modules/Agents/Tools/SearchDocuments.php] created successfully.  \n\n")
+        expect($result->normalisedOutput())->toBe("\n   WARN  Skipped template [{$path}]: {$fix}  \n\n\n   INFO  Tool [app/Modules/Agents/Tools/SearchDocuments.php] created successfully.  \n\n")
             ->and(Artisan::all())->not->toHaveKey('mod:broken')
             ->and(app(TemplateCatalog::class)->skipped())->toBe([$path => $fix]);
     });

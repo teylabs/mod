@@ -122,7 +122,7 @@ final class PathParser
                     if ($candidate === null) {
                         continue;
                     }
-                    $before = substr($candidate, 0, strpos($candidate, '{'));
+                    $before = substr($candidate, 0, strcspn($candidate, '{'));
                     $relativePrefix = Path::relative('app', rtrim($before, '/')) ?? rtrim($before, '/');
                     if ($literalPrefix === [] || implode('/', $literalPrefix) === $relativePrefix) {
                         $target = $candidate;

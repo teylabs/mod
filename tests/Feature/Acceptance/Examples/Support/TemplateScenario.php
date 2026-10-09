@@ -2,6 +2,7 @@
 
 namespace Tey\Mod\Tests\Feature\Acceptance\Examples\Support;
 
+use Illuminate\Contracts\Console\Kernel;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 
 final class TemplateScenario
@@ -11,6 +12,7 @@ final class TemplateScenario
     public static function tool(Workspace $workspace, string $layout = 'modules'): void
     {
         putenv('COLUMNS=72');
+        app(Kernel::class)->rerouteSymfonyCommandEvents();
         config()->set('mod.layout', $layout);
         $workspace->write('stubs/mod/'.($layout === 'laravel' ? '' : '@module/').'Tools/tool.stub', self::CLASS_STUB);
         foreach (['Agents', 'Knowledge'] as $group) {

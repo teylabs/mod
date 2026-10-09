@@ -10,6 +10,7 @@ use Tey\Mod\Preset\PresetIssueCode;
 use Tey\Mod\Preset\PresetValidator;
 use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Support\Path;
+use Tey\Mod\Templates\TemplateCatalog;
 
 /**
  * Turns a layout's chain into the core preset: infers the placement
@@ -27,7 +28,7 @@ final class LayoutCompiler
     /** @var list<PresetIssue> */
     private array $issues = [];
 
-    public function __construct(private readonly Layout $layout) {}
+    public function __construct(private readonly Layout $layout, private readonly ?TemplateCatalog $templates = null) {}
 
     /**
      * @throws InvalidLayout
@@ -40,6 +41,8 @@ final class LayoutCompiler
             throw new InvalidLayout($this->layout->name, [], "Layout [{$this->layout->name}] is invalid:\n".implode("\n", $chain['errors']));
         }
         [$types, $roots, $rename] = GroupPath::resolve($this->layout->name, $chain['path'], $chain['kinds'], $chain['roots'], $chain['nesting']);
+
+        $types = $this->templates?->merge($this->layout->name, $chain['path'], $types, $roots) ?? $types;
 
         $kinds = [];
         $placeholders = [];
@@ -104,7 +107,7 @@ final class LayoutCompiler
             throw new InvalidLayout($this->layout->name, $this->issues);
         }
 
-        return CompiledLayout::fromArray($definition);
+        return CompiledLayout::fromArray($definition)->withTemplates($this->templates?->templates() ?? []);
     }
 
     /**
@@ -224,7 +227,11 @@ final class LayoutCompiler
      */
     private function checkPlaceholderTypos(array $placeholders): void
     {
+        $slots = array_merge([], ...array_column($this->templates?->templates() ?? [], 'slots'));
         foreach ($placeholders as $name => $kinds) {
+            if (in_array($name, $slots, true)) {
+                continue;
+            }
             if (count($kinds) !== 1) {
                 continue;
             }

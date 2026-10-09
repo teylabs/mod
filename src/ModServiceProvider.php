@@ -3,6 +3,9 @@
 namespace Tey\Mod;
 
 use Illuminate\Console\Application as Artisan;
+use Illuminate\Console\Events\CommandStarting;
+use Illuminate\Console\OutputStyle;
+use Illuminate\Console\View\Components\Factory;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 use Tey\Mod\Commands\AutoloadCommand;
@@ -28,6 +31,7 @@ use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Resolution\ModelConventions;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
+use Tey\Mod\Templates\TemplateCatalog;
 
 class ModServiceProvider extends ServiceProvider
 {
@@ -36,6 +40,7 @@ class ModServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../config/mod.php', 'mod');
 
         $this->app->singleton(ScaffoldRegistry::class);
+        $this->app->singleton(TemplateCatalog::class, fn (Application $app): TemplateCatalog => new TemplateCatalog($app->basePath()));
         $this->app->singleton(LayoutRegistry::class);
         $this->app->singleton(StubRegistry::class, fn (): StubRegistry => Starters::register(new StubRegistry));
         $this->app->bind(BaseWriter::class, fn (Application $app): BaseWriter => new BaseWriter(
@@ -94,6 +99,17 @@ class ModServiceProvider extends ServiceProvider
             return;
         }
 
+        $this->app->make('events')->listen(CommandStarting::class, function (CommandStarting $event): void {
+            $catalog = $this->app->make(TemplateCatalog::class);
+            $components = new Factory(new OutputStyle($event->input, $event->output));
+            foreach ($catalog->skipped() as $path => $fix) {
+                $components->warn("Skipped template [{$path}]: {$fix}");
+            }
+            foreach ($catalog->notices() as $notice) {
+                $components->info($notice);
+            }
+        });
+
         $this->publishes([__DIR__.'/../config/mod.php' => $this->app->configPath('mod.php')], 'mod-config');
 
         // mod:* commands, decided once when Artisan starts. Artisan's bootstrappers are
@@ -143,7 +159,7 @@ class ModServiceProvider extends ServiceProvider
             $registry->layout($name)->reserveBaseFolders($app->make(StubRegistry::class), self::basesPath($app));
         }
 
-        return $registry->compile($name);
+        return $registry->compile($name, $app->make(TemplateCatalog::class));
     }
 
     /**

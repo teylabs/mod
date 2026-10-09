@@ -5,6 +5,7 @@ namespace Tey\Mod\Layout;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Layout\BuiltIn\BuiltInLayouts;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
+use Tey\Mod\Templates\TemplateCatalog;
 
 /**
  * The application's layouts by name: the built-in ones, extended or not,
@@ -83,7 +84,7 @@ final class LayoutRegistry
      *
      * @throws InvalidLayout
      */
-    public function compile(string $name): CompiledLayout
+    public function compile(string $name, ?TemplateCatalog $templates = null): CompiledLayout
     {
         if (! $this->has($name)) {
             throw InvalidLayout::notDefined($name, $this->builtIn->names());
@@ -92,6 +93,6 @@ final class LayoutRegistry
         $layout = $this->layout($name);
         $layout->seal();
 
-        return $layout->compile();
+        return $layout->compile($templates);
     }
 }

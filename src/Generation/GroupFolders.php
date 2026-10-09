@@ -68,6 +68,12 @@ final readonly class GroupFolders
                 continue;
             }
 
+            if (in_array($dimension, $layout->templates()[$artifact->kind->id]['slots'] ?? [], true)) {
+                $path = Path::join($path, $value);
+
+                continue;
+            }
+
             $parts = explode('/', $value);
 
             foreach ($parts as $index => $part) {
