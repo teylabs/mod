@@ -30,6 +30,9 @@ final class ScaffoldRegistry
     /** @var array<string, string> */
     private array $sources = [];
 
+    /** @var array<string, Scaffold> The recipes accepted during command registration. */
+    private array $resolved = [];
+
     /** @param Closure(Scaffold): mixed $recipe
      * @param  ?string  $source  internal override for package registration tooling
      */
@@ -145,7 +148,13 @@ final class ScaffoldRegistry
             }
         }
 
-        return $resolved;
+        return $this->resolved = $resolved;
+    }
+
+    /** @return array<string, Scaffold> Recipes accepted with the actual command registry. */
+    public function resolved(): array
+    {
+        return $this->resolved;
     }
 
     /** @return array<string, string> names and provenance for mod:list */

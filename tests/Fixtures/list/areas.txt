@@ -1,0 +1,38 @@
+  Layout ..................................... areas (extends modules)  
+  Path ............................................ app/Modules/{area}  
+  Areas ....................................................... (none)  
+Generator          Folder                                 From        
+mod:action         app/Modules/{area}/Actions             starter     
+mod:cast           app/Modules/{area}/Casts               Laravel     
+mod:channel        app/Modules/{area}/Channels            Laravel     
+mod:class          app/Modules/{area}                     Laravel     
+mod:command        app/Modules/{area}/Console             Laravel     
+mod:controller     app/Modules/{area}/Controllers         Laravel     
+mod:dto            app/Modules/{area}/Data                starter     
+mod:enum           app/Modules/{area}/Enums               Laravel     
+mod:event          app/Modules/{area}/Events              Laravel     
+mod:exception      app/Modules/{area}/Exceptions          Laravel     
+mod:factory        app/Modules/{area}/Database/Factories  Laravel     
+mod:interface      app/Modules/{area}                     Laravel     
+mod:job            app/Modules/{area}/Jobs                Laravel     
+mod:job-middleware app/Modules/{area}/Jobs/Middleware     Laravel     
+mod:listener       app/Modules/{area}/Listeners           Laravel     
+mod:mail           app/Modules/{area}/Mail                Laravel     
+mod:middleware     app/Modules/{area}/Middleware          Laravel     
+mod:migration      app/Modules/{area}/Database/Migrations Laravel     
+mod:model          app/Modules/{area}/Models              Laravel     
+mod:notification   app/Modules/{area}/Notifications       Laravel     
+mod:observer       app/Modules/{area}/Observers           Laravel     
+mod:policy         app/Modules/{area}/Policies            Laravel     
+mod:provider       app/Modules/{area}/Providers           Laravel     
+mod:query          app/Modules/{area}/Queries             empty class 
+mod:request        app/Modules/{area}/Requests            Laravel     
+mod:resource       app/Modules/{area}/Resources           Laravel     
+mod:rule           app/Modules/{area}/Rules               Laravel     
+mod:scope          app/Modules/{area}/Scopes              Laravel     
+mod:seeder         app/Modules/{area}/Database/Seeders    Laravel     
+mod:test           tests/Feature/Modules/{area}           Laravel     
+mod:trait          app/Modules/{area}                     Laravel     
+mod:value-object   app/Modules/{area}/ValueObjects        starter     
+mod:view-model     app/Modules/{area}/ViewModels          starter     
+  Discovery: off

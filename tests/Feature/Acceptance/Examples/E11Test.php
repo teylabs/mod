@@ -29,3 +29,15 @@ it('E11 resolves a package group anchor in modules and ddd', function (string $l
         }
     });
 })->with([['modules', 'app/Modules', 'App\\Modules'], ['ddd', 'src/Domain', 'Domain']]);
+
+it('E11 lists a neutral package template with its source and resolved folder', function (string $layout, string $folder) {
+    Workspace::run(null, function (Workspace $workspace) use ($layout, $folder) {
+        config()->set('mod.layout', $layout);
+        $workspace->write('vendor/acme/agent-kit/stubs/mod/@group/Prompts/prompt.stub', TemplateScenario::CLASS_STUB);
+        Mod::stubs()->folder($workspace->root->path('vendor/acme/agent-kit/stubs/mod'));
+        $data = json_decode($workspace->artisan('mod:list', ['--json' => true, '--type' => 'prompt'])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
+        expect($data['types'][0]['source'])->toBe('template (acme/agent-kit)')
+            ->and($data['types'][0]['folder'])->toBe($folder)
+            ->and($data['types'][0]['stub'])->toBe('vendor/acme/agent-kit/stubs/mod/@group/Prompts/prompt.stub');
+    });
+})->with([['modules', 'app/Modules/{module}/Prompts'], ['ddd', 'src/Domain/{domain+}/Prompts']]);

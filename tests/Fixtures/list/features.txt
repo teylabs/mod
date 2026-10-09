@@ -1,0 +1,35 @@
+  Layout .................................................... features  
+  Path ........................................ app/Features/{feature}  
+  Features .................................................... (none)  
+Generator          Folder                                     From        
+mod:cast           app/Features/{feature}/Casts               Laravel     
+mod:channel        app/Features/{feature}/Broadcasting        Laravel     
+mod:class          app/Features/{feature}                     Laravel     
+mod:command        app/Features/{feature}/Console/Commands    Laravel     
+mod:controller     app/Features/{feature}/Http/Controllers    Laravel     
+mod:enum           app/Features/{feature}/Enums               Laravel     
+mod:event          app/Features/{feature}/Events              Laravel     
+mod:exception      app/Features/{feature}/Exceptions          Laravel     
+mod:factory        app/Features/{feature}/Database/Factories  Laravel     
+mod:interface      app/Features/{feature}                     Laravel     
+mod:job            app/Features/{feature}/Jobs                Laravel     
+mod:job-middleware app/Features/{feature}/Jobs/Middleware     Laravel     
+mod:listener       app/Features/{feature}/Listeners           Laravel     
+mod:mail           app/Features/{feature}/Mail                Laravel     
+mod:middleware     app/Features/{feature}/Http/Middleware     Laravel     
+mod:migration      app/Features/{feature}/Database/Migrations Laravel     
+mod:model          app/Features/{feature}/Models              Laravel     
+mod:notification   app/Features/{feature}/Notifications       Laravel     
+mod:observer       app/Features/{feature}/Observers           Laravel     
+mod:policy         app/Features/{feature}/Policies            Laravel     
+mod:provider       app/Features/{feature}/Providers           Laravel     
+mod:query          app/Features/{feature}/Queries             empty class 
+mod:request        app/Features/{feature}/Http/Requests       Laravel     
+mod:resource       app/Features/{feature}/Http/Resources      Laravel     
+mod:rule           app/Features/{feature}/Rules               Laravel     
+mod:scope          app/Features/{feature}/Scopes              Laravel     
+mod:seeder         app/Features/{feature}/Database/Seeders    Laravel     
+mod:test           tests/Feature/{feature}                    Laravel     
+mod:trait          app/Features/{feature}                     Laravel     
+mod:validator      app/Features/{feature}/Validation          empty class 
+  Discovery: off

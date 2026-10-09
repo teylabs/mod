@@ -13,10 +13,11 @@ final readonly class StubChoice
         public ?string $base = null,
         public ?GeneratedBase $generatedBase = null,
         public ?string $message = null,
+        public ?string $package = null,
     ) {}
 
     public function withBase(string $base): self
     {
-        return new self($this->file, $base, $this->generatedBase, $this->message);
+        return new self($this->file, $base, $this->generatedBase, $this->message, $this->package);
     }
 }

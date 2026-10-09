@@ -155,7 +155,7 @@ final class Stub
                 ? "Using {$variant['package']} (installed)."
                 : 'Using '.ltrim((string) $variant['class'], '\\').'.';
 
-            return new StubChoice($variant['stub'] ?? $this->path, $this->filled($variant['base']), message: $message);
+            return new StubChoice($variant['stub'] ?? $this->path, $this->filled($variant['base']), message: $message, package: $variant['package']);
         }
 
         return new StubChoice($this->path, generatedBase: $this->generatedBase);

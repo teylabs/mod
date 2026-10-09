@@ -1,0 +1,8 @@
+{
+  "root": ["layout", "extends", "path", "token", "groups", "types", "templates", "scaffolds", "discovery"],
+  "type": ["id", "command", "aliases", "folder", "source", "stub", "base", "discovery", "classes", "relations"],
+  "templates": ["problems", "notices"],
+  "scaffolds": ["items", "problems"],
+  "scaffold": ["name", "command", "source", "members"],
+  "discovery": ["enabled", "source", "counts", "entries", "rejections", "stale_cache"]
+}

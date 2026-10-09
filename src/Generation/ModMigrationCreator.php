@@ -68,6 +68,26 @@ class ModMigrationCreator extends MigrationCreator
         $this->pinnedPrefix = $prefix;
     }
 
+    /** @internal Read the native migration branch without creating a file. */
+    public function stubSelection(?string $table = null, bool $create = false): StubSelection
+    {
+        $name = $table === null ? 'migration' : ($create ? 'migration.create' : 'migration.update');
+        $published = $this->customStubPath.'/'.$name.'.stub';
+        $custom = $this->files->exists($published);
+
+        return new StubSelection($custom ? $published : $this->stubPath().'/'.$name.'.stub', $custom ? 'published stub' : 'Laravel');
+    }
+
+    protected function getStub($table, $create)
+    {
+        $file = $this->stubSelection($table, (bool) $create)->file;
+        if ($file === null) {
+            throw new \LogicException('The migration creator must select a stub file.');
+        }
+
+        return $this->files->get($file);
+    }
+
     protected function getDatePrefix()
     {
         return $this->pinnedPrefix ?? parent::getDatePrefix();

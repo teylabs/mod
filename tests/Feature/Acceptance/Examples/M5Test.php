@@ -17,3 +17,18 @@ it('M5 skips braces and group brackets and exposes the skip list', function (str
             ->and(app(TemplateCatalog::class)->skipped())->toBe([$path => $fix]);
     });
 })->with(['{module}', '[module]']);
+
+it('M5 lists broken templates separately without writing anything', function (string $group) {
+    Workspace::run(null, function (Workspace $workspace) use ($group) {
+        TemplateScenario::tool($workspace);
+        $path = 'stubs/mod/Modules/'.$group.'/Tools/broken.stub';
+        $workspace->write($path, TemplateScenario::CLASS_STUB);
+        $before = $workspace->files();
+        $data = json_decode($workspace->artisan('mod:list', ['--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
+        expect($data['templates']['problems'])->toBe([
+            ['path' => $path, 'reason' => "template folders use @module; {$group} is the Layout API's form."],
+        ])->and($data['groups'])->toBe(['Agents', 'Knowledge'])->and($workspace->files())->toBe($before);
+        $output = $workspace->artisan('mod:list')->assertSuccessful()->normalisedOutput();
+        expect(explode('  Templates with problems', $output, 2)[1])->toBe("\n  {$path} ... template folders use @module; {$group} is the Layout API's form.\n  Discovery: off\n");
+    });
+})->with(['{module}', '[module]']);

@@ -17,6 +17,9 @@ final class TemplateDiagnostics
 
     public function report(InputInterface $input, OutputInterface $output): void
     {
+        if ($input->getFirstArgument() === 'mod:list') {
+            return;
+        }
         $components = new Factory(new OutputStyle($input, $output));
         foreach ($this->catalog->skipped() as $path => $fix) {
             if (in_array($fix, $this->reported, true)) {

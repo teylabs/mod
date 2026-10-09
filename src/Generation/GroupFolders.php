@@ -35,6 +35,62 @@ final readonly class GroupFolders
      */
     public function __construct(private string $basePath, private ?Closure $folders = null) {}
 
+    /** @return list<string> Existing group paths, using the same evidence as placement. */
+    public function groups(CompiledLayout $layout): array
+    {
+        $groups = [];
+        foreach ($layout->rules() as $rule) {
+            if (! $rule instanceof TemplateRule || $rule->priority() < 0) {
+                continue;
+            }
+            $this->collectGroups($layout, $rule, 0, [], Path::resolve($this->basePath, $rule->root()->path), [], $groups);
+        }
+        $groups = array_values(array_unique($groups));
+        sort($groups);
+
+        return $groups;
+    }
+
+    /**
+     * @param  list<Segment>  $prefix
+     * @param  list<string>  $values
+     * @param  list<string>  $groups
+     */
+    private function collectGroups(CompiledLayout $layout, TemplateRule $rule, int $index, array $prefix, string $path, array $values, array &$groups, int $depth = 0): void
+    {
+        if ($depth > 10) {
+            return;
+        }
+        $segment = $rule->segments()[$index] ?? null;
+        if ($segment === null) {
+            return;
+        }
+        $prefix[] = $segment;
+        if ($segment->literal !== null) {
+            $this->collectGroups($layout, $rule, $index + 1, $prefix, Path::join($path, $segment->literal), $values, $groups, $depth + 1);
+
+            return;
+        }
+        if (! in_array($segment->dimension, $layout->dimensionNames(), true)) {
+            return;
+        }
+        $typeFolders = self::kindFolders($layout, $rule, $prefix, false);
+        foreach ($this->foldersIn($path) as $folder) {
+            $child = Path::join($path, $folder);
+            if (in_array($folder, $typeFolders, true) || ! $this->holds($layout, $rule, $prefix, $child)) {
+                continue;
+            }
+            $next = [...$values, $folder];
+            $groups[] = implode('/', $next);
+            $this->collectGroups($layout, $rule, $index + 1, $prefix, $child, $next, $groups, $depth + 1);
+            if ($segment->multi) {
+                $parentPrefix = $prefix;
+                array_pop($parentPrefix);
+                $this->collectGroups($layout, $rule, $index, $parentPrefix, $child, $next, $groups, $depth + 1);
+            }
+        }
+    }
+
     /**
      * The first level of the placement that is not an existing folder, or null.
      *
