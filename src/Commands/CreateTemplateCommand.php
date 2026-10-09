@@ -55,7 +55,9 @@ class CreateTemplateCommand extends Command
                 throw new RuntimeException('--into answers --from. Run mod:template --from=<class> --into=<path>.');
             }
             $type = $this->argument('type');
+            $type = $type === null ? null : $this->stringValue($type);
             $path = $this->argument('path');
+            $path = $path === null ? null : $this->stringValue($path);
             if ($path === null && $type !== null) {
                 $path = $type;
                 $type = 'class';
@@ -66,11 +68,8 @@ class CreateTemplateCommand extends Command
                 }
                 $prompt = new SearchPrompt('Which type should the template start from?', fn (string $value): array => array_values(array_filter($stubs->types(), static fn (string $t): bool => str_contains($t, strtolower($value)))));
                 $prompt->highlighted = 0;
-                $type = $prompt->prompt();
-                $path = text('What should the template be called, or where should it live?', default: $destination->bare('tool'), required: true);
-            }
-            if (! is_string($type)) {
-                throw new RuntimeException('mod:template needs a type and a template name or path.');
+                $type = $this->stringValue($prompt->prompt());
+                $path = $this->stringValue(text('What should the template be called, or where should it live?', default: $destination->bare('tool'), required: true));
             }
             if ($this->looksLikePath($type)) {
                 $fix = "mod:template {$path} {$type}";
@@ -86,7 +85,7 @@ class CreateTemplateCommand extends Command
                 if (! $this->interactive()) {
                     throw new RuntimeException($message);
                 }
-                $type = suggest("There is no type [{$type}]. Which type?", $stubs->types(), default: $near ?? 'class', required: true);
+                $type = $this->stringValue(suggest("There is no type [{$type}]. Which type?", $stubs->types(), default: $near ?? 'class', required: true));
                 if (! in_array($type, $stubs->types(), true)) {
                     throw new RuntimeException($message);
                 }
@@ -101,7 +100,7 @@ class CreateTemplateCommand extends Command
                 if (! $this->interactive()) {
                     throw new RuntimeException("mod:{$id} is one of mod's own commands. Choose another name, such as mod:template lister.");
                 }
-                $replacement = text("mod:{$id} is one of mod's own commands. What should the template be called?", required: true);
+                $replacement = $this->stringValue(text("mod:{$id} is one of mod's own commands. What should the template be called?", required: true));
                 $path = Path::join(dirname($path), $replacement);
                 $parsed = $destination->parse($path.'.stub');
                 if (in_array($parsed->id, self::RESERVED, true)) {
@@ -142,6 +141,15 @@ class CreateTemplateCommand extends Command
 
             return self::FAILURE;
         }
+    }
+
+    private function stringValue(mixed $value): string
+    {
+        if (! is_string($value)) {
+            throw new RuntimeException('mod:template needs text for its type, path, and source values.');
+        }
+
+        return $value;
     }
 
     private function interactive(): bool
@@ -310,16 +318,14 @@ class CreateTemplateCommand extends Command
     {
         $lookup = new ClassLookup($this->laravel->basePath(), $layout);
         $from = $this->option('from');
-        if (! is_string($from) || $from === '') {
+        $from = $from === null ? '' : $this->stringValue($from);
+        if ($from === '') {
             if (! $this->interactive()) {
                 throw new RuntimeException('--from needs a class name or a file path, such as --from=DocumentWasUploaded.');
             }
-            $from = search('Which class should the template start from?', static function (string $value) use ($lookup): array {
+            $from = $this->stringValue(search('Which class should the template start from?', static function (string $value) use ($lookup): array {
                 return array_values(array_map(static fn (array $r): string => $r['class'], array_filter($lookup->all(), static fn (array $r): bool => str_contains(strtolower($r['class']), strtolower($value)))));
-            });
-        }
-        if (! is_string($from)) {
-            throw new RuntimeException('--from needs a class name or file path.');
+            }));
         }
         $matches = $lookup->matches($from);
         if ($matches === []) {
@@ -357,7 +363,7 @@ class CreateTemplateCommand extends Command
             if (! $this->interactive()) {
                 throw new RuntimeException($message);
             }
-            $class = select("Several classes are named {$from}. Which one?", $classes);
+            $class = $this->stringValue(select("Several classes are named {$from}. Which one?", $classes));
             $matches = array_values(array_filter($matches, static fn (array $r): bool => $r['class'] === $class));
         }
         $record = $matches[0];
@@ -368,10 +374,11 @@ class CreateTemplateCommand extends Command
         $extracted = (new TokenExtractor)->extract($source);
         $suggestion = $destination->suggest($record['file'], $record['name']);
         $into = $this->option('into');
-        if (! is_string($into) || $into === '') {
+        $into = $into === null ? '' : $this->stringValue($into);
+        if ($into === '') {
             if ($this->interactive()) {
-                $where = text('Where should the template live?', default: dirname($suggestion), required: true);
-                $called = text('What should the template be called?', default: basename($suggestion), required: true);
+                $where = $this->stringValue(text('Where should the template live?', default: dirname($suggestion), required: true));
+                $called = $this->stringValue(text('What should the template be called?', default: basename($suggestion), required: true));
                 $into = Path::join($where, $called);
             } else {
                 $into = $suggestion;

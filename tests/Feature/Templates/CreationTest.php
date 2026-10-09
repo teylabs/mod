@@ -6,6 +6,23 @@ use Tey\Mod\Tests\Feature\Acceptance\Examples\Support\CreationScenario;
 use Tey\Mod\Tests\Feature\Acceptance\Examples\Support\TemplateScenario;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 
+it('rejects non-text arguments and extraction options without writing a template', function (array $parameters) {
+    Workspace::run(null, function (Workspace $w) use ($parameters) {
+        CreationScenario::setup($w);
+        $w->write('app/Modules/Knowledge/Tools/Original.php', '<?php namespace App\\Modules\\Knowledge\\Tools; class Original {}');
+        $before = $w->files();
+        $result = $w->artisan('mod:template', $parameters)->assertFailed();
+        expect($result->normalisedOutput())->toBe(CreationScenario::error('mod:template needs text for its type, path, and source values.'))
+            ->and($w->files())->toBe($before);
+    });
+})->with([
+    [['type' => false, 'path' => 'custom']],
+    [['type' => 'class', 'path' => 42]],
+    [['type' => 'class', 'path' => ['custom']]],
+    [['--from' => false]],
+    [['--from' => 'Original', '--into' => ['custom']]],
+]);
+
 it('prompts for both missing arguments with class preselected', function () {
     Workspace::run(null, function (Workspace $w) {
         CreationScenario::setup($w);
