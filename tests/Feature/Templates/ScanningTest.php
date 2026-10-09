@@ -58,7 +58,7 @@ it('supports roots declared only in Composer and rejects plain-file roots safely
         $workspace->write('stubs/mod/lib/Tools/extra.stub', TemplateScenario::CLASS_STUB);
         $workspace->write('stubs/mod/notes/invalid.stub', TemplateScenario::CLASS_STUB);
         $workspace->artisan('mod:extra', ['name' => 'Search'])->assertSuccessful();
-        expect(str_replace("\r\n", "\n", $workspace->read('lib/Tools/Search.php')))->toBe(TemplateScenario::content('Acme\\Tools', 'Search'))
+        expect(TemplateScenario::normalise($workspace, $workspace->read('lib/Tools/Search.php')))->toBe(TemplateScenario::normalise($workspace, TemplateScenario::content('Acme\\Tools', 'Search')))
             ->and(app(TemplateCatalog::class)->skipped()['stubs/mod/notes/invalid.stub'])->toContain("plain-file templates aren't supported yet");
     });
 });
@@ -104,7 +104,7 @@ it('generates the fixture tree across every grouped layout and plain Laravel', f
         $loader->register();
         try {
             $workspace->artisan('mod:tool', ['name' => $name])->assertSuccessful();
-            expect(str_replace("\r\n", "\n", $workspace->read($output)))->toBe(TemplateScenario::content($namespace, 'Search'));
+            expect(TemplateScenario::normalise($workspace, $workspace->read($output)))->toBe(TemplateScenario::normalise($workspace, TemplateScenario::content($namespace, 'Search')));
         } finally {
             $loader->unregister();
         }
@@ -134,7 +134,7 @@ it('fills the app namespace and every name form in a generated file', function (
         TemplateScenario::tool($workspace);
         $workspace->write('stubs/mod/@module/Tools/tool.stub', "<?php\nnamespace {{ namespace }};\nclass {{ class }} { const FORMS = '{{ class.camel }}|{{ class.kebab }}|{{ class.snake }}|{{ class.studly }}|{{ class.plural }}|{{ rootNamespace }}'; }\n");
         $workspace->artisan('mod:tool', ['name' => 'Agents:SearchDocuments'])->assertSuccessful();
-        expect(str_replace("\r\n", "\n", $workspace->read('app/Modules/Agents/Tools/SearchDocuments.php')))->toBe("<?php\nnamespace App\\Modules\\Agents\\Tools;\nclass SearchDocuments { const FORMS = 'searchDocuments|search-documents|search_documents|SearchDocuments|SearchDocuments|App\\'; }\n");
+        expect(TemplateScenario::normalise($workspace, $workspace->read('app/Modules/Agents/Tools/SearchDocuments.php')))->toBe(TemplateScenario::normalise($workspace, "<?php\nnamespace App\\Modules\\Agents\\Tools;\nclass SearchDocuments { const FORMS = 'searchDocuments|search-documents|search_documents|SearchDocuments|SearchDocuments|App\\'; }\n"));
     });
 });
 
@@ -146,8 +146,8 @@ it('keeps DTO base selection behind an edited template', function (bool $install
         Mod::layout('modules')->generates('links', suffix: 'Links');
         $workspace->artisan('mod:links', ['name' => 'Knowledge:Document'])->assertSuccessful();
         $base = $installed ? 'Spatie\\LaravelData\\Data' : 'App\\Support\\Data\\DataTransferObject';
-        expect(str_replace("\r\n", "\n", $workspace->read('app/Modules/Knowledge/Data/DocumentLinks.php')))
-            ->toBe("<?php\n\nnamespace App\\Modules\\Knowledge\\Data;\n\nuse {$base};\n\nclass DocumentLinks extends ".class_basename($base)."\n{\n    public const EDITED = true;\n}\n");
+        expect(TemplateScenario::normalise($workspace, $workspace->read('app/Modules/Knowledge/Data/DocumentLinks.php')))
+            ->toBe(TemplateScenario::normalise($workspace, "<?php\n\nnamespace App\\Modules\\Knowledge\\Data;\n\nuse {$base};\n\nclass DocumentLinks extends ".class_basename($base)."\n{\n    public const EDITED = true;\n}\n"));
         if (! $installed) {
             expect($workspace->exists('app/Support/Data/DataTransferObject.php'))->toBeTrue();
         }
@@ -159,8 +159,8 @@ it('uses a template refinement alias and label', function () {
         TemplateScenario::tool($workspace);
         Mod::layout('modules')->generates('tool', aliases: ['mod:utility'], label: 'Utility', fixed: 'Search');
         $result = $workspace->artisan('mod:utility', ['name' => 'Agents:'])->assertSuccessful();
-        expect($result->normalisedOutput())->toBe("\n   INFO  Utility [app/Modules/Agents/Tools/Search.php] created successfully.  \n\n")
-            ->and(str_replace("\r\n", "\n", $workspace->read('app/Modules/Agents/Tools/Search.php')))->toBe(TemplateScenario::content('App\\Modules\\Agents\\Tools', 'Search'));
+        expect($result->normalisedOutput())->toBe(TemplateScenario::normalise($workspace, "\n   INFO  Utility [app/Modules/Agents/Tools/Search.php] created successfully.  \n\n"))
+            ->and(TemplateScenario::normalise($workspace, $workspace->read('app/Modules/Agents/Tools/Search.php')))->toBe(TemplateScenario::normalise($workspace, TemplateScenario::content('App\\Modules\\Agents\\Tools', 'Search')));
     });
 });
 
@@ -178,7 +178,7 @@ it('reports a mismatched anchor only once per application', function () {
 it('keeps invalid literal folders and their refinements from breaking other commands', function () {
     Workspace::run(null, function (Workspace $workspace) {
         TemplateScenario::tool($workspace);
-        $workspace->write('stubs/mod/@module/Bad*/broken.stub', TemplateScenario::CLASS_STUB);
+        $workspace->write('stubs/mod/@module/Bad Folder/broken.stub', TemplateScenario::CLASS_STUB);
         $workspace->write('stubs/mod/{module}/Tools/refined.stub', TemplateScenario::CLASS_STUB);
         Mod::layout('modules')->generates('refined', suffix: 'Refined');
         $workspace->artisan('mod:tool', ['name' => 'Agents:Search'])->assertSuccessful();

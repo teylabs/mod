@@ -25,7 +25,12 @@ final class TemplateScenario
 
     public static function output(Workspace $workspace, string $expected): Closure
     {
-        return \Mockery::on(static fn (string $output): bool => str_contains((new CommandResult(0, $output, $workspace->root->path))->normalisedOutput(), $expected));
+        return \Mockery::on(static fn (string $output): bool => str_contains(self::normalise($workspace, $output), self::normalise($workspace, $expected)));
+    }
+
+    public static function normalise(Workspace $workspace, string $text): string
+    {
+        return (new CommandResult(0, $text, $workspace->root->path))->normalisedOutput();
     }
 
     public static function tool(Workspace $workspace, string $layout = 'modules'): void

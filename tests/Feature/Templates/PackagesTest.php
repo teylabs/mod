@@ -16,7 +16,7 @@ it('lets the app template win over packages', function () {
         }
         $result = $workspace->artisan('mod:tool', ['name' => 'Agents:Search'])->assertSuccessful();
         expect($result->normalisedOutput())->not->toContain('WARN')
-            ->and(str_replace("\r\n", "\n", $workspace->read('app/Modules/Agents/Tools/Search.php')))->toBe(TemplateScenario::content('App\\Modules\\Agents\\Tools', 'Search'));
+            ->and(TemplateScenario::normalise($workspace, $workspace->read('app/Modules/Agents/Tools/Search.php')))->toBe(TemplateScenario::normalise($workspace, TemplateScenario::content('App\\Modules\\Agents\\Tools', 'Search')));
     });
 });
 

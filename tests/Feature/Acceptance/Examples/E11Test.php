@@ -17,9 +17,9 @@ it('E11 resolves a package group anchor in modules and ddd', function (string $l
         $loader->register();
         try {
             $result = $workspace->artisan('mod:prompt', ['name' => 'Agents:AnswerQuestion'])->assertSuccessful();
-            expect($result->normalisedOutput())->toBe("\n   INFO  Prompt [{$folder}/Agents/Prompts/AnswerQuestion.php] created successfully.  \n\n")
-                ->and(str_replace("\r\n", "\n", $workspace->read($folder.'/Agents/Prompts/AnswerQuestion.php')))
-                ->toBe(TemplateScenario::content($namespace.'\\Agents\\Prompts', 'AnswerQuestion'));
+            expect($result->normalisedOutput())->toBe(TemplateScenario::normalise($workspace, "\n   INFO  Prompt [{$folder}/Agents/Prompts/AnswerQuestion.php] created successfully.  \n\n"))
+                ->and(TemplateScenario::normalise($workspace, $workspace->read($folder.'/Agents/Prompts/AnswerQuestion.php')))
+                ->toBe(TemplateScenario::normalise($workspace, TemplateScenario::content($namespace.'\\Agents\\Prompts', 'AnswerQuestion')));
         } finally {
             $loader->unregister();
         }

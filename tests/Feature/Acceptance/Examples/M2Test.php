@@ -18,9 +18,9 @@ it('M2 creates a likely typo with the settled hint without a terminal', function
     Workspace::run(null, function (Workspace $workspace) {
         TemplateScenario::tool($workspace);
         $result = $workspace->artisan('mod:tool', ['name' => 'Agnets:SearchDocuments'])->assertSuccessful();
-        expect($result->normalisedOutput())->toBe("\n   INFO  Created new module Agnets (did you mean Agents?).  \n\n   INFO  Tool [app/Modules/Agnets/Tools/SearchDocuments.php] created successfully.  \n\n")
-            ->and(str_replace("\r\n", "\n", $workspace->read('app/Modules/Agnets/Tools/SearchDocuments.php')))
-            ->toBe(TemplateScenario::content('App\\Modules\\Agnets\\Tools', 'SearchDocuments'));
+        expect($result->normalisedOutput())->toBe(TemplateScenario::normalise($workspace, "\n   INFO  Created new module Agnets (did you mean Agents?).  \n\n   INFO  Tool [app/Modules/Agnets/Tools/SearchDocuments.php] created successfully.  \n\n"))
+            ->and(TemplateScenario::normalise($workspace, $workspace->read('app/Modules/Agnets/Tools/SearchDocuments.php')))
+            ->toBe(TemplateScenario::normalise($workspace, TemplateScenario::content('App\\Modules\\Agnets\\Tools', 'SearchDocuments')));
     });
 });
 
@@ -28,6 +28,6 @@ it('M2 uses an existing group with the correct case', function () {
     Workspace::run(null, function (Workspace $workspace) {
         TemplateScenario::tool($workspace);
         $result = $workspace->artisan('mod:tool', ['name' => 'agents:SearchDocuments'])->assertSuccessful();
-        expect($result->normalisedOutput())->toBe("\n   INFO  Using existing module Agents (you typed agents).  \n\n   INFO  Tool [app/Modules/Agents/Tools/SearchDocuments.php] created successfully.  \n\n");
+        expect($result->normalisedOutput())->toBe(TemplateScenario::normalise($workspace, "\n   INFO  Using existing module Agents (you typed agents).  \n\n   INFO  Tool [app/Modules/Agents/Tools/SearchDocuments.php] created successfully.  \n\n"));
     });
 });

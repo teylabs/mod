@@ -18,7 +18,7 @@ it('M16 gives the corrected command without a terminal', function () {
     Workspace::run(null, function (Workspace $workspace) {
         TemplateScenario::webhook($workspace);
         $result = $workspace->artisan('mod:webhook', ['name' => 'Knowledge/Drive:FileChanged'])->assertFailed();
-        expect($result->normalisedOutput())->toBe("\n   ERROR  [Drive] looks like a source. Pass it with its option: mod:webhook Knowledge:FileChanged --source=Drive.  \n\n")
+        expect($result->normalisedOutput())->toBe(TemplateScenario::normalise($workspace, "\n   ERROR  [Drive] looks like a source. Pass it with its option: mod:webhook Knowledge:FileChanged --source=Drive.  \n\n"))
             ->and($workspace->exists('app/Modules/Knowledge/Webhooks'))->toBeFalse();
     });
 });
