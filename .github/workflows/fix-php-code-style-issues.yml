@@ -15,8 +15,19 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
 
+      # Pint runs from Composer rather than a Docker-based action, so the job
+      # doesn't depend on pulling images from Docker Hub (which rate-limits runners).
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Install composer dependencies
+        uses: ramsey/composer-install@v4
+
       - name: Fix PHP code style issues
-        uses: aglipanci/laravel-pint-action@2.6
+        run: ./vendor/bin/pint
 
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v7
