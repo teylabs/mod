@@ -164,9 +164,14 @@ it('generates a migration through the dimension option exactly as through the sh
 
             $result = $workspace->artisan('mod:migration', ['name' => 'create_invoices_table', '--module' => 'Billing'])->assertSuccessful();
 
-            expect($result->output)->toBe($shorthand->output)
-                ->and($workspace->files())->toBe($files)
-                ->and(array_map($workspace->read(...), $files))->toBe($bytes);
+            // Laravel names migrations from the real clock (date()), which Date::setTestNow() doesn't pin,
+            // so a slow run can cross a second: compare with the timestamp masked.
+            $stamp = fn (string|array $value) => preg_replace('/\d{4}_\d{2}_\d{2}_\d{6}_/', 'YYYY_MM_DD_HHMMSS_', $value);
+            $after = $workspace->files();
+
+            expect($stamp($result->output))->toBe($stamp($shorthand->output))
+                ->and($stamp($after))->toBe($stamp($files))
+                ->and(array_map($workspace->read(...), $after))->toBe($bytes);
         } finally {
             Date::setTestNow();
         }
