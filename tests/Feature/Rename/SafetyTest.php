@@ -80,7 +80,7 @@ it('refuses declaration drift configured-group absence directories and symlink s
         } else {
             $w->write('app/RealWidget.php', $w->read($path));
             unlink($w->root->path($path));
-            symlink('../../../RealWidget.php', $w->root->path($path));
+            symlink($w->root->path('app/RealWidget.php'), $w->root->path($path));
         }
         S::commit($w);
         expect(S::preview($w, $options)['would_write'])->toBeFalse();
