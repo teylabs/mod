@@ -2,13 +2,25 @@
 
 namespace Tey\Mod\Tests\Feature\Scaffolds\Support;
 
+use Pest\TestSuite;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Generation\ModMigrationCreator;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
+use Tey\Mod\Tests\TestCase;
 
 final class Examples
 {
+    public static function testCase(): TestCase
+    {
+        $test = TestSuite::getInstance()->test;
+        if (! $test instanceof TestCase) {
+            throw new \LogicException('Scaffold acceptance tests need Testbench.');
+        }
+
+        return $test;
+    }
+
     public static function recipe(Scaffold $s): void
     {
         $s->makes('model', options: ['--migration', '--factory'])
@@ -60,7 +72,10 @@ final class Examples
         ];
     }
 
-    /** @param list<string> $paths */
+    /**
+     * @param  list<string>  $paths
+     * @param  list<string>  $exists
+     */
     public static function plan(array $paths, string $name = 'crud', string $input = 'Knowledge:Document', array $exists = []): string
     {
         $aliases = ['model', 'model (migration)', 'model (factory)', 'storeRequest', 'updateRequest', 'resource', 'policy', 'controller'];

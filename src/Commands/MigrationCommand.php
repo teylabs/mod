@@ -123,7 +123,7 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
             $this->modCreator->pin(null);
             $plan = $this->currentPlan();
 
-            if ($plan !== null) {
+            if ($plan !== null && ! $this->scaffoldExecution()?->planning) {
                 $this->afterGeneration($plan, $exitCode);
             }
 
@@ -168,11 +168,15 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
         $directory = dirname($this->resolveArtifact($this->kind()->id, $name, $context, ['timestamp' => '0000_00_00_000000'])->path());
         $timestamp = $this->modCreator->datePrefixFor($this->existingArtifacts()->absolute($directory));
 
-        $plan = new GenerationPlan($this->resolveArtifact($this->kind()->id, $name, $context, ['timestamp' => $timestamp]));
+        $candidate = $this->resolveArtifact($this->kind()->id, $name, $context, ['timestamp' => $timestamp]);
+        $plan = $this->scaffoldExecution()?->accepted($candidate) ?? new GenerationPlan($candidate);
+        $timestamp = substr(basename($plan->primary->path()), 0, 17);
         $this->refuseCollisions($plan, false);
         $this->plan = $plan;
         $this->modCreator->pin($timestamp);
-        $this->beforeGeneration($plan);
+        if (! $this->scaffoldExecution()?->planning) {
+            $this->beforeGeneration($plan);
+        }
 
         return $plan;
     }

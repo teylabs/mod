@@ -19,7 +19,7 @@ it('S10 keeps existing members while generating their related files and aliases'
         Examples::setup($w);
         $w->write(Examples::paths()[0], 'existing model');
         if ($interactive) {
-            $this->artisan('mod:crud', ['name' => 'Knowledge:Document'])
+            Examples::testCase()->artisan('mod:crud', ['name' => 'Knowledge:Document'])
                 ->expectsChoice('1 file already exists. What should happen?', 'Keep it, and write the other 7', ['Keep it, and write the other 7', 'Overwrite it', 'Cancel'])
                 ->assertSuccessful();
         } else {
@@ -41,7 +41,7 @@ it('S10 force overwrites and cancel writes nothing', function (bool $force) {
             $w->artisan('mod:crud', ['name' => 'Knowledge:Document', '--force' => true])->assertSuccessful();
             expect($w->read(Examples::paths()[0]))->toContain('class Document extends Model');
         } else {
-            $this->artisan('mod:crud', ['name' => 'Knowledge:Document'])
+            Examples::testCase()->artisan('mod:crud', ['name' => 'Knowledge:Document'])
                 ->expectsChoice('1 file already exists. What should happen?', 'Cancel', ['Keep it, and write the other 7', 'Overwrite it', 'Cancel'])->assertSuccessful();
             expect(count($w->files()))->toBe(4);
         }

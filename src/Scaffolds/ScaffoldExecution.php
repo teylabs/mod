@@ -29,6 +29,9 @@ final class ScaffoldExecution
     /** @var array<string, list<ResolvedArtifact>> */
     public array $bases = [];
 
+    /** @var array<string, string> notices held until their primary is generated */
+    public array $groupNotices = [];
+
     public bool $force = false;
 
     private ?GenerationPlan $collected = null;
@@ -41,6 +44,19 @@ final class ScaffoldExecution
     public function collected(): ?GenerationPlan
     {
         return $this->collected;
+    }
+
+    public function accepted(ResolvedArtifact $candidate): ?GenerationPlan
+    {
+        foreach ($this->plans as $plan) {
+            $primary = $plan->primary;
+            if ($primary->kind->id === $candidate->kind->id && $primary->name === $candidate->name
+                && $primary->nested === $candidate->nested && $primary->context->equals($candidate->context)) {
+                return $plan;
+            }
+        }
+
+        return null;
     }
 
     public function collect(GenerationPlan $plan, string $stub): void

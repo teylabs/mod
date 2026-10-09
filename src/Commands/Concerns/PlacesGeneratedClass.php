@@ -107,7 +107,10 @@ trait PlacesGeneratedClass
                 if ($this->isReservedName($this->getNameInput())) {
                     throw GenerationRefused::because('The name "'.$this->getNameInput().'" is reserved by PHP. Nothing was written.');
                 }
-                [$preview] = $this->settleGroups($this->plan());
+                [$preview, $notice] = $this->settleGroups($this->plan());
+                if ($notice !== null && ! in_array($notice, $scaffold->groupNotices, true)) {
+                    $scaffold->groupNotices[$preview->primary->path()] = $notice;
+                }
                 $this->plan = $preview;
                 $defaultStub = $this->getStub();
                 $this->generateScaffoldRelations();
@@ -142,7 +145,7 @@ trait PlacesGeneratedClass
             $this->modNewGroup = null;
             $plan = $this->currentPlan();
 
-            if ($plan !== null) {
+            if ($plan !== null && ! $this->scaffoldExecution()?->planning) {
                 $this->afterGeneration($plan, $exitCode);
             }
 
@@ -284,7 +287,7 @@ trait PlacesGeneratedClass
 
         $candidate = $this->plan();
         $accepted = $this->scaffoldExecution()?->plans[$candidate->primary->path()] ?? null;
-        [$plan, $newGroup] = $accepted !== null ? [$accepted, null] : $this->settleGroups($candidate);
+        [$plan, $newGroup] = $accepted !== null ? [$accepted, $this->scaffoldExecution()?->groupNotices[$accepted->primary->path()] ?? null] : $this->settleGroups($candidate);
         // Read through the input itself: not every adapter's native command declares --force.
         $force = $this->input->hasOption('force') && (bool) $this->input->getOption('force');
         // Let native placement handle its own duplicate; custom placement keeps

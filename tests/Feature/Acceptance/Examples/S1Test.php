@@ -26,7 +26,7 @@ it('S1 plans and generates the eight CRUD files through their file types', funct
 it('S1 asks once before writing and cancellation writes nothing', function () {
     Workspace::run(null, function (Workspace $w) {
         Examples::setup($w);
-        $this->artisan('mod:crud', ['name' => 'Knowledge:Document'])
+        Examples::testCase()->artisan('mod:crud', ['name' => 'Knowledge:Document'])
             ->expectsConfirmation('Write these 8 files?', 'no')->assertSuccessful();
         expect($w->files())->toBe(['app/Http/Controllers/Controller.php', 'stubs/mod.controller.crud.stub', 'stubs/mod.request.crud.stub']);
     });

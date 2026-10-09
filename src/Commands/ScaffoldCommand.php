@@ -21,6 +21,9 @@ final class ScaffoldCommand extends Command
 {
     use InteractsWithLayout;
 
+    /** @var array<string, list<string>> file type => template slot options */
+    private array $memberSlots = [];
+
     protected $signature = 'mod:scaffold {name} {--force} {--skip-existing}';
 
     public function __construct(private readonly string $recipeName, private readonly Scaffold $recipe, private readonly CompiledLayout $preset)
@@ -32,6 +35,14 @@ final class ScaffoldCommand extends Command
             $this->getDefinition()->addOption(new InputOption($option, null, InputOption::VALUE_REQUIRED, 'Place in this '.$dimension));
         }
         $this->getDefinition()->addOption(new InputOption('in', null, InputOption::VALUE_REQUIRED, 'Placement in the layout’s group order'));
+        foreach ($recipe->members() as $member) {
+            $this->memberSlots[$member->fileType] = array_values(array_diff($preset->rule($member->fileType)->dimensions(), $preset->dimensionNames()));
+            foreach ($this->memberSlots[$member->fileType] as $slot) {
+                if (! $this->getDefinition()->hasOption($slot)) {
+                    $this->getDefinition()->addOption(new InputOption($slot, null, InputOption::VALUE_REQUIRED, 'The '.$slot.' folder and template value'));
+                }
+            }
+        }
     }
 
     protected function resolveLayout(): CompiledLayout
@@ -57,6 +68,7 @@ final class ScaffoldCommand extends Command
         $this->laravel->instance(ScaffoldExecution::class, $scope);
         try {
             $plan = new ScaffoldPlan;
+            $publish = [];
             $calls = [];
             $inputName = $this->rawNameInput();
             $name = $this->shorthand()[1];
@@ -68,6 +80,15 @@ final class ScaffoldCommand extends Command
                 $placement = $this->inOption($context);
                 if ($placement !== '') {
                     $arguments['--in'] = $placement;
+                }
+                if (! $this->interactive()) {
+                    $arguments['--no-interaction'] = true;
+                }
+                foreach ($this->memberSlots[$member->fileType] ?? [] as $slot) {
+                    $value = $this->option($slot);
+                    if (is_string($value) && $value !== '') {
+                        $arguments['--'.$slot] = $value;
+                    }
                 }
                 foreach ($member->options as $option => $value) {
                     if (is_int($option) && is_string($value)) {
@@ -111,14 +132,18 @@ final class ScaffoldCommand extends Command
                     if (! is_file($source)) {
                         throw GenerationRefused::because("The {$member->fileType} stub [{$source}] does not exist. Nothing was written.");
                     }
-                    $this->laravel->make('files')->ensureDirectoryExists(dirname($file));
-                    $this->laravel->make('files')->copy($source, $file);
-                    $this->components->info("Published stub [{$relative}] from the {$member->fileType} stub. Edit it to make it the house {$member->fileType}.");
+                    $publish[$file] = [$source, $relative, $member->fileType];
                     $variant = $file;
                 }
                 $scope->variants[$primary->path()] = $variant;
             }
 
+            foreach ($scope->defaultStubs as $path => $default) {
+                $selected = $scope->variants[$path] ?? $default;
+                if ($selected !== '' && ! isset($publish[$selected]) && ! is_file($selected)) {
+                    throw GenerationRefused::because("Template [{$selected}] does not exist. Create it before running mod:{$this->recipeName}. Nothing was written.");
+                }
+            }
             $existing = $plan->existing($this->existingArtifacts());
             $count = count($plan->files());
             $this->components->info("mod:{$this->recipeName} will write {$count} files for {$inputName}.");
@@ -148,6 +173,11 @@ final class ScaffoldCommand extends Command
                 return self::SUCCESS;
             }
 
+            foreach ($publish as $file => [$source, $relative, $fileType]) {
+                $this->laravel->make('files')->ensureDirectoryExists(dirname($file));
+                $this->laravel->make('files')->copy($source, $file);
+                $this->components->info("Published stub [{$relative}] from the {$fileType} stub. Edit it to make it the house {$fileType}.");
+            }
             $scope->planning = false;
             foreach ($calls as [$command, $arguments]) {
                 if ($scope->force && $this->getApplication()?->find($command)->getDefinition()->hasOption('force')) {

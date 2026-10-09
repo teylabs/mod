@@ -15,7 +15,7 @@ it('S3 refuses a missing variant without writing non-interactively', function ()
 it('S3 offers to publish the missing variant then continues', function () {
     Workspace::run(null, function (Workspace $w) {
         Examples::setup($w, controller: false);
-        $this->artisan('mod:crud', ['name' => 'Knowledge:Document'])
+        Examples::testCase()->artisan('mod:crud', ['name' => 'Knowledge:Document'])
             ->expectsConfirmation("The crud scaffold uses stubs/mod.controller.crud.stub, which doesn't exist. Create it from the controller stub?", 'yes')
             ->expectsOutputToContain('Published stub [stubs/mod.controller.crud.stub] from the controller stub. Edit it to make it the house controller.')
             ->expectsConfirmation('Write these 8 files?', 'yes')->assertSuccessful();

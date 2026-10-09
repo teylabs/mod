@@ -258,7 +258,7 @@ class ModServiceProvider extends ServiceProvider
         $layoutName = $this->app->make('config')->get('mod.layout', 'laravel');
         $overrides = is_string($layoutName) && $this->app->make(LayoutRegistry::class)->has($layoutName)
             ? $this->app->make(LayoutRegistry::class)->layout($layoutName)->scaffoldRecipes() : [];
-        foreach ($registry->resolve($preset, is_string($layoutName) ? $layoutName : 'layout', $overrides, array_keys($artisan->all())) as $name => $recipe) {
+        foreach ($registry->resolve($preset, is_string($layoutName) ? $layoutName : 'layout', $overrides, [...array_keys($artisan->all()), 'mod:cache', 'mod:clear', 'mod:list']) as $name => $recipe) {
             $artisan->resolve(new ScaffoldCommand($name, $recipe, $preset));
         }
         foreach ($registry->problems() as $name => $warning) {
