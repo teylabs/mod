@@ -1,0 +1,113 @@
+{
+  "type": "object",
+  "required": [
+    "scaffolds"
+  ],
+  "properties": {
+    "scaffolds": {
+      "type": "object",
+      "required": [
+        "items",
+        "problems"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "command",
+              "source",
+              "members"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "command": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "members": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "alias",
+                    "type",
+                    "name",
+                    "stub",
+                    "options",
+                    "folder"
+                  ],
+                  "properties": {
+                    "alias": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "stub": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "options": {
+                      "type": [
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "folder": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "uses": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "children": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "problems": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "reason"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

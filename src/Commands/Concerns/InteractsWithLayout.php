@@ -25,6 +25,8 @@ use Tey\Mod\Placement\CollisionKind;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\PlacementResolver;
 use Tey\Mod\Placement\TemplateRule;
+use Tey\Mod\Plans\Plan;
+use Tey\Mod\Plans\PlanWriter;
 use Tey\Mod\Preset\PresetIssue;
 use Tey\Mod\Preset\PresetValidator;
 use Tey\Mod\Relation\RelationMode;
@@ -32,6 +34,7 @@ use Tey\Mod\Relation\RelationResolution;
 use Tey\Mod\Relation\RelationResolver;
 use Tey\Mod\Reverse\ReverseMapper;
 use Tey\Mod\Scaffolds\ScaffoldExecution;
+use Tey\Mod\Scaffolds\ScaffoldPlan;
 
 use function Laravel\Prompts\select;
 
@@ -67,6 +70,41 @@ use function Laravel\Prompts\select;
 trait InteractsWithLayout
 {
     /** Container key set while a mod:* command generates a related file through another one. */
+    /** @param callable(): int $collect */
+    private function previewGeneration(callable $collect): int
+    {
+        return (new PlanWriter)->preview($this, $this->input, function (Plan $preview) use ($collect): void {
+            $previous = $this->scaffoldExecution();
+            $scope = new ScaffoldExecution;
+            $this->laravel->instance(ScaffoldExecution::class, $scope);
+            try {
+                $collect();
+                $primary = $scope->collected();
+                if ($primary === null) {
+                    throw GenerationRefused::because($this->getName().' could not describe its files. Nothing was written.');
+                }
+                $combined = new ScaffoldPlan;
+                $combined->add($primary->primary->kind->id, $primary, $scope);
+                foreach ($combined->files() as $file) {
+                    $preview->artifact($file['alias'], $file['artifact'], $this->laravel->basePath());
+                }
+                foreach ($scope->defaultStubs as $stub) {
+                    if ($stub !== '' && ! is_file($stub)) {
+                        throw GenerationRefused::because('Template ['.$stub.'] does not exist. Nothing was written.');
+                    }
+                }
+                $existing = $combined->existing($this->existingArtifacts());
+                $force = $this->input->hasOption('force') && (bool) $this->input->getOption('force');
+                $preview->collisions($force);
+                if ($force && array_diff($existing, [$primary->primary->path()]) !== []) {
+                    $preview->wouldWrite = false;
+                }
+            } finally {
+                $previous === null ? $this->laravel->forgetInstance(ScaffoldExecution::class) : $this->laravel->instance(ScaffoldExecution::class, $previous);
+            }
+        });
+    }
+
     private const RELATED = 'mod.generating-related';
 
     /** @var array<string, string> group values the user settled on (case or near miss), by dimension */
@@ -191,6 +229,11 @@ trait InteractsWithLayout
     protected function registerPlacementOptions(): void
     {
         $definition = $this->getDefinition();
+        foreach (['dry-run' => 'Describe the files without writing', 'json' => 'Print the dry-run plan as JSON'] as $name => $description) {
+            if (! $definition->hasOption($name)) {
+                $definition->addOption(new InputOption($name, null, InputOption::VALUE_NONE, $description));
+            }
+        }
         $options = $definition->getOptions();
 
         foreach ($this->modPlacementOptions as $added) {
@@ -759,6 +802,9 @@ trait InteractsWithLayout
      */
     protected function reportRefusal(ModException $exception): int
     {
+        if ($this->input->hasOption('dry-run') && $this->input->getOption('dry-run')) {
+            throw GenerationRefused::because($this->refusalMessage($exception));
+        }
         foreach (explode(PHP_EOL, $this->refusalMessage($exception)) as $line) {
             $this->components->error($line);
         }

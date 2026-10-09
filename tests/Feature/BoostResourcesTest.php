@@ -4,7 +4,10 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Blade;
 use Pest\TestSuite;
 use Symfony\Component\Yaml\Yaml;
+use Tey\Mod\Templates\TemplateCatalog;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
+use Tey\Mod\Tests\Feature\Scaffolds\Support\Examples;
+use Tey\Mod\Tests\Feature\Scaffolds\Support\TreeExamples;
 use Tey\Mod\Tests\TestCase;
 
 /*
@@ -50,7 +53,7 @@ function boostCommands(): array
         $text .= file_get_contents($skill);
     }
 
-    preg_match_all('/\bmod:[a-z][a-z-]*[a-z]\b/', $text, $matches);
+    preg_match_all('/\bmod:[a-z][a-z0-9.-]*[a-z]\b/', $text, $matches);
 
     $commands = array_values(array_unique($matches[0]));
     sort($commands);
@@ -96,7 +99,7 @@ it('ships skills whose frontmatter names their folder', function () {
     }
 });
 
-it('names only mod:* commands that a built-in layout registers', function () {
+it('names only mod:* commands registered by a built-in layout or a documented example', function () {
     $case = TestSuite::getInstance()->test;
 
     if (! $case instanceof TestCase) {
@@ -112,6 +115,18 @@ it('names only mod:* commands that a built-in layout registers', function () {
         Artisan::clearResolvedInstances();
         $registered = [...$registered, ...commandsInLayout($layout)];
     }
+
+    $case->bootApplicationUsing(fn ($app) => $app->make('config')->set('mod.discovery.enabled', true));
+    Artisan::clearResolvedInstances();
+    $registered = [...$registered, ...Workspace::run(null, function (Workspace $w): array {
+        Examples::setup($w);
+        TreeExamples::setup($w);
+        $w->write('stubs/mod/@module/Tools/[source]/probe.stub', "<?php\nnamespace {{ namespace }};\nclass {{ class }} {}\n");
+
+        app()->forgetInstance(TemplateCatalog::class);
+
+        return array_keys(Artisan::all());
+    })];
 
     $named = boostCommands();
 

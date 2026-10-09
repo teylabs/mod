@@ -6,12 +6,15 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 use Laravel\Prompts\SearchPrompt;
 use RuntimeException;
+use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Terminal;
 use Tey\Mod\Layout\BuiltIn\TemplateAnchors;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Placement\TemplateRule;
+use Tey\Mod\Plans\Plan;
+use Tey\Mod\Plans\PlanWriter;
 use Tey\Mod\Support\Path;
 use Tey\Mod\Templates\ClassLookup;
 use Tey\Mod\Templates\InvalidTemplate;
@@ -33,11 +36,28 @@ class CreateTemplateCommand extends Command
     protected $signature = 'mod:template {type? : Starting type, or the path when given alone} {path? : Template name or path}
         {--from= : Existing class or PHP file; omit its value to search}
         {--into= : Destination template path for --from}
+        {--dry-run : Describe the template without writing}
+        {--json : Print the dry-run plan as JSON}
         {--force : Overwrite an existing template}';
 
     protected $description = 'Create a generator template for the active layout';
 
     private const RESERVED = ['autoload', 'bases', 'cache', 'clear', 'list', 'template'];
+
+    private ?Plan $dryPlan = null;
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $this->dryPlan = null;
+        if ($input->getOption('dry-run')) {
+            return (new PlanWriter)->preview($this, $input, function (Plan $preview) use ($input, $output): void {
+                $this->dryPlan = $preview;
+                parent::execute($input, $output);
+            });
+        }
+
+        return parent::execute($input, $output);
+    }
 
     public function handle(CompiledLayout $layout, LayoutRegistry $registry, TypeStubs $stubs, TemplateCatalog $catalog): int
     {
@@ -112,6 +132,12 @@ class CreateTemplateCommand extends Command
                 $message = "mod:{$id} already exists: it is the layout's {$id} file type.\nTo customize what mod:{$id} starts as, publish its stub: stubs/mod.{$id}.stub.\nTo start a new template from the {$id} stub, name it: mod:template {$id} <name>.";
                 $this->correction("mod:{$id} already exists. Customize its stub instead?", $message);
                 $published = $this->laravel->basePath('stubs/mod.'.$id.'.stub');
+                if ($this->dryPlan !== null) {
+                    $this->dryPlan->file($id, 'template', 'stubs/mod.'.$id.'.stub', ['command' => 'mod:'.$id], is_file($published));
+                    $this->dryPlan->collisions((bool) $this->option('force'));
+
+                    return self::SUCCESS;
+                }
                 $this->overwrite('stubs/mod.'.$id.'.stub', $published);
                 $contents = $stubs->read($id)['contents'];
                 if (! is_dir(dirname($published))) {
@@ -135,6 +161,9 @@ class CreateTemplateCommand extends Command
 
             return $this->create($destination, $path, $source['contents'], $source['label'], $catalog);
         } catch (RuntimeException $exception) {
+            if ($this->dryPlan !== null) {
+                throw $exception;
+            }
             foreach (explode("\n", $exception->getMessage()) as $line) {
                 $this->components->error($line);
             }
@@ -278,6 +307,12 @@ class CreateTemplateCommand extends Command
             if ($id === $parsed->id && ! Path::same($template['file'], $file) && ($template['source'] === 'app' || str_starts_with($template['source'], 'app (overrides '))) {
                 throw new RuntimeException("mod:{$id} already comes from [{$template['path']}]. Use that template path with --force, or choose another name.");
             }
+        }
+        if ($this->dryPlan !== null) {
+            $this->dryPlan->file($parsed->id, 'template', $display, ['command' => 'mod:'.$parsed->id], is_file($file));
+            $this->dryPlan->collisions((bool) $this->option('force'));
+
+            return self::SUCCESS;
         }
         $this->overwrite($display, $file);
         (new TemplateWriter($this->laravel->basePath()))->write($path.'.stub', $contents, file_exists($file));

@@ -125,8 +125,14 @@ trait RunsScaffoldTree
             if ($this->treeCancelled) {
                 return self::SUCCESS;
             }
+            $this->describePlan($plan);
+            if ($this->dryPlan !== null) {
+                foreach ($this->treeInserts as $insert) {
+                    $this->dryPlan->inserts[] = ['into' => $insert['path'], 'at' => $insert['at'], 'stub' => $insert['stub']];
+                }
+            }
             $existing = $plan->existing($this->existingArtifacts());
-            if ($existing !== []) {
+            if ($existing !== [] && $this->dryPlan === null) {
                 throw GenerationRefused::because('Item already exists: '.$existing[0].'. Nothing was written.');
             }
             // Validate every insert before displaying or writing the plan.
@@ -162,6 +168,14 @@ trait RunsScaffoldTree
                     $this->treeStarts[$path] = rtrim($start, "\r\n").$newline.'// mod:'.$insert['at'].$newline;
                     $sources[$path] = $writer->insert($this->treeStarts[$path], $insert['at'], $insert['stub'], $path);
                 }
+            }
+            if ($this->dryPlan !== null) {
+                foreach ($this->treeInserts as $insert) {
+                    $anchor = $writer->anchor($sources[$insert['path']], $insert['at'], $insert['path']);
+                    $this->dryPlan->insertDetails[] = ['anchor' => trim($anchor['line']), 'label' => $insert['label']];
+                }
+
+                return self::SUCCESS;
             }
             $count = count($plan->files());
             $inserts = count($this->treeInserts);
@@ -222,6 +236,9 @@ trait RunsScaffoldTree
             if (! $exception instanceof ModException) {
                 throw $exception;
             }
+            if ($this->dryPlan !== null) {
+                throw $exception;
+            }
             foreach (explode("\n", $exception->getMessage()) as $line) {
                 $this->components->error($line);
             }
@@ -244,12 +261,25 @@ trait RunsScaffoldTree
     {
         $values = [...$given, 'name' => $name];
         $resolver = new QuestionAnswers($this->preset, $this->laravel->basePath());
+        $failure = null;
         foreach ($recipe->questions() as $question) {
             if (array_key_exists($question->name, $given)) {
                 continue;
             }
             $option = $this->getDefinition()->hasOption($question->name) ? $this->option($question->name) : null;
-            $values[$question->name] = $resolver->answer($question, $option, ! $locating && $this->interactive(), 'mod:'.$this->recipeName, $name);
+            try {
+                $values[$question->name] = $resolver->answer($question, $option, ! $locating && $this->interactive(), 'mod:'.$this->recipeName, $name);
+            } catch (Throwable $exception) {
+                if ($this->dryPlan === null || ! $exception instanceof ModException) {
+                    throw $exception;
+                }
+                $this->dryPlan->warning($exception->getMessage());
+                $failure = $exception;
+            }
+        }
+
+        if ($failure !== null) {
+            throw $failure;
         }
 
         return $values;

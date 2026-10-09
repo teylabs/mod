@@ -315,7 +315,7 @@ it('adds exactly the expected placement options to every native definition', fun
             $nativeOptions = array_keys($native->getDefinition()->getOptions());
             $adapterOptions = array_keys($adapter->getDefinition()->getOptions());
 
-            expect(array_values(array_diff($adapterOptions, $nativeOptions)))->toBe(['in', ...array_keys(dimensionOptionsOf($preset, $kind->id))], "{$layout} {$kind->command}")
+            expect(array_values(array_diff($adapterOptions, $nativeOptions)))->toBe(['dry-run', 'json', 'in', ...array_keys(dimensionOptionsOf($preset, $kind->id))], "{$layout} {$kind->command}")
                 ->and(array_values(array_diff($nativeOptions, $adapterOptions)))->toBe([]);
 
             foreach ($native->getDefinition()->getOptions() as $option => $definition) {

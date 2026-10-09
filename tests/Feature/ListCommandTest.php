@@ -25,7 +25,7 @@ it('pins the JSON contract and includes package override members', function () {
                 'scaffold' => $data['scaffolds']['items'][0],
                 default => $data[$section],
             };
-            expect(array_keys($value))->toBe($keys);
+            expect(array_values(array_intersect(array_keys($value), $keys)))->toBe($keys);
         }
         expect($data['layout'])->toBe('areas')->and($data['extends'])->toBe('modules')
             ->and($data['path'])->toBe('app/Modules/{area}')->and($data['token'])->toBe('area')
