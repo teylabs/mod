@@ -4,6 +4,7 @@ namespace Tey\Mod\Scaffolds;
 
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Generation\GenerationPlan;
+use Tey\Mod\Support\Path;
 
 /** @internal scoped to one scaffold invocation, shared with the normal adapters */
 final class ScaffoldExecution
@@ -75,7 +76,13 @@ final class ScaffoldExecution
 
     public function keeps(ResolvedArtifact $artifact): bool
     {
-        return in_array($artifact->path(), $this->keep, true);
+        foreach ($this->keep as $path) {
+            if (Path::same($artifact->path(), $path)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function replace(string $stub, ResolvedArtifact $self): string

@@ -1,9 +1,14 @@
 <?php
 
+use Tey\Mod\Artifact\ArtifactKind;
+use Tey\Mod\Artifact\ClassIdentity;
+use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Exceptions\GenerationRefused;
+use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Scaffolds\AnchorWriter;
 use Tey\Mod\Scaffolds\Placeholders;
 use Tey\Mod\Scaffolds\Scaffold;
+use Tey\Mod\Scaffolds\ScaffoldExecution;
 
 it('keeps CRLF, stub indentation, anchor indentation and trailing whitespace', function (string $comment) {
     $source = "<?php\r\n    $comment  \r\n}\r\n";
@@ -30,3 +35,18 @@ it('copies questions, parts and repetitions and replaces an inherited part', fun
     expect(array_keys($copy->questions()))->toBe(['tabs'])->and($copy->parts()['tab']->scaffold())->toBe('other')
         ->and($copy->repetitions())->toBe(['tabs' => 'tab'])->and($root->parts()['tab']->scaffold())->toBe('leaf');
 });
+
+it('compares kept paths with forward slashes on both sides', function (string $kept, string $target) {
+    $scope = new ScaffoldExecution;
+    $scope->keep = [$kept];
+    $artifact = new ResolvedArtifact(
+        ArtifactKind::phpClass('model'),
+        PlacementContext::none(),
+        'Widget',
+        new ClassIdentity('App\\Models', 'Widget', $target),
+    );
+    expect($scope->keeps($artifact))->toBeTrue();
+})->with([
+    ['app/Models/Widget.php', 'app\\Models\\Widget.php'],
+    ['app\\Models\\Widget.php', 'app/Models/Widget.php'],
+]);

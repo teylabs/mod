@@ -16,6 +16,7 @@ use Tey\Mod\Scaffolds\QuestionAnswers;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Scaffolds\ScaffoldExecution;
 use Tey\Mod\Scaffolds\ScaffoldPlan;
+use Throwable;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\select;
@@ -216,7 +217,10 @@ final class ScaffoldCommand extends Command
             }
 
             return self::SUCCESS;
-        } catch (ModException $exception) {
+        } catch (Throwable $exception) {
+            if (! $exception instanceof ModException) {
+                throw $exception;
+            }
             foreach (explode("\n", $exception->getMessage()) as $line) {
                 $this->components->error($line);
             }

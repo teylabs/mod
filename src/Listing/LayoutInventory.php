@@ -26,7 +26,7 @@ use Tey\Mod\Templates\TemplateCatalog;
  * @phpstan-type Rejected array{path: string, reason: string, detail: string, kind: ?string, class: ?string, candidates: list<string>}
  * @phpstan-type TypeRow array{id: string, command: ?string, aliases: list<string>, folder: string, source: string, stub: ?string, base: ?string, discovery: list<string>, classes: list<Entry>, relations: list<string>}
  * @phpstan-type MemberRow array{alias: string, type: string, name: ?string, stub: ?string, options: array<array-key, mixed>, folder: string}
- * @phpstan-type ScaffoldRow array{name: string, command: string, source: string, members: list<MemberRow>}
+ * @phpstan-type ScaffoldRow array{name: string, command: string, source: string, members: list<MemberRow>, uses?: ?string, children?: list<string>}
  * @phpstan-type Problem array{path: string, reason: string}
  * @phpstan-type Report array{layout: string, extends: ?string, path: ?string, token: ?string, groups: list<string>, types: list<TypeRow>, templates: array{problems: list<Problem>, notices: list<string>}, scaffolds: array{items: list<ScaffoldRow>, problems: list<array{name: string, reason: string}>}, discovery: array{enabled: bool, source: ?string, counts: array<string, int>, entries: list<Entry>, rejections: list<Rejected>, stale_cache: ?string}}
  */
@@ -84,14 +84,19 @@ final readonly class LayoutInventory
         }
         usort($types, static fn (array $a, array $b): int => $a['id'] <=> $b['id']);
         $scaffolds = $this->app->make(ScaffoldRegistry::class);
-        $recipes = $scaffolds->resolved();
+        $nodes = $scaffolds->nodes();
         $items = [];
-        foreach ($recipes as $scaffoldName => $recipe) {
+        foreach ($nodes as $scaffoldName => $node) {
             $members = [];
-            foreach ($recipe->members() as $alias => $member) {
-                $members[] = ['alias' => $alias, 'type' => $member->fileType, 'name' => $member->name, 'stub' => $member->stub, 'options' => $member->options, 'folder' => self::folder($layout, $member->fileType)];
+            foreach ($node['members'] as $alias => $member) {
+                $members[] = ['alias' => $alias, 'type' => $member['fileType'], 'name' => $member['name'], 'stub' => $member['stub'], 'options' => $member['options'], 'folder' => self::folder($layout, $member['fileType'])];
             }
-            $items[] = ['name' => $scaffoldName, 'command' => 'mod:'.$scaffoldName, 'source' => $scaffolds->sources()[$scaffoldName], 'members' => $members];
+            $row = ['name' => $scaffoldName, 'command' => 'mod:'.$scaffoldName, 'source' => $node['from'], 'members' => $members];
+            if ($node['children'] !== [] || str_contains($scaffoldName, '.')) {
+                $row['uses'] = $node['uses'];
+                $row['children'] = $node['children'];
+            }
+            $items[] = $row;
         }
         usort($items, static fn (array $a, array $b): int => $a['name'] <=> $b['name']);
         $catalog = $this->app->make(TemplateCatalog::class);

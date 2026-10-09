@@ -7,7 +7,9 @@ use Tey\Mod\Exceptions\GenerationRefused;
 /** @internal Marker lines are literal text; existing files are never parsed or reformatted. */
 final class AnchorWriter
 {
-    /** @return array{offset: int, line: string} */
+    /** @return array{offset: int, line: string}
+     * @throws GenerationRefused
+     */
     public function anchor(string $source, string $at, string $path): array
     {
         preg_match_all('/^.*(?:\r\n|\n|\r|$)/m', $source, $lines, PREG_OFFSET_CAPTURE);
@@ -27,6 +29,7 @@ final class AnchorWriter
         return array_values($matches)[0];
     }
 
+    /** @throws GenerationRefused */
     public function insert(string $source, string $at, string $stub, string $path): string
     {
         $anchor = $this->anchor($source, $at, $path);

@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Listing\LayoutInventory;
+use Throwable;
 
 /**
  * @internal The mod:list command and its JSON keys are public.
@@ -23,7 +24,10 @@ final class ListCommand extends Command
     {
         try {
             $report = $inventory->read();
-        } catch (ModException $exception) {
+        } catch (Throwable $exception) {
+            if (! $exception instanceof ModException) {
+                throw $exception;
+            }
             if ($this->option('json')) {
                 $this->line(json_encode(['error' => $exception->getMessage()], JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
             } else {
@@ -135,11 +139,16 @@ final class ListCommand extends Command
             return;
         }
         $this->line('  Scaffolds');
-        $rows = [];
-        foreach ($scaffolds as $scaffold) {
-            $rows[] = [$scaffold['name'], $scaffold['command'], $scaffold['source'], implode(', ', array_column($scaffold['members'], 'type'))];
+        $tree = array_filter($scaffolds, static fn (array $row): bool => isset($row['children'])) !== [];
+        if ($tree) {
+            $this->table(['Scaffold', 'Uses', 'From'], $this->scaffoldTreeRows($scaffolds), 'compact');
+        } else {
+            $rows = [];
+            foreach ($scaffolds as $scaffold) {
+                $rows[] = [$scaffold['name'], $scaffold['command'], $scaffold['source'], implode(', ', array_column($scaffold['members'], 'type'))];
+            }
+            $this->table(['Scaffold', 'Command', 'From', 'Members'], $rows, 'compact');
         }
-        $this->table(['Scaffold', 'Command', 'From', 'Members'], $rows, 'compact');
         if ($detail) {
             foreach ($scaffolds as $scaffold) {
                 foreach ($scaffold['members'] as $member) {
@@ -147,5 +156,36 @@ final class ListCommand extends Command
                 }
             }
         }
+    }
+
+    /** @param list<ScaffoldRow> $scaffolds
+     * @return list<array{string, string, string}>
+     */
+    private function scaffoldTreeRows(array $scaffolds): array
+    {
+        $nodes = [];
+        foreach ($scaffolds as $scaffold) {
+            $nodes[$scaffold['name']] = $scaffold;
+        }
+        $rows = [];
+        $visit = function (string $name, string $prefix, string $branch) use (&$visit, &$rows, $nodes): void {
+            $node = $nodes[$name] ?? null;
+            if ($node === null) {
+                return;
+            }
+            $rows[] = [$prefix.$branch.$name, $node['uses'] ?? '', $node['source']];
+            $children = $node['children'] ?? [];
+            foreach ($children as $index => $child) {
+                $next = $prefix.($branch === '' ? '' : ($branch === '└ ' ? '  ' : '│ '));
+                $visit($child, $next, $index === count($children) - 1 ? '└ ' : '├ ');
+            }
+        };
+        foreach ($scaffolds as $scaffold) {
+            if (! str_contains($scaffold['name'], '.')) {
+                $visit($scaffold['name'], '', '');
+            }
+        }
+
+        return $rows;
     }
 }

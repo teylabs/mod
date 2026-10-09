@@ -11,6 +11,7 @@ use Tey\Mod\Commands\MigrationCommand;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Support\Path;
+use Throwable;
 
 /**
  * Recipes are evaluated immediately so include() always takes a snapshot.
@@ -46,7 +47,10 @@ final class ScaffoldRegistry
         try {
             $this->recipes[$name][$source] = $this->build($recipe, str_contains($name, '.'));
             unset($this->definitionProblems[$name][$source]);
-        } catch (ModException $exception) {
+        } catch (Throwable $exception) {
+            if (! $exception instanceof ModException) {
+                throw $exception;
+            }
             $this->recipes[$name][$source] = new Scaffold;
             $this->definitionProblems[$name][$source] = $exception->getMessage();
         }
