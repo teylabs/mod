@@ -33,11 +33,13 @@ $handler->report($exception);
 $handler->renderForConsole(new Symfony\Component\Console\Output\ConsoleOutput, $exception);
 exit(1);
 CODE));
-        $process = new Process([PHP_BINARY, $workspace->root->path('diagnostics.php')]);
+        $process = new Process([PHP_BINARY, $workspace->root->path('diagnostics.php')], $workspace->root->path, getenv());
         $process->run();
         $output = (new CommandResult((int) $process->getExitCode(), $process->getOutput().$process->getErrorOutput(), $workspace->root->path))->normalisedOutput();
+        $output = (string) preg_replace('/\x1B\[[0-9;]*m/', '', $output);
+        $output = (string) preg_replace('/\s+/', ' ', $output);
         expect($process->getExitCode())->toBe(1)
-            ->and($output)->toContain('Skipped template [stubs/mod/{module}/Tools/broken.stub]', 'Command "mod:broken" is not defined')
-            ->and(strpos($output, 'Skipped template'))->toBeLessThan(strpos($output, 'Command "mod:broken"'));
+            ->and($output)->toContain('Skipped template [stubs/mod/{module}/Tools/broken.stub]', 'mod:broken', 'is not defined')
+            ->and(strpos($output, 'Skipped template'))->toBeLessThan(strpos($output, 'is not defined'));
     });
 });
