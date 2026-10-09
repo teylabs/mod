@@ -3,8 +3,10 @@
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Scaffolds\Scaffold;
+use Tey\Mod\Scaffolds\ScaffoldRegistry;
 use Tey\Mod\Tests\Feature\Acceptance\Examples\Support\TemplateScenario;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
+use Tey\Mod\Tests\Feature\Scaffolds\Support\Examples;
 
 it('selects module app and package templates by the target module without leaking between runs', function () {
     Workspace::run(null, function (Workspace $w) {
@@ -41,7 +43,7 @@ it('allows a module to override conflicting package templates without enabling t
 it('allows a module to override conflicting package scaffolds and refuses the ambiguous fallback', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'modules');
-        $registry = app(\Tey\Mod\Scaffolds\ScaffoldRegistry::class);
+        $registry = app(ScaffoldRegistry::class);
         foreach (['acme/kit', 'beta/kit'] as $package) {
             $registry->register('report', fn (Scaffold $s) => $s->makes('job', name: 'Package{name}'), $package);
         }
@@ -69,7 +71,7 @@ it('passes module-only template slots through scaffold members and pins the memb
 it('does not replace an unrelated layout recipe when a module owns another scaffold', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'modules');
-        $registry = app(\Tey\Mod\Scaffolds\ScaffoldRegistry::class);
+        $registry = app(ScaffoldRegistry::class);
         $registry->register('module-report', fn (Scaffold $s) => $s->makes('job'), 'module:Inventory');
         Mod::layout('modules')->scaffolds('layout-report', fn (Scaffold $s) => $s->makes('job'));
         $w->artisan('mod:layout-report', ['name' => 'Knowledge:Widget'])->assertSuccessful();
@@ -80,7 +82,7 @@ it('does not replace an unrelated layout recipe when a module owns another scaff
 it('resolves module tree parts against the same module recipes', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'modules');
-        $registry = app(\Tey\Mod\Scaffolds\ScaffoldRegistry::class);
+        $registry = app(ScaffoldRegistry::class);
         $registry->register('child', fn (Scaffold $s) => $s->makes('job', name: 'App{name}'));
         $registry->register('child', fn (Scaffold $s) => $s->makes('job', name: 'Module{name}'), 'module:Inventory');
         $registry->register('parent-report', fn (Scaffold $s) => $s->asks('children', type: 'list', default: ['One'])
@@ -120,7 +122,7 @@ it('refuses a module-only template outside its owner and describes the refusal i
 it('selects independent module scaffold questions and restores the fallback between runs', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'modules');
-        $registry = app(\Tey\Mod\Scaffolds\ScaffoldRegistry::class);
+        $registry = app(ScaffoldRegistry::class);
         $registry->register('report', fn (Scaffold $s) => $s->asks('title')->makes('job', name: '{title}{name}'), 'module:Inventory');
         $registry->register('report', fn (Scaffold $s) => $s->makes('job', name: 'Package{name}'), 'acme/kit');
         Mod::scaffold('report', fn (Scaffold $s) => $s->makes('job', name: 'App{name}'));
@@ -169,5 +171,37 @@ it('attributes a provider scaffold by namespace and retains app registrations se
             ->and($w->exists('app/Modules/Knowledge/Jobs/AppDocument.php'))->toBeTrue();
         $json = json_decode($w->artisan('mod:list', ['--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
         expect(array_column($json['scaffolds']['items'], 'source'))->toContain('module:Inventory', 'app');
+        $owned = array_values(array_filter($json['scaffolds']['items'], fn (array $row): bool => $row['source'] === 'module:Inventory'));
+        expect($owned[0]['from'])->toBe('module:Inventory')
+            ->and($owned[0]['origin'])->toBe($provider);
     });
 });
+
+it('selects the owner template after correcting a member group typo', function (bool $plain) {
+    Workspace::run(null, function (Workspace $w) use ($plain) {
+        config()->set('mod.layout', 'modules');
+        $w->write('app/Modules/Inventory/Jobs/.gitkeep', '');
+        $filename = $plain ? 'tool.ts.stub' : 'tool.stub';
+        $stub = $plain ? 'export const {{ name }} = true;' : TemplateScenario::CLASS_STUB;
+        $w->write('stubs/mod/@module/AppTools/'.$filename, $stub);
+        $w->write('app/Modules/Inventory/stubs/mod/@module/OwnedTools/'.$filename, $stub);
+        Mod::scaffold('correct-owner', fn (Scaffold $s) => $s->asks('area')->makes('tool', group: '{{ area }}'));
+        Examples::testCase()->artisan('mod:correct-owner', ['name' => 'Inventory:Widget', '--area' => 'Inventry'])
+            ->expectsQuestion("Inventry doesn't exist. Did you mean Inventory?", 'Inventory')
+            ->expectsConfirmation('Write these 1 files?', 'yes')->assertSuccessful();
+        expect($w->exists('app/Modules/Inventory/OwnedTools/Widget.'.($plain ? 'ts' : 'php')))->toBeTrue()
+            ->and($w->exists('app/Modules/Inventory/AppTools/Widget.'.($plain ? 'ts' : 'php')))->toBeFalse();
+    });
+})->with([false, true]);
+
+it('discovers module templates and scaffold classes in a custom group path', function (bool $absolute) {
+    Workspace::run(null, function (Workspace $w) use ($absolute) {
+        config()->set('mod.layout', 'areas');
+        Mod::layout('areas')->extends('modules')->path(($absolute ? $w->root->path('').'/' : '').'app/Areas/{area}');
+        $w->write('app/Areas/Inventory/stubs/mod/@module/Tools/tool.stub', TemplateScenario::CLASS_STUB);
+        $class = 'AreaReport'.bin2hex(random_bytes(4));
+        $w->write('app/Areas/Inventory/Scaffolds/'.$class.'.php', '<?php namespace App\\Areas\\Inventory\\Scaffolds; final class '.$class.' { public string $name = "area-report"; public function __invoke(\\Tey\\Mod\\Scaffolds\\Scaffold $s): void { $s->makes("tool"); } }');
+        $w->artisan('mod:area-report', ['name' => 'Inventory:Widget'])->assertSuccessful();
+        expect($w->exists('app/Areas/Inventory/Tools/Widget.php'))->toBeTrue();
+    });
+})->with([false, true]);

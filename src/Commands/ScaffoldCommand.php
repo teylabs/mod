@@ -3,6 +3,7 @@
 namespace Tey\Mod\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Container\Container;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -11,16 +12,21 @@ use Tey\Mod\Commands\Concerns\RunsScaffoldTree;
 use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\StubRegistry;
+use Tey\Mod\Layout\BuiltIn\GeneratorSources;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Plans\Plan;
 use Tey\Mod\Plans\PlanWriter;
+use Tey\Mod\Scaffolds\Member;
 use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Placeholders;
 use Tey\Mod\Scaffolds\QuestionAnswers;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Scaffolds\ScaffoldExecution;
 use Tey\Mod\Scaffolds\ScaffoldPlan;
+use Tey\Mod\Scaffolds\ScaffoldRegistry;
 use Tey\Mod\Support\Path;
+use Tey\Mod\Templates\TemplateCatalog;
 use Throwable;
 
 use function Laravel\Prompts\confirm;
@@ -37,7 +43,7 @@ final class ScaffoldCommand extends Command
 
     protected $signature = 'mod:scaffold {name} {--force} {--skip-existing} {--dry-run} {--json}';
 
-    public function __construct(private readonly string $recipeName, private readonly Scaffold $recipe, private readonly CompiledLayout $preset)
+    public function __construct(private readonly string $recipeName, private Scaffold $recipe, private readonly CompiledLayout $preset)
     {
         parent::__construct();
         $this->setName('mod:'.$recipeName);
@@ -58,13 +64,27 @@ final class ScaffoldCommand extends Command
         }
         $this->getDefinition()->addOption(new InputOption('in', null, InputOption::VALUE_REQUIRED, 'Placement in the layout’s group order'));
         foreach ($recipe->members() as $member) {
-            $this->memberSlots[$member->fileType] = array_values(array_diff($preset->rule($member->fileType)->dimensions(), $preset->dimensionNames()));
+            $this->memberSlots[$member->fileType] = $this->scaffoldSlots($member->fileType);
             foreach ($this->memberSlots[$member->fileType] as $slot) {
                 if (! $this->getDefinition()->hasOption($slot)) {
                     $this->getDefinition()->addOption(new InputOption($slot, null, InputOption::VALUE_REQUIRED, 'The '.$slot.' folder and template value'));
                 }
             }
         }
+    }
+
+    /** @return list<string> */
+    private function scaffoldSlots(string $fileType): array
+    {
+        $slots = array_values(array_diff($this->preset->rule($fileType)->dimensions(), $this->preset->dimensionNames()));
+        $container = Container::getInstance();
+        if ($container->resolved(TemplateCatalog::class)) {
+            foreach ($container->make(TemplateCatalog::class)->variants()[$fileType] ?? [] as $record) {
+                $slots = [...$slots, ...$record['slots']];
+            }
+        }
+
+        return array_values(array_unique($slots));
     }
 
     protected function resolveLayout(): CompiledLayout
@@ -85,9 +105,40 @@ final class ScaffoldCommand extends Command
 
     private ?Plan $dryPlan = null;
 
+    private ?ScaffoldRegistry $recipeRegistry = null;
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->dryPlan = null;
+        $registry = $this->laravel->make(ScaffoldRegistry::class);
+        $original = $this->recipe;
+        if ($registry->hasGroupRecipe($this->recipeName)) {
+            $group = implode('/', $this->placementContext()->toArray());
+            $this->recipeRegistry = $registry->forGroup($group);
+            $accepted = $this->recipeRegistry->resolve($this->preset, $this->layoutName());
+            $selected = $accepted[$this->recipeName] ?? null;
+            if ($selected === null) {
+                $message = $this->recipeRegistry->problems()[$this->recipeName] ?? sprintf(GeneratorSources::WRONG_OWNER, $this->recipeName);
+                $this->recipeRegistry = null;
+                if ($input->getOption('dry-run')) {
+                    return (new PlanWriter)->preview($this, $input, static fn (Plan $plan) => $plan->warning($message));
+                }
+                $this->components->error($message);
+
+                return self::FAILURE;
+            }
+            $this->recipe = $selected;
+        }
+        try {
+            return $this->executeRecipe($input, $output);
+        } finally {
+            $this->recipe = $original;
+            $this->recipeRegistry = null;
+        }
+    }
+
+    private function executeRecipe(InputInterface $input, OutputInterface $output): int
+    {
         if ($input->getOption('dry-run')) {
             return (new PlanWriter)->preview($this, $input, function (Plan $preview) use ($input, $output): void {
                 $this->dryPlan = $preview;
@@ -116,7 +167,7 @@ final class ScaffoldCommand extends Command
                     }
                 }
             }
-            $this->dryPlan->artifact($file['alias'], $file['artifact'], $this->laravel->basePath());
+            $this->dryPlan->artifact($file['alias'], $file['artifact'], $this->laravel->basePath(), $file['member']?->existing);
         }
         $this->dryPlan->collisions((bool) $this->option('force'), (bool) $this->option('skip-existing'));
     }
@@ -155,7 +206,8 @@ final class ScaffoldCommand extends Command
                 $kind = $this->preset->kind($member->fileType);
                 $command = $kind->command ?? throw GenerationRefused::because("File type [{$member->fileType}] has no command. Enable its command to use mod:{$this->recipeName}.");
                 $arguments = ['name' => $member->name === null ? $name : (new Placeholders($values))->name($member->name)];
-                $placement = $this->inOption($context);
+                $scope->ungrouped = $member->ungrouped;
+                $placement = $this->inOption($this->memberContext($member, $context, $values));
                 if ($placement !== '') {
                     $arguments['--in'] = $placement;
                 }
@@ -183,14 +235,19 @@ final class ScaffoldCommand extends Command
                 $this->configurePrompts($this->input);
                 $memberPlan = $scope->collected();
                 $scope->aliases[$alias] = $memberPlan->primary;
-                $plan->add($alias, $memberPlan, $scope);
-                $calls[] = [$command, $arguments];
+                $plan->add($alias, $memberPlan, $scope, $member);
+                if ($placement !== '') {
+                    $arguments['--in'] = $this->inOption($memberPlan->primary->context);
+                }
+                $calls[] = [$command, $arguments, $member->ungrouped];
                 // The first member may settle a typo or case difference. Every member uses that placement.
-                $context = $memberPlan->primary->context;
+                if (! $member->ungrouped && $member->group === null) {
+                    $context = $memberPlan->primary->context;
+                }
             }
 
-            foreach ($plan->files() as ['artifact' => $artifact]) {
-                $scope->values[$artifact->path()] = [...$scope->aliases, ...$values];
+            foreach ($plan->files() as ['artifact' => $artifact, 'member' => $member]) {
+                $scope->values[$artifact->path()] = [...$scope->aliases, ...$values, ...($member?->ungrouped ? ['name' => $artifact->name] : [])];
             }
             foreach ($this->recipe->members() as $alias => $member) {
                 if ($member->stub === null) {
@@ -231,11 +288,14 @@ final class ScaffoldCommand extends Command
             if ($this->dryPlan !== null) {
                 return self::SUCCESS;
             }
-            $count = count($plan->files());
-            $this->components->info("mod:{$this->recipeName} will write {$count} files for {$inputName}.");
-            foreach ($plan->files() as ['artifact' => $artifact, 'alias' => $alias]) {
+            $scope->keep = $scope->silentKeep = $plan->kept($this->laravel->basePath());
+            $count = count($plan->files()) - count($scope->keep);
+            $noun = $count === 1 && $scope->keep !== [] ? 'file' : 'files';
+            $this->components->info("mod:{$this->recipeName} will write {$count} {$noun} for {$inputName}.");
+            foreach ($plan->files() as $file) {
+                $artifact = $file['artifact'];
                 $path = $artifact->path();
-                $label = $alias.(in_array($path, $existing, true) ? ' (exists)' : '');
+                $label = ScaffoldPlan::label($file, is_file($this->laravel->basePath($path)));
                 $this->line('  '.$path.' '.str_repeat('.', max(2, 72 - strlen($path) - strlen($label) - 4)).' '.$label);
             }
             $this->newLine();
@@ -252,9 +312,9 @@ final class ScaffoldCommand extends Command
                     return self::SUCCESS;
                 }
                 $scope->force = $choice === $overwrite;
-                $scope->keep = $choice === $keep ? $existing : [];
+                $scope->keep = [...$scope->keep, ...($choice === $keep ? $existing : [])];
             } elseif ($existing !== [] && ! $scope->force) {
-                $scope->keep = $existing;
+                $scope->keep = [...$scope->keep, ...$existing];
             } elseif ($this->interactive() && ! confirm("Write these {$count} files?", default: true)) {
                 return self::SUCCESS;
             }
@@ -265,7 +325,8 @@ final class ScaffoldCommand extends Command
                 $this->components->info("Published stub [{$relative}] from the {$fileType} stub. Edit it to make it the house {$fileType}.");
             }
             $scope->planning = false;
-            foreach ($calls as [$command, $arguments]) {
+            foreach ($calls as [$command, $arguments, $ungrouped]) {
+                $scope->ungrouped = $ungrouped;
                 if ($scope->force && $this->getApplication()?->find($command)->getDefinition()->hasOption('force')) {
                     $arguments['--force'] = true;
                 }
@@ -290,6 +351,28 @@ final class ScaffoldCommand extends Command
         } finally {
             $previous === null ? $this->laravel->forgetInstance(ScaffoldExecution::class) : $this->laravel->instance(ScaffoldExecution::class, $previous);
         }
+    }
+
+    /** @param array<string, mixed> $values */
+    private function memberContext(Member $member, PlacementContext $context, array $values): PlacementContext
+    {
+        $scope = $this->scaffoldExecution();
+        if ($scope !== null) {
+            $scope->groupFlag = $member->group === null ? null : (preg_match('/\{\{\s*(\w+)\s*\}\}/', $member->group, $match) === 1 ? '--'.$match[1] : '--in');
+        }
+        if ($member->ungrouped) {
+            return PlacementContext::none();
+        }
+        if ($member->group !== null) {
+            $group = (new Placeholders($values))->render($member->group);
+            if ($group === '' || str_contains($group, '{{')) {
+                throw GenerationRefused::because("mod:{$this->recipeName} needs a member group. Answer its group question with the corresponding flag.");
+            }
+
+            return PlacementContext::fromOption($group, $this->preset);
+        }
+
+        return $context;
     }
 
     private function interactive(): bool

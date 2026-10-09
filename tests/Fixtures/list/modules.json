@@ -451,6 +451,7 @@
         }
     ],
     "templates": {
+        "items": [],
         "problems": [],
         "notices": []
     },

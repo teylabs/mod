@@ -18,6 +18,7 @@ use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\CollisionPolicy;
 use Tey\Mod\Generation\ExistingArtifacts;
 use Tey\Mod\Generation\GenerationPlan;
+use Tey\Mod\Layout\BuiltIn\BuiltInLayouts;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\Collision;
 use Tey\Mod\Placement\CollisionDiagnoser;
@@ -71,7 +72,7 @@ trait InteractsWithLayout
 {
     /** Container key set while a mod:* command generates a related file through another one. */
     /** @param callable(): int $collect */
-    private function previewGeneration(callable $collect): int
+    protected function previewGeneration(callable $collect): int
     {
         return (new PlanWriter)->preview($this, $this->input, function (Plan $preview) use ($collect): void {
             $previous = $this->scaffoldExecution();
@@ -479,6 +480,12 @@ trait InteractsWithLayout
     /**
      * Hook: where the primary artifact is placed.
      */
+    /** @internal A template selects its group before the native adapter resets its plan. */
+    protected function resetGroupAnswers(): void
+    {
+        $this->modGroupValues = [];
+    }
+
     protected function placementContext(): PlacementContext
     {
         $context = PlacementContext::fromOption($this->placementInput() ?? '', $this->layout());
@@ -518,6 +525,12 @@ trait InteractsWithLayout
     protected function resolveArtifact(string $kindId, string $name, PlacementContext $context, array $attributes = []): ResolvedArtifact
     {
         $rule = $this->layout()->rule($kindId);
+        if ($this->scaffoldExecution()?->ungrouped && $rule instanceof TemplateRule) {
+            $rule = (new BuiltInLayouts)->ungrouped($kindId) ?? $rule->withoutGroup($this->layout()->dimensionNames());
+            if ($rule instanceof TemplateRule) {
+                return $rule->withNestedNames()->place($this->layout()->kind($kindId), $name, PlacementContext::none(), $attributes);
+            }
+        }
         if ($this->scaffoldExecution()?->nestedNames && $rule instanceof TemplateRule) {
             return $rule->withNestedNames()->place($this->layout()->kind($kindId), $name, $context, $attributes);
         }

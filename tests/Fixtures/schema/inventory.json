@@ -178,7 +178,8 @@
       "type": "object",
       "required": [
         "problems",
-        "notices"
+        "notices",
+        "items"
       ],
       "properties": {
         "problems": {
@@ -203,6 +204,28 @@
           "type": "array",
           "items": {
             "type": "string"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "type",
+              "source",
+              "path"
+            ],
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              }
+            }
           }
         }
       }
@@ -244,7 +267,10 @@
                     "name",
                     "stub",
                     "options",
-                    "folder"
+                    "folder",
+                    "ungrouped",
+                    "group",
+                    "existing"
                   ],
                   "properties": {
                     "alias": {
@@ -273,6 +299,21 @@
                     },
                     "folder": {
                       "type": "string"
+                    },
+                    "ungrouped": {
+                      "type": "boolean"
+                    },
+                    "group": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "existing": {
+                      "enum": [
+                        "keep",
+                        null
+                      ]
                     }
                   }
                 }
@@ -288,6 +329,12 @@
                 "items": {
                   "type": "string"
                 }
+              },
+              "from": {
+                "type": "string"
+              },
+              "origin": {
+                "type": "string"
               }
             }
           }

@@ -434,6 +434,7 @@
         }
     ],
     "templates": {
+        "items": [],
         "problems": [],
         "notices": []
     },

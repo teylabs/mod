@@ -6,7 +6,7 @@ namespace Tey\Mod\Tests\Feature\Acceptance\Examples\Support;
 final class PlacementScenario
 {
     /** @param array<string, string> $rows
-     * @param list<array{string, string}> $messages
+     * @param  list<array{string, string}>  $messages
      */
     public static function output(string $command, string $name, int $count, array $rows, array $messages): string
     {

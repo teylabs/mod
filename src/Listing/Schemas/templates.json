@@ -8,7 +8,8 @@
       "type": "object",
       "required": [
         "problems",
-        "notices"
+        "notices",
+        "items"
       ],
       "properties": {
         "problems": {
@@ -33,6 +34,28 @@
           "type": "array",
           "items": {
             "type": "string"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "type",
+              "source",
+              "path"
+            ],
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              }
+            }
           }
         }
       }

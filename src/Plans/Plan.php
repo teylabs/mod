@@ -11,7 +11,7 @@ use Tey\Mod\Views\ViewIdentity;
 /** @internal The additive, read-only description shared by every writing command. */
 final class Plan
 {
-    /** @var list<array{alias: string, type: string, path: string, class?: string, identity?: array<string, mixed>, group: ?string, existing: bool, exists: bool}> */
+    /** @var list<array{alias: string, type: string, path: string, class?: string, identity?: array<string, mixed>, group: ?string, existing: bool|string, exists: bool}> */
     public array $files = [];
 
     /** @var list<array{into: string, at: string, stub: string}> */
@@ -30,16 +30,16 @@ final class Plan
 
     public function __construct(public readonly string $command, public ?string $group = null, public ?string $name = null) {}
 
-    public function artifact(string $alias, ResolvedArtifact $artifact, string $basePath): void
+    public function artifact(string $alias, ResolvedArtifact $artifact, string $basePath, ?string $existing = null): void
     {
-        $group = implode('/', $artifact->context->toArray()) ?: null;
+        $group = implode('/', $artifact->context->only(app(CompiledLayout::class)->dimensionNames())->toArray()) ?: null;
         $exists = is_file(Path::resolve($basePath, $artifact->path()));
         $class = $artifact->fqcn();
         $identity = $class === null ? ['identity' => Identity::forms($artifact, app(CompiledLayout::class))] : ['class' => $class];
         if ($artifact->identity instanceof ViewIdentity) {
             $identity = ['identity' => ['path' => $artifact->path(), 'name' => $artifact->identity->name(), 'tag' => $artifact->identity->tag()]];
         }
-        $this->files[] = ['alias' => $alias, 'type' => $artifact->kind->id, 'path' => $artifact->path(), ...$identity, 'group' => $group, 'existing' => $exists, 'exists' => $exists];
+        $this->files[] = ['alias' => $alias, 'type' => $artifact->kind->id, 'path' => $artifact->path(), ...$identity, 'group' => $group, 'existing' => $existing ?? $exists, 'exists' => $exists];
         $this->group ??= $group;
     }
 
@@ -62,7 +62,7 @@ final class Plan
 
     public function collisions(bool $force = false, bool $skipExisting = false): void
     {
-        if (! $force && ! $skipExisting && array_filter($this->files, static fn (array $file): bool => $file['exists']) !== []) {
+        if (! $force && ! $skipExisting && array_filter($this->files, static fn (array $file): bool => $file['exists'] && $file['existing'] !== 'keep') !== []) {
             $this->wouldWrite = false;
         }
     }

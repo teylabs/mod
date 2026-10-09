@@ -41,7 +41,10 @@
                     "name",
                     "stub",
                     "options",
-                    "folder"
+                    "folder",
+                    "ungrouped",
+                    "group",
+                    "existing"
                   ],
                   "properties": {
                     "alias": {
@@ -70,6 +73,21 @@
                     },
                     "folder": {
                       "type": "string"
+                    },
+                    "ungrouped": {
+                      "type": "boolean"
+                    },
+                    "group": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "existing": {
+                      "enum": [
+                        "keep",
+                        null
+                      ]
                     }
                   }
                 }
@@ -85,6 +103,12 @@
                 "items": {
                   "type": "string"
                 }
+              },
+              "from": {
+                "type": "string"
+              },
+              "origin": {
+                "type": "string"
               }
             }
           }

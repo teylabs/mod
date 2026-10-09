@@ -11,6 +11,10 @@ final class ScaffoldExecution
 {
     public bool $planning = true;
 
+    public bool $ungrouped = false;
+
+    public ?string $groupFlag = null;
+
     public bool $nestedNames = false;
 
     /** @var array<string, GenerationPlan> primary path => accepted plan */
@@ -27,6 +31,9 @@ final class ScaffoldExecution
 
     /** @var list<string> */
     public array $keep = [];
+
+    /** @var list<string> Explicit member policies, kept without a per-file announcement. */
+    public array $silentKeep = [];
 
     /** @var array<string, list<ResolvedArtifact>> */
     public array $bases = [];

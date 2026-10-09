@@ -408,6 +408,7 @@
         }
     ],
     "templates": {
+        "items": [],
         "problems": [],
         "notices": []
     },

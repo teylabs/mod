@@ -20,6 +20,12 @@ final class JsonSchema
         if ($types !== [] && ! in_array($type, $types, true) && ! ($value === [] && in_array('object', $types, true))) {
             $errors[] = $path.' has the wrong type';
         }
+        if (array_key_exists('const', $schema) && $value !== $schema['const']) {
+            $errors[] = $path.' differs from the required value';
+        }
+        if (isset($schema['enum']) && ! in_array($value, $schema['enum'], true)) {
+            $errors[] = $path.' has an unsupported value';
+        }
         if (is_array($value)) {
             foreach ($schema['required'] ?? [] as $key) {
                 if (! array_key_exists($key, $value)) {

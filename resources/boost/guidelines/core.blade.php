@@ -42,3 +42,13 @@ Only known `name` between double braces placeholders are replaced. Unknown Vue a
 Plain scaffold members expose the component name through their bare alias, plus `.name`, `.import` through `@modules` for files under the group root or `@` for files under `resources/js`, `.tag` for Blade components, and `.path`. A `file` question accepts a project-relative plain file and exposes the same forms. Variants use `stubs/mod.page.<variant>.<extension>.stub`; a missing variant prompts to create it, and a non-interactive run names the file to supply. Inserts use explicit anchors in any comment style, including Vue script and template anchors.
 
 `mod:template --from=<plain-file> --into=<template-path>` copies the source unchanged, derives its extension, and reports name/group mentions for manual generalization. Its JSON preview includes `mentions[]` and writes nothing.
+
+## Scaffold member placement and module-owned generators (0.3)
+
+Use `ungrouped: true` on a scaffold member to place it where its file type goes without a group: an interface under `app/`, or a plain template under the app's `resources/`. Use `group:` with the `area` question placeholder with `->asks('area')` to place that member in its own group; pass the question's `--area` flag with `--no-interaction`. Group values receive the ordinary typo suggestions and new-group notices. Other members keep the scaffold's default group.
+
+A member with `existing: 'keep'` is written once, then retained without a collision question, including when the scaffold uses `--force`. Inspect `--dry-run --json`: each file has `group` (`null` for ungrouped), `existing` (`"keep"` for this policy), and `exists`. Human plans label retained files "kept, exists".
+
+A module can carry generator templates in its own `stubs/mod/`; every template there must use an `@module` path. Commands against that module choose its template or recipe before the app's, then the package's. Invokable classes in the module's `Scaffolds/` folder declare a public `$name` and `__invoke(Scaffold $scaffold)`; include `use Tey\Mod\Scaffolds\Scaffold;`. Alternatively register them with `Mod::scaffolds([...])` in a provider whose namespace is inside the module's namespace. Copying the module folder carries both kinds of generators. Use `mod:class Inventory:Scaffolds/StockReport` to start an invokable class.
+
+Read `php artisan mod:list --json` for template and scaffold sources: `module:Inventory`, `app`, or `package:vendor/name`. `mod:list -v` shows the template file, scaffold file or provider. Review the selected source before extending a copied module.

@@ -1,11 +1,11 @@
 <?php
 
+use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Contracts\Foundation\Application;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
 use Tey\Mod\Tests\Feature\Acceptance\Examples\Support\TemplateScenario;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
-use Illuminate\Contracts\Foundation\Application;
-use Illuminate\Contracts\Console\Kernel;
 
 it('P13 discovers a portable module template and invokable scaffold', function () {
     Workspace::run(null, function (Workspace $w) {
@@ -57,7 +57,7 @@ it('P13 copies Inventory into a fresh testbench app with its template and both s
             file_put_contents($target->path('composer.json'), '{"autoload":{"psr-4":{"App\\\\":"app/"}}}');
             require $target->path('app/Modules/Inventory/Providers/'.$provider.'.php');
             TemplateScenario::testCase()->bootApplicationUsing(function (Application $app) use ($target, $provider) {
-                if (! $app instanceof \Illuminate\Foundation\Application) {
+                if (! $app instanceof Illuminate\Foundation\Application) {
                     throw new LogicException('Testbench needs a Laravel application.');
                 }
                 $app->setBasePath($target->path);

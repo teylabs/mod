@@ -1,6 +1,7 @@
 <?php
 
 use Tey\Mod\Facades\Mod;
+use Tey\Mod\Generation\Stub;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Tests\Feature\Acceptance\Examples\Support\PlacementScenario;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
@@ -13,7 +14,7 @@ it('P11 places a shared contract outside the module and keeps it on the next run
         $w->write('app/Modules/Knowledge/ViewModels/.gitkeep', '');
         $w->write('stubs/mod.view-model.stub', "<?php\n\nnamespace {{ namespace }};\n\nclass {{ class }} {}\n");
         $w->write('stubs/mod.interface.stub', "<?php\n\nnamespace {{ namespace }};\n\ninterface {{ class }} {}\n");
-        Mod::stubs()->for('view-model', \Tey\Mod\Generation\Stub::file($w->root->path('stubs/mod.view-model.stub')));
+        Mod::stubs()->for('view-model', Stub::file($w->root->path('stubs/mod.view-model.stub')));
         Mod::scaffold('typed-page', fn (Scaffold $s) => $s
             ->makes('view-model', name: '{name}PageViewModel', as: 'page')
             ->makes('interface', name: 'Support/PageData', ungrouped: true, as: 'contract', existing: 'keep'));

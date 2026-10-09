@@ -8,11 +8,14 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Artifact\ArtifactKind;
+use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Commands\Concerns\InteractsWithLayout;
+use Tey\Mod\Commands\Concerns\SelectsGroupTemplates;
 use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\GenerationPlan;
 use Tey\Mod\Generation\GeneratorAdapter;
+use Tey\Mod\Generation\GroupFolders;
 use Tey\Mod\Generation\PlainFile\Identity;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Plans\Plan;
@@ -25,6 +28,7 @@ use Tey\Mod\Support\Stack;
 class PlainFileCommand extends Command implements GeneratorAdapter
 {
     use InteractsWithLayout { forKind as bindKind; }
+    use SelectsGroupTemplates;
 
     protected $signature = 'mod:plain {name} {--force} {--dry-run} {--json}';
 
@@ -40,7 +44,7 @@ class PlainFileCommand extends Command implements GeneratorAdapter
     public function forKind(CompiledLayout $preset, ArtifactKind $kind): static
     {
         $this->bindKind($preset, $kind);
-        foreach ($preset->templates()[$kind->id]['slots'] ?? [] as $slot) {
+        foreach ($this->templateSlots() as $slot) {
             if (! $this->getDefinition()->hasOption($slot)) {
                 $this->getDefinition()->addOption(new InputOption($slot, null, InputOption::VALUE_REQUIRED, 'The '.$slot.' folder and template value'));
             }
@@ -65,6 +69,19 @@ class PlainFileCommand extends Command implements GeneratorAdapter
     public function handle(): int
     {
         try {
+            return $this->withGroupTemplates(fn (): int => $this->generateFile());
+        } catch (ModException $error) {
+            if ($this->preview !== null || $this->scaffoldExecution()?->planning) {
+                throw $error;
+            }
+
+            return $this->reportRefusal($error);
+        }
+    }
+
+    private function generateFile(): int
+    {
+        try {
             if ($this->kind()->id === 'page' && $this->laravel->make(Stack::class)->inertia() === null) {
                 throw GenerationRefused::because('mod:page: No Inertia app found in package.json. Declare @inertiajs/vue3 or @inertiajs/react before creating a page.');
             }
@@ -81,6 +98,12 @@ class PlainFileCommand extends Command implements GeneratorAdapter
             }
             $artifact = $this->resolveArtifact($this->kind()->id, $this->shorthand()[1], $context);
             $scope = $this->scaffoldExecution();
+            if ($scope?->planning && $scope->groupFlag !== null) {
+                $artifact = $this->settleMemberGroup($artifact);
+                $context = $artifact->context;
+                $this->bindGroupTemplates($context);
+                $artifact = $this->resolveArtifact($this->kind()->id, $this->shorthand()[1], $context);
+            }
             $file = $this->templateFile();
             if ($scope?->planning) {
                 $scope->collect(new GenerationPlan($artifact), $file);
@@ -132,6 +155,10 @@ class PlainFileCommand extends Command implements GeneratorAdapter
                 $suffix = " Render it with Inertia::render('".$forms['name']."').";
             }
             $this->components->info($label.' ['.$artifact->path().'] created successfully.'.$suffix);
+            if (isset($scope->groupNotices[$artifact->path()])) {
+                $this->components->info($scope->groupNotices[$artifact->path()]);
+                unset($scope->groupNotices[$artifact->path()]);
+            }
 
             return self::SUCCESS;
         } catch (ModException $error) {
@@ -141,6 +168,48 @@ class PlainFileCommand extends Command implements GeneratorAdapter
 
             return $this->reportRefusal($error);
         }
+    }
+
+    private function settleMemberGroup(ResolvedArtifact $artifact): ResolvedArtifact
+    {
+        $folders = new GroupFolders($this->laravel->basePath());
+        $scope = $this->scaffoldExecution();
+        for ($level = 0; $level < 64; $level++) {
+            $finding = $folders->inspect($this->layout(), $artifact);
+            if ($finding === null) {
+                return $artifact;
+            }
+            ['kind' => $kind, 'dimension' => $dimension, 'value' => $value, 'suggestions' => $suggestions] = $finding;
+            $choice = null;
+            if ($kind === 'case') {
+                $choice = $suggestions[0];
+                $this->components->info("Using existing {$dimension} {$choice} (you typed {$value}).");
+            } elseif ($kind === 'near' || $kind === 'cases') {
+                if (! $this->interactive()) {
+                    throw GenerationRefused::because($this->getName().": {$value} doesn't exist. Did you mean ".implode(' or ', $suggestions).'? Pass '.$scope?->groupFlag.'='.$suggestions[0].'. Nothing was written.');
+                }
+                $choice = $kind === 'near'
+                    ? (string) \Laravel\Prompts\suggest("{$value} doesn't exist. Did you mean {$suggestions[0]}?", $suggestions, default: $suggestions[0], required: true)
+                    : (string) \Laravel\Prompts\select(ucfirst($dimension)." [{$value}] doesn't exist. Which one did you mean?", [...$suggestions, 'Cancel'], $suggestions[0]);
+                if ($choice === 'Cancel') {
+                    throw GenerationRefused::because('Cancelled; nothing was written.');
+                }
+                if ($choice === $value) {
+                    $choice = null;
+                }
+            }
+            if ($choice === null) {
+                if ($scope !== null && ! in_array($dimension.':'.$value, $scope->newGroups, true)) {
+                    $scope->newGroups[] = $dimension.':'.$value;
+                    $scope->groupNotices[$artifact->path()] = "Created new {$dimension} {$value}.";
+                }
+
+                return $artifact;
+            }
+            $artifact = $this->resolveArtifact($this->kind()->id, $this->shorthand()[1], $artifact->context->with($dimension, $choice));
+        }
+
+        return $artifact;
     }
 
     private function interactive(): bool

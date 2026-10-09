@@ -198,3 +198,13 @@ Scaffold inserts use `into: 'routes'` for the module's web file or `into: 'route
 - `mod:template --from=<plain-file> --into=<template-path> --dry-run --json` reports `mentions[]`. The real run copies the bytes unchanged. Generalize the reported mentions manually with known placeholders.
 
 Use `@modules/...` imports for files under the layout group root and `@/...` for files under `resources/js`. Never cross an alias root with `../`. A part keeps the cluster name in `{name}`; use its question placeholder (such as `{widget}`) for the part value.
+
+## Scaffold member placement and module-owned generators (0.3)
+
+Use `ungrouped: true` on a scaffold member to place it where its file type goes without a group: an interface under `app/`, or a plain template under the app's `resources/`. Use `group: '{{ area }}'` with `->asks('area')` to place that member in its own group; pass the question's `--area` flag with `--no-interaction`. Group values receive the ordinary typo suggestions and new-group notices. Other members keep the scaffold's default group.
+
+A member with `existing: 'keep'` is written once, then retained without a collision question, including when the scaffold uses `--force`. Inspect `--dry-run --json`: each file has `group` (`null` for ungrouped), `existing` (`"keep"` for this policy), and `exists`. Human plans label retained files "kept, exists".
+
+A module can carry generator templates in its own `stubs/mod/`; every template there must use an `@module` path. Commands against that module choose its template or recipe before the app's, then the package's. Invokable classes in the module's `Scaffolds/` folder declare a public `$name` and `__invoke(Scaffold $scaffold)`; include `use Tey\Mod\Scaffolds\Scaffold;`. Alternatively register them with `Mod::scaffolds([...])` in a provider whose namespace is inside the module's namespace. Copying the module folder carries both kinds of generators. Use `mod:class Inventory:Scaffolds/StockReport` to start an invokable class.
+
+Read `php artisan mod:list --json` for template and scaffold sources: `module:Inventory`, `app`, or `package:vendor/name`. `mod:list -v` shows the template file, scaffold file or provider. Review the selected source before extending a copied module.

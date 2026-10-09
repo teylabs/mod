@@ -134,7 +134,8 @@ it('keeps explicit keep members silently after displaying the plan', function ()
         Mod::scaffold('shared-contract', fn (Scaffold $s) => $s->makes('interface', name: 'Shared', ungrouped: true, existing: 'keep'));
         $result = $w->artisan('mod:shared-contract', ['name' => 'Inventory:Widget', '--force' => true])->assertSuccessful();
         expect($w->read('app/Shared.php'))->toBe("<?php\r\n// shared\r\n")
-            ->and($result->normalisedOutput())->toContain('kept, exists')->not->toContain('Kept app/Shared.php.');
+            ->and($result->normalisedOutput())->toContain('kept, exists');
+        expect($result->normalisedOutput())->not->toContain('Kept app/Shared.php.');
     });
 });
 

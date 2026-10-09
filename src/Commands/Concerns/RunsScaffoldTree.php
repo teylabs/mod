@@ -29,7 +29,7 @@ use function Laravel\Prompts\confirm;
 /** @internal Creation and growing share the same subtree planner. */
 trait RunsScaffoldTree
 {
-    /** @var list<array{0: string, 1: array<string, mixed>}> */
+    /** @var list<array{0: string, 1: array<string, mixed>, 2: bool}> */
     private array $treeCalls = [];
 
     /** @var list<array{path: string, at: string, stub: string, label: string}> */
@@ -56,6 +56,12 @@ trait RunsScaffoldTree
         }
         $registry = $this->laravelRegistry();
         $recipes = [$this->recipe];
+        foreach ($registry->groups() as $group) {
+            $recipe = $registry->forGroup($group)->get($this->recipeName);
+            if ($recipe !== null) {
+                $recipes[] = $recipe;
+            }
+        }
         if ($this->recipe instanceof Part && $this->recipe->scaffold() !== null) {
             $child = $registry->get($this->recipe->scaffold());
             if ($child !== null) {
@@ -88,7 +94,8 @@ trait RunsScaffoldTree
                 if (! $this->preset->hasKind($member->fileType)) {
                     continue;
                 }
-                foreach ($this->preset->rule($member->fileType)->dimensions() as $slot) {
+                $this->memberSlots[$member->fileType] = $this->scaffoldSlots($member->fileType);
+                foreach ($this->memberSlots[$member->fileType] as $slot) {
                     if (! in_array($slot, $this->preset->dimensionNames(), true) && ! $this->getDefinition()->hasOption($slot)) {
                         $this->getDefinition()->addOption(new InputOption($slot, null, InputOption::VALUE_REQUIRED, 'The '.$slot.' folder and template value'));
                     }
@@ -109,7 +116,7 @@ trait RunsScaffoldTree
 
     private function laravelRegistry(): ScaffoldRegistry
     {
-        return Container::getInstance()->make(ScaffoldRegistry::class);
+        return $this->recipeRegistry ?? Container::getInstance()->make(ScaffoldRegistry::class);
     }
 
     private function handleTree(): int
@@ -189,12 +196,13 @@ trait RunsScaffoldTree
 
                 return self::SUCCESS;
             }
-            $count = count($plan->files());
+            $scope->keep = $scope->silentKeep = $plan->kept($this->laravel->basePath());
+            $count = count($plan->files()) - count($scope->keep);
             $inserts = count($this->treeInserts);
             $suffix = $inserts === 0 ? '' : " and {$inserts} inserts";
             $this->components->info("mod:{$this->recipeName} will write {$count} ".($count === 1 ? 'file' : 'files').$suffix.' for '.$this->rawNameInput().'.');
-            foreach ($plan->files() as ['artifact' => $artifact, 'alias' => $alias]) {
-                $this->treeLine($artifact->path(), $alias);
+            foreach ($plan->files() as $file) {
+                $this->treeLine($file['artifact']->path(), ScaffoldPlan::label($file, is_file($this->laravel->basePath($file['artifact']->path()))));
             }
             foreach ($this->treeInserts as $insert) {
                 $anchor = $writer->anchor($sources[$insert['path']], $insert['at'], $insert['path']);
@@ -219,7 +227,8 @@ trait RunsScaffoldTree
                 $this->components->info("Published stub [{$path}] from the page stub. Edit it to make it the house page.");
             }
             $scope->planning = false;
-            foreach ($this->treeCalls as [$command, $arguments]) {
+            foreach ($this->treeCalls as [$command, $arguments, $ungrouped]) {
+                $scope->ungrouped = $ungrouped;
                 if ($this->call($command, $arguments) !== self::SUCCESS) {
                     throw GenerationRefused::because("Generating mod:{$this->recipeName} failed. Nothing was written.");
                 }
@@ -345,11 +354,12 @@ trait RunsScaffoldTree
             $command = $this->preset->kind($member->fileType)->command ?? throw GenerationRefused::because("File type [{$member->fileType}] has no command.");
             $stem = $member->name === null ? $name : (new Placeholders($values))->name($member->name);
             $arguments = ['name' => $folder.$stem, '--no-interaction' => true];
-            $placement = $this->inOption($context);
+            $scope->ungrouped = $member->ungrouped;
+            $placement = $this->inOption($this->memberContext($member, $context, $values));
             if ($placement !== '') {
                 $arguments['--in'] = $placement;
             }
-            foreach ($this->preset->rule($member->fileType)->dimensions() as $slot) {
+            foreach ($this->scaffoldSlots($member->fileType) as $slot) {
                 if (! in_array($slot, $this->preset->dimensionNames(), true) && $this->getDefinition()->hasOption($slot)) {
                     $arguments['--'.$slot] = $this->option($slot);
                 }
@@ -370,9 +380,14 @@ trait RunsScaffoldTree
             $memberPlan = $scope->collected();
             $artifact = $memberPlan->primary;
             $own[$alias] = $values[$alias] = $artifact;
-            $plan->add($prefix.$alias, $memberPlan, $scope);
-            $this->treeCalls[] = [$command, $arguments];
-            $context = $artifact->context;
+            $plan->add($prefix.$alias, $memberPlan, $scope, $member);
+            if ($placement !== '') {
+                $arguments['--in'] = $this->inOption($artifact->context);
+            }
+            $this->treeCalls[] = [$command, $arguments, $member->ungrouped];
+            if (! $member->ungrouped && $member->group === null) {
+                $context = $artifact->context;
+            }
             if ($member->stub !== null) {
                 $id = $member->fileType.'.'.$member->stub.($artifact->kind->extension ?? '');
                 try {
@@ -417,9 +432,9 @@ trait RunsScaffoldTree
             $scope->values[$artifact->path()] = [...$this->treeAliases, ...$values];
         }
         // Related generators and bases need the same node answers.
-        foreach ($plan->files() as $index => ['artifact' => $artifact]) {
+        foreach ($plan->files() as $index => ['artifact' => $artifact, 'member' => $member]) {
             if ($index >= $firstFile && $index < $lastFile) {
-                $scope->values[$artifact->path()] = [...$this->treeAliases, ...$values];
+                $scope->values[$artifact->path()] = [...$this->treeAliases, ...$values, ...($member?->ungrouped ? ['name' => $artifact->name] : [])];
             }
         }
 

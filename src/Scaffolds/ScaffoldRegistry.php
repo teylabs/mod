@@ -4,12 +4,16 @@ namespace Tey\Mod\Scaffolds;
 
 use Closure;
 use Illuminate\Container\Container;
+use Illuminate\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use ReflectionClass;
 use Tey\Mod\Commands\MigrationCommand;
+use Tey\Mod\Discovery\GroupDirectories;
 use Tey\Mod\Exceptions\ModException;
+use Tey\Mod\Layout\BuiltIn\GeneratorSources;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Support\Path;
 use Throwable;
 
@@ -18,12 +22,17 @@ use Throwable;
  *
  * Public node metadata is available through nodes(); recipes stay internal.
  *
- * @phpstan-type Node array{key: string, source: string, from: string, members: array<string, array{fileType: string, name: ?string, stub: ?string, options: array<array-key, mixed>}>, children: list<string>, uses: ?string}
+ * @phpstan-type Node array{key: string, source: string, from: string, members: array<string, array{fileType: string, name: ?string, stub: ?string, options: array<array-key, mixed>, ungrouped: bool, group: ?string, existing: ?string}>, children: list<string>, uses: ?string}
  */
 final class ScaffoldRegistry
 {
     /** @var array<string, array<string, Scaffold>> name => source => recipe */
     private array $recipes = [];
+
+    private ?string $targetGroup = null;
+
+    /** @var array<string, array<string, string>> */
+    private array $origins = [];
 
     /** @var array<string, Scaffold> */
     private array $resolvedNodes = [];
@@ -40,10 +49,13 @@ final class ScaffoldRegistry
     /** @param (Closure(Scaffold): mixed)|(Closure(Part): mixed) $recipe
      * @param  ?string  $source  internal override for package registration tooling
      */
-    public function register(string $name, Closure $recipe, ?string $source = null): self
+    public function register(string $name, Closure $recipe, ?string $source = null, ?string $from = null): self
     {
         $this->resolvedNodes = [];
         $source ??= $this->caller();
+        $this->origins[$name][$source] = $from ?? $this->callerOrigin() ?? $source;
+        $previous = $this->targetGroup;
+        $this->targetGroup = str_starts_with($source, GeneratorSources::PREFIX) ? substr($source, strlen(GeneratorSources::PREFIX)) : null;
         try {
             $this->recipes[$name][$source] = $this->build($recipe, str_contains($name, '.'));
             unset($this->definitionProblems[$name][$source]);
@@ -53,6 +65,8 @@ final class ScaffoldRegistry
             }
             $this->recipes[$name][$source] = new Scaffold;
             $this->definitionProblems[$name][$source] = $exception->getMessage();
+        } finally {
+            $this->targetGroup = $previous;
         }
 
         return $this;
@@ -82,12 +96,59 @@ final class ScaffoldRegistry
 
     private function registered(string $name): ?Scaffold
     {
+        $source = $this->registeredSource($name);
+
+        return $source === null ? null : $this->recipes[$name][$source];
+    }
+
+    private function registeredSource(string $name): ?string
+    {
         $recipes = $this->recipes[$name] ?? [];
+        if ($this->targetGroup !== null && isset($recipes[GeneratorSources::PREFIX.$this->targetGroup])) {
+            return GeneratorSources::PREFIX.$this->targetGroup;
+        }
         if (isset($recipes['app'])) {
-            return $recipes['app'];
+            return 'app';
+        }
+        $fallback = array_filter($recipes, static fn (string $source): bool => ! str_starts_with($source, GeneratorSources::PREFIX), ARRAY_FILTER_USE_KEY);
+        if (count($fallback) === 1) {
+            return array_key_first($fallback);
+        }
+        if ($this->targetGroup === null) {
+            $owned = array_filter($recipes, static fn (string $source): bool => str_starts_with($source, GeneratorSources::PREFIX), ARRAY_FILTER_USE_KEY);
+            if ($owned !== []) {
+                return array_key_first($owned);
+            }
         }
 
-        return count($recipes) === 1 ? array_values($recipes)[0] : null;
+        return null;
+    }
+
+    /** @internal Whether this command has a group-owned definition, including a tree root. */
+    public function hasGroupRecipe(string $name): bool
+    {
+        foreach (array_keys($this->recipes[$name] ?? []) as $source) {
+            if (str_starts_with($source, GeneratorSources::PREFIX)) {
+                return true;
+            }
+        }
+        if (str_contains($name, '.')) {
+            return $this->hasGroupRecipe(substr($name, 0, (int) strrpos($name, '.')));
+        }
+
+        return false;
+    }
+
+    /** @internal Use a clone so another command never inherits this module's recipes. */
+    public function forGroup(string $group): self
+    {
+        $registry = clone $this;
+        $registry->targetGroup = $group;
+        $registry->resolvedNodes = [];
+        $registry->sources = [];
+        $registry->problems = [];
+
+        return $registry;
     }
 
     /** @return array<string, Scaffold> */
@@ -127,7 +188,7 @@ final class ScaffoldRegistry
                 $effective->overlay($recipe);
             }
             foreach ($effective->members() as $alias => $member) {
-                $members[$alias] = ['fileType' => $member->fileType, 'name' => $member->name, 'stub' => $member->stub, 'options' => $member->options];
+                $members[$alias] = ['fileType' => $member->fileType, 'name' => $member->name, 'stub' => $member->stub, 'options' => $member->options, 'ungrouped' => $member->ungrouped, 'group' => $member->group, 'existing' => $member->existing];
             }
             $children = array_values(array_filter(array_keys($recipes), static fn (string $child): bool => str_starts_with($child, $key.'.') && substr_count($child, '.') === substr_count($key, '.') + 1));
             $nodes[$key] = ['key' => $key, 'source' => $source, 'from' => $this->sources[$key] ?? $this->provenance($key), 'members' => $members, 'children' => $children, 'uses' => $recipe instanceof Part ? $recipe->scaffold() : null];
@@ -147,7 +208,7 @@ final class ScaffoldRegistry
     /** @return list<string> */
     private function packages(string $key): array
     {
-        $packages = array_values(array_filter(array_keys($this->recipes[$key] ?? []), static fn (string $source): bool => $source !== 'app'));
+        $packages = array_values(array_filter(array_keys($this->recipes[$key] ?? []), static fn (string $source): bool => $source !== 'app' && ! str_starts_with($source, GeneratorSources::PREFIX)));
         if (str_contains($key, '.')) {
             $parent = substr($key, 0, (int) strrpos($key, '.'));
             $packages = array_values(array_unique([...$packages, ...$this->packages($parent)]));
@@ -163,7 +224,7 @@ final class ScaffoldRegistry
         }
         $sources = $this->recipes[$key] ?? [];
 
-        return isset($sources['app']) ? 'app' : (array_key_first($sources) ?? 'app');
+        return $this->registeredSource($key) ?? (array_key_first($sources) ?? 'app');
     }
 
     /** @param array<string, Scaffold> $nodes
@@ -260,9 +321,9 @@ final class ScaffoldRegistry
                 }
             }
             $sources = $this->recipes[$name] ?? [];
-            $packages = array_values(array_filter(array_keys($sources), static fn (string $source): bool => $source !== 'app'));
+            $packages = array_values(array_filter(array_keys($sources), static fn (string $source): bool => $source !== 'app' && ! str_starts_with($source, GeneratorSources::PREFIX)));
             $override = $overrides[$name] ?? null;
-            if ($override === null && ! isset($sources['app']) && count($packages) > 1) {
+            if ($override === null && $this->registeredSource($name) === null && ! isset($sources['app']) && count($packages) > 1) {
                 $this->problems[$name] = "Scaffold [{$name}] is registered by ".implode(' and by ', $packages).", so mod:{$name} is disabled. Define {$name} in your app to use your own.";
 
                 continue;
@@ -271,7 +332,7 @@ final class ScaffoldRegistry
             if ($recipe === null) {
                 continue;
             }
-            $source = $override !== null ? 'layout' : (isset($sources['app']) ? 'app' : ($packages[0] ?? $this->nodeSource($name)));
+            $source = $override !== null ? 'layout' : $this->nodeSource($name);
             $this->sources[$name] = $override !== null ? 'layout' : $this->provenance($name);
             $issue = $recipe->errors()[0] ?? ($override === null ? ($this->definitionProblems[$name][$source] ?? null) : null);
             if ($issue !== null) {
@@ -341,6 +402,62 @@ final class ScaffoldRegistry
         return $this->problems;
     }
 
+    /** @return array<string, array{path: string, namespace: ?string}> */
+    public function groupDirectories(): array
+    {
+        $app = Container::getInstance();
+        if (! $app instanceof Application) {
+            return [];
+        }
+        $name = $app->make('config')->get('mod.layout', 'laravel');
+        $registry = $app->make(LayoutRegistry::class);
+        $path = is_string($name) && $registry->has($name) ? $registry->layout($name)->toArray()['path'] : null;
+
+        return (new GroupDirectories($app->basePath(), $path))->all();
+    }
+
+    private function callerOrigin(): ?string
+    {
+        foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) as $frame) {
+            $class = $frame['class'] ?? null;
+            if (is_string($class) && is_subclass_of($class, ServiceProvider::class)) {
+                return $class;
+            }
+        }
+
+        return null;
+    }
+
+    /** @return array<string, string> */
+    public function origins(): array
+    {
+        $origins = [];
+        foreach ($this->nodes() as $key => $node) {
+            $name = $key;
+            while (! isset($this->origins[$name]) && str_contains($name, '.')) {
+                $name = substr($name, 0, (int) strrpos($name, '.'));
+            }
+            $origins[$key] = $this->origins[$name][$node['source']] ?? $node['from'];
+        }
+
+        return $origins;
+    }
+
+    /** @return list<string> */
+    public function groups(): array
+    {
+        $groups = [];
+        foreach ($this->recipes as $sources) {
+            foreach (array_keys($sources) as $source) {
+                if (str_starts_with($source, GeneratorSources::PREFIX)) {
+                    $groups[] = substr($source, strlen(GeneratorSources::PREFIX));
+                }
+            }
+        }
+
+        return array_values(array_unique($groups));
+    }
+
     private function caller(): string
     {
         foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) as $frame) {
@@ -353,6 +470,13 @@ final class ScaffoldRegistry
                 continue;
             }
             $app = Container::getInstance();
+            $directories = $this->groupDirectories();
+            uasort($directories, static fn (array $a, array $b): int => strlen($b['namespace'] ?? '') <=> strlen($a['namespace'] ?? ''));
+            foreach ($directories as $group => $directory) {
+                if ($directory['namespace'] !== null && str_starts_with($class, $directory['namespace'].'\\')) {
+                    return GeneratorSources::PREFIX.$group;
+                }
+            }
             $appPath = $app->bound('path') ? $app->make('path') : null;
             if (is_string($appPath) && Path::relative($appPath, $file) !== null) {
                 return 'app';

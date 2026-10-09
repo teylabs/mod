@@ -155,7 +155,7 @@ it('guides agents through inventory, templates and scaffold planning', function 
     [, $skill] = boostSkill('mod-development');
 
     foreach ([$guideline, $skill] as $text) {
-        expect($text)->toContain('php artisan mod:list --json', 'mod:template', '--no-interaction', 'scaffold');
+        expect($text)->toContain('php artisan mod:list --json', 'mod:template', '--no-interaction', 'scaffold', 'ungrouped: true', 'group:', "existing: 'keep'", 'module:Inventory', 'package:vendor/name', '__invoke(Scaffold');
     }
 
     expect($skill)->toContain('Tey\\Mod\\Scaffolds\\Scaffold', '->makes(', '->include(', '.fqcn', '--skip-existing', '->asks(', '->part(', '->inserts(');

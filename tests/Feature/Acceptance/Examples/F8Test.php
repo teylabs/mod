@@ -1,6 +1,7 @@
 <?php
 
 use Tey\Mod\Facades\Mod;
+use Tey\Mod\Generation\Stub;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Tests\Feature\Acceptance\Examples\Support\PlacementScenario;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
@@ -29,7 +30,7 @@ const { filters, apply } = useIndexFilter({{ fields.json }});
 </template>
 VUE);
         $w->write('stubs/mod/resources/js/composables/composable.ts.stub', "export function {{ name }}(fields: string[]) {\n    // the house filter state, synced to the query string\n}\n");
-        Mod::stubs()->for('dto', \Tey\Mod\Generation\Stub::file($w->root->path('stubs/mod.dto.index-filter.stub')));
+        Mod::stubs()->for('dto', Stub::file($w->root->path('stubs/mod.dto.index-filter.stub')));
         Mod::scaffold('index-filter', fn (Scaffold $s) => $s
             ->asks('fields', type: 'list', label: 'Which fields can be filtered?')
             ->makes('dto', name: '{name}FilterData', as: 'filters', stub: 'index-filter')
