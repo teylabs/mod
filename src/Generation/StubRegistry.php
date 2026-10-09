@@ -95,6 +95,35 @@ final class StubRegistry
         return "stubs/mod.{$kind}.stub";
     }
 
+    /** @internal The published override, else the branch already chosen by Stub. */
+    public function selectedFile(string $kind, string $basePath, ?string $fallback): ?string
+    {
+        $published = Path::join($basePath, $this->publishedPath($kind));
+
+        return is_file($published) ? $published : $fallback;
+    }
+
+    /**
+     * Select the same stub branch for inspection and generation, without writing a base.
+     *
+     * @param  \Closure(string): mixed  $config
+     */
+    public function select(string $kind, ?Stub $layoutStub, string $basePath, PackageDetector $detector, \Closure $config, ?string $configured = null, ?string $templateSource = null, bool $native = false, ?Stub $definition = null): StubSelection
+    {
+        $stub = $definition ?? $this->resolve($kind, $layoutStub);
+        $choice = $stub?->choose($detector, $config, $configured);
+        $published = Path::join($basePath, $this->publishedPath($kind));
+        if (is_file($published)) {
+            return new StubSelection($this->selectedFile($kind, $basePath, $choice?->file), 'published stub', $choice);
+        }
+        $source = $this->get($kind) !== null ? 'registered' : ($layoutStub !== null ? ($templateSource !== null ? 'template ('.$templateSource.')' : 'layout') : ($this->starterFor($kind) !== null ? 'starter' : ($native ? 'Laravel' : 'empty class')));
+        if ($choice?->package !== null) {
+            $source .= ' ('.$choice->package.')';
+        }
+
+        return new StubSelection($choice?->file, $source, $choice);
+    }
+
     private function caller(): ?string
     {
         foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) as $frame) {

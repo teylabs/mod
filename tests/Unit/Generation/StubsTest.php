@@ -1,8 +1,10 @@
 <?php
 
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\ServiceProvider;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Generation\GeneratedBase;
+use Tey\Mod\Generation\ModMigrationCreator;
 use Tey\Mod\Generation\PackageDetector;
 use Tey\Mod\Generation\Starters;
 use Tey\Mod\Generation\Stub;
@@ -11,6 +13,7 @@ use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Layout\Root;
+use Tey\Mod\Tests\Support\OwnedAppRoot;
 
 /**
  * Every stub file mod ships.
@@ -306,3 +309,37 @@ it('declares the same dto, value-object and view-model commands in modules and d
         ->and([$preset->kind('value-object')->command, $preset->kind('value-object')->aliases])->toBe(['mod:value-object', ['mod:value', 'mod:valueobject']])
         ->and([$preset->kind('view-model')->command, $preset->kind('view-model')->aliases])->toBe(['mod:view-model', ['mod:viewmodel']]);
 })->with(['modules', 'ddd']);
+
+it('selects published registered layout starter and native stubs with provenance', function () {
+    OwnedAppRoot::using(function ($root) {
+        $registry = (new StubRegistry)->starter('record', Stub::file('/starter.stub'));
+        $detector = fakeDetector(['vendor/records']);
+        $config = static fn (string $key): mixed => null;
+        $select = fn (?Stub $stub = null) => $registry->select('record', $stub, $root->path, $detector, $config);
+        expect($select()->source)->toBe('starter')->and($select()->file)->toBe('/starter.stub');
+        $layout = Stub::file('/layout.stub')->whenInstalled('vendor/records', stub: '/variant.stub');
+        expect($select($layout)->source)->toBe('layout (vendor/records)')->and($select($layout)->file)->toBe('/variant.stub');
+        $registry->for('record', Stub::file('/registered.stub'));
+        expect($select($layout)->source)->toBe('registered')->and($select($layout)->file)->toBe('/registered.stub');
+        mkdir($root->path('stubs'));
+        file_put_contents($root->path('stubs/mod.record.stub'), '<?php');
+        expect($select($layout)->source)->toBe('published stub')->and($select($layout)->file)->toBe($root->path('stubs/mod.record.stub'));
+        expect($registry->select('model', null, $root->path, $detector, $config, native: true)->source)->toBe('Laravel')
+            ->and($registry->select('query', null, $root->path, $detector, $config)->source)->toBe('empty class');
+    });
+});
+
+it('shares the native migration stub branch for inspection and creation', function () {
+    OwnedAppRoot::using(function ($root) {
+        mkdir($root->path('stubs'));
+        $creator = new ModMigrationCreator(new Filesystem, $root->path('stubs'));
+        expect($creator->stubSelection()->source)->toBe('Laravel');
+        foreach (['migration' => [null, false], 'migration.create' => ['records', true], 'migration.update' => ['records', false]] as $stub => [$table, $create]) {
+            file_put_contents($root->path('stubs/'.$stub.'.stub'), 'chosen '.$stub);
+            $selection = $creator->stubSelection($table, $create);
+            expect($selection->file)->toBe($root->path('stubs/'.$stub.'.stub'))->and($selection->source)->toBe('published stub');
+            $getStub = new ReflectionMethod($creator, 'getStub');
+            expect($getStub->invoke($creator, $table, $create))->toBe('chosen '.$stub);
+        }
+    });
+});

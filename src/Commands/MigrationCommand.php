@@ -15,6 +15,7 @@ use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\GenerationPlan;
 use Tey\Mod\Generation\GeneratorAdapter;
 use Tey\Mod\Generation\ModMigrationCreator;
+use Tey\Mod\Generation\StubSelection;
 
 /**
  * Native make:migration, placed by the preset.
@@ -43,6 +44,12 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
     public function __construct(private readonly ModMigrationCreator $modCreator, Composer $composer)
     {
         parent::__construct($modCreator, $composer);
+    }
+
+    /** @internal The default native migration stub, shared with mod:list. */
+    public function stubSelection(): StubSelection
+    {
+        return $this->modCreator->stubSelection();
     }
 
     public static function supports(ArtifactKind $kind): bool

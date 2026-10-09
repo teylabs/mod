@@ -7,6 +7,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\ClassIdentity;
 use Tey\Mod\Artifact\ResolvedArtifact;
+use Tey\Mod\Commands\GenericClassCommand;
 use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\BaseWriter;
@@ -17,6 +18,7 @@ use Tey\Mod\Generation\PackageDetector;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Generation\StubChoice;
 use Tey\Mod\Generation\StubRegistry;
+use Tey\Mod\Generation\StubSelection;
 use Tey\Mod\Relation\RelationResolution;
 use Tey\Mod\Support\ComposerJson;
 use Tey\Mod\Support\Path;
@@ -494,9 +496,8 @@ trait PlacesGeneratedClass
             return $variant;
         }
         $choice = $this->prepareStub();
-        $published = $this->laravel->basePath('stubs/mod.'.$this->kind()->id.'.stub');
 
-        return is_file($published) ? $published : $choice?->file;
+        return $this->laravel->make(StubRegistry::class)->selectedFile($this->kind()->id, $this->laravel->basePath(), $choice?->file);
     }
 
     /**
@@ -536,6 +537,22 @@ trait PlacesGeneratedClass
         );
     }
 
+    /** @internal Read-only provenance for mod:list; never prepares or writes a base. */
+    public function stubSelection(): StubSelection
+    {
+        $config = $this->laravel->make('config');
+        $configured = $config->get('mod.bases.'.$this->kind()->id);
+
+        return $this->laravel->make(StubRegistry::class)->select(
+            $this->kind()->id, $this->layout()->stub($this->kind()->id), $this->laravel->basePath(),
+            $this->laravel->make(PackageDetector::class), static fn (string $key): mixed => $config->get($key),
+            is_string($configured) ? $configured : null,
+            $this->layout()->templates()[$this->kind()->id]['source'] ?? null,
+            ! $this instanceof GenericClassCommand,
+            $this->stubDefinition(),
+        );
+    }
+
     /**
      * Resolve the kind's Stub once per invocation: say which branch applies,
      * and write the generated base on first use.
@@ -553,13 +570,10 @@ trait PlacesGeneratedClass
             return null;
         }
 
-        $config = $this->laravel->make('config');
-        $configured = $config->get('mod.bases.'.$this->kind()->id);
-        $choice = $stub->choose(
-            $this->laravel->make(PackageDetector::class),
-            static fn (string $key): mixed => $config->get($key),
-            is_string($configured) ? $configured : null,
-        );
+        $choice = $this->stubSelection()->choice;
+        if ($choice === null) {
+            return null;
+        }
 
         $scaffold = $this->scaffoldExecution();
         if ($scaffold?->planning) {
