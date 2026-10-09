@@ -1,0 +1,13 @@
+<?php
+
+namespace {{ namespace }};
+
+class {{ class }}
+{
+    public const NAME = '{{ class.snake }}';
+
+    public function module(): string
+    {
+        return '{{ module }}';
+    }
+}

@@ -1,0 +1,15 @@
+<?php
+
+namespace App\Modules\Knowledge\Enums;
+
+enum DocumentStatus: string
+{
+    case Draft = 'draft';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Draft => 'Draft',
+        };
+    }
+}

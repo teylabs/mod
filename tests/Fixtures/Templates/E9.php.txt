@@ -1,0 +1,14 @@
+<?php
+
+namespace App\Knowledge\IndexDocument;
+
+class Presenter
+{
+    /**
+     * Create a new class instance.
+     */
+    public function __construct()
+    {
+        //
+    }
+}

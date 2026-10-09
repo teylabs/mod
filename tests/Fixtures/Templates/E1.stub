@@ -1,0 +1,31 @@
+<?php
+
+namespace {{ namespace }};
+
+use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
+use Storyfeed\PendingActivity;
+use Storyfeed\Stories\Story;
+
+class {{ class }} extends Story
+{
+    public function __construct(
+        public Model $subject, // narrow the type, e.g. Conversation $conversation
+        public User $actor,
+    ) {}
+
+    public function toFeedActivity(): ?PendingActivity
+    {
+        return $this->activity($this->subject)->by($this->actor);
+    }
+
+    public function headline(): string
+    {
+        return ':actor :object';
+    }
+
+    public function icon(): ?string
+    {
+        return null;
+    }
+}

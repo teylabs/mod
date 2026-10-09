@@ -1,0 +1,17 @@
+<?php
+
+use Tey\Mod\Tests\Feature\Acceptance\Examples\Support\TemplateScenario;
+use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
+
+it('E15 normalizes file names and resolves kebab dash-free camel and Pascal commands', function (string $file, string $command) {
+    putenv('COLUMNS=72');
+    Workspace::run(null, function (Workspace $workspace) use ($file, $command) {
+        config()->set('mod.layout', 'modules');
+        $workspace->write('stubs/mod/@module/ViewModels/'.$file.'.stub', TemplateScenario::CLASS_STUB);
+        mkdir($workspace->root->path('app/Modules/Agents/ViewModels'), 0700, true);
+        $result = $workspace->artisan('mod:'.$command, ['name' => 'Agents:ShowConversationPage'])->assertSuccessful();
+        expect($result->normalisedOutput())->toBe("\n   INFO  Show Document Page [app/Modules/Agents/ViewModels/ShowConversationPage.php] created successfully.  \n\n")
+            ->and(str_replace("\r\n", "\n", $workspace->read('app/Modules/Agents/ViewModels/ShowConversationPage.php')))
+            ->toBe(TemplateScenario::content('App\\Modules\\Agents\\ViewModels', 'ShowConversationPage'));
+    });
+})->with(['show-document-page', 'ShowDocumentPage', 'show_document_page'])->with(['show-document-page', 'showdocumentpage', 'showDocumentPage', 'ShowDocumentPage']);

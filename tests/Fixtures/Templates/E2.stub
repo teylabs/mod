@@ -1,0 +1,1 @@
+Mod::layout('modules')->generates('tool', in: 'Modules/{module}/Tools', stub: Stub::file(base_path('stubs/tool.stub')));
