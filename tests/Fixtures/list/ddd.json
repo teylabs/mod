@@ -81,7 +81,7 @@
             "id": "controller",
             "command": "mod:controller",
             "aliases": [],
-            "folder": "app/Modules/{domain+}/Http/Controllers",
+            "folder": "app/Modules/{domain+}/Controllers",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -226,7 +226,7 @@
             "id": "middleware",
             "command": "mod:middleware",
             "aliases": [],
-            "folder": "app/Modules/{domain+}/Http/Middleware",
+            "folder": "app/Modules/{domain+}/Middleware",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -318,7 +318,7 @@
             "id": "request",
             "command": "mod:request",
             "aliases": [],
-            "folder": "app/Modules/{domain+}/Http/Requests",
+            "folder": "app/Modules/{domain+}/Requests",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -414,18 +414,6 @@
             "relations": []
         },
         {
-            "id": "view",
-            "command": "mod:view",
-            "aliases": [],
-            "folder": "app/Modules/{domain+}/resources/views",
-            "source": "Laravel",
-            "stub": null,
-            "base": null,
-            "discovery": [],
-            "classes": [],
-            "relations": []
-        },
-        {
             "id": "view-model",
             "command": "mod:view-model",
             "aliases": [
@@ -468,16 +456,13 @@
     },
     "views": [],
     "frontend": {
-        "pages": "app/Modules/{domain}/resources/js/pages",
-        "components": "app/Modules/{domain}/resources/js/components",
-        "css": "app/Modules/{domain}/resources/css",
-        "views": "app/Modules/{domain}/resources/views",
-        "page_name": "{domain}::{path}",
-        "view_namespace": "{domain.kebab}",
-        "import_alias": {
-            "alias": "@modules",
-            "root": "app/Modules"
-        }
+        "pages": null,
+        "components": null,
+        "css": null,
+        "views": null,
+        "page_name": null,
+        "view_namespace": null,
+        "import_alias": null
     },
     "stack": {
         "inertia": null,

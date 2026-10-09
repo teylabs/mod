@@ -211,15 +211,15 @@ it('does not count the kind folders inside a group as nested groups', function (
         config()->set('mod.layout', 'ddd');
         // A root with classes placed right in the group as well, as laravel-ddd's application root has.
         Mod::layout('ddd')->generates('application-root', in: 'application:{domain+}', nested: true, command: false, priority: 0);
-        $workspace->write('app/Modules/Billing/Http/Controllers/InvoiceController.php', '<?php // mine');
-        $workspace->write('app/Modules/Billing/Http/Requests/StoreInvoiceRequest.php', '<?php // mine');
-        $workspace->write('app/Modules/Billing/Internal/Http/Controllers/AuditController.php', '<?php // mine');
+        $workspace->write('app/Modules/Billing/Controllers/InvoiceController.php', '<?php // mine');
+        $workspace->write('app/Modules/Billing/Requests/StoreInvoiceRequest.php', '<?php // mine');
+        $workspace->write('app/Modules/Billing/Internal/Controllers/AuditController.php', '<?php // mine');
 
         $result = $workspace->artisan('mod:controller', ['name' => 'ReportController', '--domain' => 'Billing.Reports']);
 
         expect($result->exitCode)->toBe(0)
             ->and($result->output)->toContain('Created new domain Billing/Reports (existing: Internal).')
-            ->and($workspace->exists('app/Modules/Billing/Reports/Http/Controllers/ReportController.php'))->toBeTrue();
+            ->and($workspace->exists('app/Modules/Billing/Reports/Controllers/ReportController.php'))->toBeTrue();
     });
 });
 it('matches near misses against the same groups only', function () {

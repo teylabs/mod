@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Log;
 use Tey\Mod\Commands\ControllerCommand;
+use Tey\Mod\Facades\Mod;
 use Tey\Mod\Generation\GeneratorRegistry;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\LayoutRegistry;
@@ -110,6 +111,9 @@ it('generates through the dimension options exactly as through the shorthand', f
             isolatedDomainNamespace();
         }
 
+        if ($layout === 'ddd' && $kindId === 'component') {
+            Mod::layout('ddd')->frontend(views: 'app/Modules/{domain}/ui/views');
+        }
         $preset = (new LayoutRegistry)->compile($layout);
         $command = (string) $preset->kind($kindId)->command;
         $values = dimensionValues($preset);

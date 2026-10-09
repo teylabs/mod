@@ -51,17 +51,17 @@ it('puts controllers, requests and middleware in the application layer', functio
         $app->boot();
 
         expect($app->artisan('mod:controller', ['name' => "Invoice{$t}", '--domain' => 'Billing']))
-            ->toHaveGenerated("app/Modules/Billing/Http/Controllers/Invoice{$t}Controller.php", 'App\\Modules\\Billing\\Http\\Controllers')
+            ->toHaveGenerated("app/Modules/Billing/Controllers/Invoice{$t}Controller.php", 'App\\Modules\\Billing\\Controllers')
             ->and($app->artisan('mod:request', ['name' => "Billing:StoreInvoice{$t}"]))
-            ->toHaveGenerated("app/Modules/Billing/Http/Requests/StoreInvoice{$t}Request.php", 'App\\Modules\\Billing\\Http\\Requests')
+            ->toHaveGenerated("app/Modules/Billing/Requests/StoreInvoice{$t}Request.php", 'App\\Modules\\Billing\\Requests')
             ->and($app->artisan('mod:middleware', ['name' => "Billing:EnsureInvoice{$t}"]))
-            ->toHaveGenerated("app/Modules/Billing/Http/Middleware/EnsureInvoice{$t}.php", 'App\\Modules\\Billing\\Http\\Middleware');
+            ->toHaveGenerated("app/Modules/Billing/Middleware/EnsureInvoice{$t}.php", 'App\\Modules\\Billing\\Middleware');
 
         $app->artisan('mod:model', ['name' => "Order{$t}", '--domain' => 'Billing', '--controller' => true, '--resource' => true, '--requests' => true])->assertSuccessful();
 
-        expect($app->read("app/Modules/Billing/Http/Controllers/Order{$t}Controller.php"))
+        expect($app->read("app/Modules/Billing/Controllers/Order{$t}Controller.php"))
             ->toContain("use Domain\\Billing\\Models\\Order{$t};")
-            ->toContain("use App\\Modules\\Billing\\Http\\Requests\\StoreOrder{$t}Request;");
+            ->toContain("use App\\Modules\\Billing\\Requests\\StoreOrder{$t}Request;");
     });
 });
 

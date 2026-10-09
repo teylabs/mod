@@ -64,11 +64,11 @@ final class Examples
             "$domain/Models/$name.php",
             "$domain/Database/Migrations/2026_10_08_120000_create_".strtolower($name).'s_table.php',
             "$domain/Database/Factories/{$name}Factory.php",
-            "$application/Http/Requests/Store{$name}Request.php",
-            "$application/Http/Requests/Update{$name}Request.php",
+            "$application/".(str_starts_with($domain, 'src/') ? '' : 'Http/')."Requests/Store{$name}Request.php",
+            "$application/".(str_starts_with($domain, 'src/') ? '' : 'Http/')."Requests/Update{$name}Request.php",
             "$domain/".(str_starts_with($domain, 'app/') ? 'Http/' : '')."Resources/{$name}Resource.php",
             "$domain/Policies/{$name}Policy.php",
-            "$application/Http/Controllers/{$name}Controller.php",
+            "$application/".(str_starts_with($domain, 'src/') ? '' : 'Http/')."Controllers/{$name}Controller.php",
         ];
     }
 
@@ -91,7 +91,8 @@ final class Examples
     public static function controller(string $domain = 'App\\Modules\\Knowledge', string $application = 'App\\Modules\\Knowledge', string $name = 'Document'): string
     {
         $source = (string) file_get_contents(__DIR__.'/controller.stub');
-        $replace = ['namespace' => "$application\\Http\\Controllers", 'class' => "{$name}Controller", 'model' => $name, 'model.camel' => lcfirst($name), 'resource' => "{$name}Resource", 'storeRequest' => "Store{$name}Request", 'updateRequest' => "Update{$name}Request", 'model.fqcn' => "$domain\\Models\\$name", 'resource.fqcn' => ($domain === $application ? "$domain\\Http\\Resources\\{$name}Resource" : "$domain\\Resources\\{$name}Resource"), 'storeRequest.fqcn' => "$application\\Http\\Requests\\Store{$name}Request", 'updateRequest.fqcn' => "$application\\Http\\Requests\\Update{$name}Request"];
+        $http = str_starts_with($domain, 'Domain\\') ? '' : 'Http\\';
+        $replace = ['namespace' => "{$application}\\{$http}Controllers", 'class' => "{$name}Controller", 'model' => $name, 'model.camel' => lcfirst($name), 'resource' => "{$name}Resource", 'storeRequest' => "Store{$name}Request", 'updateRequest' => "Update{$name}Request", 'model.fqcn' => "$domain\\Models\\$name", 'resource.fqcn' => ($domain === $application ? "$domain\\Http\\Resources\\{$name}Resource" : "$domain\\Resources\\{$name}Resource"), 'storeRequest.fqcn' => "{$application}\\{$http}Requests\\Store{$name}Request", 'updateRequest.fqcn' => "{$application}\\{$http}Requests\\Update{$name}Request"];
         foreach ($replace as $key => $value) {
             $source = str_replace('{{ '.$key.' }}', $value, $source);
         }

@@ -44,18 +44,18 @@ it('P1 exposes compiled module frontend paths and pins every frontend key', func
     });
 });
 
-it('P2 exposes DDD frontend paths from the application root', function () {
+it('P2 exposes null DDD frontend fields', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'ddd');
         $data = json_decode($w->artisan('mod:list', ['--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
         expect($data['frontend'])->toBe([
-            'pages' => 'app/Modules/{domain}/resources/js/pages',
-            'components' => 'app/Modules/{domain}/resources/js/components',
-            'css' => 'app/Modules/{domain}/resources/css',
-            'views' => 'app/Modules/{domain}/resources/views',
-            'page_name' => '{domain}::{path}',
-            'view_namespace' => '{domain.kebab}',
-            'import_alias' => ['alias' => '@modules', 'root' => 'app/Modules'],
+            'pages' => null,
+            'components' => null,
+            'css' => null,
+            'views' => null,
+            'page_name' => null,
+            'view_namespace' => null,
+            'import_alias' => null,
         ]);
     });
 });

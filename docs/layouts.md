@@ -24,7 +24,7 @@ The other layouts put each file in a folder below its group:
 | `mod:channel` | `Channels` | `Broadcasting` | `Broadcasting` | `Channels` |
 | `mod:class`, `mod:interface`, `mod:trait` | the group folder | the group folder | the group folder | the group folder |
 | `mod:command` | `Console` | `Console/Commands` | `Console/Commands` | `Commands` |
-| `mod:controller` | `Http/Controllers` | `Http/Controllers` | `Http/Controllers` | `app/Modules/<Domain>/Http/Controllers` |
+| `mod:controller` | `Http/Controllers` | `Http/Controllers` | `Http/Controllers` | `app/Modules/<Domain>/Controllers` |
 | `mod:dto` | `Data` | | | `Data` |
 | `mod:enum` | `Enums` | `Enums` | `Enums` | `Enums` |
 | `mod:event` | `Events` | `Events` | `Events` | `Events` |
@@ -36,7 +36,7 @@ The other layouts put each file in a folder below its group:
 | `mod:listener` | `Listeners` | `Listeners` | `Listeners` | `Listeners` |
 | `mod:mail` | `Mail` | `Mail` | `Mail` | `Mail` |
 | `mod:message` | | | `<Slice>/Command.php` | |
-| `mod:middleware` | `Http/Middleware` | `Http/Middleware` | `Http/Middleware` | `app/Modules/<Domain>/Http/Middleware` |
+| `mod:middleware` | `Http/Middleware` | `Http/Middleware` | `Http/Middleware` | `app/Modules/<Domain>/Middleware` |
 | `mod:migration` | `Database/Migrations` | `Database/Migrations` | `Database/Migrations` | `Database/Migrations` |
 | `mod:model` | `Models` | `Models` | `Models` | `Models` |
 | `mod:notification` | `Notifications` | `Notifications` | `Notifications` | `Notifications` |
@@ -44,7 +44,7 @@ The other layouts put each file in a folder below its group:
 | `mod:policy` | `Policies` | `Policies` | `Policies` | `Policies` |
 | `mod:provider` | `Providers` | `Providers` | `Providers` | `Providers` |
 | `mod:query` | `Queries` | `Queries` | `<Slice>/Query.php` | |
-| `mod:request` | `Http/Requests` | `Http/Requests` | `<Slice>/Http/Requests/Request.php` | `app/Modules/<Domain>/Http/Requests` |
+| `mod:request` | `Http/Requests` | `Http/Requests` | `<Slice>/Http/Requests/Request.php` | `app/Modules/<Domain>/Requests` |
 | `mod:resource` | `Http/Resources` | `Http/Resources` | `Http/Resources` | `Resources` |
 | `mod:rule` | `Rules` | `Rules` | `Rules` | `Rules` |
 | `mod:scope` | `Scopes` | `Scopes` | `Scopes` | `Scopes` |

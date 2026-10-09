@@ -30,6 +30,13 @@ final class OtherLayoutCommand extends Command
 
     public function handle(): int
     {
+        if (in_array($this->kindId, ['page', 'view'], true)) {
+            $path = $this->kindId === 'page' ? 'pages' : 'views';
+            $this->components->error($this->getName().' needs a frontend folder. Declare ->frontend('.$path.': ...) on the layout in a service provider. Nothing was written.');
+
+            return self::FAILURE;
+        }
+
         $layouts = $this->layouts;
         $last = array_pop($layouts);
         $names = $layouts === [] ? "The {$last} layout has it." : 'The '.implode(', ', $layouts)." and {$last} layouts have it.";

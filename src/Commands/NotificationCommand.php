@@ -19,12 +19,16 @@ class NotificationCommand extends NotificationMakeCommand implements GeneratorAd
         $name = $this->option('markdown');
         // Older native generators use a nullable option and only write a view
         // for a non-empty value. Newer ones use false and accept a bare flag.
-        if ($this->layout()->frontend()['views'] === null || $name === false
+        if ($name === false
             || (! $name && $this->getDefinition()->getOption('markdown')->getDefault() === null)) {
             return null;
         }
         if (is_string($name) && $name !== '') {
             return $name;
+        }
+
+        if ($this->layout()->frontend()['views'] === null) {
+            return parent::getView();
         }
 
         return 'mail.'.implode('.', array_map(Str::kebab(...), explode('/', str_replace('\\', '/', $this->getNameInput()))));

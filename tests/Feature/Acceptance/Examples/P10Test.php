@@ -1,6 +1,7 @@
 <?php
 
 use Tey\Mod\Facades\Mod;
+use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
@@ -25,6 +26,7 @@ it('P10 starts a missing route file by alias with a machine readable insert plan
 it('P10 writes and inserts through the routes alias in modules and ddd', function (string $layout) {
     Workspace::run(null, function (Workspace $w) use ($layout) {
         config()->set('mod.layout', $layout);
+        app(LayoutRegistry::class)->layout('ddd')->mounts('routes', null, 'app/Modules/{domain}/routes');
         Mod::scaffold('route-insert', function (Scaffold $s) {
             $s->makes('class')->asks('tabs', type: 'list', default: ['History'])
                 ->part('tab', fn (Part $p) => $p->inserts(into: 'routes', at: 'routes', stub: 'tab-route'))

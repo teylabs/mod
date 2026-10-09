@@ -41,6 +41,7 @@ it('checks case-only root declarations before any files exist', function () {
 
 it('excludes plain files in nested groups and normalizes path separators', function () {
     $registry = new LayoutRegistry;
+    $registry->layout('ddd')->frontend(views: 'app/Modules/{domain}/resources/views')->mounts('routes', null, 'app/Modules/{domain}/routes');
     $layout = $registry->compile('ddd');
     expect($layout->isPlainFilePath('app\\Modules\\Billing\\Reports\\resources\\views\\summary.blade.php'))->toBeTrue()
         ->and($layout->isPlainFilePath('app/Modules/Billing/Reports/routes/web.php'))->toBeTrue()

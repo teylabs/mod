@@ -20,7 +20,7 @@ function builtInFolders(string $layout, string $group, string $slice): array
         ];
         $folders = array_map(static fn (string $folder): string => rtrim("src/Domain/{$group}/{$folder}", '/'), $domain);
 
-        foreach (['controller' => 'Http/Controllers', 'request' => 'Http/Requests', 'middleware' => 'Http/Middleware'] as $kind => $folder) {
+        foreach (['controller' => 'Controllers', 'request' => 'Requests', 'middleware' => 'Middleware'] as $kind => $folder) {
             $folders[$kind] = "app/Modules/{$group}/{$folder}";
         }
 

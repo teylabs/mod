@@ -209,12 +209,11 @@ database/
 
 ```text
 app/Modules/Knowledge/
-└── Http/
-    ├── Controllers/
-    │   └── DocumentController.php
-    └── Requests/
-        ├── StoreDocumentRequest.php
-        └── UpdateDocumentRequest.php
+├── Controllers/
+│   └── DocumentController.php
+└── Requests/
+    ├── StoreDocumentRequest.php
+    └── UpdateDocumentRequest.php
 src/Domain/Knowledge/
 ├── Database/
 │   ├── Factories/
@@ -294,7 +293,7 @@ php artisan mod:model Knowledg:Note --no-interaction
 
 ### The DDD Layout
 
-The `ddd` layout uses [laravel-ddd](https://github.com/teylabs/laravel-ddd)'s folders: domain classes in `src/Domain`, and controllers, requests and middleware in `app/Modules`. Run `php artisan mod:autoload` to add the `Domain` namespace to your `composer.json` autoload and reload Composer:
+The `ddd` layout uses [laravel-ddd](https://github.com/teylabs/laravel-ddd)'s folders: domain classes in `src/Domain`, and controllers, requests and middleware in `app/Modules`. The preset declares no frontend folders, view namespaces or routes root. Markdown mail and notification views use Laravel’s normal `resources/views` folder and unqualified names. Extend the layout with `->frontend(...)` or a routes mount to opt in. Run `php artisan mod:autoload` to add the `Domain` namespace to your `composer.json` autoload and reload Composer:
 
 ```json
 "autoload": {
