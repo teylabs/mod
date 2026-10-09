@@ -162,15 +162,11 @@ it('matches native migration bytes, output and exit code', function () {
 
             $duplicate = $workspace->artisan('mod:migration', ['name' => 'create_examples_table'])->assertSuccessful();
             expect($duplicate->exitCode)->toBe($nativeDuplicate->exitCode)
-                ->and($workspace->files())->toBe($nativeFiles)
+                ->and($workspace->files())->toBe([$path])
                 ->and($workspace->read($path))->toBe($bytes);
 
-            if (count($nativeFiles) === 1) {
-                // Older native creators reuse the same second; mod preserves its refusal.
-                $duplicate->expectsOutputToContain('.php already exists.');
-            } else {
-                expect($duplicate->output)->toBe($nativeDuplicate->output);
-            }
+            // Mod keeps migration names unique even when Laravel advances the timestamp.
+            $duplicate->expectsOutputToContain('.php already exists.');
         } finally {
             Date::setTestNow();
         }

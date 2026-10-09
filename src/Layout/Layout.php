@@ -4,7 +4,6 @@ namespace Tey\Mod\Layout;
 
 use BadMethodCallException;
 use Closure;
-use Illuminate\Support\Str;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\Stub;
@@ -56,6 +55,8 @@ final class Layout
     private ?string $groupPath = null;
 
     private bool $declaredPath = false;
+
+    private ?string $inheritedToken = null;
 
     private bool $touched = false;
 
@@ -284,25 +285,9 @@ final class Layout
         $this->nesting = $source->nesting;
         $this->chainErrors = $source->chainErrors;
         $this->parent = $parent;
-        if (! $this->declaredPath && $this->groupPath !== null) {
-            $token = Str::singular($this->name);
-            if ($token === $this->name) {
-                $this->groupPath = null;
-                $this->chainErrors[] = "The layout name [{$this->name}] does not name a group. Declare ->path('app/{group}').";
-            } else {
-                preg_match('/\{(\w+)[+?]*\}/', $this->groupPath, $matches);
-                if (isset($matches[1])) {
-                    $old = $matches[1];
-                    $rename = static fn (string $value): string => str_replace(['{'.$old, '@'.$old], ['{'.$token, '@'.$token], $value);
-                    $this->groupPath = $rename($this->groupPath);
-                    foreach ($this->kinds as $type) {
-                        $in = $type->toArray()['in'];
-                        if ($in !== null) {
-                            $type->in($rename($in));
-                        }
-                    }
-                }
-            }
+        if (! $source->declaredPath && $source->groupPath !== null
+            && preg_match('/\{([A-Za-z_][A-Za-z0-9_]*)[+?]*\}/', $source->groupPath, $match) === 1) {
+            $this->inheritedToken = $match[1];
         }
 
         return $this;
@@ -432,13 +417,34 @@ final class Layout
      */
     public function toArray(): array
     {
+        $path = $this->groupPath;
+        $kinds = $this->kinds;
+        // Resolve defaults after the complete declaration, so path() can supply the token.
+        if ($this->inheritedToken !== null && $path !== null) {
+            $token = $this->declaredPath ? null : GroupPath::derivedToken($this->name);
+            if ($token !== null) {
+                $path = (string) preg_replace('/\{'.preg_quote($this->inheritedToken, '/').'([+?]*)\}/', '{'.$token.'$1}', $path);
+            } elseif (preg_match('/\{([A-Za-z_][A-Za-z0-9_]*)[+?]*\}/', $path, $match) === 1) {
+                $token = $match[1];
+            }
+            if ($token !== null) {
+                foreach ($kinds as $id => $type) {
+                    $kinds[$id] = clone $type;
+                    $in = $type->toArray()['in'];
+                    if ($in !== null) {
+                        $kinds[$id]->in((string) preg_replace_callback('/\{'.preg_quote($this->inheritedToken, '/').'([+?]*)\}|@'.preg_quote($this->inheritedToken, '/').'(?![A-Za-z0-9_])/', static fn (array $match): string => str_starts_with($match[0], '@') ? '@'.$token : '{'.$token.($match[1] ?? '').'}', $in));
+                    }
+                }
+            }
+        }
+
         return [
             'roots' => $this->roots,
-            'kinds' => $this->kinds,
+            'kinds' => $kinds,
             'relations' => $this->relations,
             'excluded' => $this->excluded,
             'commands' => $this->commands,
-            'path' => $this->groupPath,
+            'path' => $path,
             'nesting' => $this->nesting,
             'errors' => $this->chainErrors,
         ];

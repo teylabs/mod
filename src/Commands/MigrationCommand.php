@@ -176,7 +176,15 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
 
         // The directory never depends on the timestamp; resolve it first to read the native clock there.
         $directory = dirname($this->resolveArtifact($this->kind()->id, $name, $context, ['timestamp' => '0000_00_00_000000'])->path());
-        $timestamp = $this->modCreator->datePrefixFor($this->existingArtifacts()->absolute($directory));
+        $absoluteDirectory = $this->existingArtifacts()->absolute($directory);
+        $timestamp = $this->modCreator->datePrefixFor($absoluteDirectory);
+        // A migration's identity is its name within this directory, regardless of its clock prefix.
+        foreach (glob(Path::join($absoluteDirectory, '*_'.$name.'.php')) ?: [] as $file) {
+            if (preg_match('/^(\d{4}_\d{2}_\d{2}_\d{6})_'.preg_quote($name, '/').'\.php$/', basename($file), $match) === 1) {
+                $timestamp = $match[1];
+                break;
+            }
+        }
 
         $candidate = $this->resolveArtifact($this->kind()->id, $name, $context, ['timestamp' => $timestamp]);
         $plan = $this->scaffoldExecution()?->accepted($candidate) ?? new GenerationPlan($candidate);
