@@ -147,6 +147,20 @@ final class PathParser
             $below = Path::join(...[...$leadingSlots, $below]);
             // Template groups are required, even where a native generator allows no placement.
             $below = (string) preg_replace('/\{(\w+)(\+?)\??\}/', '{$1$2}', $below);
+            // A type-first wildcard keeps the native optional group contract (E13).
+            if ($groupPath !== null && str_contains($groupPath, '*')) {
+                foreach ($tokens as $token) {
+                    $optional = null;
+                    foreach ($types as $type) {
+                        if (preg_match('/\{'.preg_quote($token, '/').'\+?(\??)\}/', $type->toArray()['in'] ?? '', $match) === 1) {
+                            $optional = ($optional ?? true) && $match[1] === '?';
+                        }
+                    }
+                    if ($optional === true) {
+                        $below = str_replace('{'.$token.'}', '{'.$token.'?}', $below);
+                    }
+                }
+            }
             foreach ($types as $type) {
                 $in = $type->toArray()['in'] ?? '';
                 foreach ($tokens as $token) {

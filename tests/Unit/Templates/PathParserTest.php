@@ -18,7 +18,7 @@ it('parses template paths literally through the active layout', function (string
     ['ddd', 'Modules/@domain/Presenters/presenter.stub', 'application', '{domain+}/Presenters', []],
     ['slices', '@feature/Tools/tool.stub', 'app', '{feature}/Tools', []],
     ['slices', '@slice/presenter.stub', 'app', '{feature}/{slice}', []],
-    ['type-first', '@feature/Tools/tool.stub', 'app', 'Tools/{feature}', []],
+    ['type-first', '@feature/Tools/tool.stub', 'app', 'Tools/{feature?}', []],
     ['laravel', 'Support/Tools/tool.stub', 'app', 'Support/Tools', []],
     ['modules', 'Support/Tools/tool.stub', 'app', 'Support/Tools', []],
     ['ddd', 'src/Infrastructure/Tools/tool.stub', 'infrastructure', 'Tools', []],
