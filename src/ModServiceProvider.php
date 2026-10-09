@@ -7,7 +7,9 @@ use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 use Tey\Mod\Commands\AutoloadCommand;
 use Tey\Mod\Commands\BasesCommand;
+use Tey\Mod\Commands\DisabledScaffoldCommand;
 use Tey\Mod\Commands\OtherLayoutCommand;
+use Tey\Mod\Commands\ScaffoldCommand;
 use Tey\Mod\Discovery\Console\DiscoveryCacheCommand;
 use Tey\Mod\Discovery\Console\DiscoveryClearCommand;
 use Tey\Mod\Discovery\Discovery;
@@ -25,6 +27,7 @@ use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Resolution\ModelConventions;
+use Tey\Mod\Scaffolds\ScaffoldRegistry;
 
 class ModServiceProvider extends ServiceProvider
 {
@@ -32,6 +35,7 @@ class ModServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__.'/../config/mod.php', 'mod');
 
+        $this->app->singleton(ScaffoldRegistry::class);
         $this->app->singleton(LayoutRegistry::class);
         $this->app->singleton(StubRegistry::class, fn (): StubRegistry => Starters::register(new StubRegistry));
         $this->app->bind(BaseWriter::class, fn (Application $app): BaseWriter => new BaseWriter(
@@ -249,5 +253,20 @@ class ModServiceProvider extends ServiceProvider
                 $this->app->make('log')->warning('mod layout: '.$issue->describe());
             }
         }
+
+        $registry = $this->app->make(ScaffoldRegistry::class);
+        $layoutName = $this->app->make('config')->get('mod.layout', 'laravel');
+        $overrides = is_string($layoutName) && $this->app->make(LayoutRegistry::class)->has($layoutName)
+            ? $this->app->make(LayoutRegistry::class)->layout($layoutName)->scaffoldRecipes() : [];
+        foreach ($registry->resolve($preset, is_string($layoutName) ? $layoutName : 'layout', $overrides, [...array_keys($artisan->all()), 'mod:cache', 'mod:clear', 'mod:list']) as $name => $recipe) {
+            $artisan->resolve(new ScaffoldCommand($name, $recipe, $preset));
+        }
+        foreach ($registry->problems() as $name => $warning) {
+            $this->app->make('log')->warning($warning);
+            if (! $artisan->has('mod:'.$name)) {
+                $artisan->resolve(new DisabledScaffoldCommand($name, $warning));
+            }
+        }
+
     }
 }

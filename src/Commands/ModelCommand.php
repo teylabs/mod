@@ -8,6 +8,7 @@ use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Commands\Concerns\PlacesGeneratedClass;
 use Tey\Mod\Generation\FactoryConvention;
 use Tey\Mod\Generation\GeneratorAdapter;
+use Tey\Mod\Generation\ModMigrationCreator;
 use Tey\Mod\Relation\RelationResolution;
 
 /**
@@ -40,7 +41,7 @@ class ModelCommand extends ModelMakeCommand implements GeneratorAdapter
 
         if ($all || $this->option('migration')) {
             // Placement only: mod:migration reads the real timestamp from the native clock.
-            array_push($relations, ...$this->relationsTo($primary, 'migration', $this->migrationName(), ['timestamp' => date('Y_m_d_His')]));
+            array_push($relations, ...$this->relationsTo($primary, 'migration', $this->migrationName(), ['timestamp' => $this->laravel->make(ModMigrationCreator::class)->datePrefixFor($this->existingArtifacts()->absolute(dirname($this->resolveArtifact('migration', $this->migrationName(), $primary->context, ['timestamp' => '0000_00_00_000000'])->path())))]));
         }
 
         if ($all || $this->option('controller') || $this->option('resource') || $this->option('api')) {
@@ -54,6 +55,16 @@ class ModelCommand extends ModelMakeCommand implements GeneratorAdapter
         }
 
         return $relations;
+    }
+
+    protected function generateScaffoldRelations(): void
+    {
+        $this->createFactory();
+        $this->createMigration();
+        $this->createSeeder();
+        $this->createController();
+        $this->createFormRequests();
+        $this->createPolicy();
     }
 
     protected function createFactory()

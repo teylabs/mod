@@ -10,6 +10,8 @@ use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Relation\RelationMode;
+use Tey\Mod\Scaffolds\Scaffold;
+use Tey\Mod\Scaffolds\ScaffoldRegistry;
 use Tey\Mod\Support\Path;
 
 /**
@@ -44,6 +46,9 @@ final class Layout
 
     /** @var list<string> */
     private array $excluded = [];
+
+    /** @var array<string, Scaffold> */
+    private array $scaffoldRecipes = [];
 
     private bool $commands = true;
 
@@ -272,6 +277,7 @@ final class Layout
         $this->relations = $source->relations;
         $this->excluded = $source->excluded;
         $this->commands = $source->commands;
+        $this->scaffoldRecipes = $source->scaffoldRecipes;
         $this->groupPath = $source->groupPath;
         $this->declaredPath = $source->declaredPath;
         $this->nesting = $source->nesting;
@@ -338,6 +344,25 @@ final class Layout
      * and several file types may then share one (a host that places the same
      * command's output in different roots).
      */
+    /** @param Closure(Scaffold): mixed $recipe */
+    public function scaffolds(string $name, Closure $recipe): self
+    {
+        $this->guard();
+        $this->scaffoldRecipes[$name] = ($this->registry?->scaffoldRegistry() ?? new ScaffoldRegistry)->build($recipe);
+
+        return $this;
+    }
+
+    /**
+     * @internal
+     *
+     * @return array<string, Scaffold>
+     */
+    public function scaffoldRecipes(): array
+    {
+        return $this->scaffoldRecipes;
+    }
+
     public function withoutCommands(): self
     {
         $this->guard();
