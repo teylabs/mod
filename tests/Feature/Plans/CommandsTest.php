@@ -113,6 +113,9 @@ it('returns a schema-valid plan for every registered writing command without cre
                     default => 'Widget',
                 };
             }
+            if ($definition->hasArgument('module')) {
+                $arguments['module'] = $layout === 'slices' ? 'Inventory/Index' : 'Inventory';
+            }
             if ($command->getName() === 'mod:template') {
                 $arguments['type'] = 'class';
                 $arguments['path'] = 'tool';

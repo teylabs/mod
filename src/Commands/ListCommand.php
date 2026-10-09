@@ -6,6 +6,8 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Listing\LayoutInventory;
+use Tey\Mod\Listing\RoutesSection;
+use Tey\Mod\Routing\ModRoutes;
 use Throwable;
 
 /**
@@ -75,6 +77,7 @@ final class ListCommand extends Command
         }
         $this->table($detail ? ['File type', 'Command', 'Folder', 'From'] : ['Generator', 'Folder', 'From'], $rows, 'compact');
         $this->renderScaffolds($report['scaffolds']['items'], $detail);
+        RoutesSection::render($this, $report['routes'], $this->laravel->make(ModRoutes::class));
         if ($detail) {
             foreach ($report['types'] as $type) {
                 $this->line('  '.$type['id'].':');

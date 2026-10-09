@@ -54,7 +54,7 @@ final class PlanWriter
         $count = count($plan->files);
         $inserts = count($plan->inserts);
         $suffix = $inserts === 0 ? '' : " and {$inserts} inserts";
-        $name = $plan->group === null ? ($plan->name ?? '') : $plan->group.':'.$plan->name;
+        $name = $plan->group === null ? ($plan->name ?? '') : ($plan->name === null ? $plan->group : $plan->group.':'.$plan->name);
         $command->outputComponents()->info($plan->command.' will write '.$count.' '.($count === 1 ? 'file' : 'files').$suffix.($name === '' ? '' : ' for '.$name).'.');
         foreach ($plan->files as $file) {
             $this->line($command, $file['path'], $file['alias'].($file['exists'] ? ' (exists)' : ''));

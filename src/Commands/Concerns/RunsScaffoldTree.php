@@ -11,6 +11,8 @@ use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\TemplateRule;
+use Tey\Mod\Routing\ModRoutes;
+use Tey\Mod\Routing\RoutePaths;
 use Tey\Mod\Scaffolds\AnchorWriter;
 use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Placeholders;
@@ -35,6 +37,9 @@ trait RunsScaffoldTree
 
     /** @var array<string, string> routes files/anchors accepted by a prompt, staged until commit */
     private array $treeStarts = [];
+
+    /** @var array<string, true> */
+    private array $treeRouteGroups = [];
 
     /** @var array<string, mixed> qualified aliases from all nodes */
     private array $treeAliases = [];
@@ -106,7 +111,7 @@ trait RunsScaffoldTree
 
     private function handleTree(): int
     {
-        $this->treeCalls = $this->treeInserts = $this->treeStarts = $this->treeAliases = [];
+        $this->treeCalls = $this->treeInserts = $this->treeStarts = $this->treeAliases = $this->treeRouteGroups = [];
         $this->treeCancelled = false;
         $scope = new ScaffoldExecution;
         $scope->nestedNames = true;
@@ -170,6 +175,9 @@ trait RunsScaffoldTree
                 }
             }
             if ($this->dryPlan !== null) {
+                if ($this->unloadedTreeRoutes()) {
+                    $this->dryPlan->warnings[] = ['file' => null, 'line' => null, 'message' => "Without a Mod::routes() call these routes won't load. Add then: fn () => Mod::routes() to withRouting() in bootstrap/app.php."];
+                }
                 foreach ($this->treeInserts as $insert) {
                     $anchor = $writer->anchor($sources[$insert['path']], $insert['at'], $insert['path']);
                     $this->dryPlan->insertDetails[] = ['anchor' => trim($anchor['line']), 'label' => $insert['label']];
@@ -217,8 +225,17 @@ trait RunsScaffoldTree
                     throw GenerationRefused::because("Could not write {$path}. Nothing was written.");
                 }
             }
+            foreach ($this->treeStarts as $path => $contents) {
+                if (($backups[$path] ?? null) === null) {
+                    $this->components->info("Route file [{$path}] created successfully.");
+                }
+            }
             foreach ($this->treeInserts as $insert) {
                 $this->components->info("Inserted into [{$insert['path']}] at // mod:{$insert['at']}.");
+            }
+
+            if ($this->unloadedTreeRoutes()) {
+                $this->components->warn("Without a Mod::routes() call these routes won't load. Add then: fn () => Mod::routes() to withRouting() in bootstrap/app.php.");
             }
 
             return self::SUCCESS;
@@ -247,6 +264,17 @@ trait RunsScaffoldTree
         } finally {
             $previous === null ? $this->laravel->forgetInstance(ScaffoldExecution::class) : $this->laravel->instance(ScaffoldExecution::class, $previous);
         }
+    }
+
+    private function unloadedTreeRoutes(): bool
+    {
+        foreach (array_keys($this->treeRouteGroups) as $group) {
+            if (! $this->laravel->make(ModRoutes::class)->calledFor($group)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function treeLine(string $path, string $alias): void
@@ -424,6 +452,30 @@ trait RunsScaffoldTree
             $target = $parent[$insert->into] ?? null;
             if ($target instanceof ResolvedArtifact && in_array($insert->into, $owned, true)) {
                 $path = $target->path();
+            } elseif (in_array($insert->into, ['routes', 'routes.web', 'routes.api', 'routes.console'], true)) {
+                $routePaths = new RoutePaths($this->preset);
+                $group = $this->inOption($context);
+                $this->treeRouteGroups[$group] = true;
+                $method = $insert->into === 'routes' ? 'web' : substr($insert->into, 7);
+                $path = $routePaths->directory($group).'/'.$method.'.php';
+                if ($insert->into !== 'routes' && $method !== 'console') {
+                    foreach ($this->laravel->make(ModRoutes::class)->entries() as $entry) {
+                        if ($entry['group'] === $group && $entry['kind'] === 'registrar' && $entry['middleware_group'] === $method) {
+                            [$class] = explode('::', $entry['entrypoint']);
+                            $file = class_exists($class) ? (new \ReflectionClass($class))->getFileName() : false;
+                            if ($file !== false) {
+                                $path = Path::relative($this->laravel->basePath(), $file) ?? $file;
+                            }
+                            break;
+                        }
+                    }
+                }
+                if (! is_file($this->laravel->basePath($path)) && ! isset($this->treeStarts[$path])) {
+                    $this->treeStarts[$path] = (string) file_get_contents(__DIR__.'/../../../resources/routes/'.$method.'.php.stub');
+                    if ($this->dryPlan !== null) {
+                        $this->dryPlan->file($insert->into, 'routes.'.$method, $path, ['path' => $path]);
+                    }
+                }
             } elseif (str_starts_with($insert->into, '@')) {
                 $path = $this->treeInsertPath($insert->into, $context);
             } else {

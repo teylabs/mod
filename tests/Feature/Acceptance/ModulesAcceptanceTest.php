@@ -137,9 +137,8 @@ it('refuses, rejects and reports on the modules layout', function () {
             ->expectsOutputToContain("app/Modules/Billing/Data/Invoice{$t}Data.php already exists.")
             ->assertSuccessful();
 
-        // routes is a declared file kind with no generator: deliberately no mod:routes. widget is undeclared.
-        expect($app->modCommands())->not->toContain('mod:routes')
-            ->and(fn () => $app->artisan('mod:routes', ['name' => 'web']))->toThrow(CommandNotFoundException::class)
+        // Route entrypoint generators are available; widget is undeclared.
+        expect($app->modCommands())->toContain('mod:routes')
             ->and(fn () => $app->artisan('mod:widget', ['name' => 'Anything']))->toThrow(CommandNotFoundException::class);
 
         $app->artisan('mod:model', ['name' => "Invoice{$t}"])

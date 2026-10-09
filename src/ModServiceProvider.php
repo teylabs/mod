@@ -39,6 +39,7 @@ use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Resolution\ModelConventions;
+use Tey\Mod\Routing\RouteServiceRegistrar;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
 use Tey\Mod\Support\Path;
 use Tey\Mod\Support\Stack;
@@ -51,6 +52,8 @@ class ModServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../config/mod.php', 'mod');
+
+        RouteServiceRegistrar::register($this->app);
 
         $this->app->singleton(ScaffoldRegistry::class);
         $this->app->singleton(TemplateCatalog::class, function (Application $app): TemplateCatalog {
