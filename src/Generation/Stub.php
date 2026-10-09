@@ -40,6 +40,18 @@ final class Stub
 
     private function __construct(public readonly string $path) {}
 
+    /** @internal preserve base selection while rendering an edited template. */
+    public function forTemplate(string $path): self
+    {
+        $stub = new self($path);
+        $stub->baseClass = $this->baseClass;
+        $stub->baseConfig = $this->baseConfig;
+        $stub->generatedBase = $this->generatedBase;
+        $stub->variants = array_map(static fn (array $variant): array => [...$variant, 'stub' => $path], $this->variants);
+
+        return $stub;
+    }
+
     /**
      * The plain stub, used when no variant applies.
      */

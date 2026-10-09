@@ -13,6 +13,7 @@ use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
 use Tey\Mod\Support\Path;
+use Tey\Mod\Templates\TemplateCatalog;
 
 /**
  * A named layout, defined (or extended) as one fluent chain:
@@ -375,9 +376,9 @@ final class Layout
     /**
      * @throws InvalidLayout
      */
-    public function compile(): CompiledLayout
+    public function compile(?TemplateCatalog $templates = null): CompiledLayout
     {
-        return (new LayoutCompiler($this))->compile();
+        return (new LayoutCompiler($this, $templates))->compile();
     }
 
     /**

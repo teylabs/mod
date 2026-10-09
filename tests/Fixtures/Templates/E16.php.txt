@@ -1,0 +1,13 @@
+<?php
+
+namespace App\Modules\Agents\Tools;
+
+class SearchDocuments
+{
+    public const NAME = 'search_documents';
+
+    public function module(): string
+    {
+        return 'Agents';
+    }
+}

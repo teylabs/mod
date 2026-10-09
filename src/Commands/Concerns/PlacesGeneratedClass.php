@@ -22,6 +22,7 @@ use Tey\Mod\Relation\RelationResolution;
 use Tey\Mod\Support\Path;
 
 use function Laravel\Prompts\select;
+use function Laravel\Prompts\suggest;
 
 /**
  * Places the class a native GeneratorCommand writes.
@@ -191,7 +192,9 @@ trait PlacesGeneratedClass
     private function settleGroups(GenerationPlan $plan): array
     {
         $groups = $this->laravel->make(GroupFolders::class, ['basePath' => $this->laravel->basePath()]);
-        $interactive = $this->input->isInteractive();
+        $interactive = $this->input->isInteractive()
+            && ($this->laravel->runningUnitTests() || (stream_isatty(STDIN) && ! filter_var(getenv('CI'), FILTER_VALIDATE_BOOL)));
+        $templated = isset($this->layout()->templates()[$this->kind()->id]);
 
         for ($level = 0; $level < 64; $level++) {
             $finding = $groups->inspect($this->layout(), $plan->primary);
@@ -217,6 +220,11 @@ trait PlacesGeneratedClass
                 if ($choice === 'Cancel') {
                     throw GenerationRefused::because('Cancelled; nothing was written.');
                 }
+            } elseif ($kind === 'near' && $interactive && $templated) {
+                $choice = (string) suggest("{$value} doesn't exist. Did you mean {$suggestions[0]}?", $suggestions, default: $suggestions[0], required: true);
+                if ($choice === $value) {
+                    $choice = null;
+                }
             } elseif ($kind === 'near' && $interactive) {
                 $create = "Create new {$dimension} {$value}";
                 $answer = (string) select("{$group} [{$value}] doesn't exist. Did you mean an existing one?", [...$suggestions, $create], $suggestions[0]);
@@ -231,7 +239,7 @@ trait PlacesGeneratedClass
                     return [$plan, null];
                 }
 
-                return [$plan, "Created new {$dimension} {$value}".($existing === [] ? '' : ' (existing: '.implode(', ', $existing).')').'.'];
+                return [$plan, "Created new {$dimension} {$value}".($templated && $kind === 'near' ? ' (did you mean '.$suggestions[0].'?)' : ($existing === [] ? '' : ' (existing: '.implode(', ', $existing).')')).'.'];
             }
 
             $this->modGroupValues[$dimension] = $choice;

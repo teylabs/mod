@@ -1,0 +1,12 @@
+<?php
+
+namespace App\Modules\Knowledge\Data;
+
+use App\Support\Data\DataTransferObject;
+
+class DocumentLinks extends DataTransferObject
+{
+    public function __construct(
+        //
+    ) {}
+}

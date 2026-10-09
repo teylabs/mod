@@ -62,6 +62,7 @@ use Tey\Mod\Commands\ResourceCommand;
 use Tey\Mod\Commands\RuleCommand;
 use Tey\Mod\Commands\ScopeCommand;
 use Tey\Mod\Commands\SeederCommand;
+use Tey\Mod\Commands\TemplateCommand;
 use Tey\Mod\Commands\TestCommand;
 use Tey\Mod\Commands\TraitCommand;
 use Tey\Mod\Exceptions\InvalidGeneratorSetup;
@@ -211,7 +212,7 @@ final class GeneratorRegistry
         $commands = [];
 
         foreach ($preset->kinds() as $kind) {
-            if ($kind->command === null || ($adapter = $this->adapterFor($kind)) === null) {
+            if ($kind->command === null || ($adapter = (isset($preset->templates()[$kind->id]) ? TemplateCommand::class : $this->adapterFor($kind))) === null) {
                 continue;
             }
 
