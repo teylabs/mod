@@ -21,17 +21,21 @@ class AutoloadCommand extends Command
     protected $description = 'Add missing Composer PSR-4 entries for the active layout';
 
     /**
-     * The layout read is kept here for lane 3's namespaceFor() integration.
-     *
      * @return list<array{namespace: string, path: string, inferred?: bool}>
      */
     protected function autoloadRoots(CompiledLayout $layout): array
     {
         $roots = [];
 
-        foreach ($layout->roots() as $root) {
+        foreach ($layout->roots() as $name => $root) {
             if ($root->namespace !== null) {
-                $roots[] = ['namespace' => $root->namespace, 'path' => $root->path];
+                // GroupPath creates these roots for group folders outside every mount.
+                $inferred = $name === 'group_'.substr(hash('sha256', $root->path), 0, 12);
+                $roots[] = [
+                    'namespace' => $inferred ? $layout->namespaceFor($root->path) : $root->namespace,
+                    'path' => $root->path,
+                    'inferred' => $inferred,
+                ];
             }
         }
 
