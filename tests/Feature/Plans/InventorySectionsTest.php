@@ -11,7 +11,7 @@ use Tey\Mod\Support\Path;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Support\JsonSchema;
 
-it('preserves the complete 0.2 inventory bytes for every built-in layout', function (string $layout) {
+it('pins inventory bytes with the intended 0.3 HTTP placements and additive frontend section', function (string $layout) {
     Workspace::run(null, function (Workspace $w) use ($layout) {
         config()->set('mod.layout', $layout);
         $output = $w->artisan('mod:list', ['--json' => true])->assertSuccessful()->normalisedOutput();

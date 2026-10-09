@@ -407,5 +407,13 @@
         "entries": [],
         "rejections": [],
         "stale_cache": null
+    },
+    "frontend": {
+        "pages": "app/Features/{feature}/resources/js/pages",
+        "components": "app/Features/{feature}/resources/js/components",
+        "css": "app/Features/{feature}/resources/css",
+        "views": "app/Features/{feature}/resources/views",
+        "page_name": "{feature}::{path}",
+        "view_namespace": "{feature.kebab}"
     }
 }

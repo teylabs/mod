@@ -69,7 +69,7 @@
             "id": "controller",
             "command": "mod:controller",
             "aliases": [],
-            "folder": "app/Modules/{domain+}/Controllers",
+            "folder": "app/Modules/{domain+}/Http/Controllers",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -214,7 +214,7 @@
             "id": "middleware",
             "command": "mod:middleware",
             "aliases": [],
-            "folder": "app/Modules/{domain+}/Middleware",
+            "folder": "app/Modules/{domain+}/Http/Middleware",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -306,7 +306,7 @@
             "id": "request",
             "command": "mod:request",
             "aliases": [],
-            "folder": "app/Modules/{domain+}/Requests",
+            "folder": "app/Modules/{domain+}/Http/Requests",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -440,5 +440,13 @@
         "entries": [],
         "rejections": [],
         "stale_cache": null
+    },
+    "frontend": {
+        "pages": "app/Modules/{domain}/resources/js/pages",
+        "components": "app/Modules/{domain}/resources/js/components",
+        "css": "app/Modules/{domain}/resources/css",
+        "views": "app/Modules/{domain}/resources/views",
+        "page_name": "{domain}::{path}",
+        "view_namespace": "{domain.kebab}"
     }
 }

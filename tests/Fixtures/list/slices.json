@@ -314,7 +314,7 @@
             "id": "request",
             "command": "mod:request",
             "aliases": [],
-            "folder": "app/{feature}/{slice}",
+            "folder": "app/{feature}/{slice}/Http/Requests",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -433,5 +433,13 @@
         "entries": [],
         "rejections": [],
         "stale_cache": null
+    },
+    "frontend": {
+        "pages": "app/{feature}/{slice}/resources/js/pages",
+        "components": "app/{feature}/{slice}/resources/js/components",
+        "css": "app/{feature}/{slice}/resources/css",
+        "views": "app/{feature}/{slice}/resources/views",
+        "page_name": "{feature}::{path}",
+        "view_namespace": "{feature.kebab}.{slice.kebab}"
     }
 }
