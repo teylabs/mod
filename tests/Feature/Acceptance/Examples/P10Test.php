@@ -49,10 +49,10 @@ it('P10 inserts into registrar methods and preserves the other method', function
         $w->write('stubs/mod.insert.registrar-route.stub', "        Route::get('history', fn () => 'history');\n");
         $w->artisan('mod:route-registrar', ['module' => 'RegistrarProof'])->assertSuccessful();
         $w->artisan('mod:registrar-insert', ['name' => 'RegistrarProof:Widget'])->assertSuccessful();
-        $source = $w->read('app/Modules/RegistrarProof/Http/Routing/RegistrarProofRoutes.php');
+        $source = str_replace("\r\n", "\n", $w->read('app/Modules/RegistrarProof/Http/Routing/RegistrarProofRoutes.php'));
         expect($source)->toContain("        Route::get('history', fn () => 'history');\n        // mod:routes")
             ->and($w->exists('app/Modules/RegistrarProof/routes/web.php'))->toBeFalse();
         $w->artisan('mod:registrar-insert.tab', ['name' => 'RegistrarProof:Widget', 'value' => 'History'])->assertFailed()->expectsOutputToContain('Insert already exists');
-        expect($w->read('app/Modules/RegistrarProof/Http/Routing/RegistrarProofRoutes.php'))->toBe($source);
+        expect(str_replace("\r\n", "\n", $w->read('app/Modules/RegistrarProof/Http/Routing/RegistrarProofRoutes.php')))->toBe($source);
     });
 });
