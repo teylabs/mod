@@ -1,0 +1,37 @@
+  Layout ......................................................... ddd  
+  Path ........................................... src/Domain/{domain}  
+  Domains ..................................................... (none)  
+Generator          Folder                                   From    
+mod:action         src/Domain/{domain+}/Actions             starter 
+mod:cast           src/Domain/{domain+}/Casts               Laravel 
+mod:channel        src/Domain/{domain+}/Channels            Laravel 
+mod:class          src/Domain/{domain+}                     Laravel 
+mod:command        src/Domain/{domain+}/Commands            Laravel 
+mod:controller     app/Modules/{domain+}/Controllers        Laravel 
+mod:dto            src/Domain/{domain+}/Data                layout  
+mod:enum           src/Domain/{domain+}/Enums               Laravel 
+mod:event          src/Domain/{domain+}/Events              Laravel 
+mod:exception      src/Domain/{domain+}/Exceptions          Laravel 
+mod:factory        src/Domain/{domain+}/Database/Factories  Laravel 
+mod:interface      src/Domain/{domain+}                     Laravel 
+mod:job            src/Domain/{domain+}/Jobs                Laravel 
+mod:job-middleware src/Domain/{domain+}/Jobs/Middleware     Laravel 
+mod:listener       src/Domain/{domain+}/Listeners           Laravel 
+mod:mail           src/Domain/{domain+}/Mail                Laravel 
+mod:middleware     app/Modules/{domain+}/Middleware         Laravel 
+mod:migration      src/Domain/{domain+}/Database/Migrations Laravel 
+mod:model          src/Domain/{domain+}/Models              Laravel 
+mod:notification   src/Domain/{domain+}/Notifications       Laravel 
+mod:observer       src/Domain/{domain+}/Observers           Laravel 
+mod:policy         src/Domain/{domain+}/Policies            Laravel 
+mod:provider       src/Domain/{domain+}/Providers           Laravel 
+mod:request        app/Modules/{domain+}/Requests           Laravel 
+mod:resource       src/Domain/{domain+}/Resources           Laravel 
+mod:rule           src/Domain/{domain+}/Rules               Laravel 
+mod:scope          src/Domain/{domain+}/Scopes              Laravel 
+mod:seeder         src/Domain/{domain+}/Database/Seeders    Laravel 
+mod:test           tests/Feature/{domain+}                  Laravel 
+mod:trait          src/Domain/{domain+}                     Laravel 
+mod:value-object   src/Domain/{domain+}/ValueObjects        starter 
+mod:view-model     src/Domain/{domain+}/ViewModels          layout  
+  Discovery: off

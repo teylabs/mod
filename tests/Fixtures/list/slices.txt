@@ -1,0 +1,37 @@
+  Layout ...................................................... slices  
+  Path ......................................... app/{feature}/{slice}  
+  Feature/Slices .............................................. (none)  
+Generator          Folder                            From        
+mod:cast           app/{feature}/Casts               Laravel     
+mod:channel        app/{feature}/Broadcasting        Laravel     
+mod:class          app/{feature}                     Laravel     
+mod:command        app/{feature}/Console/Commands    Laravel     
+mod:controller     app/{feature}/Http/Controllers    Laravel     
+mod:enum           app/{feature}/Enums               Laravel     
+mod:event          app/{feature}/Events              Laravel     
+mod:exception      app/{feature}/Exceptions          Laravel     
+mod:factory        app/{feature}/Database/Factories  Laravel     
+mod:handler        app/{feature}/{slice}             empty class 
+mod:interface      app/{feature}                     Laravel     
+mod:job            app/{feature}/Jobs                Laravel     
+mod:job-middleware app/{feature}/Jobs/Middleware     Laravel     
+mod:listener       app/{feature}/Listeners           Laravel     
+mod:mail           app/{feature}/Mail                Laravel     
+mod:message        app/{feature}/{slice}             empty class 
+mod:middleware     app/{feature}/Http/Middleware     Laravel     
+mod:migration      app/{feature}/Database/Migrations Laravel     
+mod:model          app/{feature}/Models              Laravel     
+mod:notification   app/{feature}/Notifications       Laravel     
+mod:observer       app/{feature}/Observers           Laravel     
+mod:policy         app/{feature}/Policies            Laravel     
+mod:provider       app/{feature}/Providers           Laravel     
+mod:query          app/{feature}/{slice}             empty class 
+mod:request        app/{feature}/{slice}             Laravel     
+mod:resource       app/{feature}/Http/Resources      Laravel     
+mod:rule           app/{feature}/Rules               Laravel     
+mod:scope          app/{feature}/Scopes              Laravel     
+mod:seeder         app/{feature}/Database/Seeders    Laravel     
+mod:test           tests/Feature/{feature}/{slice}   Laravel     
+mod:trait          app/{feature}                     Laravel     
+mod:validator      app/{feature}/{slice}             empty class 
+  Discovery: off

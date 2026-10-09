@@ -1,0 +1,35 @@
+  Layout .................................................. type-first  
+  Path ............................................... app/*/{feature}  
+  Features .................................................... (none)  
+Generator          Folder                         From        
+mod:cast           app/Casts/{feature}            Laravel     
+mod:channel        app/Broadcasting/{feature}     Laravel     
+mod:class          app/{feature}                  Laravel     
+mod:command        app/Console/Commands/{feature} Laravel     
+mod:config         config                         Laravel     
+mod:controller     app/Http/Controllers/{feature} Laravel     
+mod:enum           app/Enums/{feature}            Laravel     
+mod:event          app/Events/{feature}           Laravel     
+mod:exception      app/Exceptions/{feature}       Laravel     
+mod:factory        database/factories/{feature}   Laravel     
+mod:interface      app/{feature}                  Laravel     
+mod:job            app/Jobs/{feature}             Laravel     
+mod:job-middleware app/Jobs/Middleware/{feature}  Laravel     
+mod:listener       app/Listeners/{feature}        Laravel     
+mod:mail           app/Mail/{feature}             Laravel     
+mod:middleware     app/Http/Middleware/{feature}  Laravel     
+mod:migration      database/migrations/{feature}  Laravel     
+mod:model          app/Models/{feature}           Laravel     
+mod:notification   app/Notifications/{feature}    Laravel     
+mod:observer       app/Observers/{feature}        Laravel     
+mod:policy         app/Policies/{feature}         Laravel     
+mod:provider       app/Providers/{feature}        Laravel     
+mod:query          app/Queries/{feature}          empty class 
+mod:request        app/Http/Requests/{feature}    Laravel     
+mod:resource       app/Http/Resources/{feature}   Laravel     
+mod:rule           app/Rules/{feature}            Laravel     
+mod:scope          app/Models/Scopes/{feature}    Laravel     
+mod:seeder         database/seeders/{feature}     Laravel     
+mod:test           tests/Feature/{feature}        Laravel     
+mod:trait          app/{feature}                  Laravel     
+  Discovery: off

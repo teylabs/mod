@@ -1,0 +1,33 @@
+  Layout ..................................................... laravel  
+  Path ........................................................... app  
+Generator          Folder               From    
+mod:cast           app/Casts            Laravel 
+mod:channel        app/Broadcasting     Laravel 
+mod:class          app                  Laravel 
+mod:command        app/Console/Commands Laravel 
+mod:config         config               Laravel 
+mod:controller     app/Http/Controllers Laravel 
+mod:enum           app/Enums            Laravel 
+mod:event          app/Events           Laravel 
+mod:exception      app/Exceptions       Laravel 
+mod:factory        database/factories   Laravel 
+mod:interface      app                  Laravel 
+mod:job            app/Jobs             Laravel 
+mod:job-middleware app/Jobs/Middleware  Laravel 
+mod:listener       app/Listeners        Laravel 
+mod:mail           app/Mail             Laravel 
+mod:middleware     app/Http/Middleware  Laravel 
+mod:migration      database/migrations  Laravel 
+mod:model          app/Models           Laravel 
+mod:notification   app/Notifications    Laravel 
+mod:observer       app/Observers        Laravel 
+mod:policy         app/Policies         Laravel 
+mod:provider       app/Providers        Laravel 
+mod:request        app/Http/Requests    Laravel 
+mod:resource       app/Http/Resources   Laravel 
+mod:rule           app/Rules            Laravel 
+mod:scope          app/Models/Scopes    Laravel 
+mod:seeder         database/seeders     Laravel 
+mod:test           tests/Feature        Laravel 
+mod:trait          app                  Laravel 
+  Discovery: off

@@ -15,6 +15,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Commands\AutoloadCommand;
 use Tey\Mod\Commands\BasesCommand;
 use Tey\Mod\Commands\DisabledScaffoldCommand;
+use Tey\Mod\Commands\ListCommand;
 use Tey\Mod\Commands\OtherLayoutCommand;
 use Tey\Mod\Commands\ScaffoldCommand;
 use Tey\Mod\Discovery\Console\DiscoveryCacheCommand;
@@ -238,7 +239,12 @@ class ModServiceProvider extends ServiceProvider
             return;
         }
 
-        $preset = $this->app->make(CompiledLayout::class);
+        try {
+            $preset = $this->app->make(CompiledLayout::class);
+        } catch (InvalidLayout $exception) {
+            // Keep mod:list available to report configuration errors with exit 1.
+            return;
+        }
 
         if (! $preset->commandsEnabled()) {
             return;
@@ -270,13 +276,20 @@ class ModServiceProvider extends ServiceProvider
             return;
         }
 
-        $preset = $this->app->make(CompiledLayout::class);
+        try {
+            $preset = $this->app->make(CompiledLayout::class);
+        } catch (InvalidLayout $exception) {
+            // Keep mod:list available to report configuration errors with exit 1.
+            $artisan->resolveCommands([ListCommand::class]);
+
+            return;
+        }
 
         if (! $preset->commandsEnabled()) {
             return;
         }
 
-        $artisan->resolveCommands([BasesCommand::class, AutoloadCommand::class]);
+        $artisan->resolveCommands([ListCommand::class, BasesCommand::class, AutoloadCommand::class]);
 
         foreach ($this->app->make(GeneratorRegistry::class)->commands($preset, $this->app) as $command) {
             $artisan->resolveCommands([$command]);

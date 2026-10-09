@@ -1,0 +1,38 @@
+  Layout ..................................................... modules  
+  Path .......................................... app/Modules/{module}  
+  Modules ..................................................... (none)  
+Generator          Folder                                   From        
+mod:action         app/Modules/{module}/Actions             starter     
+mod:cast           app/Modules/{module}/Casts               Laravel     
+mod:channel        app/Modules/{module}/Channels            Laravel     
+mod:class          app/Modules/{module}                     Laravel     
+mod:command        app/Modules/{module}/Console             Laravel     
+mod:controller     app/Modules/{module}/Controllers         Laravel     
+mod:dto            app/Modules/{module}/Data                starter     
+mod:enum           app/Modules/{module}/Enums               Laravel     
+mod:event          app/Modules/{module}/Events              Laravel     
+mod:exception      app/Modules/{module}/Exceptions          Laravel     
+mod:factory        app/Modules/{module}/Database/Factories  Laravel     
+mod:interface      app/Modules/{module}                     Laravel     
+mod:job            app/Modules/{module}/Jobs                Laravel     
+mod:job-middleware app/Modules/{module}/Jobs/Middleware     Laravel     
+mod:listener       app/Modules/{module}/Listeners           Laravel     
+mod:mail           app/Modules/{module}/Mail                Laravel     
+mod:middleware     app/Modules/{module}/Middleware          Laravel     
+mod:migration      app/Modules/{module}/Database/Migrations Laravel     
+mod:model          app/Modules/{module}/Models              Laravel     
+mod:notification   app/Modules/{module}/Notifications       Laravel     
+mod:observer       app/Modules/{module}/Observers           Laravel     
+mod:policy         app/Modules/{module}/Policies            Laravel     
+mod:provider       app/Modules/{module}/Providers           Laravel     
+mod:query          app/Modules/{module}/Queries             empty class 
+mod:request        app/Modules/{module}/Requests            Laravel     
+mod:resource       app/Modules/{module}/Resources           Laravel     
+mod:rule           app/Modules/{module}/Rules               Laravel     
+mod:scope          app/Modules/{module}/Scopes              Laravel     
+mod:seeder         app/Modules/{module}/Database/Seeders    Laravel     
+mod:test           tests/Feature/Modules/{module}           Laravel     
+mod:trait          app/Modules/{module}                     Laravel     
+mod:value-object   app/Modules/{module}/ValueObjects        starter     
+mod:view-model     app/Modules/{module}/ViewModels          starter     
+  Discovery: off

@@ -444,6 +444,12 @@ final class Layout
         ];
     }
 
+    /** @internal The parent named by extends(), for mod:list. */
+    public function parentName(): ?string
+    {
+        return $this->parent;
+    }
+
     private function guard(): void
     {
         $this->touched = true;
