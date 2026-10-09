@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
 use Illuminate\View\FileViewFinder;
 use Pest\TestSuite;
+use Tey\Mod\Facades\Mod;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Support\Path;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
@@ -33,6 +34,26 @@ function moduleViewsFinder(): FileViewFinder
 
     return $finder;
 }
+
+it('registers ddd view and component namespaces only after frontend opt-in', function (bool $optIn) {
+    OwnedAppRoot::using(function (OwnedAppRoot $root) use ($optIn) {
+        mkdir($root->path('app/Modules/Inventory/ui/views/components'), 0700, true);
+        file_put_contents($root->path('app/Modules/Inventory/ui/views/show.blade.php'), '<x-inventory::stock-badge />');
+        file_put_contents($root->path('app/Modules/Inventory/ui/views/components/stock-badge.blade.php'), '<b>Stock</b>');
+        moduleViewsTestCase()->bootApplicationUsing(function (Application $app) use ($root) {
+            $app->setBasePath($root->path);
+            $app->make('config')->set('mod.layout', 'ddd');
+        });
+        expect(moduleViewsFinder()->getHints())->not->toHaveKey('inventory');
+        if ($optIn) {
+            Mod::layout('web-ddd')->extends('ddd')->frontend(views: 'app/Modules/{domain}/ui/views');
+            config()->set('mod.layout', 'web-ddd');
+            ViewNamespaceRegistrar::register(app());
+            expect(View::file(moduleViewsFinder()->find('inventory::show'))->render())->toContain('<b>Stock</b>');
+        }
+        expect(array_key_exists('inventory', moduleViewsFinder()->getHints()))->toBe($optIn);
+    });
+})->with([false, true]);
 
 it('registers only groups with views at boot even with discovery disabled and caches their components', function () {
     OwnedAppRoot::using(function (OwnedAppRoot $root) {

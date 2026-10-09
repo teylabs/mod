@@ -24,7 +24,7 @@ Work within the application's layout and existing conventions. Mod places files 
 
 ## HTTP and frontend paths
 
-Module HTTP file types use Http/Controllers, Http/Requests, Http/Middleware and Http/Resources. DDD keeps domain API resources in src/Domain/<Domain>/Resources and application HTTP classes in app/Modules/<Domain>/Http. Module resources/ and routes/ roots contain plain files and are excluded from class discovery.
+Module HTTP file types use Http/Controllers, Http/Requests, Http/Middleware and Http/Resources. DDD keeps domain API resources in src/Domain/<Domain>/Resources and application HTTP classes in app/Modules/<Domain>/Controllers, Requests and Middleware. The ddd preset declares no frontend or routes roots. Module resources/ and routes/ roots contain plain files and are excluded from class discovery.
 
 Use ->frontend(pages: ..., components: ..., css: ..., views: ..., pageName: ...) to customize frontend paths. Omitted arguments retain defaults; ->extends() copies the configuration. Built-in page folders follow the app’s pages/Pages casing, while explicit overrides retain their spelling. Inspect frontend paths and page_name in mod:list --json rather than assuming an Inertia stack. Compilation checks case-only folder collisions; move frontend paths under ui/ when a custom API Resources/ folder would clash with resources/.
 
@@ -149,7 +149,7 @@ The package exports `resolveModulePage(name, appPages, modulePages)` from `vendo
 - `mod:component Inventory:StockBadge --view` creates an anonymous Blade component. `mod:component Inventory:WidgetTable` creates a class in `View/Components` and its view. Options: `mod:component --view --inline --path --test --pest --phpunit --force --in --dry-run --json --no-interaction`. Use `<x-inventory::stock-badge />`; Vue and React components come from generator templates.
 - `mod:mail Inventory:WidgetRestocked --markdown=mail.widget-restocked` writes both the mailable and its view, using `inventory::mail.widget-restocked`. `mod:mail --view=mail.widget-restocked` writes a plain Blade view. `mod:notification --markdown=mail.widget-restocked` qualifies its Markdown view the same way. Their `--dry-run --json` plans include both files and the view identity; `--force` replaces planned views.
 - View namespaces register after providers boot, even without route or class discovery. Groups without views are omitted. Reserved namespaces (`mail`, `notifications`, `pagination`) and existing namespace clashes are skipped with a warning. Module views participate in `view:cache`.
-- DDD views live under the application root. Type-first grouped views use kebab subfolders such as `resources/views/inventory`; ungrouped views stay in `resources/views` with no namespace. `mod:list --json` adds a `views` section with group, namespace, path and component tags. View identities expose name, tag and path for plain-file members.
+- DDD declares no view folders or namespaces; markdown mail and notification views use Laravel’s resources/views and unqualified names. Opt in with ->frontend() on an extended layout. Type-first grouped views use kebab subfolders such as `resources/views/inventory`; ungrouped views stay in `resources/views` with no namespace. `mod:list --json` adds a `views` section with group, namespace, path and component tags. View identities expose name, tag and path for plain-file members.
 
 ## Module routes
 
@@ -217,7 +217,7 @@ Request a plan with an exact registered command and positional arguments/option 
 
 `mod-plan` enforces `--dry-run --json` and non-interactivity; it never applies the command. Check files, inserts, warnings and `would_write`. Missing answers remain warnings, and commands without preview support are refused. Neither tool writes files. Apply reviewed plans with `php artisan mod:*`.
 
-The additive `frontend.import_alias` is an object such as `{"alias":"@modules","root":"app/Modules"}`, or null without frontend declarations. `frontend.view_namespace` remains unchanged. Use `@/` for files under `resources/js/`; use `@modules/` relative to the reported root for module files. Never traverse an alias with `../`. This metadata describes the intended mapping; check `wiring.vite_alias` to know whether it is installed.
+The additive `frontend.import_alias` is an object such as `{"alias":"@modules","root":"app/Modules"}`, or null without frontend declarations; ddd retains every frontend key with a null value. `frontend.view_namespace` remains unchanged. Use `@/` for files under `resources/js/`; use `@modules/` relative to the reported root for module files. Never traverse an alias with `../`. This metadata describes the intended mapping; check `wiring.vite_alias` to know whether it is installed.
 
 ## What to avoid
 

@@ -99,8 +99,9 @@ it('resolves alphabetical and configured order within each filtered call', funct
 it('groups registrar routes with the same Laravel web and API defaults as files', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'ddd');
+        Mod::layout('ddd')->mounts('routes', null, 'app/Modules/{domain}/routes');
         $namespace = 'RegistrarDefaults'.bin2hex(random_bytes(4));
-        $w->write('app/Modules/Inventory/Http/Routing/Unconventional.php', "<?php namespace {$namespace}; class Unconventional implements \\Tey\\Mod\\Routing\\RegistersRoutes { public static function web(): void { \\Illuminate\\Support\\Facades\\Route::get('widgets', fn () => 'web')->name('widgets'); } public static function api(): void { \\Illuminate\\Support\\Facades\\Route::get('widgets', fn () => 'api')->name('api.widgets'); } }");
+        $w->write('app/Modules/Inventory/Routing/Unconventional.php', "<?php namespace {$namespace}; class Unconventional implements \\Tey\\Mod\\Routing\\RegistersRoutes { public static function web(): void { \\Illuminate\\Support\\Facades\\Route::get('widgets', fn () => 'web')->name('widgets'); } public static function api(): void { \\Illuminate\\Support\\Facades\\Route::get('widgets', fn () => 'api')->name('api.widgets'); } }");
         Route::prefix('admin')->name('admin.')->middleware('auth')->group(fn () => Mod::routes());
         $routes = app(Router::class)->getRoutes();
         $routes->refreshNameLookups();

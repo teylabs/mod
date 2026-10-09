@@ -58,6 +58,10 @@ final class LayoutCompiler
             }
         }
 
+        if ($frontend['views'] !== null && ! isset($types['view'])) {
+            $types['view'] = (new FileType('view'))->withinRoot('resources-views')->in('')->file();
+        }
+
         if ($this->templates !== null) {
             [$types, $roots] = $this->templates->merge($this->layout->name, $chain['path'], $types, $roots);
         }

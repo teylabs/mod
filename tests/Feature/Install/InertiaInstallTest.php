@@ -177,6 +177,7 @@ it('takes the DDD frontend alias from its frontend group rather than a class roo
     Workspace::run(null, function (Workspace $w) {
         Kit::setup($w);
         config()->set('mod.layout', 'ddd');
+        app(LayoutRegistry::class)->layout('ddd')->frontend(pages: 'app/Modules/{domain}/resources/js/pages', views: 'app/Modules/{domain}/resources/views', pageName: '{domain}::{path}');
         $w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful();
         expect($w->read('vite.config.ts'))->toContain("new URL('./app/Modules', import.meta.url)");
     });

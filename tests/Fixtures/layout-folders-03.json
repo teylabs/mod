@@ -207,12 +207,10 @@
         "class": "src/Domain/{domain+}",
         "interface": "src/Domain/{domain+}",
         "trait": "src/Domain/{domain+}",
-        "controller": "app/Modules/{domain+}/Http/Controllers",
-        "request": "app/Modules/{domain+}/Http/Requests",
-        "middleware": "app/Modules/{domain+}/Http/Middleware",
+        "controller": "app/Modules/{domain+}/Controllers",
+        "request": "app/Modules/{domain+}/Requests",
+        "middleware": "app/Modules/{domain+}/Middleware",
         "test": "tests/Feature/{domain+}",
-        "view": "app/Modules/{domain+}/resources/views",
-        "component": "app/Modules/{domain+}/View/Components",
-        "page": "app/Modules/{domain+}/resources/js/pages"
+        "component": "app/Modules/{domain+}/View/Components"
     }
 }

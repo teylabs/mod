@@ -17,12 +17,16 @@ class MailCommand extends MailMakeCommand implements GeneratorAdapter
 
     protected function companionViewName(): ?string
     {
-        if ($this->layout()->frontend()['views'] === null || ($this->option('markdown') === false && $this->option('view') === false)) {
+        if ($this->option('markdown') === false && $this->option('view') === false) {
             return null;
         }
         $name = $this->option('markdown') ?: $this->option('view');
         if (is_string($name) && $name !== '') {
             return $name;
+        }
+
+        if ($this->layout()->frontend()['views'] === null) {
+            return parent::getView();
         }
 
         return 'mail.'.implode('.', array_map(Str::kebab(...), explode('/', str_replace('\\', '/', $this->getNameInput()))));

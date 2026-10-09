@@ -502,6 +502,7 @@
       }
     },
     "frontend": {
+      "description": "All keys remain present with null values when no frontend paths are declared, including the ddd preset.",
       "type": "object",
       "required": [
         "pages",

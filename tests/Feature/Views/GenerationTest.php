@@ -73,10 +73,11 @@ it('refuses an existing companion view before writing the class', function (stri
     ['mod:notification', ['--markdown' => 'mail.stock'], 'mail/stock', 'Notifications'],
 ]);
 
-it('places DDD views and components in the application root', function () {
+it('places opted-in DDD views and components in the application root', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'ddd');
-        $w->write('app/Modules/Inventory/Http/Controllers/.gitkeep', '');
+        Mod::layout('ddd')->frontend(views: 'app/Modules/{domain}/resources/views');
+        $w->write('app/Modules/Inventory/Controllers/.gitkeep', '');
         expect($w->artisan('mod:view', ['name' => 'Inventory:widgets.show'])->exitCode)->toBe(0)
             ->and($w->exists('app/Modules/Inventory/resources/views/widgets/show.blade.php'))->toBeTrue();
         expect($w->artisan('mod:component', ['name' => 'Inventory:StockBadge'])->exitCode)->toBe(0)
@@ -142,7 +143,6 @@ it('generates views in every built-in layout', function (string $layout, string 
     ['slices', 'Inventory/Show:widgets.show', 'app/Inventory/Show/resources/views'],
     ['type-first', 'Inventory:widgets.show', 'resources/views/inventory'],
     ['modules', 'Inventory:widgets.show', 'app/Modules/Inventory/resources/views'],
-    ['ddd', 'Inventory.Reports:widgets.show', 'app/Modules/Inventory/Reports/resources/views'],
 ]);
 
 it('honours a customized views folder without changing class placement', function () {

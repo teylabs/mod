@@ -27,9 +27,6 @@ it('keeps every built-in placement from 0.1.1 except the 0.3 HTTP move', functio
     $snapshot = json_decode(file_get_contents(__DIR__.'/../../Fixtures/Layout/v0.1.1.json'), true, flags: JSON_THROW_ON_ERROR);
     foreach (['controller' => 'Controllers', 'request' => 'Requests', 'middleware' => 'Middleware', 'resource' => 'Resources'] as $id => $folder) {
         $snapshot['modules'][$id] = ['App\\|app|Modules/{module}/Http/'.$folder];
-        if ($id !== 'resource') {
-            $snapshot['ddd'][$id] = ['App\\Modules\\|app/Modules|{domain+}/Http/'.$folder];
-        }
     }
     $snapshot['slices']['request'] = ['App\\|app|{feature}/{slice}/Http/Requests'];
     $actual = [];

@@ -82,6 +82,16 @@ class PlainFileCommand extends Command implements GeneratorAdapter
     private function generateFile(): int
     {
         try {
+            $frontend = $this->layout()->frontend();
+            $paths = match ($this->kind()->extension) {
+                '.blade.php' => ['views'],
+                '.css' => ['css'],
+                '.vue', '.tsx', '.jsx', '.js', '.ts' => ['pages', 'components'],
+                default => [],
+            };
+            if ($paths !== [] && array_filter($paths, static fn (string $path): bool => $frontend[$path] !== null) === []) {
+                throw GenerationRefused::because($this->getName().' needs a frontend folder. Declare ->frontend('.$paths[0].': ...) on the layout in a service provider. Nothing was written.');
+            }
             if ($this->kind()->id === 'page' && $this->laravel->make(Stack::class)->inertia() === null) {
                 throw GenerationRefused::because('mod:page: No Inertia app found in package.json. Declare @inertiajs/vue3 or @inertiajs/react before creating a page.');
             }

@@ -182,7 +182,7 @@ it('announces each new ddd group once across domain application and test roots p
             $output = $w->artisan('mod:trio', ['name' => $group.':Widget'])->assertSuccessful()->normalisedOutput();
             expect(substr_count($output, 'Created new domain '.$group))->toBe(1)
                 ->and($w->exists('src/Domain/'.$group.'/Models/Widget.php'))->toBeTrue()
-                ->and($w->exists('app/Modules/'.$group.'/Http/Requests/WidgetRequest.php'))->toBeTrue()
+                ->and($w->exists('app/Modules/'.$group.'/Requests/WidgetRequest.php'))->toBeTrue()
                 ->and($w->exists('tests/Feature/'.$group.'/Widget.php'))->toBeTrue();
         }
     });

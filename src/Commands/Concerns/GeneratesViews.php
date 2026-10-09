@@ -17,6 +17,7 @@ use Tey\Mod\Relation\RelationResolution;
 use Tey\Mod\Relation\ScopeMap;
 use Tey\Mod\Scaffolds\ScaffoldExecution;
 use Tey\Mod\Scaffolds\ScaffoldPlan;
+use Tey\Mod\Support\Path;
 use Tey\Mod\Views\ViewIdentity;
 
 /** Native generators retain their stubs; companion views join their plans. */
@@ -36,7 +37,14 @@ trait GeneratesViews
 
     protected function viewArtifact(ResolvedArtifact $primary, string $name, string $extension = 'blade.php'): ResolvedArtifact
     {
-        $identity = ViewIdentity::resolve($this->layout(), $primary->context, $name, $extension);
+        if ($this->layout()->frontend()['views'] === null) {
+            $path = parent::viewPath(str_replace('.', '/', $name).'.'.$extension);
+            $relative = Path::relative($this->laravel->basePath(), $path)
+                ?? throw GenerationRefused::because($this->getName().' cannot plan a view outside the application folder. Check view.paths.');
+            $identity = new ViewIdentity(null, $name, $relative);
+        } else {
+            $identity = ViewIdentity::resolve($this->layout(), $primary->context, $name, $extension);
+        }
 
         return new ResolvedArtifact(ArtifactKind::file('view'), $primary->context, $name, $identity);
     }
