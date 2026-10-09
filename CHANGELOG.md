@@ -2,31 +2,28 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## [0.3.0] - Unreleased
+## [0.3.0] - 2026-10-09
 
 ### Added
-- Stack-aware Inertia page generation and plain generator templates with extension-preserving filenames and configurable casing.
-- Frontend path configuration with `->frontend()`, stack/page-casing detection, and case-only folder collision checks.
-- Plain scaffold members, file questions, framework identities, import aliases, stack-specific variants and anchored inserts in frontend files.
-- Known-only frontend placeholders, escaped expressions, warnings for ambiguous forms, and JSON/headline value forms.
-- Plain-file copying with `mod:template --from` and name/group mention reports.
-- Module view and Blade component namespaces, `mod:view` / `mod:component`, and grouped companion views for mail and notifications.
-- Explicit `Mod::routes()` loading with filters, Laravel group inheritance, configured order, route caching and duplicate-call diagnostics.
-- `RegistersRoutes` implementations, route generators and scaffold route aliases.
-- Independent scaffold member placement with `ungrouped` or question-backed `group` values, and write-once `existing: 'keep'` members.
-- Module-owned generator templates and convention/provider-registered scaffolds, selected before app and package generators.
-- Previewed, idempotent `mod:install inertia` wiring for Vue and React, a vendor page resolver, and manual instructions for custom setups.
-- JSON and text dry-run plans for file generators, scaffolds, template creation, autoload updates and missing bases.
-- Additive inventory sections for stack, frontend paths/imports, views, routes, wiring and canonical generator sources.
-- Optional read-only Laravel Boost inventory and plan tools, with command/option guidance coverage.
+- Frontend files from templates: a `.stub` whose name ends in another extension becomes a generator (`card.blade.php.stub` → `mod:card`, `filter.vue.stub` → `mod:filter`). File names follow the stack's casing.
+- `mod:page` writes a minimal Inertia page for the app's stack (Vue or React, TypeScript when `tsconfig.json` exists) into the module, following the app's `pages/` or `Pages/` casing.
+- `mod:install inertia` previews and wires Vue and React apps for module pages: the page resolver shipped in `vendor/`, the `@modules` Vite and TypeScript aliases, and Tailwind sources. Rerunning reports "Already wired."; custom setups get manual instructions.
+- Placeholders that link PHP and frontend files: `{{ page }}` (`Inventory::Widget/Index`), `{{ view }}`, `{{ import }}` and `{{ tag }}`. Only known names are replaced, `@{{ }}` escapes, and an ambiguous bare name in Vue or Blade warns with its file and line.
+- Frontend files as scaffold members, with stack-specific variants, file questions and anchored inserts.
+- `mod:template --from` copies a Vue or Blade file byte for byte and reports which names to turn into placeholders.
+- `->frontend(pages:, components:, css:, views:)` relocates a layout's frontend folders. Folders that differ only by case are refused.
+- Module view namespaces (`view('inventory::widgets.show')`) and anonymous components (`<x-inventory::widget-card />`), with `mod:view` and `mod:component`. `mod:mail --markdown` and `mod:notification --markdown` write their views in the module.
+- `Mod::routes()` loads each module's `routes/web.php`, `api.php` and `console.php` with Laravel's groups, from `bootstrap/app.php` or inside your own route group. `only:`, `except:` and `config('mod.routes.order')` control which modules load and when. Works with `route:cache`.
+- Optional `RegistersRoutes` classes for routes in PHP, and `mod:routes` and `mod:route-registrar` to start either. Scaffolds can insert routes with `into: 'routes'`.
+- Scaffold members can be `ungrouped: true`, ask their own `group:`, or use `existing: 'keep'` to write a shared file once.
+- Modules can carry their own templates (`<module>/stubs/mod/`) and scaffolds (`<module>/Scaffolds/` or `Mod::scaffolds()`). The module wins over the app, and the app over packages.
+- `--dry-run --json` on every command that writes files prints a plan of what it would write, without writing or prompting.
+- `mod:list --json` adds stack, frontend, views, routes and wiring sections, and where each template and scaffold comes from.
+- With Laravel Boost installed, read-only `mod-inventory` and `mod-plan` MCP tools let agents read the inventory and preview generators.
 
 ### Changed
 - HTTP classes (controllers, requests, middleware, resources) now live under Http/
-- Plain resource and route roots are excluded from PHP class discovery.
-
-### Docs
-- Frontend, module routes and agent guides, sidebar-derived `llms.txt`, and Markdown copies of sidebar pages.
-- Starter-kit verification builds and type-checks Vue and React examples on Laravel 12 and 13 and checks the generated Inertia response.
+- Class discovery skips a module's `resources/` and `routes/` folders.
 
 ## [0.2.0] - 2026-10-09
 

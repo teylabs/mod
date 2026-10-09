@@ -1,11 +1,10 @@
-<p align="center">
+<h1>
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://mod.teylabs.com/banner-dark-transparent.png?v=1">
-    <img alt="Mod: Modular Development Toolkit for Laravel" src="https://mod.teylabs.com/banner-light-transparent.png?v=1" width="520">
+    <source media="(prefers-color-scheme: dark)" srcset="https://mod.teylabs.com/logo-dark.svg">
+    <img alt="" src="https://mod.teylabs.com/logo-light.svg" height="36" align="top">
   </picture>
-</p>
-
-# Mod: Modular Development Toolkit for Laravel
+  Mod: Modular Development Toolkit for Laravel
+</h1>
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/tey/mod.svg?style=flat-square)](https://packagist.org/packages/tey/mod)
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/teylabs/mod/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/teylabs/mod/actions?query=workflow%3Arun-tests+branch%3Amain)
