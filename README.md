@@ -285,7 +285,7 @@ A value names a folder. Only folders that hold the layout's files for a group co
 
 ```bash
 php artisan mod:model Knowledg:Note --no-interaction
-# ->  INFO  Created new module Knowledg (did you mean Knowledge?).
+# ->  INFO  Created new module Knowledg (existing: Agents, Knowledge).
 ```
 
 ### The DDD Layout
