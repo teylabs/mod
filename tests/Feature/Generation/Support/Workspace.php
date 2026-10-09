@@ -38,6 +38,17 @@ final class Workspace
             // Forget any preset resolved earlier; mod:* reads this one when Artisan starts.
             app()->forgetInstance(CompiledLayout::class);
 
+            // Mirror the fresh Laravel application's mappings in both the manifest and loader.
+            file_put_contents($root->path('composer.json'), json_encode([
+                'name' => 'tey-mod/owned-app',
+                'autoload' => ['psr-4' => [
+                    'App\\' => 'app/',
+                    'Database\\Factories\\' => 'database/factories/',
+                    'Database\\Seeders\\' => 'database/seeders/',
+                ]],
+                'autoload-dev' => ['psr-4' => ['Tests\\' => 'tests/']],
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n");
+
             // Describe autoload roots without loading generated test classes into the process.
             $loader = new ClassLoader;
             $loader->setClassMapAuthoritative(true);

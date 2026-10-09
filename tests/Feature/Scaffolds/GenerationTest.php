@@ -171,3 +171,19 @@ it('runs generator write hooks only after the scaffold plan is accepted', functi
         expect($w->files())->toBe([]);
     });
 });
+
+it('announces each new ddd group once across domain application and test roots per scaffold run', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', 'ddd');
+        Mod::scaffold('trio', fn (Scaffold $s) => $s->makes('model')->makes('request')->makes('test'));
+        // Different sibling lists must not turn one logical group into different notices.
+        $w->write('src/Domain/Existing/Models/Old.php', '<?php');
+        foreach (['Inventory', 'Support'] as $group) {
+            $output = $w->artisan('mod:trio', ['name' => $group.':Widget'])->assertSuccessful()->normalisedOutput();
+            expect(substr_count($output, 'Created new domain '.$group))->toBe(1)
+                ->and($w->exists('src/Domain/'.$group.'/Models/Widget.php'))->toBeTrue()
+                ->and($w->exists('app/Modules/'.$group.'/Requests/WidgetRequest.php'))->toBeTrue()
+                ->and($w->exists('tests/Feature/'.$group.'/Widget.php'))->toBeTrue();
+        }
+    });
+});

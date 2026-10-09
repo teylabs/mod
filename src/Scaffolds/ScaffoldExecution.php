@@ -32,6 +32,9 @@ final class ScaffoldExecution
     /** @var array<string, string> notices held until their primary is generated */
     public array $groupNotices = [];
 
+    /** @var list<string> dimension and group name, independent of the member root */
+    public array $newGroups = [];
+
     public bool $force = false;
 
     private ?GenerationPlan $collected = null;
