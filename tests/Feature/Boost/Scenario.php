@@ -30,14 +30,26 @@ final class Scenario
     public static function inventory(Workspace $w): void
     {
         Kit::setup($w);
-        $w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful();
         $w->write('app/Modules/Inventory/resources/views/mail/widget-restocked.blade.php', '<p>Restocked</p>');
         $w->write('app/Modules/Inventory/resources/views/components/widget-card.blade.php', '<div>Widget</div>');
         $w->write('app/Modules/Inventory/routes/web.php', '<?php // The inventory describes this entrypoint.');
+        $w->write('stubs/mod/@module/resources/views/card.blade.php.stub', '<div>{{ name.studly }}</div>');
+        $w->write('app/Modules/Inventory/stubs/mod/@module/resources/views/card.blade.php.stub', '<div data-module="inventory">{{ name.studly }}</div>');
+        $w->write('app/Modules/Inventory/Scaffolds/A2StockReport.php', <<<'PHP'
+<?php
+namespace App\Modules\Inventory\Scaffolds;
+use Tey\Mod\Scaffolds\Scaffold;
+final class A2StockReport
+{
+    public string $name = 'stock-report';
+    public function __invoke(Scaffold $s): void { $s->makes('card', name: '{name}', existing: 'keep'); }
+}
+PHP);
+        // Register every template and recipe on the first Artisan boot.
+        $w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful();
         // A2's loader is on bootstrap/app.php:18, matching the catalogue provenance.
         $w->write('bootstrap/app.php', "<?php\n".str_repeat("\n", 16)."\\Tey\\Mod\\Facades\\Mod::routes();\n");
         require $w->root->path('bootstrap/app.php');
-        $w->write('stubs/mod/@module/resources/js/components/card.vue.stub', '<template>{{ name.studly }}</template>');
     }
 
     public static function application(Workspace $w, bool $boostFirst = false): void

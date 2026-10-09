@@ -20,6 +20,21 @@
             "relations": []
         },
         {
+            "id": "card",
+            "plain": true,
+            "extension": ".blade.php",
+            "case": "kebab",
+            "command": "mod:card",
+            "aliases": [],
+            "folder": "app/Modules/{module}/resources/views",
+            "source": "layout",
+            "stub": "stubs/mod/@module/resources/views/card.blade.php.stub",
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
             "id": "cast",
             "command": "mod:cast",
             "aliases": [],
@@ -468,11 +483,44 @@
         }
     ],
     "templates": {
+        "items": [
+            {
+                "type": "card",
+                "source": "app",
+                "path": "stubs/mod/@module/resources/views/card.blade.php.stub"
+            },
+            {
+                "type": "card",
+                "source": "module:Inventory",
+                "path": "app/Modules/Inventory/stubs/mod/@module/resources/views/card.blade.php.stub"
+            }
+        ],
         "problems": [],
         "notices": []
     },
     "scaffolds": {
-        "items": [],
+        "items": [
+            {
+                "name": "stock-report",
+                "command": "mod:stock-report",
+                "source": "module:Inventory",
+                "members": [
+                    {
+                        "alias": "card",
+                        "type": "card",
+                        "name": "{name}",
+                        "stub": null,
+                        "options": [],
+                        "folder": "app/Modules/{module}/resources/views",
+                        "ungrouped": false,
+                        "group": null,
+                        "existing": "keep"
+                    }
+                ],
+                "from": "module:Inventory",
+                "origin": "app/Modules/Inventory/Scaffolds/A2StockReport.php"
+            }
+        ],
         "problems": []
     },
     "discovery": {
