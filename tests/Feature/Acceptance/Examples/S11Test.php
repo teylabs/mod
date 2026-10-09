@@ -14,4 +14,4 @@ it('S11 generates template members, sibling aliases and slot options', function 
         expect(str_replace("\r\n", "\n", $w->read('app/Modules/Agents/Tools/Notion/SearchDocuments.php')))->toBe("<?php\n\nnamespace App\\Modules\\Agents\\Tools\\Notion;\n\nuse App\\Modules\\Agents\\Prompts\\SearchDocumentsPrompt;\n\nclass SearchDocuments\n{\n    public string \$source = 'Notion';\n}\n")
             ->and($w->exists('app/Modules/Agents/Prompts/SearchDocumentsPrompt.php'))->toBeTrue();
     });
-})->skip('needs lane 4');
+});
