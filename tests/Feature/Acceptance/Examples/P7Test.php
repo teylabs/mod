@@ -16,7 +16,7 @@ it('P7 inherits middleware, URI and name prefixes and separates filtered calls',
         $route = Route::getRoutes()->getByName('admin.Inventory');
         expect($route->uri())->toBe('admin/Inventory')->and($route->middleware())->toBe(['auth', 'can:admin', 'web']);
         expect(Route::getRoutes()->getByName('Agents')->uri())->toBe('Agents');
-        try { Mod::routes(only: ['Inventory']); test()->fail('Duplicate module accepted.'); }
+        try { Mod::routes(only: ['Inventory']); \Tey\Mod\Tests\Feature\Scaffolds\Support\Examples::testCase()->fail('Duplicate module accepted.'); }
         catch (\LogicException $e) { expect($e->getMessage())->toContain('Inventory', 'P7Test.php:', 'first', 'again'); }
     });
 });
