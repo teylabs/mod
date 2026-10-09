@@ -40,6 +40,7 @@ use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Resolution\ModelConventions;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
 use Tey\Mod\Support\Path;
+use Tey\Mod\Support\Stack;
 use Tey\Mod\Templates\TemplateCatalog;
 use Tey\Mod\Templates\TemplateDiagnostics;
 use Throwable;
@@ -59,6 +60,7 @@ class ModServiceProvider extends ServiceProvider
         });
         $this->app->singleton(TemplateDiagnostics::class);
         $this->app->singleton(LayoutRegistry::class);
+        $this->app->bind(Stack::class, fn (Application $app): Stack => new Stack($app->basePath()));
         $this->app->singleton(StubRegistry::class, fn (): StubRegistry => Starters::register(new StubRegistry));
         $this->app->bind(BaseWriter::class, fn (Application $app): BaseWriter => new BaseWriter(
             $app->make('files'),
@@ -180,7 +182,7 @@ class ModServiceProvider extends ServiceProvider
             $registry->layout($name)->reserveBaseFolders($app->make(StubRegistry::class), self::basesPath($app));
         }
 
-        return $registry->compile($name, $app->make(TemplateCatalog::class));
+        return $registry->compile($name, $app->make(TemplateCatalog::class))->withStack($app->make(Stack::class));
     }
 
     /**

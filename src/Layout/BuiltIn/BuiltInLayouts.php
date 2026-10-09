@@ -41,7 +41,28 @@ final readonly class BuiltInLayouts
             default => null,
         };
 
-        return in_array($name, $this->names(), true);
+        if (! in_array($name, $this->names(), true)) {
+            return false;
+        }
+        $base = match ($name) {
+            'modules' => '@module',
+            'features' => '@feature',
+            'slices' => '@slice',
+            'ddd' => 'app/Modules/{domain}',
+            default => '',
+        };
+        $token = match ($name) {
+            'modules' => '{module}',
+            'features', 'slices', 'type-first' => '{feature}',
+            'ddd' => '{domain}',
+            default => '',
+        };
+        $resources = $base === '' ? 'resources' : $base.'/resources';
+        $layout->frontend(pages: $resources.'/js/pages', components: $resources.'/js/components', css: $resources.'/css', views: $resources.'/views', pageName: $token === '' ? '{path}' : $token.'::{path}')
+            ->mounts('routes', null, $base === '' ? 'routes' : $base.'/routes');
+        $layout->mirrorsPages();
+
+        return true;
     }
 
     private function laravel(Layout $layout): Layout
@@ -135,7 +156,7 @@ final readonly class BuiltInLayouts
             ->mounts('app', 'App\\', 'app', fn (Root $root) => $root
                 ->generates('message', in: '@slice', fixed: 'Command')
                 ->generates('handler', in: '@slice', fixed: 'Handler')
-                ->generates('request', in: '@slice', fixed: 'Request')
+                ->generates('request', in: '@slice/Http/Requests', fixed: 'Request')
                 ->generates('validator', in: '@slice', fixed: 'Validator')
                 ->generates('query', in: '@slice', fixed: 'Query')
                 ->generates('model', in: '@feature/Models')
@@ -228,8 +249,8 @@ final readonly class BuiltInLayouts
         $layout
             ->mounts('app', 'App\\', 'app', fn (Root $root) => $root
                 ->generates('model', in: '@module/Models')
-                ->generates('controller', in: '@module/Controllers', suffix: 'Controller')
-                ->generates('request', in: '@module/Requests', suffix: 'Request')
+                ->generates('controller', in: '@module/Http/Controllers', suffix: 'Controller')
+                ->generates('request', in: '@module/Http/Requests', suffix: 'Request')
                 ->generates('policy', in: '@module/Policies', suffix: 'Policy')
                 ->generates('provider', in: '@module/Providers', suffix: 'ServiceProvider')
                 ->generates('command', in: '@module/Console')
@@ -239,8 +260,8 @@ final readonly class BuiltInLayouts
                 ->generates('job-middleware', in: '@module/Jobs/Middleware')
                 ->generates('mail', in: '@module/Mail')
                 ->generates('notification', in: '@module/Notifications')
-                ->generates('resource', in: '@module/Resources')
-                ->generates('middleware', in: '@module/Middleware')
+                ->generates('resource', in: '@module/Http/Resources')
+                ->generates('middleware', in: '@module/Http/Middleware')
                 ->generates('rule', in: '@module/Rules')
                 ->generates('observer', in: '@module/Observers')
                 ->generates('cast', in: '@module/Casts')
@@ -306,9 +327,9 @@ final readonly class BuiltInLayouts
                 ->generates('interface', in: '@domain', priority: -11)
                 ->generates('trait', in: '@domain', priority: -12))
             ->mounts('application', 'App\\Modules\\', 'app/Modules', fn (Root $root) => $root
-                ->generates('controller', in: '{domain+}/Controllers', suffix: 'Controller')
-                ->generates('request', in: '{domain+}/Requests', suffix: 'Request')
-                ->generates('middleware', in: '{domain+}/Middleware'))
+                ->generates('controller', in: '{domain+}/Http/Controllers', suffix: 'Controller')
+                ->generates('request', in: '{domain+}/Http/Requests', suffix: 'Request')
+                ->generates('middleware', in: '{domain+}/Http/Middleware'))
             ->mounts('tests', 'Tests\\', 'tests', fn (Root $root) => $root
                 ->generates('test', in: 'Feature/{domain+}'));
 

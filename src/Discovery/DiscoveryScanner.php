@@ -268,7 +268,7 @@ final readonly class DiscoveryScanner
             foreach (($this->candidates)($root, $this->basePath, $definition) as $path) {
                 $path = CompiledRoot::normalisePath($path);
 
-                if ($path !== '' && str_ends_with($path, '.php') && Path::relative($prefix, $path) !== null) {
+                if ($path !== '' && str_ends_with($path, '.php') && Path::relative($prefix, $path) !== null && ! $this->preset->isPlainFilePath($path)) {
                     $files[$path] = $path;
                 }
             }
@@ -279,7 +279,7 @@ final readonly class DiscoveryScanner
             return $files;
         }
 
-        return $this->walk($root->path, static fn (SplFileInfo $item): bool => $item->isFile() && $item->getExtension() === 'php');
+        return array_values(array_filter($this->walk($root->path, static fn (SplFileInfo $item): bool => $item->isFile() && $item->getExtension() === 'php'), fn (string $path): bool => ! $this->preset->isPlainFilePath($path)));
     }
 
     /**

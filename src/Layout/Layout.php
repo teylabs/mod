@@ -50,6 +50,11 @@ final class Layout
     /** @var array<string, Scaffold> */
     private array $scaffoldRecipes = [];
 
+    /** @var array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string} */
+    private array $frontend = ['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'page_name' => null];
+
+    private bool $mirrorPages = false;
+
     private bool $commands = true;
 
     private ?string $groupPath = null;
@@ -255,6 +260,28 @@ final class Layout
         return $this;
     }
 
+    /** Declare project-relative frontend paths; omitted arguments keep their current values. */
+    public function frontend(?string $pages = null, ?string $components = null, ?string $css = null, ?string $views = null, ?string $pageName = null): self
+    {
+        $this->guard();
+        foreach (['pages' => $pages, 'components' => $components, 'css' => $css, 'views' => $views, 'page_name' => $pageName] as $key => $value) {
+            if ($value !== null) {
+                $this->frontend[$key] = $value;
+            }
+        }
+        if ($pages !== null) {
+            $this->mirrorPages = false;
+        }
+
+        return $this;
+    }
+
+    /** @internal built-in page folders follow the application's casing. */
+    public function mirrorsPages(): void
+    {
+        $this->mirrorPages = true;
+    }
+
     /** Copy one parent as it stands now. This must be the first call. */
     public function extends(string $parent): self
     {
@@ -274,6 +301,8 @@ final class Layout
             return $this;
         }
         $source = $registry->layout($parent);
+        $this->frontend = $source->frontend;
+        $this->mirrorPages = $source->mirrorPages;
         $this->roots = $source->roots;
         $this->kinds = array_map(static fn (FileType $type): FileType => clone $type, $source->kinds);
         $this->relations = $source->relations;
@@ -413,12 +442,14 @@ final class Layout
     /**
      * @internal
      *
-     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, FileType>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, mode: string|RelationMode|null}>, excluded: list<string>, commands: bool, path: ?string, nesting: list<string>, errors: list<string>}
+     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, FileType>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, mode: string|RelationMode|null}>, excluded: list<string>, commands: bool, path: ?string, nesting: list<string>, errors: list<string>, frontend: array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string}, mirror_pages: bool}
      */
     public function toArray(): array
     {
         $path = $this->groupPath;
         $kinds = $this->kinds;
+        $frontend = $this->frontend;
+        $roots = $this->roots;
         // Resolve defaults after the complete declaration, so path() can supply the token.
         if ($this->inheritedToken !== null && $path !== null) {
             $token = $this->declaredPath ? null : GroupPath::derivedToken($this->name);
@@ -428,6 +459,17 @@ final class Layout
                 $token = $match[1];
             }
             if ($token !== null) {
+                $rewrite = fn (string $value): string => (string) preg_replace_callback('/\{'.preg_quote($this->inheritedToken, '/').'([+?]*)\}|@'.preg_quote($this->inheritedToken, '/').'(?![A-Za-z0-9_])/', static fn (array $match): string => str_starts_with($match[0], '@') ? '@'.$token : '{'.$token.($match[1] ?? '').'}', $value);
+                foreach ($frontend as $key => $value) {
+                    if ($value !== null) {
+                        $frontend[$key] = $rewrite($value);
+                    }
+                }
+                foreach ($roots as $key => $root) {
+                    if ($root['namespace'] === null) {
+                        $roots[$key]['path'] = $rewrite($root['path']);
+                    }
+                }
                 foreach ($kinds as $id => $type) {
                     $kinds[$id] = clone $type;
                     $in = $type->toArray()['in'];
@@ -439,7 +481,9 @@ final class Layout
         }
 
         return [
-            'roots' => $this->roots,
+            'frontend' => $frontend,
+            'mirror_pages' => $this->mirrorPages,
+            'roots' => $roots,
             'kinds' => $kinds,
             'relations' => $this->relations,
             'excluded' => $this->excluded,

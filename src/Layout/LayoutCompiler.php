@@ -46,6 +46,22 @@ final class LayoutCompiler
             [$types, $roots] = $this->templates->merge($this->layout->name, $chain['path'], $types, $roots);
         }
 
+        $frontend = [];
+        foreach ($chain['frontend'] as $key => $value) {
+            $frontend[$key] = $value === null ? null : $this->filePath($value, $chain['path'], $rename);
+        }
+        foreach ($roots as &$root) {
+            if ($root['namespace'] === null) {
+                $root['path'] = $this->filePath($root['path'], $chain['path'], $rename);
+            }
+        }
+        unset($root);
+        foreach (['pages' => 'resources-js', 'components' => 'resources-components', 'css' => 'resources-css', 'views' => 'resources-views'] as $key => $rootName) {
+            if ($frontend[$key] !== null) {
+                $roots[$rootName] = ['namespace' => null, 'path' => $key === 'pages' ? dirname($frontend[$key]) : $frontend[$key]];
+            }
+        }
+
         $kinds = [];
         $placeholders = [];
         $failed = [];
@@ -83,6 +99,8 @@ final class LayoutCompiler
         unset($relation);
 
         $definition = [
+            'frontend' => $frontend,
+            'mirror_pages' => $chain['mirror_pages'],
             'commands' => $chain['commands'],
             'roots' => array_map(
                 static fn (array $root): array => array_filter($root, static fn (?string $value): bool => $value !== null),
@@ -110,6 +128,37 @@ final class LayoutCompiler
         }
 
         return CompiledLayout::fromArray($definition)->withTemplates($this->templates?->templates() ?? []);
+    }
+
+    /**
+     * Resolve a plain-file path using the same group anchors and token renames as class placement.
+     *
+     * @param  array<string, string>  $rename
+     */
+    private function filePath(string $value, ?string $groupPath, array $rename): string
+    {
+        $value = (string) preg_replace_callback('/\{(\w+)([+?]*)\}|@(\w+)/', static fn (array $m): string => str_starts_with($m[0], '@')
+            ? '@'.($rename[$m[3] ?? ''] ?? ($m[3] ?? ''))
+            : '{'.($rename[$m[1]] ?? $m[1]).$m[2].'}', $value);
+        if (preg_match('/^@(\w+)(?:\/(.*))?$/', $value, $match) === 1) {
+            $prefix = [];
+            $found = false;
+            foreach (explode('/', GroupPath::projectPath($groupPath ?? '')) as $part) {
+                $prefix[] = $part;
+                if (preg_match('/^\{'.preg_quote($match[1], '/').'[+?]*\}$/', $part) === 1) {
+                    $found = true;
+                    break;
+                }
+            }
+            if (! $found) {
+                throw new InvalidLayout($this->layout->name, [], "Frontend anchor @{$match[1]} is not declared by path().");
+            }
+            $target = implode('/', $prefix);
+            $suffix = $match[2] ?? '';
+            $value = str_contains($target, '*') ? str_replace('*', $suffix, $target) : Path::join($target, $suffix);
+        }
+
+        return Path::normalize($value);
     }
 
     /**

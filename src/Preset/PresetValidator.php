@@ -20,6 +20,7 @@ use Tey\Mod\Relation\NameDerivation;
 use Tey\Mod\Relation\Relation;
 use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Relation\ScopeMap;
+use Tey\Mod\Support\Path;
 
 /**
  * Validates and compiles the provisional internal preset definition:
@@ -98,6 +99,7 @@ final class PresetValidator
         }
 
         [$kinds, $rules, $declaredKinds] = $this->kinds($definition['kinds'] ?? [], $roots, $dimensions, $commands);
+        $this->caseCollisions($roots, $rules);
         $dimensions = $this->multiDimensions($dimensions, $rules);
         $relations = $this->relations($definition['relations'] ?? [], $declaredKinds, $dimensions);
         $placementOptions = $this->placementOptions($definition['placement_options'] ?? [], $dimensions);
@@ -115,7 +117,55 @@ final class PresetValidator
             }
         }
 
-        return new CompiledLayout($roots, array_values($dimensions), $kinds, $rules, $relations, $excluded, $commands, $placementOptions, $stubs);
+        $frontend = ['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'page_name' => null];
+        $declaredFrontend = $definition['frontend'] ?? [];
+        foreach ($frontend as $key => $value) {
+            $entry = is_array($declaredFrontend) ? ($declaredFrontend[$key] ?? null) : null;
+            $frontend[$key] = is_string($entry) ? $entry : null;
+        }
+
+        return new CompiledLayout($roots, array_values($dimensions), $kinds, $rules, $relations, $excluded, $commands, $placementOptions, $stubs, [], $frontend, ($definition['mirror_pages'] ?? false) === true);
+    }
+
+    /**
+     * Compare declared folders, including ancestors of roots; no disk state is consulted.
+     *
+     * @param  array<string, CompiledRoot>  $roots
+     * @param  array<string, PlacementRule>  $rules
+     */
+    private function caseCollisions(array $roots, array $rules): void
+    {
+        $paths = [];
+        // Class folders come first so the diagnostic names Resources before resources.
+        foreach ($rules as $rule) {
+            if ($rule instanceof TemplateRule) {
+                foreach ($rule->variants() as $variant) {
+                    $paths[] = Path::join($variant->root()->path, ...array_map(static fn (Segment $segment): string => $segment->describe(), $variant->segments()));
+                }
+            }
+        }
+        foreach ($roots as $root) {
+            $paths[] = $root->path;
+        }
+        $seen = [];
+        $reported = [];
+        foreach ($paths as $path) {
+            $parts = [];
+            foreach (explode('/', $path) as $part) {
+                $parts[] = $part;
+                $folder = implode('/', $parts);
+                $canonical = (string) preg_replace('/\{(\w+)[+?]*\}/', '{$1}', $folder);
+                $key = strtolower($canonical);
+                if (isset($seen[$key]) && $seen[$key] !== $canonical && strcasecmp($seen[$key], $canonical) === 0 && ! isset($reported[$key])) {
+                    $fix = str_ends_with($key, '/resources')
+                        ? 'To keep API resources in Resources/, move the frontend root with ->frontend() to ui/.'
+                        : 'Move one of them.';
+                    $this->issue(PresetIssueCode::CaseCollision, 'roots', $seen[$key].' and '.$folder.' differ only by case. '.$fix);
+                    $reported[$key] = true;
+                }
+                $seen[$key] ??= $canonical;
+            }
+        }
     }
 
     /**
