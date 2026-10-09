@@ -24,12 +24,12 @@ it('S17 creation with three equals creation with two then growing the third', fu
         Tree::setup($w);
         Tree::create($w, ['Overview', 'Details', 'History']);
 
-        return [$w->read(Tree::base()), $w->read('app/Modules/Inventory/Controllers/WidgetController.php'), $w->read(Tree::page('History'))];
+        return [$w->read(Tree::base()), $w->read('app/Modules/Inventory/Http/Controllers/WidgetController.php'), $w->read(Tree::page('History'))];
     });
     Workspace::run(null, function (Workspace $w) use ($whole) {
         Tree::setup($w);
         Tree::create($w, ['Overview', 'Details']);
         $w->artisan('mod:resource-tabs.tab', ['name' => 'Inventory:Widget', 'value' => 'History'])->assertSuccessful();
-        expect([$w->read(Tree::base()), $w->read('app/Modules/Inventory/Controllers/WidgetController.php'), $w->read(Tree::page('History'))])->toBe($whole);
+        expect([$w->read(Tree::base()), $w->read('app/Modules/Inventory/Http/Controllers/WidgetController.php'), $w->read(Tree::page('History'))])->toBe($whole);
     });
 });

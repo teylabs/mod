@@ -7,7 +7,7 @@ mod:cast           app/Modules/{module}/Casts               Laravel
 mod:channel        app/Modules/{module}/Channels            Laravel     
 mod:class          app/Modules/{module}                     Laravel     
 mod:command        app/Modules/{module}/Console             Laravel     
-mod:controller     app/Modules/{module}/Controllers         Laravel     
+mod:controller     app/Modules/{module}/Http/Controllers    Laravel     
 mod:dto            app/Modules/{module}/Data                starter     
 mod:enum           app/Modules/{module}/Enums               Laravel     
 mod:event          app/Modules/{module}/Events              Laravel     
@@ -18,7 +18,7 @@ mod:job            app/Modules/{module}/Jobs                Laravel
 mod:job-middleware app/Modules/{module}/Jobs/Middleware     Laravel     
 mod:listener       app/Modules/{module}/Listeners           Laravel     
 mod:mail           app/Modules/{module}/Mail                Laravel     
-mod:middleware     app/Modules/{module}/Middleware          Laravel     
+mod:middleware     app/Modules/{module}/Http/Middleware     Laravel     
 mod:migration      app/Modules/{module}/Database/Migrations Laravel     
 mod:model          app/Modules/{module}/Models              Laravel     
 mod:notification   app/Modules/{module}/Notifications       Laravel     
@@ -26,8 +26,8 @@ mod:observer       app/Modules/{module}/Observers           Laravel
 mod:policy         app/Modules/{module}/Policies            Laravel     
 mod:provider       app/Modules/{module}/Providers           Laravel     
 mod:query          app/Modules/{module}/Queries             empty class 
-mod:request        app/Modules/{module}/Requests            Laravel     
-mod:resource       app/Modules/{module}/Resources           Laravel     
+mod:request        app/Modules/{module}/Http/Requests       Laravel     
+mod:resource       app/Modules/{module}/Http/Resources      Laravel     
 mod:rule           app/Modules/{module}/Rules               Laravel     
 mod:scope          app/Modules/{module}/Scopes              Laravel     
 mod:seeder         app/Modules/{module}/Database/Seeders    Laravel     

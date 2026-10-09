@@ -10,9 +10,11 @@ use Tey\Mod\Exceptions\UnknownRelation;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Placement\Dimension;
 use Tey\Mod\Placement\PlacementRule;
+use Tey\Mod\Placement\Segment;
 use Tey\Mod\Preset\PresetValidator;
 use Tey\Mod\Relation\Relation;
 use Tey\Mod\Support\Path;
+use Tey\Mod\Support\Stack;
 
 /**
  * A coherent, validated set of roots, dimensions, kinds, placement rules and relations.
@@ -32,6 +34,7 @@ final readonly class CompiledLayout
      * @param  list<CompiledRoot>  $excludedRoots  never owned by any rule
      * @param  array<string, string>  $placementOptions  dimension name → command option name
      * @param  array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}>  $templates
+     * @param  array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string}  $frontendPaths
      * @param  array<string, Stub>  $stubs  kind id → the stub the layout declares for it
      */
     public function __construct(
@@ -45,6 +48,8 @@ final readonly class CompiledLayout
         private array $placementOptions = [],
         private array $stubs = [],
         private array $templates = [],
+        private array $frontendPaths = ['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'page_name' => null],
+        private bool $mirrorPages = false,
     ) {}
 
     /**
@@ -57,7 +62,7 @@ final readonly class CompiledLayout
         $slots = array_merge([], ...array_column($templates, 'slots'));
         $dimensions = array_values(array_filter($this->dimensions, static fn (Dimension $dimension): bool => ! in_array($dimension->name, $slots, true)));
 
-        return new self($this->roots, $dimensions, $this->kinds, $this->rules, $this->relations, $this->excludedRoots, $this->commandsEnabled, $this->placementOptions, $this->stubs, $templates);
+        return new self($this->roots, $dimensions, $this->kinds, $this->rules, $this->relations, $this->excludedRoots, $this->commandsEnabled, $this->placementOptions, $this->stubs, $templates, $this->frontendPaths, $this->mirrorPages);
     }
 
     /** @return array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}> */
@@ -76,6 +81,65 @@ final readonly class CompiledLayout
     public static function fromArray(array $definition): self
     {
         return (new PresetValidator)->compile($definition);
+    }
+
+    /**
+     * Resolved project-relative path templates and the declared page-name pattern.
+     *
+     * @return array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string}
+     */
+    public function frontend(?Stack $stack = null): array
+    {
+        $paths = $this->frontendPaths;
+        if ($this->mirrorPages && $stack !== null && $paths['pages'] !== null) {
+            $paths['pages'] = (string) preg_replace('~(^|/)pages(?=/|$)~', '$1'.basename($stack->pagesPath()), $paths['pages']);
+        }
+
+        return $paths;
+    }
+
+    /** @internal resolve the active app's casing once when its layout compiles. */
+    public function withStack(Stack $stack): self
+    {
+        $paths = $this->frontend($stack);
+        $roots = $this->roots;
+        if ($this->frontendPaths['pages'] !== null && $paths['pages'] !== null) {
+            foreach ($roots as $name => $root) {
+                if (! $root->isClassRoot() && $root->path === dirname($this->frontendPaths['pages'])) {
+                    $roots[$name] = CompiledRoot::files(dirname($paths['pages']));
+                }
+            }
+        }
+
+        return new self($roots, $this->dimensions, $this->kinds, $this->rules, $this->relations, $this->excludedRoots, $this->commandsEnabled, $this->placementOptions, $this->stubs, $this->templates, $paths, $this->mirrorPages);
+    }
+
+    /** Whether a candidate lies inside a declared root that holds no classes. */
+    public function isPlainFilePath(string $path): bool
+    {
+        $path = Path::normalize($path);
+        foreach ($this->roots as $root) {
+            if ($root->isClassRoot()) {
+                continue;
+            }
+            $pattern = '';
+            foreach (explode('/', $root->path) as $index => $part) {
+                $segment = Segment::parse($part);
+                $multi = $segment->multi;
+                foreach ($this->dimensions as $dimension) {
+                    if ($dimension->name === $segment->dimension) {
+                        $multi = $multi || $dimension->multi;
+                    }
+                }
+                $fragment = ($index === 0 ? '' : '/').($segment->isDimension() ? ($multi ? '.+?' : '[^/]+') : preg_quote($part, '~'));
+                $pattern .= $segment->required ? $fragment : '(?:'.$fragment.')?';
+            }
+            if (preg_match('~^'.$pattern.'(?:/|$)~', $path) === 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** The mounted namespace for a project path, or its folder-derived default. */

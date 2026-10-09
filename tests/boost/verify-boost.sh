@@ -95,7 +95,7 @@ class AppServiceProvider extends ServiceProvider
     }
 }
 PHP
-chk "README scaffold recipe" 'art mod:document Knowledge:Document --no-interaction | grep -q "app/Modules/Knowledge/Controllers/DocumentController.php" && test -f app/Modules/Knowledge/Models/Document.php'
+chk "README scaffold recipe" 'art mod:document Knowledge:Document --no-interaction | grep -q "app/Modules/Knowledge/Http/Controllers/DocumentController.php" && test -f app/Modules/Knowledge/Models/Document.php'
 chk "scaffold collision choice" 'art mod:document Knowledge:Document --skip-existing --no-interaction && test -f app/Modules/Knowledge/Models/Document.php'
 lay ddd
 chk "autoload Domain roots" 'art mod:autoload --no-dump --no-interaction && "$PHP" -r '\''$i=json_decode(file_get_contents("composer.json"),true); exit(($i["autoload"]["psr-4"]["Domain\\"]??null)==="src/Domain/"?0:1);'\'''

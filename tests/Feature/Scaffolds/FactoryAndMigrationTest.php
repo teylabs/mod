@@ -178,13 +178,13 @@ it('adds only missing controller request imports to a house stub', function (boo
         config()->set('mod.layout', 'modules');
         $w->write('app/Modules/Billing/Models/Invoice.php', '<?php namespace App\\Modules\\Billing\\Models; class Invoice {}');
         $w->write('stubs/mod.controller.stub', '<?php'."\n".'namespace {{ namespace }};'."\n".
-            'use App\\Modules\\Billing\\Requests\\StoreInvoiceRequest;'."\n".
-            ($both ? 'use App\\Modules\\Billing\\Requests\\UpdateInvoiceRequest;'."\n" : '').
+            'use App\\Modules\\Billing\\Http\\Requests\\StoreInvoiceRequest;'."\n".
+            ($both ? 'use App\\Modules\\Billing\\Http\\Requests\\UpdateInvoiceRequest;'."\n" : '').
             'use {{ namespacedRequests }}'."\n".'class {{ class }} {}');
         $w->artisan('mod:controller', ['name' => 'Billing:InvoiceController', '--model' => 'Invoice', '--requests' => true])->assertSuccessful();
-        $source = $w->read('app/Modules/Billing/Controllers/InvoiceController.php');
-        expect(substr_count($source, 'use App\\Modules\\Billing\\Requests\\StoreInvoiceRequest;'))->toBe(1)
-            ->and(substr_count($source, 'use App\\Modules\\Billing\\Requests\\UpdateInvoiceRequest;'))->toBe(1);
+        $source = $w->read('app/Modules/Billing/Http/Controllers/InvoiceController.php');
+        expect(substr_count($source, 'use App\\Modules\\Billing\\Http\\Requests\\StoreInvoiceRequest;'))->toBe(1)
+            ->and(substr_count($source, 'use App\\Modules\\Billing\\Http\\Requests\\UpdateInvoiceRequest;'))->toBe(1);
         PhpToken::tokenize($source, TOKEN_PARSE);
     });
 })->with([true, false]);

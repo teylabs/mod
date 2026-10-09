@@ -69,7 +69,7 @@
             "id": "controller",
             "command": "mod:controller",
             "aliases": [],
-            "folder": "app/Modules/{module}/Controllers",
+            "folder": "app/Modules/{module}/Http/Controllers",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -212,7 +212,7 @@
             "id": "middleware",
             "command": "mod:middleware",
             "aliases": [],
-            "folder": "app/Modules/{module}/Middleware",
+            "folder": "app/Modules/{module}/Http/Middleware",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -316,7 +316,7 @@
             "id": "request",
             "command": "mod:request",
             "aliases": [],
-            "folder": "app/Modules/{module}/Requests",
+            "folder": "app/Modules/{module}/Http/Requests",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -328,7 +328,7 @@
             "id": "resource",
             "command": "mod:resource",
             "aliases": [],
-            "folder": "app/Modules/{module}/Resources",
+            "folder": "app/Modules/{module}/Http/Resources",
             "source": "Laravel",
             "stub": null,
             "base": null,
@@ -450,5 +450,13 @@
         "entries": [],
         "rejections": [],
         "stale_cache": null
+    },
+    "frontend": {
+        "pages": "app/Modules/{module}/resources/js/pages",
+        "components": "app/Modules/{module}/resources/js/components",
+        "css": "app/Modules/{module}/resources/css",
+        "views": "app/Modules/{module}/resources/views",
+        "page_name": "{module}::{path}",
+        "view_namespace": "{module.kebab}"
     }
 }

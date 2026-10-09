@@ -1,0 +1,57 @@
+{
+  "type": "object",
+  "required": [
+    "frontend"
+  ],
+  "properties": {
+    "frontend": {
+      "type": "object",
+      "required": [
+        "pages",
+        "components",
+        "css",
+        "views",
+        "page_name",
+        "view_namespace"
+      ],
+      "properties": {
+        "pages": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "components": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "css": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "views": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "page_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "view_namespace": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

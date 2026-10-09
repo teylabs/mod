@@ -16,7 +16,7 @@ it('fills every alias form before sorting imports in a sibling template', functi
         Mod::scaffold('forms', fn (Scaffold $s) => $s->makes('request', name: 'Store{name}Request', as: 'store')->makes('job'));
         $w->write('stubs/mod.job.stub', "<?php\n\nnamespace {{ namespace }};\n\nuse Zed\\Last;\nuse {{ store.fqcn }};\nuse Alpha\\First;\n\nclass {{ class }} {\n    // {{ store }} {{store.camel}} {{ store.snake }} {{ store.kebab }} {{ store.studly }} {{ store.plural }}\n}\n");
         $w->artisan('mod:forms', ['name' => 'Knowledge:Document'])->assertSuccessful();
-        expect(str_replace("\r\n", "\n", $w->read('app/Modules/Knowledge/Jobs/Document.php')))->toBe("<?php\n\nnamespace App\\Modules\\Knowledge\\Jobs;\n\nuse Alpha\\First;\nuse App\\Modules\\Knowledge\\Requests\\StoreDocumentRequest;\nuse Zed\\Last;\n\nclass Document {\n    // StoreDocumentRequest storeDocumentRequest store_document_request store-document-request StoreDocumentRequest StoreDocumentRequests\n}\n");
+        expect(str_replace("\r\n", "\n", $w->read('app/Modules/Knowledge/Jobs/Document.php')))->toBe("<?php\n\nnamespace App\\Modules\\Knowledge\\Jobs;\n\nuse Alpha\\First;\nuse App\\Modules\\Knowledge\\Http\\Requests\\StoreDocumentRequest;\nuse Zed\\Last;\n\nclass Document {\n    // StoreDocumentRequest storeDocumentRequest store_document_request store-document-request StoreDocumentRequest StoreDocumentRequests\n}\n");
     });
 });
 
@@ -87,9 +87,9 @@ it('plans recursively generated companions before any member is written', functi
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'modules');
         Mod::scaffold('resource-set', fn (Scaffold $s) => $s->makes('model', options: ['--resource', '--requests']));
-        $w->write('app/Modules/Knowledge/Requests/StoreDocumentRequest.php', 'existing request');
+        $w->write('app/Modules/Knowledge/Http/Requests/StoreDocumentRequest.php', 'existing request');
         $w->artisan('mod:resource-set', ['name' => 'Knowledge:Document'])->assertFailed();
-        expect($w->files())->toBe(['app/Modules/Knowledge/Requests/StoreDocumentRequest.php']);
+        expect($w->files())->toBe(['app/Modules/Knowledge/Http/Requests/StoreDocumentRequest.php']);
     });
 });
 
@@ -182,7 +182,7 @@ it('announces each new ddd group once across domain application and test roots p
             $output = $w->artisan('mod:trio', ['name' => $group.':Widget'])->assertSuccessful()->normalisedOutput();
             expect(substr_count($output, 'Created new domain '.$group))->toBe(1)
                 ->and($w->exists('src/Domain/'.$group.'/Models/Widget.php'))->toBeTrue()
-                ->and($w->exists('app/Modules/'.$group.'/Requests/WidgetRequest.php'))->toBeTrue()
+                ->and($w->exists('app/Modules/'.$group.'/Http/Requests/WidgetRequest.php'))->toBeTrue()
                 ->and($w->exists('tests/Feature/'.$group.'/Widget.php'))->toBeTrue();
         }
     });

@@ -395,5 +395,13 @@
         "entries": [],
         "rejections": [],
         "stale_cache": null
+    },
+    "frontend": {
+        "pages": "resources/js/pages",
+        "components": "resources/js/components",
+        "css": "resources/css",
+        "views": "resources/views",
+        "page_name": "{path}",
+        "view_namespace": null
     }
 }

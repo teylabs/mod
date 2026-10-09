@@ -7,6 +7,7 @@ namespace Tey\Mod\Preset;
  */
 enum PresetIssueCode: string
 {
+    case CaseCollision = 'case-collision';
     case InvalidShape = 'invalid-shape';
     case DuplicateKind = 'duplicate-kind';
     case DuplicateCommandName = 'duplicate-command-name';
