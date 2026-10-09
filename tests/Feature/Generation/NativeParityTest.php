@@ -159,7 +159,7 @@ it('matches native migration bytes, output and exit code', function () {
             // Laravel 12 uses date(), so Date::setTestNow cannot freeze this filename.
             // Compare each creator's exact output after replacing only its timestamped path.
             $adapterPath = $workspace->migration('database/migrations', 'create_examples_table');
-            $filename = '#^database/migrations/[0-9]{4}(?:_[0-9]{2}){5}_create_examples_table\.php$#';
+            $filename = '#^database/migrations/[0-9]{4}_[0-9]{2}_[0-9]{2}_[0-9]{6}_create_examples_table\.php$#';
             expect(str_replace('\\', '/', $path))->toMatch($filename)
                 ->and(str_replace('\\', '/', $adapterPath))->toMatch($filename)
                 ->and(str_replace(str_replace('\\', '/', $adapterPath), '<migration>', $adapter->normalisedOutput()))
