@@ -315,6 +315,14 @@ final class PresetValidator
             return [[], [], []];
         }
 
+        // Root placeholders inherit nesting from the layout's ordinary placement rules.
+        foreach ($definition as $entry) {
+            foreach (is_array($entry) && is_array($entry['segments'] ?? null) ? $entry['segments'] : [] as $spec) {
+                if (is_string($spec) && preg_match('/^\{(\w+)\+\??\}$/', $spec, $match) && isset($dimensions[$match[1]])) {
+                    $dimensions[$match[1]] = new Dimension($match[1], true);
+                }
+            }
+        }
         $kinds = [];
         $rules = [];
         $seen = [];
@@ -590,9 +598,21 @@ final class PresetValidator
             return null;
         }
 
+        $inherited = 0;
+        // Namespace-free resource roots can contain the layout's group placeholders.
+        if ($root->namespace === null && str_contains($root->path, '{')) {
+            $parts = explode('/', $root->path);
+            $prefix = [];
+            while ($parts !== [] && ! str_contains($parts[0], '{')) {
+                $prefix[] = array_shift($parts);
+            }
+            $inherited = count($parts);
+            $segments = [...$parts, ...$segments];
+            $root = CompiledRoot::files(implode('/', $prefix));
+        }
         $parsed = [];
 
-        foreach ($segments as $spec) {
+        foreach ($segments as $index => $spec) {
             if (! is_string($spec) || $spec === '') {
                 $this->issue(PresetIssueCode::InvalidKind, $subject, 'segments must be non-empty strings');
 
@@ -613,6 +633,9 @@ final class PresetValidator
                 return null;
             }
 
+            if ($index < $inherited && $segment->dimension !== null && $dimensions[$segment->dimension]->multi) {
+                $segment = Segment::parse('{'.$segment->dimension.'+'.($segment->required ? '' : '?').'}');
+            }
             $parsed[] = $segment;
         }
 

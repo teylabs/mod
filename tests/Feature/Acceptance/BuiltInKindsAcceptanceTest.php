@@ -90,7 +90,7 @@ it('generates and autoloads every declared built-in kind at its table location',
         $group = 'Billing'.$app->tag;
         $slice = 'Create'.$app->tag;
         $folders = builtInFolders($layout, $group, $slice);
-        expect(array_keys($app->preset->kinds()))->toEqualCanonicalizing(array_keys($folders));
+        expect(array_keys(array_diff_key($app->preset->kinds(), array_flip(['view', 'component']))))->toEqualCanonicalizing(array_keys($folders));
         $app->handWrite('tests/TestCase.php', 'Tests', 'abstract class TestCase extends \\PHPUnit\\Framework\\TestCase {}');
         foreach ($folders as $kind => $folder) {
             if ($kind === 'config' && ! class_exists(ConfigMakeCommand::class)) {

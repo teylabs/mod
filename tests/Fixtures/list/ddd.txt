@@ -7,6 +7,7 @@ mod:cast           src/Domain/{domain+}/Casts               Laravel
 mod:channel        src/Domain/{domain+}/Channels            Laravel 
 mod:class          src/Domain/{domain+}                     Laravel 
 mod:command        src/Domain/{domain+}/Commands            Laravel 
+mod:component      app/Modules/{domain+}/View/Components    Laravel 
 mod:controller     app/Modules/{domain+}/Http/Controllers   Laravel 
 mod:dto            src/Domain/{domain+}/Data                layout  
 mod:enum           src/Domain/{domain+}/Enums               Laravel 
@@ -33,5 +34,6 @@ mod:seeder         src/Domain/{domain+}/Database/Seeders    Laravel
 mod:test           tests/Feature/{domain+}                  Laravel 
 mod:trait          src/Domain/{domain+}                     Laravel 
 mod:value-object   src/Domain/{domain+}/ValueObjects        starter 
+mod:view           app/Modules/{domain+}/resources/views    Laravel 
 mod:view-model     src/Domain/{domain+}/ViewModels          layout  
   Discovery: off

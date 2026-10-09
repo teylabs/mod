@@ -77,6 +77,15 @@ final class ListCommand extends Command
         }
         $this->table($detail ? ['File type', 'Command', 'Folder', 'From'] : ['Generator', 'Folder', 'From'], $rows, 'compact');
         $this->renderScaffolds($report['scaffolds']['items'], $detail);
+        if ($filter === null && $report['views'] !== []) {
+            $this->line('  Views');
+            foreach ($report['views'] as $view) {
+                $this->line('  '.($view['namespace'] ?? '(app)').': '.$view['path']);
+                foreach ($view['components'] as $component) {
+                    $this->line('    <'.$component['tag'].' />');
+                }
+            }
+        }
         RoutesSection::render($this, $report['routes'], $this->laravel->make(ModRoutes::class));
         if ($detail) {
             foreach ($report['types'] as $type) {

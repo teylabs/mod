@@ -76,7 +76,7 @@ final class GroupPath
                     ? '@'.($rename[$match[3] ?? ''] ?? ($match[3] ?? ''))
                     : '{'.($rename[$match[1]] ?? $match[1]).$match[2].'}';
             }, $in);
-            if (! $hasPlaceholders && $tokens !== [] && ! str_contains($in, ':') && ! str_starts_with($in, '@')) {
+            if (! $hasPlaceholders && $tokens !== [] && ! str_contains($roots[$type->toArray()['root'] ?? '']['path'] ?? '', '{') && ! str_contains($in, ':') && ! str_starts_with($in, '@')) {
                 $in = '@'.end($tokens).($in === '' ? '' : '/'.$in);
             }
             if (preg_match('/^@(\w+)(?:\/(.*))?$/', $in, $anchor) === 1) {

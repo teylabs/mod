@@ -8,6 +8,15 @@ Always pass `--no-interaction` and the options that answer required questions. W
 
 Before writing, run the chosen command with `--dry-run --json`. Read its files, inserts, warnings, and `would_write` flag. The preview writes nothing and emits only JSON; required answers come from flags or defaults. A missing answer appears as a warning with `would_write: false`, even though the preview exits 0. Use `--dry-run` alone for a text table. Each new command or option must be documented in this guideline or the mod-development skill; the package checks coverage in its test suite.
 
+
+## Module views and Blade components (0.3)
+
+- `mod:view Inventory:widgets.show` runs Laravel's view generator in the group's views folder. Options: `mod:view --extension=blade.php --test --pest --phpunit --force --in --dry-run --json --no-interaction`. Use the result with `view('inventory::widgets.show')`.
+- `mod:component Inventory:StockBadge --view` creates an anonymous Blade component. `mod:component Inventory:WidgetTable` creates a class in `View/Components` and its view. Options: `mod:component --view --inline --path --test --pest --phpunit --force --in --dry-run --json --no-interaction`. Use `&lt;x-inventory::stock-badge /&gt;`; Vue and React components come from generator templates.
+- `mod:mail Inventory:WidgetRestocked --markdown=mail.widget-restocked` writes both the mailable and its view, using `inventory::mail.widget-restocked`. `mod:mail --view=mail.widget-restocked` writes a plain Blade view. `mod:notification --markdown=mail.widget-restocked` qualifies its Markdown view the same way. Their `--dry-run --json` plans include both files and the view identity; `--force` replaces planned views.
+- View namespaces register after providers boot, even without route or class discovery. Groups without views are omitted. Reserved namespaces (`mail`, `notifications`, `pagination`) and existing namespace clashes are skipped with a warning. Module views participate in `view:cache`.
+- DDD views live under the application root. Type-first grouped views use kebab subfolders such as `resources/views/inventory`; ungrouped views stay in `resources/views` with no namespace. `mod:list --json` adds a `views` section with group, namespace, path and component tags. View identities expose name, tag and path for plain-file members.
+
 ## Installing Inertia (0.3 · L7)
 
 Before generating module pages, run `mod:install inertia --no-interaction`. Use `mod:install inertia --dry-run --json` to inspect the shared plan, including each file's before and after contents, warnings and `would_write`. Human `--dry-run` previews the same changes. The command detects Vue or React, preserves app page casing and reads the compiled layout's frontend paths. It wires the vendor resolver, `@modules` in Vite and TypeScript, module view refresh paths and Tailwind v3 or v4 scanning. A second run says "Already wired." Blade apps need no install. Mirrored pages already resolve through the app's glob, so their app entry is left alone.

@@ -5,6 +5,7 @@ mod:cast           app/Casts            Laravel
 mod:channel        app/Broadcasting     Laravel 
 mod:class          app                  Laravel 
 mod:command        app/Console/Commands Laravel 
+mod:component      app/View/Components  Laravel 
 mod:config         config               Laravel 
 mod:controller     app/Http/Controllers Laravel 
 mod:enum           app/Enums            Laravel 
@@ -30,4 +31,5 @@ mod:scope          app/Models/Scopes    Laravel
 mod:seeder         database/seeders     Laravel 
 mod:test           tests/Feature        Laravel 
 mod:trait          app                  Laravel 
+mod:view           resources/views      Laravel 
   Discovery: off

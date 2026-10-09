@@ -28,7 +28,9 @@
         "seeder": "database/seeders",
         "migration": "database/migrations",
         "config": "config",
-        "test": "tests/Feature"
+        "test": "tests/Feature",
+        "view": "resources/views",
+        "component": "app/View/Components"
     },
     "features": {
         "model": "app/Features/{feature}/Models",
@@ -60,7 +62,9 @@
         "migration": "app/Features/{feature}/Database/Migrations",
         "query": "app/Features/{feature}/Queries",
         "validator": "app/Features/{feature}/Validation",
-        "test": "tests/Feature/{feature}"
+        "test": "tests/Feature/{feature}",
+        "view": "app/Features/{feature}/resources/views",
+        "component": "app/Features/{feature}/View/Components"
     },
     "slices": {
         "message": "app/{feature}/{slice}",
@@ -94,7 +98,9 @@
         "factory": "app/{feature}/Database/Factories",
         "seeder": "app/{feature}/Database/Seeders",
         "migration": "app/{feature}/Database/Migrations",
-        "test": "tests/Feature/{feature}/{slice}"
+        "test": "tests/Feature/{feature}/{slice}",
+        "view": "app/{feature}/{slice}/resources/views",
+        "component": "app/{feature}/{slice}/View/Components"
     },
     "type-first": {
         "model": "app/Models/{feature}",
@@ -126,7 +132,9 @@
         "seeder": "database/seeders/{feature}",
         "migration": "database/migrations/{feature}",
         "config": "config",
-        "test": "tests/Feature/{feature}"
+        "test": "tests/Feature/{feature}",
+        "view": "resources/views/{feature}",
+        "component": "app/View/Components/{feature}"
     },
     "modules": {
         "model": "app/Modules/{module}/Models",
@@ -161,7 +169,9 @@
         "value-object": "app/Modules/{module}/ValueObjects",
         "view-model": "app/Modules/{module}/ViewModels",
         "query": "app/Modules/{module}/Queries",
-        "test": "tests/Feature/Modules/{module}"
+        "test": "tests/Feature/Modules/{module}",
+        "view": "app/Modules/{module}/resources/views",
+        "component": "app/Modules/{module}/View/Components"
     },
     "ddd": {
         "model": "src/Domain/{domain+}/Models",
@@ -195,6 +205,8 @@
         "controller": "app/Modules/{domain+}/Http/Controllers",
         "request": "app/Modules/{domain+}/Http/Requests",
         "middleware": "app/Modules/{domain+}/Http/Middleware",
-        "test": "tests/Feature/{domain+}"
+        "test": "tests/Feature/{domain+}",
+        "view": "app/Modules/{domain+}/resources/views",
+        "component": "app/Modules/{domain+}/View/Components"
     }
 }

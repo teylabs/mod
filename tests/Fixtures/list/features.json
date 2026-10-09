@@ -54,6 +54,18 @@
             "relations": []
         },
         {
+            "id": "component",
+            "command": "mod:component",
+            "aliases": [],
+            "folder": "app/Features/{feature}/View/Components",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
             "id": "controller",
             "command": "mod:controller",
             "aliases": [],
@@ -381,6 +393,18 @@
             "discovery": [],
             "classes": [],
             "relations": []
+        },
+        {
+            "id": "view",
+            "command": "mod:view",
+            "aliases": [],
+            "folder": "app/Features/{feature}/resources/views",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
         }
     ],
     "templates": {
@@ -408,6 +432,7 @@
         "rejections": [],
         "stale_cache": null
     },
+    "views": [],
     "frontend": {
         "pages": "app/Features/{feature}/resources/js/pages",
         "components": "app/Features/{feature}/resources/js/components",

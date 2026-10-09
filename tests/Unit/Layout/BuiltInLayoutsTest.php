@@ -12,8 +12,7 @@ it('ships the common native kinds in every built-in', function (string $name) {
     }
     expect($preset->hasKind('config'))->toBe(in_array($name, ['laravel', 'type-first'], true))
         ->and($preset->hasKind('routes'))->toBeFalse()
-        ->and($preset->hasKind('component'))->toBeFalse()
-        ->and($preset->hasKind('view'))->toBeFalse()
+        ->and($preset->hasKind('view'))->toBeTrue()->and($preset->hasKind('component'))->toBeTrue()
         ->and($preset->roots()['tests']->namespace)->toBe('Tests\\')
         ->and($preset->roots()['tests']->path)->toBe('tests');
     foreach (['model-factory', 'model-seeder', 'model-policy', 'model-controller', 'model-migration'] as $relation) {

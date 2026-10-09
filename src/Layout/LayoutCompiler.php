@@ -250,7 +250,7 @@ final class LayoutCompiler
         $segments = array_values(array_filter(explode('/', trim($path, '/')), static fn (string $segment): bool => $segment !== ''));
         $names = [];
 
-        foreach ($segments as $segment) {
+        foreach ([...explode('/', $roots[$rootName]['namespace'] === null ? $roots[$rootName]['path'] : ''), ...$segments] as $segment) {
             if (str_contains($segment, '{') || str_contains($segment, '}')) {
                 if (preg_match(self::PLACEHOLDER, $segment) !== 1) {
                     $this->issue(PresetIssueCode::InvalidKind, $call, "placeholder [{$segment}] must be a whole folder such as {name}, {name?}, {name+} or {name+?}");

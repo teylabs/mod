@@ -84,6 +84,6 @@ it('keeps a typical modules inventory readable within seventy-two columns', func
         foreach (explode("\n", $output) as $line) {
             expect(mb_strlen(rtrim($line)))->toBeLessThanOrEqual(72);
         }
-        expect(count(explode("\n", $output)))->toBeLessThanOrEqual(40);
+        expect(count(explode("\n", $output)))->toBeLessThanOrEqual(42);
     });
 });

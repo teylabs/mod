@@ -38,6 +38,11 @@ it('keeps every built-in placement from 0.1.1 except the 0.3 HTTP move', functio
             if (! $rule instanceof TemplateRule) {
                 throw new RuntimeException("Built-in {$name}/{$id} is no longer a declarative placement.");
             }
+            if (! isset($snapshot[$name][$id])) {
+                expect($id)->toBeIn(['view', 'component']);
+
+                continue;
+            }
             $actual[$name][$id] = array_map(fn ($variant) => $variant->pattern(), $rule->variants());
         }
     }
