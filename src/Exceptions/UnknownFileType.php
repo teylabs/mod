@@ -2,7 +2,7 @@
 
 namespace Tey\Mod\Exceptions;
 
-final class UnknownKind extends ModException
+final class UnknownFileType extends ModException
 {
     public static function id(string $kindId): self
     {

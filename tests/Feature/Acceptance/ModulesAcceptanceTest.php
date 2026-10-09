@@ -18,8 +18,8 @@ use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 function modulesLayout(): LayoutUnderTest
 {
     return new LayoutUnderTest('modules', fn () => Mod::layout('modules')
-        ->kind('listener', in: 'Modules/{module}/Listeners')
-        ->kind('command', in: 'Modules/{module}/Console'));
+        ->generates('listener', in: 'Modules/{module}/Listeners')
+        ->generates('command', in: 'Modules/{module}/Console'));
 }
 
 it('runs the whole loop on the modules layout', function () {

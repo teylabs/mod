@@ -22,7 +22,7 @@ it('ships the common native kinds in every built-in', function (string $name) {
 
 it('gives every built-in layout its own registry copy', function () {
     $first = new LayoutRegistry;
-    $first->layout('modules')->kind('report', in: 'Modules/{module}/Reports');
+    $first->layout('modules')->generates('report', in: 'Modules/{module}/Reports');
     expect((new LayoutRegistry)->compile('modules')->hasKind('report'))->toBeFalse()
         ->and($first->compile('modules')->hasKind('report'))->toBeTrue();
 });

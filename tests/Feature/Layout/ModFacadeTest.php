@@ -30,7 +30,7 @@ it('says so when mod.layout is not a layout name', function () {
 
 it('says which layouts there are with Mod::hasLayout() and Mod::layouts()', function () {
     Workspace::run(null, function () {
-        Mod::layout('domains')->root('app', 'App\\', 'app', fn ($root) => $root->kind('model', in: 'Models'));
+        Mod::layout('domains')->mounts('app', 'App\\', 'app', fn ($root) => $root->generates('model', in: 'Models'));
 
         expect(Mod::hasLayout('modules'))->toBeTrue()
             ->and(Mod::hasLayout('domains'))->toBeTrue()

@@ -6,15 +6,15 @@ use Closure;
 use Tey\Mod\Generation\Stub;
 
 /**
- * A root's kinds, declared inside `->root(..., fn (Root $root) => $root->kind(...))`.
+ * A root's file types, declared inside `->mounts(..., fn (Root $root) => $root->generates(...))`.
  *
- * Kinds declared here live in this root unless their `in:` names another.
+ * File types declared here live in this root unless their `in:` names another.
  * Returns to the layout chain when the closure ends.
  */
 final readonly class Root
 {
     /**
-     * @internal created by Layout::root()
+     * @internal created by Layout::mounts()
      */
     public function __construct(
         public string $name,
@@ -24,10 +24,10 @@ final readonly class Root
     /**
      * @param  string|null  $discover  'folder' or 'anywhere'
      * @param  list<string>|null  $discoverExcept
-     * @param  (Closure(Kind): mixed)|null  $using
+     * @param  (Closure(FileType): mixed)|null  $using
      * @param  list<string>|null  $aliases
      */
-    public function kind(
+    public function generates(
         string $id,
         ?string $in = null,
         ?string $suffix = null,
@@ -44,7 +44,7 @@ final readonly class Root
         ?Stub $stub = null,
         ?string $label = null,
     ): self {
-        $this->layout->kind($id, $in, $suffix, $fixed, $timestamped, $command, $priority, $nested, $discover, $discoverExcept, function (Kind $kind) use ($using): void {
+        $this->layout->generates($id, $in, $suffix, $fixed, $timestamped, $command, $priority, $nested, $discover, $discoverExcept, function (FileType $kind) use ($using): void {
             $kind->withinRoot($this->name);
 
             if ($using !== null) {

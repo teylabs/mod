@@ -73,7 +73,7 @@ function groupedTree(DiscoveryFixture $fx): CompiledLayout
  */
 function groupedOptions(array $extra = []): DiscoveryOptions
 {
-    return DiscoveryOptions::fromConfig(['kinds' => ['migration' => 'directory'] + $extra]);
+    return DiscoveryOptions::fromConfig(['file_types' => ['migration' => 'directory'] + $extra]);
 }
 
 it('discovers providers and commands anywhere below the group, skipping excluded folders', DiscoveryFixture::around(function (DiscoveryFixture $fx) {

@@ -10,7 +10,7 @@ use Tey\Mod\Preset\PresetValidator;
 
 function placementOptionsLayoutError(Closure $define): string
 {
-    $layout = new Layout('options');
+    $layout = (new Layout('options'))->path('app');
     $define($layout);
 
     try {
@@ -34,50 +34,19 @@ it('names one placement option per placeholder of each built-in', function (stri
 ]);
 
 it('names a camelCase placeholder in kebab-case', function () {
-    $preset = (new Layout('kebab'))
-        ->root('app', 'App\\', 'app', fn (Root $root) => $root->kind('model', in: '{subArea}/Models'))
+    $preset = ((new Layout('kebab'))->path('app'))
+        ->mounts('app', 'App\\', 'app', fn (Root $root) => $root->generates('model', in: '{subArea}/Models'))
         ->compile();
 
     expect($preset->placementOptions())->toBe(['subArea' => 'sub-area']);
 });
 
-it('renames the option of the only placeholder, or of a named one', function () {
+it('names placement options from a redeclared group path', function () {
     $registry = new LayoutRegistry;
-    $registry->layout('modules')->placementOption('area');
-    $registry->layout('slices')->placementOption('operation', '{slice}');
-
-    expect($registry->compile('modules')->placementOptions())->toBe(['module' => 'area'])
-        ->and($registry->compile('slices')->placementOptions())->toBe(['feature' => 'feature', 'slice' => 'operation']);
-});
-
-it('refuses an unnamed rename on a layout with several placeholders or none', function () {
-    expect(placementOptionsLayoutError(fn (Layout $layout) => $layout
-        ->root('app', 'App\\', 'app', fn (Root $root) => $root->kind('model', in: '{feature}/{slice}'))
-        ->placementOption('area')))
-        ->toContain("->placementOption('area')")
-        ->toContain('name the one to rename ({feature}, {slice})');
-
-    expect(placementOptionsLayoutError(fn (Layout $layout) => $layout
-        ->root('app', 'App\\', 'app', fn (Root $root) => $root->kind('model', in: 'Models'))
-        ->placementOption('area')))
-        ->toContain('no placeholders');
-});
-
-it('refuses a rename of an unused placeholder, a malformed name and a duplicate option', function () {
-    expect(placementOptionsLayoutError(fn (Layout $layout) => $layout
-        ->root('app', 'App\\', 'app', fn (Root $root) => $root->kind('model', in: '{module}/Models'))
-        ->placementOption('area', '{feature}')))
-        ->toContain('placeholder {feature} is used by no file type');
-
-    expect(placementOptionsLayoutError(fn (Layout $layout) => $layout
-        ->root('app', 'App\\', 'app', fn (Root $root) => $root->kind('model', in: '{module}/Models'))
-        ->placementOption('Bad_Name')))
-        ->toContain('option must be a lowercase name');
-
-    expect(placementOptionsLayoutError(fn (Layout $layout) => $layout
-        ->root('app', 'App\\', 'app', fn (Root $root) => $root->kind('model', in: '{feature}/{slice}'))
-        ->placementOption('feature', '{slice}')))
-        ->toContain('--feature is already the option of {feature}; pick another name for {slice}');
+    $registry->layout('modules')->path('app/Modules/{area}');
+    $registry->layout('slices')->path('app/{feature}/{operation}');
+    expect($registry->compile('modules')->placementOptions())->toBe(['area' => 'area'])
+        ->and($registry->compile('slices')->placementOptions())->toBe(['feature' => 'feature', 'operation' => 'operation']);
 });
 
 it('validates placement options in the internal definition', function () {
@@ -93,10 +62,10 @@ it('validates placement options in the internal definition', function () {
 });
 
 it('reports a placement option that collides with an option of the generating command', function () {
-    $preset = (new Layout('collide'))
-        ->root('app', 'App\\', 'app', fn (Root $root) => $root
-            ->kind('controller', in: 'Http/Controllers/{model}', suffix: 'Controller')
-            ->kind('request', in: 'Http/Requests/{model}'))
+    $preset = ((new Layout('collide'))->path('app'))
+        ->mounts('app', 'App\\', 'app', fn (Root $root) => $root
+            ->generates('controller', in: 'Http/Controllers/{model}', suffix: 'Controller')
+            ->generates('request', in: 'Http/Requests/{model}'))
         ->compile();
 
     $validator = new PresetValidator;
@@ -105,6 +74,6 @@ it('reports a placement option that collides with an option of the generating co
     expect(array_keys($issues))->toBe(['model'])
         ->and($issues['model']->code)->toBe(PresetIssueCode::PlacementOptionCollision)
         ->and($issues['model']->subject)->toBe('mod:controller')
-        ->and($issues['model']->message)->toContain("->placementOption('...', '{model}')")
+        ->and($issues['model']->message)->toContain("->path('app/{group}')")
         ->and($validator->placementOptionCollisions($preset, $preset->kind('request'), ['in', 'force']))->toBe([]);
 });

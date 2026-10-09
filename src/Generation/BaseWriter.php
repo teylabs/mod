@@ -13,7 +13,7 @@ use Tey\Mod\Support\Path;
  *
  * A base goes in the bases folder (`mod.bases_path`, app/Support by default),
  * under its `in` folder: the same class name in every layout, so a module
- * copied to another application finds it there. A base marked inKindRoot()
+ * copied to another application finds it there. A base marked inFileTypeRoot()
  * goes below the generated kind's own root instead.
  *
  * @internal used by the mod:* generators and mod:bases
@@ -38,7 +38,7 @@ final readonly class BaseWriter
      */
     public function locate(GeneratedBase $base, CompiledLayout $preset, string $kindId): array
     {
-        [$namespace, $path] = $base->inKindRoot
+        [$namespace, $path] = $base->inFileTypeRoot
             ? $this->kindRoot($preset, $kindId)
             : $this->basesFolder($preset);
 
@@ -66,13 +66,13 @@ final readonly class BaseWriter
      */
     public function ensure(GeneratedBase $base, array $location): bool
     {
-        $absolute = Path::join($this->basePath, $location['path']);
+        $absolute = Path::resolve($this->basePath, $location['path']);
 
         if (class_exists($location['fqcn']) || is_file($absolute)) {
             return false;
         }
 
-        $published = Path::join($this->basePath, 'stubs/mod.base.'.$base->stubName().'.stub');
+        $published = Path::resolve($this->basePath, 'stubs/mod.base.'.$base->stubName().'.stub');
         $body = (string) file_get_contents(is_file($published) ? $published : $base->stub);
         $namespace = substr($location['fqcn'], 0, (int) strrpos($location['fqcn'], '\\'));
 

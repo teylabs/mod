@@ -71,7 +71,7 @@ final readonly class GroupFolders
             $parts = explode('/', $value);
 
             foreach ($parts as $index => $part) {
-                $parent = Path::join($this->basePath, $path);
+                $parent = Path::resolve($this->basePath, $path);
                 $folders = $this->foldersIn($parent);
 
                 if (in_array($part, $folders, true)) {

@@ -60,7 +60,7 @@ it('loads the migration directories a layout places so migrate sees them', funct
 it('leaves migration directories alone when the kind is opted out of discovery', function () {
     AcceptanceApp::run('modules', function (AcceptanceApp $app) {
         $app->write('app/Modules/Billing/Database/Migrations/2024_01_01_000000_create_invoices_table.php', '<?php return new class extends Illuminate\\Database\\Migrations\\Migration { public function up(): void {} };');
-        $app->boot(['kinds' => ['migration' => false]]);
+        $app->boot(['file_types' => ['migration' => false]]);
 
         expect($app->discovery()->inventory()->directories('migration'))->toBe([]);
 

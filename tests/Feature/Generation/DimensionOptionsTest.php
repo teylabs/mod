@@ -227,7 +227,7 @@ it('accepts dots or slashes inside a multi-segment dimension option', function (
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'laravel');
         app(LayoutRegistry::class)->layout('laravel')
-            ->root('app', 'App\\', 'app', fn (Root $root) => $root->kind('model', in: 'Models/{area+}'));
+            ->mounts('app', 'App\\', 'app', fn (Root $root) => $root->generates('model', in: 'Models/{area+}'));
 
         expect(Artisan::all()['mod:model']->getDefinition()->getOption('area')->getDescription())
             ->toBe('Place in this area, nested folders separated by "." or "/" (same as --in)')
@@ -241,17 +241,17 @@ it('accepts dots or slashes inside a multi-segment dimension option', function (
 it('uses a renamed placement option', function () {
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'modules');
-        app(LayoutRegistry::class)->layout('modules')->placementOption('area');
+        app(LayoutRegistry::class)->layout('modules')->path('app/Modules/{area}');
 
         $definition = Artisan::all()['mod:model']->getDefinition();
 
         expect($definition->hasOption('module'))->toBeFalse()
-            ->and($definition->getOption('area')->getDescription())->toBe('Place in this module (same as --in)')
+            ->and($definition->getOption('area')->getDescription())->toBe('Place in this area (same as --in)')
             ->and($workspace->artisan('mod:model', ['name' => 'Invoice', '--area' => 'Billing']))
             ->toHaveGenerated('app/Modules/Billing/Models/Invoice.php', 'App\\Modules\\Billing\\Models');
 
         $workspace->artisan('mod:model', ['name' => 'Payment'])
-            ->expectsOutputToContain('mod:model needs a module. Pass --area=<module>, --in=<module>, or prefix the name: <module>:Payment.')
+            ->expectsOutputToContain('mod:model needs an area. Pass --area=<area>, --in=<area>, or prefix the name: <area>:Payment.')
             ->assertFailed();
     });
 });
@@ -260,8 +260,8 @@ it('never shadows a native option: a colliding dimension option is left out and 
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'laravel');
         app(LayoutRegistry::class)->layout('laravel')
-            ->root('app', 'App\\', 'app', fn (Root $root) => $root
-                ->kind('controller', in: 'Http/Controllers/{model}', suffix: 'Controller'));
+            ->mounts('app', 'App\\', 'app', fn (Root $root) => $root
+                ->generates('controller', in: 'Http/Controllers/{model}', suffix: 'Controller'));
         $log = Log::spy();
 
         $commands = Artisan::all();
@@ -275,7 +275,7 @@ it('never shadows a native option: a colliding dimension option is left out and 
         expect($adapter->getDefinition()->getOption('model')->getDescription())->toBe($native->getDefinition()->getOption('model')->getDescription())
             ->and($adapter->getDefinition()->getOption('model')->getShortcut())->toBe($native->getDefinition()->getOption('model')->getShortcut())
             ->and(array_map(static fn ($issue): string => $issue->describe(), $adapter->placementOptionIssues()))
-            ->toBe(["[placement-option-collision] mod:controller: placeholder {model} would add --model, which mod:controller already defines. It is left out; use --in or the \"Group:Name\" prefix, or rename it with ->placementOption('...', '{model}')."]);
+            ->toBe(["[placement-option-collision] mod:controller: placeholder {model} would add --model, which mod:controller already defines. It is left out; use --in or the \"Group:Name\" prefix, or rename it with ->path('app/{group}')."]);
 
         $log->shouldHaveReceived('warning')->withArgs(static fn (string $message): bool => str_contains($message, '[placement-option-collision] mod:controller'));
 

@@ -50,7 +50,7 @@ it('treats a subscriber in Listeners as Laravel event discovery does', function 
 
 it('subscribes the classes of a subscriber kind', function () {
     AcceptanceApp::run(new LayoutUnderTest('modules', fn () => Mod::layout('modules')
-        ->kind('subscriber', in: 'Modules/{module}/Subscribers')), function (AcceptanceApp $app) {
+        ->generates('subscriber', in: 'Modules/{module}/Subscribers')), function (AcceptanceApp $app) {
             $t = $app->tag;
             $ns = "App\\Modules\\Billing{$t}";
             $event = "{$ns}\\Events\\Invoice{$t}Paid";

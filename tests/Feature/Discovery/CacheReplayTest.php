@@ -84,7 +84,7 @@ it('refuses a cache built with other discovery settings', DiscoveryFixture::arou
     $preset = cacheTree($fx);
     discoveryFor($fx, $preset, ['on_stale_cache' => 'fail'])->writeCache();
 
-    expect(fn () => discoveryFor($fx, $preset, ['kinds' => ['listener' => false], 'on_stale_cache' => 'fail'])->inventory())
+    expect(fn () => discoveryFor($fx, $preset, ['file_types' => ['listener' => false], 'on_stale_cache' => 'fail'])->inventory())
         ->toThrow(InvalidDiscoveryCache::class, 'different discovery settings');
 }));
 

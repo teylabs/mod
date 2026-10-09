@@ -21,12 +21,12 @@ use Tey\Mod\Reverse\ReverseOutcome;
  */
 function anywhereLayout(): CompiledLayout
 {
-    return (new Layout('anywhere'))
-        ->root('src', 'Src\\', 'src', fn (Root $r) => $r
-            ->kind('provider', in: '{group+}/Providers', suffix: 'Provider', discover: 'anywhere', discoverExcept: ['Tests', 'Database/Migrations'])
-            ->kind('subscriber', in: '{group+}/Listeners', discover: 'anywhere')
-            ->kind('model', in: '{group+}/Models')
-            ->kind('migration', in: '{group+}/Database/Migrations', timestamped: true))
+    return (new Layout('anywhere'))->path('app')
+        ->mounts('src', 'Src\\', 'src', fn (Root $r) => $r
+            ->generates('provider', in: '{group+}/Providers', suffix: 'Provider', discover: 'anywhere', discoverExcept: ['Tests', 'Database/Migrations'])
+            ->generates('subscriber', in: '{group+}/Listeners', discover: 'anywhere')
+            ->generates('model', in: '{group+}/Models')
+            ->generates('migration', in: '{group+}/Database/Migrations', timestamped: true))
         ->compile();
 }
 
@@ -75,7 +75,7 @@ it('declares subscriber and directory definitions', function () {
     expect(array_map(fn (DiscoveryDefinition $d) => $d->identity(), (new DiscoveryOptions)->definitionsFor($preset)))
         ->toBe(['migration:directory:on', 'provider:provider:on', 'subscriber:subscriber:on']);
 
-    $options = DiscoveryOptions::fromConfig(['kinds' => ['migration' => 'directory', 'subscriber' => false]]);
+    $options = DiscoveryOptions::fromConfig(['file_types' => ['migration' => 'directory', 'subscriber' => false]]);
     expect(array_map(fn (DiscoveryDefinition $d) => $d->identity(), $options->definitionsFor($preset)))
         ->toBe(['migration:directory:on', 'provider:provider:on', 'subscriber:subscriber:off']);
 
@@ -86,17 +86,17 @@ it('declares subscriber and directory definitions', function () {
 it('refuses directory discovery of a class kind and class discovery of a file kind', function () {
     $preset = anywhereLayout();
 
-    expect(fn () => DiscoveryOptions::fromConfig(['kinds' => ['model' => 'directory']])->definitionsFor($preset))
+    expect(fn () => DiscoveryOptions::fromConfig(['file_types' => ['model' => 'directory']])->definitionsFor($preset))
         ->toThrow(InvalidDiscoveryConfig::class, 'only file types that hold plain files, such as migrations, can be discovered as directories')
-        ->and(fn () => DiscoveryOptions::fromConfig(['kinds' => ['migration' => 'provider']])->definitionsFor($preset))
+        ->and(fn () => DiscoveryOptions::fromConfig(['file_types' => ['migration' => 'provider']])->definitionsFor($preset))
         ->toThrow(InvalidDiscoveryConfig::class, 'only file types that hold classes can be discovered as provider');
 });
 
 it('fingerprints nested, anywhere and multi-segment rules distinctly', function () {
-    $plain = (new Layout('a'))->root('src', 'Src\\', 'src')->kind('provider', in: '{group}/Providers')->compile();
-    $nested = (new Layout('b'))->root('src', 'Src\\', 'src')->kind('provider', in: '{group}/Providers', nested: true)->compile();
-    $anywhere = (new Layout('c'))->root('src', 'Src\\', 'src')->kind('provider', in: '{group}/Providers', discover: 'anywhere', discoverExcept: ['Tests'])->compile();
-    $multi = (new Layout('d'))->root('src', 'Src\\', 'src')->kind('provider', in: '{group+}/Providers')->compile();
+    $plain = ((new Layout('a'))->path('app'))->mounts('src', 'Src\\', 'src')->generates('provider', in: '{group}/Providers')->compile();
+    $nested = ((new Layout('b'))->path('app'))->mounts('src', 'Src\\', 'src')->generates('provider', in: '{group}/Providers', nested: true)->compile();
+    $anywhere = ((new Layout('c'))->path('app'))->mounts('src', 'Src\\', 'src')->generates('provider', in: '{group}/Providers', discover: 'anywhere', discoverExcept: ['Tests'])->compile();
+    $multi = ((new Layout('d'))->path('app'))->mounts('src', 'Src\\', 'src')->generates('provider', in: '{group+}/Providers')->compile();
 
     $prints = array_map(PresetFingerprint::of(...), [$plain, $nested, $anywhere, $multi]);
 
@@ -121,7 +121,7 @@ it('refuses anywhere on a callback kind', function () {
 
 it('skips the excluded folders below the dimension folders of every built-in shape', function (string $layout, string $found, array $context, string $excluded, string $outside) {
     $registry = new LayoutRegistry;
-    $registry->layout($layout)->kind('provider', discover: 'anywhere', discoverExcept: ['Tests']);
+    $registry->layout($layout)->generates('provider', discover: 'anywhere', discoverExcept: ['Tests']);
     $preset = $registry->compile($layout);
     $rule = $preset->rule('provider');
     assert($rule instanceof TemplateRule);

@@ -14,7 +14,7 @@ use Tey\Mod\Resolution\ModelRelations;
  *
  *     'discovery' => [
  *         'enabled' => true,                                   // false: discover nothing
- *         'kinds' => ['provider' => false, 'subscriber' => 'listener'],  // merged over the defaults
+ *         'file_types' => ['provider' => false, 'subscriber' => 'listener'],  // merged over the defaults
  *         'cache' => 'bootstrap/cache/mod-discovery.php',      // relative to the base path, or absolute
  *         'on_stale_cache' => 'scan',                          // or 'fail'
  *         'factories' => true,                                 // Model::factory() through the layout's factory relation
@@ -61,23 +61,27 @@ final readonly class DiscoveryOptions
      */
     public static function fromConfig(array $config): self
     {
+        if (array_key_exists('kinds', $config)) {
+            throw InvalidDiscoveryConfig::because('kinds', 'Use mod.discovery.file_types instead');
+        }
+
         $enabled = $config['enabled'] ?? true;
 
         if (! is_bool($enabled)) {
             throw InvalidDiscoveryConfig::because('enabled', 'expected a boolean');
         }
 
-        $rawKinds = $config['kinds'] ?? [];
+        $rawKinds = $config['file_types'] ?? [];
 
         if (! is_array($rawKinds)) {
-            throw InvalidDiscoveryConfig::because('kinds', 'expected an array of file type id => type|false');
+            throw InvalidDiscoveryConfig::because('file_types', 'expected an array of file type id => type|false');
         }
 
         $kinds = [];
 
         foreach ($rawKinds as $kindId => $type) {
             if (! is_string($kindId)) {
-                throw InvalidDiscoveryConfig::because('kinds', 'keys must be file type ids');
+                throw InvalidDiscoveryConfig::because('file_types', 'keys must be file type ids');
             }
 
             if ($type === false) {
@@ -89,7 +93,7 @@ final readonly class DiscoveryOptions
             $resolved = is_string($type) ? DiscoveryType::tryFrom($type) : ($type instanceof DiscoveryType ? $type : null);
 
             if ($resolved === null || $resolved->isRelationType()) {
-                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", 'expected provider, command, listener, subscriber, directory or false');
+                throw InvalidDiscoveryConfig::because("file_types.{$kindId}", 'expected provider, command, listener, subscriber, directory or false');
             }
 
             $kinds[$kindId] = $resolved;
@@ -160,7 +164,7 @@ final readonly class DiscoveryOptions
         }
 
         // Timestamped file kinds are migrations: their directories are collected so the
-        // migrator loads them (opt out with 'kinds' => ['migration' => false]).
+        // migrator loads them (opt out with 'file_types' => ['migration' => false]).
         foreach ($preset->kinds() as $kind) {
             if (! $kind->isClass() && $kind->namePolicy->kind === NamePolicyKind::Timestamped) {
                 $definitions[$kind->id] = DiscoveryDefinition::directories($kind->id);
@@ -172,7 +176,7 @@ final readonly class DiscoveryOptions
                 $declared = array_keys($preset->kinds());
                 sort($declared);
 
-                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", "the active layout has no [{$kindId}] file type. Map one of its file types: ".implode(', ', $declared));
+                throw InvalidDiscoveryConfig::because("file_types.{$kindId}", "the active layout has no [{$kindId}] file type. Map one of its file types: ".implode(', ', $declared));
             }
 
             if ($type === false) {
@@ -184,11 +188,11 @@ final readonly class DiscoveryOptions
             }
 
             if ($type->isClassType() && ! $preset->kind($kindId)->isClass()) {
-                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", 'only file types that hold classes can be discovered as '.$type->value);
+                throw InvalidDiscoveryConfig::because("file_types.{$kindId}", 'only file types that hold classes can be discovered as '.$type->value);
             }
 
             if (! $type->isClassType() && $preset->kind($kindId)->isClass()) {
-                throw InvalidDiscoveryConfig::because("kinds.{$kindId}", 'only file types that hold plain files, such as migrations, can be discovered as directories');
+                throw InvalidDiscoveryConfig::because("file_types.{$kindId}", 'only file types that hold plain files, such as migrations, can be discovered as directories');
             }
 
             $definitions[$kindId] = new DiscoveryDefinition($kindId, $type);

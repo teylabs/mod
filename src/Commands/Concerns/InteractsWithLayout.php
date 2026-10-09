@@ -2,6 +2,7 @@
 
 namespace Tey\Mod\Commands\Concerns;
 
+use Illuminate\Support\Str;
 use LogicException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
@@ -30,6 +31,8 @@ use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Relation\RelationResolution;
 use Tey\Mod\Relation\RelationResolver;
 use Tey\Mod\Reverse\ReverseMapper;
+
+use function Laravel\Prompts\select;
 
 /**
  * What every mod:* adapter shares: the preset and kind it generates, the
@@ -284,6 +287,25 @@ trait InteractsWithLayout
         $colon = strpos($raw, ':');
 
         [$prefix, $name] = $colon === false ? [null, $raw] : [trim(substr($raw, 0, $colon)), trim(substr($raw, $colon + 1))];
+
+        $dimensions = $this->layout()->dimensions();
+        if ($prefix !== null && count($dimensions) === 1 && ! $dimensions[0]->multi && (str_contains($prefix, '/') || str_contains($prefix, '.'))) {
+            $parts = explode('/', str_replace('.', '/', $prefix));
+            $own = end($parts).':'.$name;
+            $first = array_shift($parts);
+            $subfolder = $first.':'.implode('/', [...$parts, $name]);
+            $group = ucfirst($this->layout()->placementOptions()[$dimensions[0]->name]);
+            $label = Str::plural($group);
+            $interactive = $this->input->isInteractive()
+                && ($this->laravel->runningUnitTests() || (stream_isatty(STDIN) && ! filter_var(getenv('CI'), FILTER_VALIDATE_BOOL)));
+            if (! $interactive) {
+                throw GenerationRefused::because("{$label} don't nest. Use a ".strtolower($group)." of its own ({$own}), or a subfolder in the name ({$subfolder}).");
+            }
+            $answer = (string) select("{$label} don't nest. Which did you mean?", [$own, $subfolder]);
+            $this->input->setArgument('name', $answer);
+
+            return $this->shorthand();
+        }
 
         return [$prefix, $name === '' ? ($this->fixedName() ?? '') : $name];
     }
@@ -770,7 +792,9 @@ trait InteractsWithLayout
         $ways = $options === [] ? "--in={$placement}" : implode(' ', $options).", --in={$placement}";
         $name = $this->shorthand()[1];
 
-        return "{$command} needs a {$dimension}. Pass {$ways}, or prefix the name: {$placement}:".($name !== '' ? $name : 'Name').'.';
+        $article = preg_match('/^[aeiou]/i', $dimension) === 1 ? 'an' : 'a';
+
+        return "{$command} needs {$article} {$dimension}. Pass {$ways}, or prefix the name: {$placement}:".($name !== '' ? $name : 'Name').'.';
     }
 
     /**

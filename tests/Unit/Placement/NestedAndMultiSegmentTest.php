@@ -20,15 +20,15 @@ use Tey\Mod\Reverse\ReverseOutcome;
  */
 function groupedLayout(): CompiledLayout
 {
-    return (new Layout('grouped'))
-        ->root('app', 'App\\', 'app', fn (Root $r) => $r
-            ->kind('model', in: '{group+}/Models', nested: true)
-            ->kind('policy', in: '{group+}/Policies', suffix: 'Policy', nested: true)
-            ->kind('request', in: '{group+}/Requests', suffix: 'Request')
-            ->kind('base', in: '{group+}', nested: true, priority: -1)
-            ->kind('report', in: 'Reports/{area?}', suffix: 'Report', nested: true))
-        ->relation('policy', from: 'model', to: 'policy')
-        ->relation('flat-request', from: 'model', to: 'request', name: ['prefix' => 'Store'], scope: ['nested' => 'drop'])
+    return (new Layout('grouped'))->path('app')
+        ->mounts('app', 'App\\', 'app', fn (Root $r) => $r
+            ->generates('model', in: '{group+}/Models', nested: true)
+            ->generates('policy', in: '{group+}/Policies', suffix: 'Policy', nested: true)
+            ->generates('request', in: '{group+}/Requests', suffix: 'Request')
+            ->generates('base', in: '{group+}', nested: true, priority: -1)
+            ->generates('report', in: 'Reports/{area?}', suffix: 'Report', nested: true))
+        ->relates('model', to: 'policy', as: 'policy')
+        ->relates('model', to: 'request', as: 'flat-request', name: ['prefix' => 'Store'], scope: ['nested' => 'drop'])
         ->compile();
 }
 
@@ -151,10 +151,10 @@ it('handles an optional dimension before nested folders by priority or ambiguity
 });
 
 it('refuses a dimension that is multi in one kind and single in another', function () {
-    $layout = (new Layout('mixed'))
-        ->root('app', 'App\\', 'app')
-        ->kind('model', in: '{group+}/Models')
-        ->kind('policy', in: '{group}/Policies');
+    $layout = ((new Layout('mixed'))->path('app'))
+        ->mounts('app', 'App\\', 'app')
+        ->generates('model', in: '{group+}/Models')
+        ->generates('policy', in: '{group}/Policies');
 
     try {
         $layout->compile();
@@ -168,7 +168,7 @@ it('refuses a dimension that is multi in one kind and single in another', functi
 });
 
 it('reports a placeholder with a misplaced plus against its kind', function () {
-    $layout = (new Layout('bad'))->root('app', 'App\\', 'app')->kind('model', in: '{gro+up}/Models');
+    $layout = ((new Layout('bad'))->path('app'))->mounts('app', 'App\\', 'app')->generates('model', in: '{gro+up}/Models');
 
     expect(fn () => $layout->compile())->toThrow(InvalidLayout::class, '{name+}');
 });

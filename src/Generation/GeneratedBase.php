@@ -3,7 +3,7 @@
 namespace Tey\Mod\Generation;
 
 /**
- * A base class a kind's classes extend, written into the application the
+ * A base class a file type's classes extend, written into the application the
  * first time one of them is generated. The application owns it from then on:
  * it is never overwritten, not even with --force.
  *
@@ -11,7 +11,7 @@ namespace Tey\Mod\Generation;
  *
  * places `Record` in the application's bases folder (`mod.bases_path`,
  * app/Support by default), under `in`: app/Support/Records/Record.php. With
- * inKindRoot(), `in` is below the generated kind's own root instead. The
+ * inFileTypeRoot(), `in` is below the generated file type's own root instead. The
  * application may publish its own body as `stubs/mod.base.<name>.stub` (the
  * name in kebab-case, e.g. `stubs/mod.base.record.stub`).
  */
@@ -21,7 +21,7 @@ final readonly class GeneratedBase
         public string $name,
         public string $in,
         public string $stub,
-        public bool $inKindRoot = false,
+        public bool $inFileTypeRoot = false,
     ) {}
 
     /**
@@ -35,9 +35,9 @@ final readonly class GeneratedBase
     }
 
     /**
-     * Place the base below the generated kind's own root instead of the bases folder.
+     * Place the base below the generated file type's own root instead of the bases folder.
      */
-    public function inKindRoot(): self
+    public function inFileTypeRoot(): self
     {
         return new self($this->name, $this->in, $this->stub, true);
     }

@@ -1,0 +1,574 @@
+{
+    "laravel": {
+        "model": [
+            "App\\|app|Models"
+        ],
+        "controller": [
+            "App\\|app|Http/Controllers"
+        ],
+        "request": [
+            "App\\|app|Http/Requests"
+        ],
+        "policy": [
+            "App\\|app|Policies"
+        ],
+        "provider": [
+            "App\\|app|Providers"
+        ],
+        "command": [
+            "App\\|app|Console/Commands"
+        ],
+        "event": [
+            "App\\|app|Events"
+        ],
+        "listener": [
+            "App\\|app|Listeners"
+        ],
+        "job": [
+            "App\\|app|Jobs"
+        ],
+        "job-middleware": [
+            "App\\|app|Jobs/Middleware"
+        ],
+        "mail": [
+            "App\\|app|Mail"
+        ],
+        "notification": [
+            "App\\|app|Notifications"
+        ],
+        "resource": [
+            "App\\|app|Http/Resources"
+        ],
+        "middleware": [
+            "App\\|app|Http/Middleware"
+        ],
+        "rule": [
+            "App\\|app|Rules"
+        ],
+        "observer": [
+            "App\\|app|Observers"
+        ],
+        "cast": [
+            "App\\|app|Casts"
+        ],
+        "scope": [
+            "App\\|app|Models/Scopes"
+        ],
+        "enum": [
+            "App\\|app|Enums"
+        ],
+        "exception": [
+            "App\\|app|Exceptions"
+        ],
+        "channel": [
+            "App\\|app|Broadcasting"
+        ],
+        "class": [
+            "App\\|app|"
+        ],
+        "interface": [
+            "App\\|app|"
+        ],
+        "trait": [
+            "App\\|app|"
+        ],
+        "factory": [
+            "Database\\Factories\\|database/factories|"
+        ],
+        "seeder": [
+            "Database\\Seeders\\|database/seeders|"
+        ],
+        "migration": [
+            "|database/migrations|"
+        ],
+        "config": [
+            "|config|"
+        ],
+        "test": [
+            "Tests\\|tests|Feature"
+        ]
+    },
+    "features": {
+        "model": [
+            "App\\|app|Features/{feature}/Models"
+        ],
+        "controller": [
+            "App\\|app|Features/{feature}/Http/Controllers"
+        ],
+        "request": [
+            "App\\|app|Features/{feature}/Http/Requests"
+        ],
+        "policy": [
+            "App\\|app|Features/{feature}/Policies"
+        ],
+        "provider": [
+            "App\\|app|Features/{feature}/Providers"
+        ],
+        "command": [
+            "App\\|app|Features/{feature}/Console/Commands",
+            "App\\|app|Console/Commands"
+        ],
+        "event": [
+            "App\\|app|Features/{feature}/Events"
+        ],
+        "listener": [
+            "App\\|app|Features/{feature}/Listeners"
+        ],
+        "job": [
+            "App\\|app|Features/{feature}/Jobs"
+        ],
+        "job-middleware": [
+            "App\\|app|Features/{feature}/Jobs/Middleware"
+        ],
+        "mail": [
+            "App\\|app|Features/{feature}/Mail"
+        ],
+        "notification": [
+            "App\\|app|Features/{feature}/Notifications"
+        ],
+        "resource": [
+            "App\\|app|Features/{feature}/Http/Resources"
+        ],
+        "middleware": [
+            "App\\|app|Features/{feature}/Http/Middleware"
+        ],
+        "rule": [
+            "App\\|app|Features/{feature}/Rules"
+        ],
+        "observer": [
+            "App\\|app|Features/{feature}/Observers"
+        ],
+        "cast": [
+            "App\\|app|Features/{feature}/Casts"
+        ],
+        "scope": [
+            "App\\|app|Features/{feature}/Scopes"
+        ],
+        "enum": [
+            "App\\|app|Features/{feature}/Enums"
+        ],
+        "exception": [
+            "App\\|app|Features/{feature}/Exceptions"
+        ],
+        "channel": [
+            "App\\|app|Features/{feature}/Broadcasting"
+        ],
+        "class": [
+            "App\\|app|Features/{feature}"
+        ],
+        "interface": [
+            "App\\|app|Features/{feature}"
+        ],
+        "trait": [
+            "App\\|app|Features/{feature}"
+        ],
+        "factory": [
+            "App\\|app|Features/{feature}/Database/Factories"
+        ],
+        "seeder": [
+            "App\\|app|Features/{feature}/Database/Seeders"
+        ],
+        "migration": [
+            "App\\|app|Features/{feature}/Database/Migrations"
+        ],
+        "query": [
+            "App\\|app|Features/{feature}/Queries"
+        ],
+        "validator": [
+            "App\\|app|Features/{feature}/Validation"
+        ],
+        "test": [
+            "Tests\\|tests|Feature/{feature}"
+        ]
+    },
+    "slices": {
+        "message": [
+            "App\\|app|{feature}/{slice}"
+        ],
+        "handler": [
+            "App\\|app|{feature}/{slice}"
+        ],
+        "request": [
+            "App\\|app|{feature}/{slice}"
+        ],
+        "validator": [
+            "App\\|app|{feature}/{slice}"
+        ],
+        "query": [
+            "App\\|app|{feature}/{slice}"
+        ],
+        "model": [
+            "App\\|app|{feature}/Models"
+        ],
+        "controller": [
+            "App\\|app|{feature}/Http/Controllers"
+        ],
+        "policy": [
+            "App\\|app|{feature}/Policies"
+        ],
+        "provider": [
+            "App\\|app|{feature}/Providers"
+        ],
+        "command": [
+            "App\\|app|{feature}/Console/Commands",
+            "App\\|app|Console/Commands"
+        ],
+        "event": [
+            "App\\|app|{feature}/Events"
+        ],
+        "listener": [
+            "App\\|app|{feature}/Listeners"
+        ],
+        "job": [
+            "App\\|app|{feature}/Jobs"
+        ],
+        "job-middleware": [
+            "App\\|app|{feature}/Jobs/Middleware"
+        ],
+        "mail": [
+            "App\\|app|{feature}/Mail"
+        ],
+        "notification": [
+            "App\\|app|{feature}/Notifications"
+        ],
+        "resource": [
+            "App\\|app|{feature}/Http/Resources"
+        ],
+        "middleware": [
+            "App\\|app|{feature}/Http/Middleware"
+        ],
+        "rule": [
+            "App\\|app|{feature}/Rules"
+        ],
+        "observer": [
+            "App\\|app|{feature}/Observers"
+        ],
+        "cast": [
+            "App\\|app|{feature}/Casts"
+        ],
+        "scope": [
+            "App\\|app|{feature}/Scopes"
+        ],
+        "enum": [
+            "App\\|app|{feature}/Enums"
+        ],
+        "exception": [
+            "App\\|app|{feature}/Exceptions"
+        ],
+        "channel": [
+            "App\\|app|{feature}/Broadcasting"
+        ],
+        "class": [
+            "App\\|app|{feature}"
+        ],
+        "interface": [
+            "App\\|app|{feature}"
+        ],
+        "trait": [
+            "App\\|app|{feature}"
+        ],
+        "factory": [
+            "App\\|app|{feature}/Database/Factories"
+        ],
+        "seeder": [
+            "App\\|app|{feature}/Database/Seeders"
+        ],
+        "migration": [
+            "App\\|app|{feature}/Database/Migrations"
+        ],
+        "test": [
+            "Tests\\|tests|Feature/{feature}/{slice?}"
+        ]
+    },
+    "type-first": {
+        "model": [
+            "App\\|app|Models/{feature?}"
+        ],
+        "controller": [
+            "App\\|app|Http/Controllers/{feature?}"
+        ],
+        "request": [
+            "App\\|app|Http/Requests/{feature?}"
+        ],
+        "policy": [
+            "App\\|app|Policies/{feature?}"
+        ],
+        "provider": [
+            "App\\|app|Providers/{feature?}"
+        ],
+        "command": [
+            "App\\|app|Console/Commands/{feature?}"
+        ],
+        "event": [
+            "App\\|app|Events/{feature?}"
+        ],
+        "listener": [
+            "App\\|app|Listeners/{feature?}"
+        ],
+        "job": [
+            "App\\|app|Jobs/{feature?}"
+        ],
+        "job-middleware": [
+            "App\\|app|Jobs/Middleware/{feature?}"
+        ],
+        "mail": [
+            "App\\|app|Mail/{feature?}"
+        ],
+        "notification": [
+            "App\\|app|Notifications/{feature?}"
+        ],
+        "resource": [
+            "App\\|app|Http/Resources/{feature?}"
+        ],
+        "middleware": [
+            "App\\|app|Http/Middleware/{feature?}"
+        ],
+        "rule": [
+            "App\\|app|Rules/{feature?}"
+        ],
+        "observer": [
+            "App\\|app|Observers/{feature?}"
+        ],
+        "cast": [
+            "App\\|app|Casts/{feature?}"
+        ],
+        "scope": [
+            "App\\|app|Models/Scopes/{feature?}"
+        ],
+        "enum": [
+            "App\\|app|Enums/{feature?}"
+        ],
+        "exception": [
+            "App\\|app|Exceptions/{feature?}"
+        ],
+        "channel": [
+            "App\\|app|Broadcasting/{feature?}"
+        ],
+        "class": [
+            "App\\|app|{feature?}"
+        ],
+        "interface": [
+            "App\\|app|{feature?}"
+        ],
+        "trait": [
+            "App\\|app|{feature?}"
+        ],
+        "query": [
+            "App\\|app|Queries/{feature?}"
+        ],
+        "factory": [
+            "Database\\Factories\\|database/factories|{feature?}"
+        ],
+        "seeder": [
+            "Database\\Seeders\\|database/seeders|{feature?}"
+        ],
+        "migration": [
+            "|database/migrations|{feature?}"
+        ],
+        "config": [
+            "|config|"
+        ],
+        "test": [
+            "Tests\\|tests|Feature/{feature?}"
+        ]
+    },
+    "modules": {
+        "model": [
+            "App\\|app|Modules/{module}/Models"
+        ],
+        "controller": [
+            "App\\|app|Modules/{module}/Controllers"
+        ],
+        "request": [
+            "App\\|app|Modules/{module}/Requests"
+        ],
+        "policy": [
+            "App\\|app|Modules/{module}/Policies"
+        ],
+        "provider": [
+            "App\\|app|Modules/{module}/Providers"
+        ],
+        "command": [
+            "App\\|app|Modules/{module}/Console"
+        ],
+        "event": [
+            "App\\|app|Modules/{module}/Events"
+        ],
+        "listener": [
+            "App\\|app|Modules/{module}/Listeners"
+        ],
+        "job": [
+            "App\\|app|Modules/{module}/Jobs"
+        ],
+        "job-middleware": [
+            "App\\|app|Modules/{module}/Jobs/Middleware"
+        ],
+        "mail": [
+            "App\\|app|Modules/{module}/Mail"
+        ],
+        "notification": [
+            "App\\|app|Modules/{module}/Notifications"
+        ],
+        "resource": [
+            "App\\|app|Modules/{module}/Resources"
+        ],
+        "middleware": [
+            "App\\|app|Modules/{module}/Middleware"
+        ],
+        "rule": [
+            "App\\|app|Modules/{module}/Rules"
+        ],
+        "observer": [
+            "App\\|app|Modules/{module}/Observers"
+        ],
+        "cast": [
+            "App\\|app|Modules/{module}/Casts"
+        ],
+        "scope": [
+            "App\\|app|Modules/{module}/Scopes"
+        ],
+        "enum": [
+            "App\\|app|Modules/{module}/Enums"
+        ],
+        "exception": [
+            "App\\|app|Modules/{module}/Exceptions"
+        ],
+        "channel": [
+            "App\\|app|Modules/{module}/Channels"
+        ],
+        "class": [
+            "App\\|app|Modules/{module}"
+        ],
+        "interface": [
+            "App\\|app|Modules/{module}"
+        ],
+        "trait": [
+            "App\\|app|Modules/{module}"
+        ],
+        "factory": [
+            "App\\|app|Modules/{module}/Database/Factories"
+        ],
+        "seeder": [
+            "App\\|app|Modules/{module}/Database/Seeders"
+        ],
+        "migration": [
+            "App\\|app|Modules/{module}/Database/Migrations"
+        ],
+        "action": [
+            "App\\|app|Modules/{module}/Actions"
+        ],
+        "dto": [
+            "App\\|app|Modules/{module}/Data"
+        ],
+        "value-object": [
+            "App\\|app|Modules/{module}/ValueObjects"
+        ],
+        "view-model": [
+            "App\\|app|Modules/{module}/ViewModels"
+        ],
+        "query": [
+            "App\\|app|Modules/{module}/Queries"
+        ],
+        "test": [
+            "Tests\\|tests|Feature/Modules/{module}"
+        ]
+    },
+    "ddd": {
+        "model": [
+            "Domain\\|src/Domain|{domain+}/Models"
+        ],
+        "dto": [
+            "Domain\\|src/Domain|{domain+}/Data"
+        ],
+        "value-object": [
+            "Domain\\|src/Domain|{domain+}/ValueObjects"
+        ],
+        "view-model": [
+            "Domain\\|src/Domain|{domain+}/ViewModels"
+        ],
+        "action": [
+            "Domain\\|src/Domain|{domain+}/Actions"
+        ],
+        "cast": [
+            "Domain\\|src/Domain|{domain+}/Casts"
+        ],
+        "channel": [
+            "Domain\\|src/Domain|{domain+}/Channels"
+        ],
+        "command": [
+            "Domain\\|src/Domain|{domain+}/Commands"
+        ],
+        "enum": [
+            "Domain\\|src/Domain|{domain+}/Enums"
+        ],
+        "event": [
+            "Domain\\|src/Domain|{domain+}/Events"
+        ],
+        "exception": [
+            "Domain\\|src/Domain|{domain+}/Exceptions"
+        ],
+        "factory": [
+            "Domain\\|src/Domain|{domain+}/Database/Factories"
+        ],
+        "job": [
+            "Domain\\|src/Domain|{domain+}/Jobs"
+        ],
+        "job-middleware": [
+            "Domain\\|src/Domain|{domain+}/Jobs/Middleware"
+        ],
+        "listener": [
+            "Domain\\|src/Domain|{domain+}/Listeners"
+        ],
+        "mail": [
+            "Domain\\|src/Domain|{domain+}/Mail"
+        ],
+        "migration": [
+            "Domain\\|src/Domain|{domain+}/Database/Migrations"
+        ],
+        "notification": [
+            "Domain\\|src/Domain|{domain+}/Notifications"
+        ],
+        "observer": [
+            "Domain\\|src/Domain|{domain+}/Observers"
+        ],
+        "policy": [
+            "Domain\\|src/Domain|{domain+}/Policies"
+        ],
+        "provider": [
+            "Domain\\|src/Domain|{domain+}/Providers"
+        ],
+        "resource": [
+            "Domain\\|src/Domain|{domain+}/Resources"
+        ],
+        "rule": [
+            "Domain\\|src/Domain|{domain+}/Rules"
+        ],
+        "scope": [
+            "Domain\\|src/Domain|{domain+}/Scopes"
+        ],
+        "seeder": [
+            "Domain\\|src/Domain|{domain+}/Database/Seeders"
+        ],
+        "class": [
+            "Domain\\|src/Domain|{domain+}"
+        ],
+        "interface": [
+            "Domain\\|src/Domain|{domain+}"
+        ],
+        "trait": [
+            "Domain\\|src/Domain|{domain+}"
+        ],
+        "controller": [
+            "App\\Modules\\|app/Modules|{domain+}/Controllers"
+        ],
+        "request": [
+            "App\\Modules\\|app/Modules|{domain+}/Requests"
+        ],
+        "middleware": [
+            "App\\Modules\\|app/Modules|{domain+}/Middleware"
+        ],
+        "test": [
+            "Tests\\|tests|Feature/{domain+}"
+        ]
+    }
+}

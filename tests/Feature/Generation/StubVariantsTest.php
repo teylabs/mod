@@ -232,7 +232,7 @@ it('names each ddd kind in its output with its label', function () {
 it('keeps the title-cased kind id for a kind without a label', function () {
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'ddd');
-        Mod::layout('ddd')->kind('builder', in: '{domain+}/Builders', suffix: 'Builder');
+        Mod::layout('ddd')->generates('builder', in: '{domain+}/Builders', suffix: 'Builder');
 
         expect($workspace->artisan('mod:builder', ['name' => 'Billing:Invoice'])->output)->toContainCreated('Builder', 'src/Domain/Billing/Builders/InvoiceBuilder.php');
     });
@@ -244,8 +244,8 @@ it('describes a file type by its label, else its id in words', function () {
     Workspace::run(null, function () {
         config()->set('mod.layout', 'modules');
         Mod::layout('modules')
-            ->kind('api-resource', in: 'Modules/{module}/Api', label: 'API resource')
-            ->kind('report-builder', in: 'Modules/{module}/Reports');
+            ->generates('api-resource', in: 'Modules/{module}/Api', label: 'API resource')
+            ->generates('report-builder', in: 'Modules/{module}/Reports');
 
         expect(Artisan::all()['mod:api-resource']->getDescription())->toBe('Create a new API resource class')
             ->and(Artisan::all()['mod:report-builder']->getDescription())->toBe('Create a new Report Builder class')

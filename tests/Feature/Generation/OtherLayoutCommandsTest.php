@@ -17,7 +17,7 @@ it('names the layouts that have a mod:* command the active layout lacks', functi
 
         expect($result->exitCode)->toBe(1)
             ->and($result->output)->toContain('mod:handler is not a command of the modules layout. The slices layout has it.')
-            ->and($result->output)->toContain("Mod::layout('modules')->kind('handler', in: '<folder>')")
+            ->and($result->output)->toContain("Mod::layout('modules')->generates('handler', in: '<folder>')")
             // No "...": agent output cleaners (laravel/pao) shorten it to "..", and the line is meant to be copied.
             ->and($result->output)->not->toContain('...')
             ->and($workspace->files())->toBe([]);

@@ -16,10 +16,10 @@ use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 function typeFirstLayout(): LayoutUnderTest
 {
     return new LayoutUnderTest('type-first', fn () => Mod::layout('type-first')
-        ->kind('provider', in: 'Providers/{feature?}', suffix: 'ServiceProvider')
-        ->kind('event', in: 'Events/{feature?}')
-        ->kind('listener', in: 'Listeners/{feature?}')
-        ->kind('command', in: 'Console/Commands'));
+        ->generates('provider', in: 'Providers/{feature?}', suffix: 'ServiceProvider')
+        ->generates('event', in: 'Events/{feature?}')
+        ->generates('listener', in: 'Listeners/{feature?}')
+        ->generates('command', in: 'Console/Commands'));
 }
 
 it('runs the whole loop on type-first, with and without a feature', function () {
@@ -148,7 +148,7 @@ it('reports a declared overlap as ambiguous until the layout gives a priority', 
     // A second kind that also claims app/Listeners: data, not code, creates the ambiguity.
     $layout = new LayoutUnderTest('type-first', function () {
         (typeFirstLayout()->define)();
-        Mod::layout('type-first')->kind('subscriber', in: 'Listeners', suffix: 'Subscriber', command: false);
+        Mod::layout('type-first')->generates('subscriber', in: 'Listeners', suffix: 'Subscriber', command: false);
     });
 
     AcceptanceApp::run($layout, function (AcceptanceApp $app) {
@@ -170,7 +170,7 @@ it('reports a declared overlap as ambiguous until the layout gives a priority', 
 
     $prioritised = new LayoutUnderTest('type-first', function () use ($layout) {
         ($layout->define)();
-        Mod::layout('type-first')->kind('listener', priority: 1);
+        Mod::layout('type-first')->generates('listener', priority: 1);
     });
 
     AcceptanceApp::run($prioritised, function (AcceptanceApp $app) {

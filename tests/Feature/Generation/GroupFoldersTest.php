@@ -210,7 +210,7 @@ it('does not count the kind folders inside a group as nested groups', function (
     Workspace::run(null, function (Workspace $workspace) {
         config()->set('mod.layout', 'ddd');
         // A root with classes placed right in the group as well, as laravel-ddd's application root has.
-        Mod::layout('ddd')->kind('application-root', in: 'application:{domain+}', nested: true, command: false, priority: 0);
+        Mod::layout('ddd')->generates('application-root', in: 'application:{domain+}', nested: true, command: false, priority: 0);
         $workspace->write('app/Modules/Billing/Controllers/InvoiceController.php', '<?php // mine');
         $workspace->write('app/Modules/Billing/Requests/StoreInvoiceRequest.php', '<?php // mine');
         $workspace->write('app/Modules/Billing/Internal/Controllers/AuditController.php', '<?php // mine');

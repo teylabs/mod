@@ -7,12 +7,12 @@ use Tey\Mod\Generation\Stub;
 use Tey\Mod\Placement\PlacementContext;
 
 /**
- * One kind of a layout: where its artifacts go and how they are named.
+ * One file type of a layout: where its artifacts go and how they are named.
  *
- * Reached through `->kind(..., using: fn (Kind $kind) => $kind->...)` for
+ * Reached through `->generates(..., using: fn (FileType $kind) => $kind->...)` for
  * what the named arguments do not cover; every method returns the kind.
  */
-final class Kind
+final class FileType
 {
     private ?string $in = null;
 
@@ -50,12 +50,12 @@ final class Kind
     private array $reads = [];
 
     /**
-     * @internal created by Layout::kind()
+     * @internal created by Layout::generates()
      */
     public function __construct(public readonly string $id) {}
 
     /**
-     * Where the kind's artifacts go: "Models", "Http/Controllers/{area?}",
+     * Where the file type's artifacts go: "Models", "Http/Controllers/{area?}",
      * or "root:Path/{area}" to place them in another declared root.
      */
     public function in(string $path): self
@@ -131,7 +131,7 @@ final class Kind
     }
 
     /**
-     * Other names for the kind's command (`mod:data` for `mod:dto`, say); they run the same command.
+     * Other names for the file type's command (`mod:data` for `mod:dto`, say); they run the same command.
      */
     public function aliases(string ...$names): self
     {
@@ -145,7 +145,7 @@ final class Kind
     }
 
     /**
-     * The noun the kind's command prints: "DTO [...] created successfully."
+     * The noun the file type's command prints: "DTO [...] created successfully."
      * Without one, a generated class is named after the kind id.
      */
     public function label(string $label): self
@@ -156,7 +156,7 @@ final class Kind
     }
 
     /**
-     * The stub the kind's classes are generated from, with its variants and base.
+     * The stub the file type's classes are generated from, with its variants and base.
      */
     public function stub(Stub $stub): self
     {
@@ -166,7 +166,7 @@ final class Kind
     }
 
     /**
-     * Accept nested names ("Billing/Invoice"): the folders go below the kind's
+     * Accept nested names ("Billing/Invoice"): the folders go below the file type's
      * own folder and the basename last, as native make:* does.
      */
     public function nested(bool $nested = true): self
@@ -177,7 +177,7 @@ final class Kind
     }
 
     /**
-     * Where discovery looks for this kind's classes: 'folder' (its own folder,
+     * Where discovery looks for this file type's classes: 'folder' (its own folder,
      * the default) or 'anywhere' below its dimension folders, skipping the
      * given folders (eligibility still decides).
      *

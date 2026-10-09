@@ -70,6 +70,6 @@ final readonly class CompiledRoot
 
     public static function normalisePath(string $path): string
     {
-        return trim(Path::normalize($path), '/');
+        return Path::normalize($path);
     }
 }

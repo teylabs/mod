@@ -49,7 +49,7 @@ final readonly class ExistingArtifacts
 
     public function absolute(string $relativePath): string
     {
-        return Path::join($this->basePath, $relativePath);
+        return Path::resolve($this->basePath, $relativePath);
     }
 
     private function declared(string $fqcn): bool

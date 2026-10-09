@@ -15,8 +15,8 @@ use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 function featureFirstLayout(): LayoutUnderTest
 {
     return new LayoutUnderTest('features', fn () => Mod::layout('features')
-        ->kind('event', in: 'Features/{feature}/Events')
-        ->kind('listener', in: 'Features/{feature}/Listeners'));
+        ->generates('event', in: 'Features/{feature}/Events')
+        ->generates('listener', in: 'Features/{feature}/Listeners'));
 }
 
 it('runs the whole loop on feature-first', function () {

@@ -110,7 +110,7 @@ it('disables discovery per kind and globally', DiscoveryFixture::around(function
     $this->app->setBasePath($fx->path());
 
     $inventory = DiscoveryRegistrar::register($this->app, $preset, DiscoveryOptions::fromConfig([
-        'kinds' => ['provider' => false, 'listener' => false],
+        'file_types' => ['provider' => false, 'listener' => false],
     ]))->inventory();
 
     expect($inventory->classes(DiscoveryType::Provider))->toBe([])

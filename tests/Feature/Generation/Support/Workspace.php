@@ -2,6 +2,7 @@
 
 namespace Tey\Mod\Tests\Feature\Generation\Support;
 
+use Composer\Autoload\ClassLoader;
 use FilesystemIterator;
 use Illuminate\Support\Facades\Artisan;
 use RecursiveDirectoryIterator;
@@ -37,7 +38,19 @@ final class Workspace
             // Forget any preset resolved earlier; mod:* reads this one when Artisan starts.
             app()->forgetInstance(CompiledLayout::class);
 
-            return $callback(new self($root));
+            // Describe autoload roots without loading generated test classes into the process.
+            $loader = new ClassLoader;
+            $loader->setClassMapAuthoritative(true);
+            $loader->addPsr4('App\\', $root->path('app'));
+            $loader->addPsr4('Tests\\', $root->path('tests'));
+            $loader->addPsr4('Database\\Factories\\', $root->path('database/factories'));
+            $loader->addPsr4('Database\\Seeders\\', $root->path('database/seeders'));
+            $loader->register();
+            try {
+                return $callback(new self($root));
+            } finally {
+                $loader->unregister();
+            }
         });
     }
 

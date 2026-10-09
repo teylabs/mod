@@ -90,6 +90,6 @@ final class Starters
     {
         $base = GeneratedBase::named($name, in: $baseIn ?? $in, stub: self::STUBS."/bases/{$stub}.stub");
 
-        return $baseIn === null ? $base : $base->inKindRoot();
+        return $baseIn === null ? $base : $base->inFileTypeRoot();
     }
 }
