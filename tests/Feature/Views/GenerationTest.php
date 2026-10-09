@@ -1,7 +1,42 @@
 <?php
 
+use Illuminate\Support\Facades\Artisan;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
+
+it('generates and plans a notification without a view when markdown is omitted', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', 'modules');
+        $options = ['name' => 'Inventory:StockChanged'];
+        $preview = $w->artisan('mod:notification', [...$options, '--dry-run' => true, '--json' => true])->assertSuccessful();
+        $plan = json_decode($preview->output, true, flags: JSON_THROW_ON_ERROR);
+        expect($plan['files'])->toHaveCount(1)->and($w->files())->toBe([]);
+        $w->artisan('mod:notification', $options)->assertSuccessful();
+        expect($w->files())->toBe(['app/Modules/Inventory/Notifications/StockChanged.php']);
+    });
+});
+
+it('qualifies an explicit notification markdown view in the native class', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', 'modules');
+        $w->artisan('mod:notification', ['name' => 'Inventory:StockChanged', '--markdown' => 'mail.stock-changed'])->assertSuccessful();
+        expect($w->read('app/Modules/Inventory/Notifications/StockChanged.php'))->toContain("->markdown('inventory::mail.stock-changed')")
+            ->and($w->exists('app/Modules/Inventory/resources/views/mail/stock-changed.blade.php'))->toBeTrue();
+    });
+});
+
+it('keeps native notification behavior for a bare markdown flag', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', 'modules');
+        $supportsBareFlag = Artisan::all()['make:notification']->getDefinition()->getOption('markdown')->getDefault() === false;
+        $options = ['name' => 'Inventory:StockChanged', '--markdown' => null];
+        $preview = $w->artisan('mod:notification', [...$options, '--dry-run' => true, '--json' => true])->assertSuccessful();
+        $plan = json_decode($preview->output, true, flags: JSON_THROW_ON_ERROR);
+        expect($plan['files'])->toHaveCount($supportsBareFlag ? 2 : 1);
+        $w->artisan('mod:notification', $options)->assertSuccessful();
+        expect($w->exists('app/Modules/Inventory/resources/views/mail/stock-changed.blade.php'))->toBe($supportsBareFlag);
+    });
+});
 
 it('describes every view write and identity without writing', function (string $command, array $options, int $count, string $identity) {
     Workspace::run(null, function (Workspace $w) use ($command, $options, $count, $identity) {

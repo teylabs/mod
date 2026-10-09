@@ -16,15 +16,32 @@ class NotificationCommand extends NotificationMakeCommand implements GeneratorAd
 
     protected function companionViewName(): ?string
     {
-        if ($this->layout()->frontend()['views'] === null || ($this->option('markdown') === false)) {
+        $name = $this->option('markdown');
+        // Older native generators use a nullable option and only write a view
+        // for a non-empty value. Newer ones use false and accept a bare flag.
+        if ($this->layout()->frontend()['views'] === null || $name === false
+            || (! $name && $this->getDefinition()->getOption('markdown')->getDefault() === null)) {
             return null;
         }
-        $name = $this->option('markdown');
         if (is_string($name) && $name !== '') {
             return $name;
         }
 
         return 'mail.'.implode('.', array_map(Str::kebab(...), explode('/', str_replace('\\', '/', $this->getNameInput()))));
+    }
+
+    protected function buildClass($name)
+    {
+        $class = parent::buildClass($name);
+        $view = $this->companionViewName();
+
+        if ($view !== null) {
+            // Older Laravel substitutes the option directly instead of calling getView().
+            $qualified = $this->viewIdentity()->name();
+            $class = str_replace(["'{$view}'", '"'.$view.'"'], ["'{$qualified}'", '"'.$qualified.'"'], $class);
+        }
+
+        return $class;
     }
 
     protected function getView()
