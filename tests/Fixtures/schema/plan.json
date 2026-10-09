@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["command", "group", "name", "files", "inserts", "warnings", "would_write"],
+  "properties": {
+    "command": {"type": "string"},
+    "group": {"type": ["string", "null"]},
+    "name": {"type": ["string", "null"]},
+    "files": {"type": "array", "items": {
+      "type": "object", "required": ["alias", "type", "path", "group", "existing", "exists"],
+      "anyOf": [{"required": ["class"]}, {"required": ["identity"]}],
+      "properties": {
+        "alias": {"type": "string"}, "type": {"type": "string"}, "path": {"type": "string"},
+        "class": {"type": "string"}, "identity": {"type": "object"}, "group": {"type": ["string", "null"]},
+        "existing": {"type": "boolean"}, "exists": {"type": "boolean"}
+      }
+    }},
+    "inserts": {"type": "array", "items": {"type": "object", "required": ["into", "at", "stub"], "properties": {"into": {"type": "string"}, "at": {"type": "string"}, "stub": {"type": "string"}}}},
+    "warnings": {"type": "array", "items": {"type": "object", "required": ["file", "line", "message"], "properties": {"file": {"type": ["string", "null"]}, "line": {"type": ["integer", "null"]}, "message": {"type": "string"}}}},
+    "would_write": {"type": "boolean"}
+  }
+}

@@ -1,0 +1,411 @@
+{
+    "layout": "features",
+    "extends": null,
+    "path": "app/Features/{feature}",
+    "token": "feature",
+    "groups": [],
+    "types": [
+        {
+            "id": "cast",
+            "command": "mod:cast",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Casts",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "channel",
+            "command": "mod:channel",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Broadcasting",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "class",
+            "command": "mod:class",
+            "aliases": [],
+            "folder": "app/Features/{feature}",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "command",
+            "command": "mod:command",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Console/Commands",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "controller",
+            "command": "mod:controller",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Http/Controllers",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": [
+                "controller-store-request",
+                "controller-update-request"
+            ]
+        },
+        {
+            "id": "enum",
+            "command": "mod:enum",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Enums",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "event",
+            "command": "mod:event",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Events",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "exception",
+            "command": "mod:exception",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Exceptions",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "factory",
+            "command": "mod:factory",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Database/Factories",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": [
+                "factory-model"
+            ]
+        },
+        {
+            "id": "interface",
+            "command": "mod:interface",
+            "aliases": [],
+            "folder": "app/Features/{feature}",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "job",
+            "command": "mod:job",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Jobs",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "job-middleware",
+            "command": "mod:job-middleware",
+            "aliases": [
+                "mod:jobmiddleware"
+            ],
+            "folder": "app/Features/{feature}/Jobs/Middleware",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "listener",
+            "command": "mod:listener",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Listeners",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": [
+                "listener-event"
+            ]
+        },
+        {
+            "id": "mail",
+            "command": "mod:mail",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Mail",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "middleware",
+            "command": "mod:middleware",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Http/Middleware",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "migration",
+            "command": "mod:migration",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Database/Migrations",
+            "source": "Laravel",
+            "stub": "/Users/jasper/Dev/projects/mod-l03-2/vendor/laravel/framework/src/Illuminate/Database/Migrations/stubs/migration.stub",
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "model",
+            "command": "mod:model",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Models",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": [
+                "model-factory",
+                "model-seeder",
+                "model-policy",
+                "model-controller",
+                "model-migration",
+                "model-store-request",
+                "model-update-request"
+            ]
+        },
+        {
+            "id": "notification",
+            "command": "mod:notification",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Notifications",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "observer",
+            "command": "mod:observer",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Observers",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "policy",
+            "command": "mod:policy",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Policies",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "provider",
+            "command": "mod:provider",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Providers",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "query",
+            "command": "mod:query",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Queries",
+            "source": "empty class",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "request",
+            "command": "mod:request",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Http/Requests",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "resource",
+            "command": "mod:resource",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Http/Resources",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "rule",
+            "command": "mod:rule",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Rules",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "scope",
+            "command": "mod:scope",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Scopes",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "seeder",
+            "command": "mod:seeder",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Database/Seeders",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "test",
+            "command": "mod:test",
+            "aliases": [],
+            "folder": "tests/Feature/{feature}",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "trait",
+            "command": "mod:trait",
+            "aliases": [],
+            "folder": "app/Features/{feature}",
+            "source": "Laravel",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        },
+        {
+            "id": "validator",
+            "command": "mod:validator",
+            "aliases": [],
+            "folder": "app/Features/{feature}/Validation",
+            "source": "empty class",
+            "stub": null,
+            "base": null,
+            "discovery": [],
+            "classes": [],
+            "relations": []
+        }
+    ],
+    "templates": {
+        "problems": [],
+        "notices": []
+    },
+    "scaffolds": {
+        "items": [],
+        "problems": []
+    },
+    "discovery": {
+        "enabled": false,
+        "source": null,
+        "counts": {
+            "provider": 0,
+            "command": 0,
+            "listener": 0,
+            "subscriber": 0,
+            "directory": 0,
+            "factory": 0,
+            "policy": 0,
+            "rejected": 0
+        },
+        "entries": [],
+        "rejections": [],
+        "stale_cache": null
+    }
+}
