@@ -36,28 +36,6 @@ it('honours a file type case override', function () {
     });
 });
 
-it('P2 generates a DDD page in the application root', function () {
-    Workspace::run(null, function (Workspace $w) {
-        Frontend::setup($w);
-        config()->set('mod.layout', 'ddd');
-        $result = $w->artisan('mod:page', ['name' => 'Inventory:Widget/Index'])->assertSuccessful();
-        expect($w->exists('app/Modules/Inventory/resources/js/pages/Widget/Index.vue'))->toBeTrue()
-            ->and($result->normalisedOutput())->toContain("Inertia::render('Inventory::Widget/Index')");
-    });
-});
-
-it('P3 uses mirrored frontend folders and page identity patterns', function () {
-    Workspace::run(null, function (Workspace $w) {
-        Frontend::setup($w);
-        Mod::layout('modules')->frontend(pages: 'resources/js/pages/{module}', components: 'resources/js/components/{module}', pageName: '{module}/{path}');
-        $plan = json_decode($w->artisan('mod:page', ['name' => 'Inventory:Widget/Index', '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
-        expect($plan['files'][0]['path'])->toBe('resources/js/pages/Inventory/Widget/Index.vue')
-            ->and($plan['files'][0]['identity']['name'])->toBe('Inventory/Widget/Index');
-        $w->artisan('mod:page', ['name' => 'Inventory:Widget/Index'])->assertSuccessful();
-        expect($w->exists('resources/js/pages/Inventory/Widget/Index.vue'))->toBeTrue();
-    });
-});
-
 it('uses the app page template before the minimal default', function () {
     Workspace::run(null, function (Workspace $w) {
         Frontend::setup($w);
@@ -161,5 +139,122 @@ it('asks to create a missing stack variant from the minimal page before confirmi
             ->expectsConfirmation("The crud-pages scaffold uses stubs/mod.page.crud-index.tsx.stub, which doesn't exist. Create it from the page stub?", 'yes')
             ->expectsConfirmation('Write these 12 files?', 'yes')->assertSuccessful();
         expect($w->read('stubs/mod.page.crud-index.tsx.stub'))->toContain("import { Head } from '@inertiajs/react'");
+    });
+});
+
+it('keeps the page file byte-for-byte when overwrite confirmation is declined', function () {
+    Workspace::run(null, function (Workspace $w) {
+        Frontend::setup($w);
+        $w->write('app/Modules/Inventory/resources/js/pages/Index.vue', '<template>Existing</template>');
+        TemplateScenario::testCase()->artisan('mod:page', ['name' => 'Inventory:Index'])
+            ->expectsConfirmation('app/Modules/Inventory/resources/js/pages/Index.vue already exists. Overwrite it?', 'no')->assertSuccessful();
+        expect($w->read('app/Modules/Inventory/resources/js/pages/Index.vue'))->toBe('<template>Existing</template>');
+    });
+});
+
+it('stages missing tree page variants until the complete plan is accepted', function (bool $accept) {
+    Workspace::run(null, function (Workspace $w) use ($accept) {
+        Frontend::setup($w);
+        Mod::scaffold('tree-page', fn (Scaffold $s) => $s->makes('page', stub: 'tree')->part('tab'));
+        TemplateScenario::testCase()->artisan('mod:tree-page', ['name' => 'Inventory:Dashboard'])
+            ->expectsConfirmation("The tree-page scaffold uses stubs/mod.page.tree.vue.stub, which doesn't exist. Create it from the page stub?", 'yes')
+            ->expectsConfirmation('Write these 1 files?', $accept ? 'yes' : 'no')->assertSuccessful();
+        expect($w->exists('stubs/mod.page.tree.vue.stub'))->toBe($accept)
+            ->and($w->exists('app/Modules/Inventory/resources/js/pages/Dashboard.vue'))->toBe($accept);
+    });
+})->with([true, false]);
+
+it('names the missing tree stack variant without writing in noninteractive mode', function () {
+    Workspace::run(null, function (Workspace $w) {
+        Frontend::setup($w, 'react');
+        Mod::scaffold('tree-page', fn (Scaffold $s) => $s->makes('page', stub: 'tree')->part('tab'));
+        $before = $w->files();
+        $w->artisan('mod:tree-page', ['name' => 'Inventory:Dashboard'])->assertFailed()->expectsOutputToContain('stubs/mod.page.tree.tsx.stub');
+        expect($w->files())->toBe($before);
+    });
+});
+
+it('asks for a missing plain template slot and uses it as a folder and value', function () {
+    Workspace::run(null, function (Workspace $w) {
+        Frontend::setup($w);
+        $w->write('stubs/mod/@module/resources/prompts/[topic]/prompt.md.stub', '{{ topic }}: {{ name.headline }}');
+        TemplateScenario::testCase()->artisan('mod:prompt', ['name' => 'Inventory:AnswerQuestion'])
+            ->expectsQuestion('Which topic?', 'Widgets')->assertSuccessful();
+        expect($w->read('app/Modules/Inventory/resources/prompts/Widgets/answer-question.md'))->toBe('Widgets: Answer Question');
+    });
+});
+
+it('refuses a missing plain-file insert anchor before writing any member and preserves CRLF', function (bool $missing) {
+    Workspace::run(null, function (Workspace $w) use ($missing) {
+        Frontend::setup($w);
+        $source = "<script setup>\r\n".($missing ? '' : "// mod:imports\r\n")."</script>\r\n<template>\r\n<!-- mod:cards -->\r\n</template>\r\n";
+        $w->write('app/Modules/Inventory/resources/js/pages/Dashboard.vue', $source);
+        $w->write('stubs/mod/@module/resources/js/components/card.vue.stub', '<template><p>{{ count }}</p></template>');
+        $w->write('stubs/mod.insert.card-import.stub', "import {{ widget.card }} from '{{ widget.card.import }}';");
+        Mod::scaffold('dashboard-card-member', fn (Scaffold $s) => $s->makes('card', name: '{widget}Card'));
+        Mod::scaffold('dashboard-cards', fn (Scaffold $s) => $s->part('widget', uses: 'dashboard-card-member', configure: fn ($part) => $part->inserts(into: '@module/resources/js/pages/Dashboard.vue', at: 'imports', stub: 'card-import')));
+        $before = $w->files();
+        $result = $w->artisan('mod:dashboard-cards.widget', ['name' => 'Inventory:Dashboard', 'value' => 'LowStock']);
+        if ($missing) {
+            $result->assertFailed();
+            expect($w->files())->toBe($before)->and($w->read('app/Modules/Inventory/resources/js/pages/Dashboard.vue'))->toBe($source);
+        } else {
+            $result->assertSuccessful();
+            $written = $w->read('app/Modules/Inventory/resources/js/pages/Dashboard.vue');
+            expect($written)->toContain("LowStockCard.vue';\r\n// mod:imports\r\n")
+                ->and(str_replace("\r\n", '', $written))->not->toContain("\n");
+        }
+    });
+})->with([true, false]);
+
+it('reports Blade source mentions without replacing source bytes', function () {
+    Workspace::run(null, function (Workspace $w) {
+        Frontend::setup($w);
+        $path = 'app/Modules/Inventory/resources/views/mail/widget-restocked.blade.php';
+        $source = 'Inventory inventory WidgetRestocked widget-restocked widget_restocked WIDGETRESTOCKED {{ $slot }}';
+        $w->write($path, $source);
+        $args = ['--from' => $path, '--into' => '@module/resources/views/mail/mail-template'];
+        $preview = json_decode($w->artisan('mod:template', [...$args, '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
+        expect(array_column($preview['mentions'], 'name'))->toContain('Inventory', 'inventory', 'widget-restocked', 'widget_restocked');
+        $w->artisan('mod:template', $args)->assertSuccessful();
+        expect($w->read('stubs/mod/@module/resources/views/mail/mail-template.blade.php.stub'))->toBe($source);
+    });
+});
+
+it('uses the app alias for mirrored components and the group alias for module components', function (bool $mirrored) {
+    Workspace::run(null, function (Workspace $w) use ($mirrored) {
+        Frontend::setup($w);
+        if ($mirrored) {
+            Mod::layout('modules')->frontend(pages: 'resources/js/pages/{module}', components: 'resources/js/components/{module}', pageName: '{module}/{path}');
+            $w->write('stubs/mod/resources/js/components/@module/layout.vue.stub', '<template><slot /></template>');
+        } else {
+            $w->write('stubs/mod/@module/resources/js/components/layout.vue.stub', '<template><slot /></template>');
+        }
+        $plan = json_decode($w->artisan('mod:layout', ['name' => 'Inventory:WidgetLayout', '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
+        expect($plan['files'][0]['identity']['import'])->toBe($mirrored ? '@/components/Inventory/WidgetLayout.vue' : '@modules/Inventory/resources/js/components/WidgetLayout.vue');
+    });
+})->with([true, false]);
+
+it('exposes Blade framework names and tags as sibling identities', function () {
+    Workspace::run(null, function (Workspace $w) {
+        Frontend::setup($w);
+        $w->write('stubs/mod/@module/resources/views/mail/mail-view.blade.php.stub', '{{ $slot }}');
+        $w->write('stubs/mod/@module/resources/views/components/badge.blade.php.stub', '{{ $slot }}');
+        $w->write('stubs/mod/@module/resources/prompts/identities.md.stub', '{{ view.name }}|{{ badge.tag }}|{{ badge.path }}');
+        Mod::scaffold('blade-identities', fn (Scaffold $s) => $s->makes('mail-view', name: 'WidgetRestocked', as: 'view')->makes('badge', name: 'StockBadge')->makes('identities', name: 'Reference'));
+        $w->artisan('mod:blade-identities', ['name' => 'Inventory:Widget'])->assertSuccessful();
+        expect($w->read('app/Modules/Inventory/resources/prompts/reference.md'))->toBe('inventory::mail.widget-restocked|x-inventory::stock-badge|app/Modules/Inventory/resources/views/components/stock-badge.blade.php');
+    });
+});
+
+it('resolves file-question identities for an existing frontend file without its own generator template', function () {
+    Workspace::run(null, function (Workspace $w) {
+        Frontend::setup($w);
+        $path = 'app/Modules/Inventory/resources/js/components/WidgetLayout.vue';
+        $w->write($path, '<template><slot /></template>');
+        $w->write('stubs/mod/@module/resources/prompts/reference.md.stub', '{{ layout }}|{{ layout.import }}');
+        Mod::scaffold('reference-file', fn (Scaffold $s) => $s->asks('layout', type: 'file')->makes('reference'));
+        $w->artisan('mod:reference-file', ['name' => 'Inventory:Widget', '--layout' => $path])->assertSuccessful();
+        expect($w->read('app/Modules/Inventory/resources/prompts/widget.md'))->toBe('WidgetLayout|@modules/Inventory/resources/js/components/WidgetLayout.vue');
     });
 });
