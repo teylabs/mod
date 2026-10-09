@@ -14,8 +14,10 @@ Work within the application's layout and existing conventions. Mod places files 
 
 - `config/mod.php` names the layout with `'layout'`. Without that file, the package default is `laravel`, which places files exactly like `make:*`.
 - The built-in layouts are `laravel`, `modules` (`app/Modules/<Module>`), `features` (`app/Features/<Feature>`), `slices` (`app/<Feature>/<Slice>`), `type-first` (`app/Models/<Feature?>`) and `ddd` (`src/Domain/<Domain>`, with controllers, requests and middleware in `app/Modules/<Domain>`).
-- Search the service providers for `Mod::layout(`. A call with a built-in name extends that layout; another name defines a new one. `->kind('validator', in: 'Modules/{module}/Validators')` adds a file type, and each `{placeholder}` in a folder becomes an option of that type's command (`--module=`).
-- After choosing `ddd` or a custom layout with roots outside `app/`, run `php artisan mod:autoload`. It adds each missing PSR-4 entry in `composer.json` (for `ddd`: `"Domain\\": "src/Domain/"`). It then runs Composer. Use `--dry-run` to preview, or `--no-dump` when a script runs Composer itself. Resolve conflicting mappings in `composer.json` before running the command again.
+- Search the service providers for `Mod::layout(`. A call with a built-in name customizes that layout; another name defines a new one. `->generates('validator', in: 'Modules/{module}/Validators')` adds a file type, and each `{placeholder}` in a folder becomes an option of that type's command (`--module=`).
+- `Mod::layout('areas')->extends('modules')` copies a parent layout. `extends()` must come first; it copies the parent at that moment. A name-derived token follows the child (`area`); a token declared with `path()` is inherited.
+- `->path('src/Areas/{area}')` names and moves group folders, relative to the project root. Absolute paths work too. `->allowsNesting()` permits nested groups; name the dimension on layouts with several groups.
+- After choosing `ddd` or a custom layout with roots outside `app/`, run `php artisan mod:autoload`. It adds each missing PSR-4 entry in `composer.json` (for `ddd`: `"Domain\\": "src/Domain/"`). It then runs Composer. Use `--dry-run` to preview, or `--no-dump` when a script runs Composer itself. Resolve conflicting mappings in `composer.json` before running the command again. Generation warns and still writes files when a root is not autoloaded yet.
 - `php artisan list mod` lists the generators this layout has. `php artisan help mod:<type>` shows a generator's placement options and Laravel's own options.
 - The installed package's `vendor/tey/mod/docs/layouts.md` lists every built-in layout's folders.
 
@@ -62,13 +64,13 @@ In `modules`, everything a module needs (models, migrations, factories, policies
 - Check registration with `php artisan event:list`, `php artisan list` and `php artisan migrate:status`.
 - `php artisan optimize` writes the discovery cache (`mod:cache`), and `optimize:clear` removes it (`mod:clear`). The cache doesn't pick up new classes: after adding a provider, command or listener while it exists, run `php artisan mod:clear`.
 - `mod:cache` reports files it found but didn't register as "rejected", with a reason; `mod:cache -v` lists them. Files "placed by no file type" need nothing.
-- `config/mod.php` `discovery.enabled`, `discovery.kinds`, `discovery.factories` and `discovery.policies` control what is discovered.
+- `config/mod.php` `discovery.enabled`, `discovery.file_types`, `discovery.factories` and `discovery.policies` control what is discovered.
 
 ## What Not to Do
 
 - Don't move existing code to match an example or a different layout.
 - Don't edit `vendor/tey/mod`. Change the layout with `Mod::layout()` in a service provider, the output with stubs, and the settings in `config/mod.php`.
 - Don't use `make:*` for a file that belongs in a module.
-- Don't invent `mod:*` commands or options. Check `php artisan list mod` and `php artisan help mod:<type>`. A missing file type is added with `->kind()`, after confirming the change with the user.
+- Don't invent `mod:*` commands or options. Check `php artisan list mod` and `php artisan help mod:<type>`. A missing file type is added with `->generates()`, after confirming the change with the user.
 
 The installed package's source and README describe its exact behaviour. Application instructions and the user's chosen scope take precedence over these examples.

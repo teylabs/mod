@@ -3,7 +3,7 @@
 namespace Tey\Mod\Layout\BuiltIn;
 
 use Tey\Mod\Generation\Starters;
-use Tey\Mod\Layout\Kind;
+use Tey\Mod\Layout\FileType;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\Root;
 
@@ -46,219 +46,224 @@ final readonly class BuiltInLayouts
 
     private function laravel(Layout $layout): Layout
     {
+        $layout->path('app');
         $layout
-            ->root('app', 'App\\', 'app', fn (Root $root) => $root
-                ->kind('model', in: 'Models')
-                ->kind('controller', in: 'Http/Controllers', suffix: 'Controller')
-                ->kind('request', in: 'Http/Requests', suffix: 'Request')
-                ->kind('policy', in: 'Policies', suffix: 'Policy')
-                ->kind('provider', in: 'Providers', suffix: 'ServiceProvider')
-                ->kind('command', in: 'Console/Commands')
-                ->kind('event', in: 'Events')
-                ->kind('listener', in: 'Listeners')
-                ->kind('job', in: 'Jobs')
-                ->kind('job-middleware', in: 'Jobs/Middleware')
-                ->kind('mail', in: 'Mail')
-                ->kind('notification', in: 'Notifications')
-                ->kind('resource', in: 'Http/Resources')
-                ->kind('middleware', in: 'Http/Middleware')
-                ->kind('rule', in: 'Rules')
-                ->kind('observer', in: 'Observers')
-                ->kind('cast', in: 'Casts')
-                ->kind('scope', in: 'Models/Scopes')
-                ->kind('enum', in: 'Enums')
-                ->kind('exception', in: 'Exceptions')
-                ->kind('channel', in: 'Broadcasting')
-                ->kind('class', in: '', priority: -10)
-                ->kind('interface', in: '', priority: -11)
-                ->kind('trait', in: '', priority: -12))
-            ->root('factories', 'Database\\Factories\\', 'database/factories', fn (Root $root) => $root
-                ->kind('factory', in: '', suffix: 'Factory'))
-            ->root('seeders', 'Database\\Seeders\\', 'database/seeders', fn (Root $root) => $root
-                ->kind('seeder', in: '', suffix: 'Seeder'))
-            ->root('migrations', null, 'database/migrations', fn (Root $root) => $root
-                ->kind('migration', in: '', timestamped: true))
-            ->root('config', null, 'config', fn (Root $root) => $root
-                ->kind('config', in: '', using: fn (Kind $kind) => $kind->file()))
-            ->root('tests', 'Tests\\', 'tests', fn (Root $root) => $root
-                ->kind('test', in: 'Feature'));
+            ->mounts('app', 'App\\', 'app', fn (Root $root) => $root
+                ->generates('model', in: 'Models')
+                ->generates('controller', in: 'Http/Controllers', suffix: 'Controller')
+                ->generates('request', in: 'Http/Requests', suffix: 'Request')
+                ->generates('policy', in: 'Policies', suffix: 'Policy')
+                ->generates('provider', in: 'Providers', suffix: 'ServiceProvider')
+                ->generates('command', in: 'Console/Commands')
+                ->generates('event', in: 'Events')
+                ->generates('listener', in: 'Listeners')
+                ->generates('job', in: 'Jobs')
+                ->generates('job-middleware', in: 'Jobs/Middleware')
+                ->generates('mail', in: 'Mail')
+                ->generates('notification', in: 'Notifications')
+                ->generates('resource', in: 'Http/Resources')
+                ->generates('middleware', in: 'Http/Middleware')
+                ->generates('rule', in: 'Rules')
+                ->generates('observer', in: 'Observers')
+                ->generates('cast', in: 'Casts')
+                ->generates('scope', in: 'Models/Scopes')
+                ->generates('enum', in: 'Enums')
+                ->generates('exception', in: 'Exceptions')
+                ->generates('channel', in: 'Broadcasting')
+                ->generates('class', in: '', priority: -10)
+                ->generates('interface', in: '', priority: -11)
+                ->generates('trait', in: '', priority: -12))
+            ->mounts('factories', 'Database\\Factories\\', 'database/factories', fn (Root $root) => $root
+                ->generates('factory', in: '', suffix: 'Factory'))
+            ->mounts('seeders', 'Database\\Seeders\\', 'database/seeders', fn (Root $root) => $root
+                ->generates('seeder', in: '', suffix: 'Seeder'))
+            ->mounts('migrations', null, 'database/migrations', fn (Root $root) => $root
+                ->generates('migration', in: '', timestamped: true))
+            ->mounts('config', null, 'config', fn (Root $root) => $root
+                ->generates('config', in: '', using: fn (FileType $kind) => $kind->file()))
+            ->mounts('tests', 'Tests\\', 'tests', fn (Root $root) => $root
+                ->generates('test', in: 'Feature'));
 
         return $this->companions($layout);
     }
 
     private function features(Layout $layout): Layout
     {
+        $layout->defaultPath('app/Features/{feature}');
         $layout
-            ->root('app', 'App\\', 'app', fn (Root $root) => $root
-                ->kind('model', in: 'Features/{feature}/Models')
-                ->kind('controller', in: 'Features/{feature}/Http/Controllers', suffix: 'Controller')
-                ->kind('request', in: 'Features/{feature}/Http/Requests', suffix: 'Request')
-                ->kind('policy', in: 'Features/{feature}/Policies', suffix: 'Policy')
-                ->kind('provider', in: 'Features/{feature}/Providers', suffix: 'ServiceProvider')
-                ->kind('command', in: 'Features/{feature}/Console/Commands', ungrouped: 'Console/Commands')
-                ->kind('event', in: 'Features/{feature}/Events')
-                ->kind('listener', in: 'Features/{feature}/Listeners')
-                ->kind('job', in: 'Features/{feature}/Jobs')
-                ->kind('job-middleware', in: 'Features/{feature}/Jobs/Middleware')
-                ->kind('mail', in: 'Features/{feature}/Mail')
-                ->kind('notification', in: 'Features/{feature}/Notifications')
-                ->kind('resource', in: 'Features/{feature}/Http/Resources')
-                ->kind('middleware', in: 'Features/{feature}/Http/Middleware')
-                ->kind('rule', in: 'Features/{feature}/Rules')
-                ->kind('observer', in: 'Features/{feature}/Observers')
-                ->kind('cast', in: 'Features/{feature}/Casts')
-                ->kind('scope', in: 'Features/{feature}/Scopes')
-                ->kind('enum', in: 'Features/{feature}/Enums')
-                ->kind('exception', in: 'Features/{feature}/Exceptions')
-                ->kind('channel', in: 'Features/{feature}/Broadcasting')
-                ->kind('class', in: 'Features/{feature}', priority: -10)
-                ->kind('interface', in: 'Features/{feature}', priority: -11)
-                ->kind('trait', in: 'Features/{feature}', priority: -12)
-                ->kind('factory', in: 'Features/{feature}/Database/Factories', suffix: 'Factory')
-                ->kind('seeder', in: 'Features/{feature}/Database/Seeders', suffix: 'Seeder')
-                ->kind('migration', in: 'Features/{feature}/Database/Migrations', timestamped: true)
-                ->kind('query', in: 'Features/{feature}/Queries')
-                ->kind('validator', in: 'Features/{feature}/Validation', suffix: 'Validator'))
-            ->root('tests', 'Tests\\', 'tests', fn (Root $root) => $root
-                ->kind('test', in: 'Feature/{feature}'));
+            ->mounts('app', 'App\\', 'app', fn (Root $root) => $root
+                ->generates('model', in: '@feature/Models')
+                ->generates('controller', in: '@feature/Http/Controllers', suffix: 'Controller')
+                ->generates('request', in: '@feature/Http/Requests', suffix: 'Request')
+                ->generates('policy', in: '@feature/Policies', suffix: 'Policy')
+                ->generates('provider', in: '@feature/Providers', suffix: 'ServiceProvider')
+                ->generates('command', in: '@feature/Console/Commands', ungrouped: 'Console/Commands')
+                ->generates('event', in: '@feature/Events')
+                ->generates('listener', in: '@feature/Listeners')
+                ->generates('job', in: '@feature/Jobs')
+                ->generates('job-middleware', in: '@feature/Jobs/Middleware')
+                ->generates('mail', in: '@feature/Mail')
+                ->generates('notification', in: '@feature/Notifications')
+                ->generates('resource', in: '@feature/Http/Resources')
+                ->generates('middleware', in: '@feature/Http/Middleware')
+                ->generates('rule', in: '@feature/Rules')
+                ->generates('observer', in: '@feature/Observers')
+                ->generates('cast', in: '@feature/Casts')
+                ->generates('scope', in: '@feature/Scopes')
+                ->generates('enum', in: '@feature/Enums')
+                ->generates('exception', in: '@feature/Exceptions')
+                ->generates('channel', in: '@feature/Broadcasting')
+                ->generates('class', in: '@feature', priority: -10)
+                ->generates('interface', in: '@feature', priority: -11)
+                ->generates('trait', in: '@feature', priority: -12)
+                ->generates('factory', in: '@feature/Database/Factories', suffix: 'Factory')
+                ->generates('seeder', in: '@feature/Database/Seeders', suffix: 'Seeder')
+                ->generates('migration', in: '@feature/Database/Migrations', timestamped: true)
+                ->generates('query', in: '@feature/Queries')
+                ->generates('validator', in: '@feature/Validation', suffix: 'Validator'))
+            ->mounts('tests', 'Tests\\', 'tests', fn (Root $root) => $root
+                ->generates('test', in: 'Feature/{feature}'));
 
         return $this->companions($layout)
-            ->exclude('App\\Support\\');
+            ->excludes('App\\Support\\');
     }
 
     private function slices(Layout $layout): Layout
     {
+        $layout->path('app/{feature}/{slice}');
         $layout
-            ->root('app', 'App\\', 'app', fn (Root $root) => $root
-                ->kind('message', in: '{feature}/{slice}', fixed: 'Command')
-                ->kind('handler', in: '{feature}/{slice}', fixed: 'Handler')
-                ->kind('request', in: '{feature}/{slice}', fixed: 'Request')
-                ->kind('validator', in: '{feature}/{slice}', fixed: 'Validator')
-                ->kind('query', in: '{feature}/{slice}', fixed: 'Query')
-                ->kind('model', in: '{feature}/Models')
-                ->kind('controller', in: '{feature}/Http/Controllers', suffix: 'Controller')
-                ->kind('policy', in: '{feature}/Policies', suffix: 'Policy')
-                ->kind('provider', in: '{feature}/Providers', suffix: 'ServiceProvider')
-                ->kind('command', in: '{feature}/Console/Commands', ungrouped: 'Console/Commands')
-                ->kind('event', in: '{feature}/Events')
-                ->kind('listener', in: '{feature}/Listeners')
-                ->kind('job', in: '{feature}/Jobs')
-                ->kind('job-middleware', in: '{feature}/Jobs/Middleware')
-                ->kind('mail', in: '{feature}/Mail')
-                ->kind('notification', in: '{feature}/Notifications')
-                ->kind('resource', in: '{feature}/Http/Resources')
-                ->kind('middleware', in: '{feature}/Http/Middleware')
-                ->kind('rule', in: '{feature}/Rules')
-                ->kind('observer', in: '{feature}/Observers')
-                ->kind('cast', in: '{feature}/Casts')
-                ->kind('scope', in: '{feature}/Scopes')
-                ->kind('enum', in: '{feature}/Enums')
-                ->kind('exception', in: '{feature}/Exceptions')
-                ->kind('channel', in: '{feature}/Broadcasting')
-                ->kind('class', in: '{feature}', priority: -10)
-                ->kind('interface', in: '{feature}', priority: -11)
-                ->kind('trait', in: '{feature}', priority: -12)
-                ->kind('factory', in: '{feature}/Database/Factories', suffix: 'Factory')
-                ->kind('seeder', in: '{feature}/Database/Seeders', suffix: 'Seeder')
-                ->kind('migration', in: '{feature}/Database/Migrations', timestamped: true))
-            ->root('tests', 'Tests\\', 'tests', fn (Root $root) => $root
-                ->kind('test', in: 'Feature/{feature}/{slice?}'));
+            ->mounts('app', 'App\\', 'app', fn (Root $root) => $root
+                ->generates('message', in: '@slice', fixed: 'Command')
+                ->generates('handler', in: '@slice', fixed: 'Handler')
+                ->generates('request', in: '@slice', fixed: 'Request')
+                ->generates('validator', in: '@slice', fixed: 'Validator')
+                ->generates('query', in: '@slice', fixed: 'Query')
+                ->generates('model', in: '@feature/Models')
+                ->generates('controller', in: '@feature/Http/Controllers', suffix: 'Controller')
+                ->generates('policy', in: '@feature/Policies', suffix: 'Policy')
+                ->generates('provider', in: '@feature/Providers', suffix: 'ServiceProvider')
+                ->generates('command', in: '@feature/Console/Commands', ungrouped: 'Console/Commands')
+                ->generates('event', in: '@feature/Events')
+                ->generates('listener', in: '@feature/Listeners')
+                ->generates('job', in: '@feature/Jobs')
+                ->generates('job-middleware', in: '@feature/Jobs/Middleware')
+                ->generates('mail', in: '@feature/Mail')
+                ->generates('notification', in: '@feature/Notifications')
+                ->generates('resource', in: '@feature/Http/Resources')
+                ->generates('middleware', in: '@feature/Http/Middleware')
+                ->generates('rule', in: '@feature/Rules')
+                ->generates('observer', in: '@feature/Observers')
+                ->generates('cast', in: '@feature/Casts')
+                ->generates('scope', in: '@feature/Scopes')
+                ->generates('enum', in: '@feature/Enums')
+                ->generates('exception', in: '@feature/Exceptions')
+                ->generates('channel', in: '@feature/Broadcasting')
+                ->generates('class', in: '{feature}', priority: -10)
+                ->generates('interface', in: '{feature}', priority: -11)
+                ->generates('trait', in: '{feature}', priority: -12)
+                ->generates('factory', in: '@feature/Database/Factories', suffix: 'Factory')
+                ->generates('seeder', in: '@feature/Database/Seeders', suffix: 'Seeder')
+                ->generates('migration', in: '@feature/Database/Migrations', timestamped: true))
+            ->mounts('tests', 'Tests\\', 'tests', fn (Root $root) => $root
+                ->generates('test', in: 'Feature/{feature}/{slice?}'));
 
         $this->companions($layout, singleRequest: true)
-            ->relation('controller-store-request', scope: ['keep' => ['feature'], 'name' => 'slice'])
-            ->relation('model-store-request', scope: ['keep' => ['feature'], 'name' => 'slice'])
-            ->relation('handler-request', from: 'handler', to: 'request')
-            ->relation('request-model', from: 'request', to: 'model', scope: ['feature'], name: 'explicit', mode: 'reference');
+            ->relates('controller', to: 'request', as: 'controller-store-request', scope: ['keep' => ['feature'], 'name' => 'slice'])
+            ->relates('model', to: 'request', as: 'model-store-request', scope: ['keep' => ['feature'], 'name' => 'slice'])
+            ->relates('handler', to: 'request', as: 'handler-request')
+            ->relates('request', to: 'model', as: 'request-model', scope: ['feature'], name: 'explicit', mode: 'reference');
 
         return $layout
-            ->exclude('App\\Http\\', 'App\\Providers\\', 'App\\Support\\');
+            ->excludes('App\\Http\\', 'App\\Providers\\', 'App\\Support\\');
     }
 
     private function typeFirst(Layout $layout): Layout
     {
+        $layout->path('app/*/{feature}');
         $layout
-            ->root('app', 'App\\', 'app', fn (Root $root) => $root
-                ->kind('model', in: 'Models/{feature?}')
-                ->kind('controller', in: 'Http/Controllers/{feature?}', suffix: 'Controller')
-                ->kind('request', in: 'Http/Requests/{feature?}', suffix: 'Request')
-                ->kind('policy', in: 'Policies/{feature?}', suffix: 'Policy')
-                ->kind('provider', in: 'Providers/{feature?}', suffix: 'ServiceProvider')
-                ->kind('command', in: 'Console/Commands/{feature?}')
-                ->kind('event', in: 'Events/{feature?}')
-                ->kind('listener', in: 'Listeners/{feature?}')
-                ->kind('job', in: 'Jobs/{feature?}')
-                ->kind('job-middleware', in: 'Jobs/Middleware/{feature?}')
-                ->kind('mail', in: 'Mail/{feature?}')
-                ->kind('notification', in: 'Notifications/{feature?}')
-                ->kind('resource', in: 'Http/Resources/{feature?}')
-                ->kind('middleware', in: 'Http/Middleware/{feature?}')
-                ->kind('rule', in: 'Rules/{feature?}')
-                ->kind('observer', in: 'Observers/{feature?}')
-                ->kind('cast', in: 'Casts/{feature?}')
-                ->kind('scope', in: 'Models/Scopes/{feature?}')
-                ->kind('enum', in: 'Enums/{feature?}')
-                ->kind('exception', in: 'Exceptions/{feature?}')
-                ->kind('channel', in: 'Broadcasting/{feature?}')
-                ->kind('class', in: '{feature?}', priority: -10)
-                ->kind('interface', in: '{feature?}', priority: -11)
-                ->kind('trait', in: '{feature?}', priority: -12)
-                ->kind('query', in: 'Queries/{feature?}'))
-            ->root('factories', 'Database\\Factories\\', 'database/factories', fn (Root $root) => $root
-                ->kind('factory', in: '{feature?}', suffix: 'Factory'))
-            ->root('seeders', 'Database\\Seeders\\', 'database/seeders', fn (Root $root) => $root
-                ->kind('seeder', in: '{feature?}', suffix: 'Seeder'))
-            ->root('migrations', null, 'database/migrations', fn (Root $root) => $root
-                ->kind('migration', in: '{feature?}', timestamped: true))
-            ->root('config', null, 'config', fn (Root $root) => $root
-                ->kind('config', in: '', using: fn (Kind $kind) => $kind->file()))
-            ->root('tests', 'Tests\\', 'tests', fn (Root $root) => $root
-                ->kind('test', in: 'Feature/{feature?}'));
+            ->mounts('app', 'App\\', 'app', fn (Root $root) => $root
+                ->generates('model', in: '@feature/Models')
+                ->generates('controller', in: '@feature/Http/Controllers', suffix: 'Controller')
+                ->generates('request', in: '@feature/Http/Requests', suffix: 'Request')
+                ->generates('policy', in: '@feature/Policies', suffix: 'Policy')
+                ->generates('provider', in: '@feature/Providers', suffix: 'ServiceProvider')
+                ->generates('command', in: '@feature/Console/Commands')
+                ->generates('event', in: '@feature/Events')
+                ->generates('listener', in: '@feature/Listeners')
+                ->generates('job', in: '@feature/Jobs')
+                ->generates('job-middleware', in: '@feature/Jobs/Middleware')
+                ->generates('mail', in: '@feature/Mail')
+                ->generates('notification', in: '@feature/Notifications')
+                ->generates('resource', in: '@feature/Http/Resources')
+                ->generates('middleware', in: '@feature/Http/Middleware')
+                ->generates('rule', in: '@feature/Rules')
+                ->generates('observer', in: '@feature/Observers')
+                ->generates('cast', in: '@feature/Casts')
+                ->generates('scope', in: '@feature/Models/Scopes')
+                ->generates('enum', in: '@feature/Enums')
+                ->generates('exception', in: '@feature/Exceptions')
+                ->generates('channel', in: '@feature/Broadcasting')
+                ->generates('class', in: '@feature', priority: -10)
+                ->generates('interface', in: '@feature', priority: -11)
+                ->generates('trait', in: '@feature', priority: -12)
+                ->generates('query', in: '@feature/Queries'))
+            ->mounts('factories', 'Database\\Factories\\', 'database/factories', fn (Root $root) => $root
+                ->generates('factory', in: '{feature?}', suffix: 'Factory'))
+            ->mounts('seeders', 'Database\\Seeders\\', 'database/seeders', fn (Root $root) => $root
+                ->generates('seeder', in: '{feature?}', suffix: 'Seeder'))
+            ->mounts('migrations', null, 'database/migrations', fn (Root $root) => $root
+                ->generates('migration', in: '{feature?}', timestamped: true))
+            ->mounts('config', null, 'config', fn (Root $root) => $root
+                ->generates('config', in: '', using: fn (FileType $kind) => $kind->file()))
+            ->mounts('tests', 'Tests\\', 'tests', fn (Root $root) => $root
+                ->generates('test', in: 'Feature/{feature?}'));
 
         return $this->companions($layout)
-            ->exclude('App\\Models\\Concerns\\');
+            ->excludes('App\\Models\\Concerns\\');
     }
 
     private function modules(Layout $layout): Layout
     {
+        $layout->defaultPath('app/Modules/{module}');
         $layout
-            ->root('app', 'App\\', 'app', fn (Root $root) => $root
-                ->kind('model', in: 'Modules/{module}/Models')
-                ->kind('controller', in: 'Modules/{module}/Controllers', suffix: 'Controller')
-                ->kind('request', in: 'Modules/{module}/Requests', suffix: 'Request')
-                ->kind('policy', in: 'Modules/{module}/Policies', suffix: 'Policy')
-                ->kind('provider', in: 'Modules/{module}/Providers', suffix: 'ServiceProvider')
-                ->kind('command', in: 'Modules/{module}/Console')
-                ->kind('event', in: 'Modules/{module}/Events')
-                ->kind('listener', in: 'Modules/{module}/Listeners')
-                ->kind('job', in: 'Modules/{module}/Jobs')
-                ->kind('job-middleware', in: 'Modules/{module}/Jobs/Middleware')
-                ->kind('mail', in: 'Modules/{module}/Mail')
-                ->kind('notification', in: 'Modules/{module}/Notifications')
-                ->kind('resource', in: 'Modules/{module}/Resources')
-                ->kind('middleware', in: 'Modules/{module}/Middleware')
-                ->kind('rule', in: 'Modules/{module}/Rules')
-                ->kind('observer', in: 'Modules/{module}/Observers')
-                ->kind('cast', in: 'Modules/{module}/Casts')
-                ->kind('scope', in: 'Modules/{module}/Scopes')
-                ->kind('enum', in: 'Modules/{module}/Enums')
-                ->kind('exception', in: 'Modules/{module}/Exceptions')
-                ->kind('channel', in: 'Modules/{module}/Channels')
-                ->kind('class', in: 'Modules/{module}', priority: -10)
-                ->kind('interface', in: 'Modules/{module}', priority: -11)
-                ->kind('trait', in: 'Modules/{module}', priority: -12)
-                ->kind('factory', in: 'Modules/{module}/Database/Factories', suffix: 'Factory')
-                ->kind('seeder', in: 'Modules/{module}/Database/Seeders', suffix: 'Seeder')
-                ->kind('migration', in: 'Modules/{module}/Database/Migrations', timestamped: true)
-                ->kind('action', in: 'Modules/{module}/Actions')
-                ->kind('dto', in: 'Modules/{module}/Data', label: 'DTO', aliases: ['mod:data'])
-                ->kind('value-object', in: 'Modules/{module}/ValueObjects', label: 'Value object', aliases: ['mod:value'])
-                ->kind('view-model', in: 'Modules/{module}/ViewModels', label: 'View model')
-                ->kind('query', in: 'Modules/{module}/Queries'))
-            ->root('tests', 'Tests\\', 'tests', fn (Root $root) => $root
-                ->kind('test', in: 'Feature/Modules/{module}'));
+            ->mounts('app', 'App\\', 'app', fn (Root $root) => $root
+                ->generates('model', in: '@module/Models')
+                ->generates('controller', in: '@module/Controllers', suffix: 'Controller')
+                ->generates('request', in: '@module/Requests', suffix: 'Request')
+                ->generates('policy', in: '@module/Policies', suffix: 'Policy')
+                ->generates('provider', in: '@module/Providers', suffix: 'ServiceProvider')
+                ->generates('command', in: '@module/Console')
+                ->generates('event', in: '@module/Events')
+                ->generates('listener', in: '@module/Listeners')
+                ->generates('job', in: '@module/Jobs')
+                ->generates('job-middleware', in: '@module/Jobs/Middleware')
+                ->generates('mail', in: '@module/Mail')
+                ->generates('notification', in: '@module/Notifications')
+                ->generates('resource', in: '@module/Resources')
+                ->generates('middleware', in: '@module/Middleware')
+                ->generates('rule', in: '@module/Rules')
+                ->generates('observer', in: '@module/Observers')
+                ->generates('cast', in: '@module/Casts')
+                ->generates('scope', in: '@module/Scopes')
+                ->generates('enum', in: '@module/Enums')
+                ->generates('exception', in: '@module/Exceptions')
+                ->generates('channel', in: '@module/Channels')
+                ->generates('class', in: '@module', priority: -10)
+                ->generates('interface', in: '@module', priority: -11)
+                ->generates('trait', in: '@module', priority: -12)
+                ->generates('factory', in: '@module/Database/Factories', suffix: 'Factory')
+                ->generates('seeder', in: '@module/Database/Seeders', suffix: 'Seeder')
+                ->generates('migration', in: '@module/Database/Migrations', timestamped: true)
+                ->generates('action', in: '@module/Actions')
+                ->generates('dto', in: '@module/Data', label: 'DTO', aliases: ['mod:data'])
+                ->generates('value-object', in: '@module/ValueObjects', label: 'Value object', aliases: ['mod:value'])
+                ->generates('view-model', in: '@module/ViewModels', label: 'View model')
+                ->generates('query', in: '@module/Queries'))
+            ->mounts('tests', 'Tests\\', 'tests', fn (Root $root) => $root
+                ->generates('test', in: 'Feature/Modules/{module}'));
 
         return $this->companions($layout)
-            ->exclude('App\\UI\\', 'App\\Support\\');
+            ->excludes('App\\UI\\', 'App\\Support\\');
     }
 
     /**
@@ -269,42 +274,43 @@ final readonly class BuiltInLayouts
      */
     private function ddd(Layout $layout): Layout
     {
+        $layout->path('src/Domain/{domain}')->allowsNesting();
         $layout
-            ->root('domain', 'Domain\\', 'src/Domain', fn (Root $root) => $root
-                ->kind('model', in: '{domain+}/Models')
-                ->kind('dto', in: '{domain+}/Data', label: 'DTO', aliases: ['mod:data-transfer-object', 'mod:data'], stub: Starters::dto(baseIn: 'Shared/Data'))
-                ->kind('value-object', in: '{domain+}/ValueObjects', label: 'Value object', aliases: ['mod:value'])
-                ->kind('view-model', in: '{domain+}/ViewModels', label: 'View model', stub: Starters::viewModel(baseIn: 'Shared/ViewModels'))
-                ->kind('action', in: '{domain+}/Actions', label: 'Action')
-                ->kind('cast', in: '{domain+}/Casts')
-                ->kind('channel', in: '{domain+}/Channels')
-                ->kind('command', in: '{domain+}/Commands')
-                ->kind('enum', in: '{domain+}/Enums')
-                ->kind('event', in: '{domain+}/Events')
-                ->kind('exception', in: '{domain+}/Exceptions')
-                ->kind('factory', in: '{domain+}/Database/Factories', suffix: 'Factory')
-                ->kind('job', in: '{domain+}/Jobs')
-                ->kind('job-middleware', in: '{domain+}/Jobs/Middleware')
-                ->kind('listener', in: '{domain+}/Listeners')
-                ->kind('mail', in: '{domain+}/Mail')
-                ->kind('migration', in: '{domain+}/Database/Migrations', timestamped: true)
-                ->kind('notification', in: '{domain+}/Notifications')
-                ->kind('observer', in: '{domain+}/Observers')
-                ->kind('policy', in: '{domain+}/Policies', suffix: 'Policy')
-                ->kind('provider', in: '{domain+}/Providers')
-                ->kind('resource', in: '{domain+}/Resources')
-                ->kind('rule', in: '{domain+}/Rules')
-                ->kind('scope', in: '{domain+}/Scopes')
-                ->kind('seeder', in: '{domain+}/Database/Seeders', suffix: 'Seeder')
-                ->kind('class', in: '{domain+}', priority: -10)
-                ->kind('interface', in: '{domain+}', priority: -11)
-                ->kind('trait', in: '{domain+}', priority: -12))
-            ->root('application', 'App\\Modules\\', 'app/Modules', fn (Root $root) => $root
-                ->kind('controller', in: '{domain+}/Controllers', suffix: 'Controller')
-                ->kind('request', in: '{domain+}/Requests', suffix: 'Request')
-                ->kind('middleware', in: '{domain+}/Middleware'))
-            ->root('tests', 'Tests\\', 'tests', fn (Root $root) => $root
-                ->kind('test', in: 'Feature/{domain+}'));
+            ->mounts('domain', 'Domain\\', 'src/Domain', fn (Root $root) => $root
+                ->generates('model', in: '@domain/Models')
+                ->generates('dto', in: '@domain/Data', label: 'DTO', aliases: ['mod:data-transfer-object', 'mod:data'], stub: Starters::dto(baseIn: 'Shared/Data'))
+                ->generates('value-object', in: '@domain/ValueObjects', label: 'Value object', aliases: ['mod:value'])
+                ->generates('view-model', in: '@domain/ViewModels', label: 'View model', stub: Starters::viewModel(baseIn: 'Shared/ViewModels'))
+                ->generates('action', in: '@domain/Actions', label: 'Action')
+                ->generates('cast', in: '@domain/Casts')
+                ->generates('channel', in: '@domain/Channels')
+                ->generates('command', in: '@domain/Commands')
+                ->generates('enum', in: '@domain/Enums')
+                ->generates('event', in: '@domain/Events')
+                ->generates('exception', in: '@domain/Exceptions')
+                ->generates('factory', in: '@domain/Database/Factories', suffix: 'Factory')
+                ->generates('job', in: '@domain/Jobs')
+                ->generates('job-middleware', in: '@domain/Jobs/Middleware')
+                ->generates('listener', in: '@domain/Listeners')
+                ->generates('mail', in: '@domain/Mail')
+                ->generates('migration', in: '@domain/Database/Migrations', timestamped: true)
+                ->generates('notification', in: '@domain/Notifications')
+                ->generates('observer', in: '@domain/Observers')
+                ->generates('policy', in: '@domain/Policies', suffix: 'Policy')
+                ->generates('provider', in: '@domain/Providers')
+                ->generates('resource', in: '@domain/Resources')
+                ->generates('rule', in: '@domain/Rules')
+                ->generates('scope', in: '@domain/Scopes')
+                ->generates('seeder', in: '@domain/Database/Seeders', suffix: 'Seeder')
+                ->generates('class', in: '@domain', priority: -10)
+                ->generates('interface', in: '@domain', priority: -11)
+                ->generates('trait', in: '@domain', priority: -12))
+            ->mounts('application', 'App\\Modules\\', 'app/Modules', fn (Root $root) => $root
+                ->generates('controller', in: '{domain+}/Controllers', suffix: 'Controller')
+                ->generates('request', in: '{domain+}/Requests', suffix: 'Request')
+                ->generates('middleware', in: '{domain+}/Middleware'))
+            ->mounts('tests', 'Tests\\', 'tests', fn (Root $root) => $root
+                ->generates('test', in: 'Feature/{domain+}'));
 
         return $this->companions($layout);
     }
@@ -312,20 +318,20 @@ final readonly class BuiltInLayouts
     private function companions(Layout $layout, bool $singleRequest = false): Layout
     {
         $layout
-            ->relation('model-factory', from: 'model', to: 'factory')
-            ->relation('model-seeder', from: 'model', to: 'seeder')
-            ->relation('model-policy', from: 'model', to: 'policy')
-            ->relation('model-controller', from: 'model', to: 'controller')
-            ->relation('model-migration', from: 'model', to: 'migration', name: 'explicit')
-            ->relation('factory-model', from: 'factory', to: 'model', mode: 'reference')
-            ->relation('listener-event', from: 'listener', to: 'event', name: 'explicit', mode: 'reference')
-            ->relation('controller-store-request', from: 'controller', to: 'request', name: ['prefix' => 'Store'])
-            ->relation('model-store-request', from: 'model', to: 'request', name: ['prefix' => 'Store']);
+            ->relates('model', to: 'factory', as: 'model-factory')
+            ->relates('model', to: 'seeder', as: 'model-seeder')
+            ->relates('model', to: 'policy', as: 'model-policy')
+            ->relates('model', to: 'controller', as: 'model-controller')
+            ->relates('model', to: 'migration', as: 'model-migration', name: 'explicit')
+            ->relates('factory', to: 'model', as: 'factory-model', mode: 'reference')
+            ->relates('listener', to: 'event', as: 'listener-event', name: 'explicit', mode: 'reference')
+            ->relates('controller', to: 'request', as: 'controller-store-request', name: ['prefix' => 'Store'])
+            ->relates('model', to: 'request', as: 'model-store-request', name: ['prefix' => 'Store']);
 
         if (! $singleRequest) {
             $layout
-                ->relation('controller-update-request', from: 'controller', to: 'request', name: ['prefix' => 'Update'])
-                ->relation('model-update-request', from: 'model', to: 'request', name: ['prefix' => 'Update']);
+                ->relates('controller', to: 'request', as: 'controller-update-request', name: ['prefix' => 'Update'])
+                ->relates('model', to: 'request', as: 'model-update-request', name: ['prefix' => 'Update']);
         }
 
         return $layout;

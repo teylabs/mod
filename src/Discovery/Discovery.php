@@ -113,7 +113,7 @@ final class Discovery
         $path = Path::normalize($this->options->cachePath);
         $absolute = str_starts_with($path, '/') || preg_match('#^[A-Za-z]:[\\\\/]#', $path) === 1
             ? $path
-            : Path::join($this->basePath, $path);
+            : Path::resolve($this->basePath, $path);
 
         return new DiscoveryCache($absolute);
     }
@@ -254,7 +254,7 @@ final class Discovery
             return false;
         }
 
-        $file = realpath(Path::join($this->basePath, $relativePath));
+        $file = realpath(Path::resolve($this->basePath, $relativePath));
 
         if ($file === false) {
             return false;

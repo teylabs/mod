@@ -2,15 +2,17 @@
 
 namespace Tey\Mod\Layout;
 
+use Illuminate\Support\Str;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Exceptions\InvalidLayout;
-use Tey\Mod\Exceptions\UnknownKind;
+use Tey\Mod\Exceptions\UnknownFileType;
 use Tey\Mod\Exceptions\UnknownRelation;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Placement\Dimension;
 use Tey\Mod\Placement\PlacementRule;
 use Tey\Mod\Preset\PresetValidator;
 use Tey\Mod\Relation\Relation;
+use Tey\Mod\Support\Path;
 
 /**
  * A coherent, validated set of roots, dimensions, kinds, placement rules and relations.
@@ -55,6 +57,26 @@ final readonly class CompiledLayout
         return (new PresetValidator)->compile($definition);
     }
 
+    /** The mounted namespace for a project path, or its folder-derived default. */
+    public function namespaceFor(string $path): string
+    {
+        $path = Path::normalize($path);
+        $best = null;
+        foreach ($this->roots as $root) {
+            if ($root->namespace !== null && Path::relative($root->path, $path) !== null
+                && ($best === null || strlen($root->path) > strlen($best->path))) {
+                $best = $root;
+            }
+        }
+        if ($best !== null) {
+            $below = (string) Path::relative($best->path, $path);
+
+            return $best->namespace.($below === '' ? '' : str_replace('/', '\\', $below).'\\');
+        }
+
+        return Str::studly(basename($path)).'\\';
+    }
+
     /**
      * @return array<string, CompiledRoot>
      */
@@ -96,7 +118,7 @@ final readonly class CompiledLayout
 
     public function kind(string $kindId): ArtifactKind
     {
-        return $this->kinds[$kindId] ?? throw UnknownKind::id($kindId);
+        return $this->kinds[$kindId] ?? throw UnknownFileType::id($kindId);
     }
 
     /**
@@ -109,7 +131,7 @@ final readonly class CompiledLayout
 
     public function rule(string $kindId): PlacementRule
     {
-        return $this->rules[$kindId] ?? throw UnknownKind::id($kindId);
+        return $this->rules[$kindId] ?? throw UnknownFileType::id($kindId);
     }
 
     /**
@@ -146,7 +168,7 @@ final readonly class CompiledLayout
 
     /**
      * The command option of each dimension (`--module=`): the dimension in
-     * kebab-case unless the layout renamed it with ->placementOption().
+     * kebab-case unless the layout renamed it with ->path().
      *
      * @return array<string, string> dimension name → option name
      */

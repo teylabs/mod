@@ -75,7 +75,6 @@ it('detects invalid roots', function (array $root) {
         $d['roots']['bad'] = $root;
     }))->toBe(['invalid-root']);
 })->with([
-    'absolute path' => [['namespace' => 'Src\\', 'path' => '/srv/app']],
     'escaping path' => [['namespace' => 'Src\\', 'path' => 'app/../../etc']],
     'namespace without trailing separator' => [['namespace' => 'Src', 'path' => 'src']],
     'namespace with invalid segment' => [['namespace' => '9Src\\', 'path' => 'src']],

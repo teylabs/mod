@@ -16,7 +16,7 @@ use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 
 function ordinaryLayout(): LayoutUnderTest
 {
-    return new LayoutUnderTest('laravel', fn () => Mod::layout('laravel')->kind('query', in: 'Queries'));
+    return new LayoutUnderTest('laravel', fn () => Mod::layout('laravel')->generates('query', in: 'Queries'));
 }
 
 it('runs the whole loop on ordinary Laravel', function () {

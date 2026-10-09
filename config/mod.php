@@ -14,9 +14,9 @@ return [
     /*
      * The application's layout: a built-in one (laravel, features, slices,
      * type-first, modules, ddd) or any name defined with Mod::layout() in a
-     * service provider. Built-in layouts can be extended the same way:
+     * service provider. Customize a built-in layout in place:
      *
-     *     Mod::layout('modules')->kind('job', in: 'Modules/{module}/Jobs');
+     *     Mod::layout('modules')->generates('job', in: 'Modules/{module}/Jobs');
      *
      * The default, laravel, places files exactly like make:*.
      */
@@ -59,7 +59,7 @@ return [
      */
     'discovery' => [
         'enabled' => true,
-        'kinds' => [],
+        'file_types' => [],
         'cache' => 'bootstrap/cache/mod-discovery.php',
         // 'scan' ignores a stale or foreign cache file, scans instead (never rewriting the file) and
         // warns; 'fail' refuses to boot until the cache is rebuilt (mod:cache) or removed.

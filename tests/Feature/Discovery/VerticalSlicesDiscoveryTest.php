@@ -58,7 +58,7 @@ it('rejects every message by eligibility even when a host maps the message kind 
     $this->app->setBasePath($fx->path());
 
     $inventory = DiscoveryRegistrar::register($this->app, $preset, DiscoveryOptions::fromConfig([
-        'kinds' => ['message' => 'command'],
+        'file_types' => ['message' => 'command'],
     ]))->inventory();
 
     foreach (['app/Billing/CreateInvoice/Command.php', 'app/Billing/VoidInvoice/Command.php'] as $path) {

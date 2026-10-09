@@ -29,7 +29,7 @@ it('discovers the preset kinds named after a type, and migration directories, by
 ]);
 
 it('merges host settings over the defaults', function () {
-    $options = DiscoveryOptions::fromConfig(['kinds' => ['provider' => false, 'event' => 'listener']]);
+    $options = DiscoveryOptions::fromConfig(['file_types' => ['provider' => false, 'event' => 'listener']]);
 
     expect(describeDefinitions($options->definitionsFor(Layouts::ordinary())))
         ->toBe(['command:command:on', 'event:listener:on', 'listener:listener:on', 'migration:directory:on', 'model:factory:on', 'model:policy:on', 'provider:provider:off']);
@@ -59,40 +59,40 @@ it('reads the defaults from an empty config', function () {
         ->and($options->onStaleCache)->toBe(CacheMismatchPolicy::Scan)
         ->and(DiscoveryOptions::fromConfig(['on_stale_cache' => 'fail'])->onStaleCache)->toBe(CacheMismatchPolicy::Fail)
         ->and(DiscoveryOptions::fromConfig(['on_stale_cache' => 'scan'])->onStaleCache)->toBe(CacheMismatchPolicy::Scan)
-        ->and(DiscoveryOptions::fromConfig(['kinds' => ['x' => DiscoveryType::Command]])->kinds)->toBe(['x' => DiscoveryType::Command]);
+        ->and(DiscoveryOptions::fromConfig(['file_types' => ['x' => DiscoveryType::Command]])->kinds)->toBe(['x' => DiscoveryType::Command]);
 });
 
 it('rejects invalid config with the offending key', function (array $config, string $message) {
     expect(fn () => DiscoveryOptions::fromConfig($config))->toThrow(InvalidDiscoveryConfig::class, $message);
 })->with([
     [['enabled' => 'yes'], '[mod.discovery.enabled]'],
-    [['kinds' => 'provider'], '[mod.discovery.kinds]'],
-    [['kinds' => ['provider']], 'keys must be file type ids'],
-    [['kinds' => ['provider' => 'middleware']], '[mod.discovery.kinds.provider]: expected provider, command, listener, subscriber, directory or false'],
+    [['file_types' => 'provider'], '[mod.discovery.file_types]'],
+    [['file_types' => ['provider']], 'keys must be file type ids'],
+    [['file_types' => ['provider' => 'middleware']], '[mod.discovery.file_types.provider]: expected provider, command, listener, subscriber, directory or false'],
     [['cache' => ''], '[mod.discovery.cache]'],
     [['on_stale_cache' => 'rebuild'], '[mod.discovery.on_stale_cache]'],
     [['factories' => 'yes'], '[mod.discovery.factories]: expected a boolean'],
     [['policies' => 1], '[mod.discovery.policies]: expected a boolean'],
     // Factory and policy pairs come from the switches, not from a kind mapping.
-    [['kinds' => ['model' => 'factory']], '[mod.discovery.kinds.model]: expected provider, command, listener, subscriber, directory or false'],
+    [['file_types' => ['model' => 'factory']], '[mod.discovery.file_types.model]: expected provider, command, listener, subscriber, directory or false'],
 ]);
 
 it('rejects kinds the preset cannot discover', function (array $kinds, string $message) {
-    expect(fn () => DiscoveryOptions::fromConfig(['kinds' => $kinds])->definitionsFor(Layouts::ordinary()))
+    expect(fn () => DiscoveryOptions::fromConfig(['file_types' => $kinds])->definitionsFor(Layouts::ordinary()))
         ->toThrow(InvalidDiscoveryConfig::class, $message);
 })->with([
-    [['handler' => 'command'], '[mod.discovery.kinds.handler]: the active layout has no [handler] file type'],
+    [['handler' => 'command'], '[mod.discovery.file_types.handler]: the active layout has no [handler] file type'],
     [['migration' => 'listener'], 'only file types that hold classes can be discovered'],
 ]);
 
 it('names the kinds a layout has when the config maps one it lacks', function (string $layout) {
     $preset = (new LayoutRegistry)->compile($layout);
 
-    expect(fn () => DiscoveryOptions::fromConfig(['kinds' => ['console' => 'command']])->definitionsFor($preset))
-        ->toThrow(InvalidDiscoveryConfig::class, 'Invalid discovery configuration [mod.discovery.kinds.console]: the active layout has no [console] file type. Map one of its file types: ');
+    expect(fn () => DiscoveryOptions::fromConfig(['file_types' => ['console' => 'command']])->definitionsFor($preset))
+        ->toThrow(InvalidDiscoveryConfig::class, 'Invalid discovery configuration [mod.discovery.file_types.console]: the active layout has no [console] file type. Map one of its file types: ');
 
     try {
-        DiscoveryOptions::fromConfig(['kinds' => ['console' => 'command']])->definitionsFor($preset);
+        DiscoveryOptions::fromConfig(['file_types' => ['console' => 'command']])->definitionsFor($preset);
     } catch (InvalidDiscoveryConfig $exception) {
         foreach (array_keys($preset->kinds()) as $kind) {
             expect($exception->getMessage())->toContain($kind);

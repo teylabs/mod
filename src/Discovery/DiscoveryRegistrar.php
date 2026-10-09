@@ -167,7 +167,7 @@ final class DiscoveryRegistrar
                 continue;
             }
 
-            $directory = Path::join($app->basePath(), $entry->path);
+            $directory = Path::resolve($app->basePath(), $entry->path);
 
             if ($default === false || ! Path::same(realpath($directory) ?: $directory, $default)) {
                 $directories[] = $directory;

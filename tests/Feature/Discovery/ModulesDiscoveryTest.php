@@ -34,7 +34,7 @@ function modulesTree(DiscoveryFixture $fx): CompiledLayout
 
 function modulesOptions(): DiscoveryOptions
 {
-    return DiscoveryOptions::fromConfig(['kinds' => ['subscriber' => 'listener', 'console' => 'command']]);
+    return DiscoveryOptions::fromConfig(['file_types' => ['subscriber' => 'listener', 'console' => 'command']]);
 }
 
 it('discovers module-owned classes with their module as provenance', DiscoveryFixture::around(function (DiscoveryFixture $fx) {

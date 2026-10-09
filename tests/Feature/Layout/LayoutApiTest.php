@@ -19,17 +19,17 @@ function dddLayoutUnderTest(): LayoutUnderTest
 {
     return new LayoutUnderTest('domains', function () {
         Mod::layout('domains')
-            ->root('domain', 'Domain\\', 'src/Domain', fn (Root $r) => $r
-                ->kind('model', in: '{domain}/Models')
-                ->kind('action', in: '{domain}/Actions'))
-            ->root('app', 'App\\', 'app', fn (Root $r) => $r
-                ->kind('controller', in: 'Modules/{domain}/Controllers', suffix: 'Controller'))
-            ->kind('factory', in: 'domain:{domain}/Database/Factories', suffix: 'Factory')
-            ->relation('factory', from: 'model', to: 'factory')
-            ->exclude('App\\Support\\');
+            ->mounts('domain', 'Domain\\', 'src/Domain', fn (Root $r) => $r
+                ->generates('model', in: '{domain}/Models')
+                ->generates('action', in: '{domain}/Actions'))
+            ->mounts('app', 'App\\', 'app', fn (Root $r) => $r
+                ->generates('controller', in: 'Modules/{domain}/Controllers', suffix: 'Controller'))
+            ->generates('factory', in: 'domain:{domain}/Database/Factories', suffix: 'Factory')
+            ->relates('model', to: 'factory', as: 'factory')
+            ->excludes('App\\Support\\');
 
         // A later call (another provider, say) extends the same layout.
-        Mod::layout('domains')->kind('provider', in: 'domain:{domain}/Providers', suffix: 'ServiceProvider');
+        Mod::layout('domains')->generates('provider', in: 'domain:{domain}/Providers', suffix: 'ServiceProvider');
     });
 }
 
@@ -78,8 +78,8 @@ it('generates and discovers with a DDD-like layout defined as one chain in AppSe
 
 it('extends the configured built-in layout from AppServiceProvider::boot()', function () {
     $layout = new LayoutUnderTest('laravel', fn () => Mod::layout('laravel')
-        ->kind('provider', in: 'Support/Providers')
-        ->kind('job', in: 'Jobs'));
+        ->generates('provider', in: 'Support/Providers')
+        ->generates('job', in: 'Jobs'));
 
     AcceptanceApp::run($layout, function (AcceptanceApp $app) {
         $t = $app->tag;
@@ -100,8 +100,8 @@ it('extends the configured built-in layout from AppServiceProvider::boot()', fun
 });
 
 it('reports an invalid layout with the call that caused it when mod:* starts', function () {
-    $layout = new LayoutUnderTest('laravel', fn () => Mod::layout('laravel')->kind('job', in: 'jobs:Jobs'));
+    $layout = new LayoutUnderTest('laravel', fn () => Mod::layout('laravel')->generates('job', in: 'jobs:Jobs'));
 
     expect(fn () => AcceptanceApp::run($layout, fn () => null))
-        ->toThrow(InvalidLayout::class, "Layout [laravel] is invalid:\n - ->kind('job'): root [jobs] is not declared (declared: app, factories, seeders, migrations, config, tests) [unknown-root]");
+        ->toThrow(InvalidLayout::class, "Layout [laravel] is invalid:\n - ->generates('job'): root [jobs] is not declared (declared: app, factories, seeders, migrations, config, tests) [unknown-root]");
 });

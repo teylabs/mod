@@ -12,7 +12,7 @@ const MOD_PUBLIC_API = [
     'ModServiceProvider.php',
     'Layout/Layout.php',
     'Layout/Root.php',
-    'Layout/Kind.php',
+    'Layout/FileType.php',
     'Layout/CompiledLayout.php',
     'Layout/CompiledRoot.php',
     'Generation/Stub.php',

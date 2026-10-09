@@ -5,7 +5,7 @@ use Tey\Mod\Artifact\FileIdentity;
 use Tey\Mod\Exceptions\DimensionNotApplicable;
 use Tey\Mod\Exceptions\InvalidName;
 use Tey\Mod\Exceptions\InvalidPlacementOption;
-use Tey\Mod\Exceptions\UnknownKind;
+use Tey\Mod\Exceptions\UnknownFileType;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\PlacementResolver;
 use Tey\Mod\Relation\RelationMode;
@@ -62,7 +62,7 @@ it('refuses a placement value because the layout has no dimensions (no fake empt
 
 it('rejects an unknown kind', function () {
     expect(fn () => place(Layouts::ordinary(), 'repository', 'Invoice'))
-        ->toThrow(UnknownKind::class, '[repository]');
+        ->toThrow(UnknownFileType::class, '[repository]');
 });
 
 it('rejects nested names without a --in hint when there are no dimensions', function () {

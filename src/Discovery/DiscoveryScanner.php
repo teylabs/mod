@@ -342,6 +342,6 @@ final readonly class DiscoveryScanner
 
     private function absolute(string $relative): string
     {
-        return Path::join($this->basePath, $relative);
+        return Path::resolve($this->basePath, $relative);
     }
 }

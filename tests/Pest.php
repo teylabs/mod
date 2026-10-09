@@ -56,7 +56,7 @@ function isolatedDomainNamespace(?string $namespace = null): string
 {
     $namespace ??= 'Domain'.bin2hex(random_bytes(4));
 
-    Mod::layout('ddd')->root('domain', $namespace.'\\', 'src/Domain');
+    Mod::layout('ddd')->mounts('domain', $namespace.'\\', 'src/Domain');
 
     return $namespace;
 }

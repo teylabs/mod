@@ -2,6 +2,8 @@
 
 namespace Tey\Mod\Support;
 
+use Symfony\Component\Filesystem\Filesystem;
+
 /**
  * Separator-neutral filesystem paths. Normalization is lexical: it does not
  * resolve symlinks or parent-directory segments.
@@ -43,6 +45,14 @@ final class Path
         }
 
         return self::normalize($path);
+    }
+
+    /** Resolve a project path while preserving an absolute target. */
+    public static function resolve(string $base, string $path): string
+    {
+        return (new Filesystem)->isAbsolutePath($path)
+            ? self::normalize($path)
+            : self::join($base, $path);
     }
 
     public static function same(string $a, string $b): bool

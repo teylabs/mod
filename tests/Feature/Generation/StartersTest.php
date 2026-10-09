@@ -60,10 +60,10 @@ it('gives every built-in layout the starters, adding kinds where the layout has 
             $after = $layout === 'type-first' ? '/{feature?}' : '';
 
             Mod::layout($layout)
-                ->kind('dto', in: "{$placeholder}Data{$after}")
-                ->kind('view-model', in: "{$placeholder}ViewModels{$after}")
-                ->kind('value-object', in: "{$placeholder}ValueObjects{$after}", command: 'mod:value')
-                ->kind('action', in: "{$placeholder}Actions{$after}");
+                ->generates('dto', in: "{$placeholder}Data{$after}")
+                ->generates('view-model', in: "{$placeholder}ViewModels{$after}")
+                ->generates('value-object', in: "{$placeholder}ValueObjects{$after}", command: 'mod:value')
+                ->generates('action', in: "{$placeholder}Actions{$after}");
         }
 
         $placement = $layout === 'laravel' ? [] : ['--in' => 'Billing'];
@@ -100,8 +100,8 @@ it('gives every built-in layout the starters, adding kinds where the layout has 
 
 it('keeps the bases out of the modules of a custom layout rooted in app/Modules', function () {
     Workspace::run(null, function (Workspace $workspace) {
-        Mod::layout('custom')->root('modules', 'App\\Modules\\', 'app/Modules', fn (Root $root) => $root
-            ->kind('dto', in: '{module}/Data'));
+        Mod::layout('custom')->mounts('modules', 'App\\Modules\\', 'app/Modules', fn (Root $root) => $root
+            ->generates('dto', in: '{module}/Data'));
         config()->set('mod.layout', 'custom');
         [$bases, $basesNamespace] = isolatedBasesPath();
         starterPackages();
@@ -137,7 +137,7 @@ it('never takes a bases folder for a feature in slices', function () {
     Workspace::run(null, function () {
         config()->set('mod.layout', 'slices');
         config()->set('mod.bases_path', 'app/UI');
-        Mod::layout('slices')->kind('view-model', in: '{feature}/ViewModels');
+        Mod::layout('slices')->generates('view-model', in: '{feature}/ViewModels');
 
         $mapper = new ReverseMapper(app(CompiledLayout::class));
 
@@ -149,7 +149,7 @@ it('never takes a bases folder for a feature in slices', function () {
 it('leaves the rest of the bases folder to the layout', function () {
     Workspace::run(null, function () {
         config()->set('mod.layout', 'type-first');
-        Mod::layout('type-first')->kind('dto', in: 'Data/{feature?}');
+        Mod::layout('type-first')->generates('dto', in: 'Data/{feature?}');
 
         $mapper = new ReverseMapper(app(CompiledLayout::class));
 
@@ -208,7 +208,7 @@ it('lets a layout stub, a package stub and a published stub replace a starter', 
         starterPackages();
         $workspace->write('stubs/layout.stub', "<?php\n\nnamespace {{ namespace }};\n\nclass {{ class }}\n{\n    // the layout's\n}\n");
         $workspace->write('stubs/package.stub', "<?php\n\nnamespace {{ namespace }};\n\nclass {{ class }}\n{\n    // a package's\n}\n");
-        Mod::layout('modules')->kind('view-model', stub: Stub::file($workspace->root->path('stubs/layout.stub')));
+        Mod::layout('modules')->generates('view-model', stub: Stub::file($workspace->root->path('stubs/layout.stub')));
 
         $workspace->artisan('mod:view-model', ['name' => 'Billing:ShowInvoice'])->assertSuccessful();
         expect($workspace->read('app/Modules/Billing/ViewModels/ShowInvoice.php'))->toContain("// the layout's")
@@ -229,7 +229,7 @@ it('gives a kind of another id a starter through stub:', function () {
         config()->set('mod.layout', 'modules');
         [, $basesNamespace] = isolatedBasesPath();
         starterPackages();
-        Mod::layout('modules')->kind('payload', in: 'Modules/{module}/Payloads', stub: Starters::dto());
+        Mod::layout('modules')->generates('payload', in: 'Modules/{module}/Payloads', stub: Starters::dto());
 
         $result = $workspace->artisan('mod:payload', ['name' => 'Billing:InvoicePayload']);
 

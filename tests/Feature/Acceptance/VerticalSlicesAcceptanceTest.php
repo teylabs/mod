@@ -19,9 +19,9 @@ use Tey\Mod\Tests\Feature\Acceptance\Support\LayoutUnderTest;
 function verticalSlicesLayout(): LayoutUnderTest
 {
     return new LayoutUnderTest('slices', fn () => Mod::layout('slices')
-        ->kind('provider', in: '{feature}/Providers', suffix: 'ServiceProvider')
-        ->kind('event', in: '{feature}/Events')
-        ->kind('listener', in: '{feature}/Listeners'));
+        ->generates('provider', in: '{feature}/Providers', suffix: 'ServiceProvider')
+        ->generates('event', in: '{feature}/Events')
+        ->generates('listener', in: '{feature}/Listeners'));
 }
 
 it('runs the whole loop on vertical slices', function () {
@@ -167,7 +167,7 @@ it('refuses, rejects and reports on vertical slices', function () {
             ->and($inventory->rejection("app/Billing/{$slice}/Command.php"))->toBeNull();
 
         // Even a host that maps the message kind to Artisan commands gets no command: eligibility is semantic.
-        $app->boot(['kinds' => ['message' => 'command']]);
+        $app->boot(['file_types' => ['message' => 'command']]);
         $mapped = $app->discovery()->inventory();
 
         expect($mapped->classes(DiscoveryType::Command))->toBe([])

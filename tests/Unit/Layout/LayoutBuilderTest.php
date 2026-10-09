@@ -4,7 +4,7 @@ use Tey\Mod\Artifact\IdentityShape;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Layout\CompiledLayout;
-use Tey\Mod\Layout\Kind;
+use Tey\Mod\Layout\FileType;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Layout\Root;
@@ -18,19 +18,19 @@ use Tey\Mod\Relation\RelationMode;
 function dddLayout(LayoutRegistry $registry): Layout
 {
     return $registry->layout('domains')
-        ->root('domain', 'Domain\\', 'src/Domain', fn (Root $r) => $r
-            ->kind('model', in: '{domain}/Models')
-            ->kind('action', in: '{domain}/Actions'))
-        ->root('app', 'App\\', 'app', fn (Root $r) => $r
-            ->kind('controller', in: 'Modules/{domain}/Controllers', suffix: 'Controller'))
-        ->kind('factory', in: 'domain:{domain}/Database/Factories', suffix: 'Factory')
-        ->relation('factory', from: 'model', to: 'factory')
-        ->exclude('App\\Support\\');
+        ->mounts('domain', 'Domain\\', 'src/Domain', fn (Root $r) => $r
+            ->generates('model', in: '{domain}/Models')
+            ->generates('action', in: '{domain}/Actions'))
+        ->mounts('app', 'App\\', 'app', fn (Root $r) => $r
+            ->generates('controller', in: 'Modules/{domain}/Controllers', suffix: 'Controller'))
+        ->generates('factory', in: 'domain:{domain}/Database/Factories', suffix: 'Factory')
+        ->relates('model', to: 'factory', as: 'factory')
+        ->excludes('App\\Support\\');
 }
 
 function invalidLayout(Closure $define): InvalidLayout
 {
-    $layout = new Layout('broken');
+    $layout = (new Layout('broken'))->path('app');
     $define($layout);
 
     try {
@@ -43,14 +43,14 @@ function invalidLayout(Closure $define): InvalidLayout
 }
 
 it('returns the layout builder from every chain method', function () {
-    $layout = new Layout('chain');
+    $layout = (new Layout('chain'))->path('app');
 
-    expect($layout->root('app', 'App\\', 'app'))->toBe($layout)
-        ->and($layout->root('lib', 'Lib\\', 'lib', fn (Root $r) => $r->kind('thing', in: 'Things')))->toBe($layout)
-        ->and($layout->kind('model', in: 'Models'))->toBe($layout)
-        ->and($layout->kind('job', in: 'Jobs', using: fn (Kind $k) => $k->priority(2)))->toBe($layout)
-        ->and($layout->relation('jobs', from: 'model', to: 'job'))->toBe($layout)
-        ->and($layout->exclude('App\\Support\\'))->toBe($layout)
+    expect($layout->mounts('app', 'App\\', 'app'))->toBe($layout)
+        ->and($layout->mounts('lib', 'Lib\\', 'lib', fn (Root $r) => $r->generates('thing', in: 'Things')))->toBe($layout)
+        ->and($layout->generates('model', in: 'Models'))->toBe($layout)
+        ->and($layout->generates('job', in: 'Jobs', using: fn (FileType $k) => $k->priority(2)))->toBe($layout)
+        ->and($layout->relates('model', to: 'job', as: 'jobs'))->toBe($layout)
+        ->and($layout->excludes('App\\Support\\'))->toBe($layout)
         ->and($layout->withoutCommands())->toBe($layout);
 });
 
@@ -70,12 +70,12 @@ it('compiles a DDD-like layout from one chain with nested closures', function ()
 });
 
 it('places top-level kinds in the first declared root unless in: names one', function () {
-    $preset = (new Layout('roots'))
-        ->root('app', 'App\\', 'app')
-        ->root('lib', 'Lib\\', 'lib')
-        ->kind('model', in: 'Models')
-        ->kind('helper', in: 'lib:Helpers')
-        ->kind('base', in: 'lib:')
+    $preset = ((new Layout('roots'))->path('app'))
+        ->mounts('app', 'App\\', 'app')
+        ->mounts('lib', 'Lib\\', 'lib')
+        ->generates('model', in: 'Models')
+        ->generates('helper', in: 'lib:Helpers')
+        ->generates('base', in: 'lib:')
         ->compile();
 
     expect(place($preset, 'model', 'Invoice')->fqcn())->toBe('App\\Models\\Invoice')
@@ -84,11 +84,11 @@ it('places top-level kinds in the first declared root unless in: names one', fun
 });
 
 it('infers dimensions from placeholders in order of first appearance', function () {
-    $preset = (new Layout('order'))
-        ->root('app', 'App\\', 'app')
-        ->kind('model', in: '{team}/Models')
-        ->kind('handler', in: '{team}/{useCase}/{version?}', fixed: 'Handler')
-        ->kind('report', in: 'Reports/{version?}/{team}')
+    $preset = ((new Layout('order'))->path('app'))
+        ->mounts('app', 'App\\', 'app')
+        ->generates('model', in: '{team}/Models')
+        ->generates('handler', in: '{team}/{useCase}/{version?}', fixed: 'Handler')
+        ->generates('report', in: 'Reports/{version?}/{team}')
         ->compile();
 
     expect($preset->dimensionNames())->toBe(['team', 'useCase', 'version'])
@@ -96,20 +96,20 @@ it('infers dimensions from placeholders in order of first appearance', function 
 });
 
 it('derives the shape, name policy and command of a kind', function () {
-    $preset = (new Layout('shapes'))
-        ->root('app', 'App\\', 'app')
-        ->root('migrations', null, 'database/migrations')
-        ->kind('model', in: 'Models')
-        ->kind('controller', in: 'Controllers', suffix: 'Controller', command: 'mod:ctrl')
-        ->kind('migration', in: 'migrations:', timestamped: true)
-        ->kind('routes', in: 'routes', using: fn (Kind $k) => $k->file())
-        ->kind('internal', in: 'Internal', command: false)
+    $preset = ((new Layout('shapes'))->path('app'))
+        ->mounts('app', 'App\\', 'app')
+        ->mounts('migrations', null, 'database/migrations')
+        ->generates('model', in: 'Models')
+        ->generates('controller', in: 'Controllers', suffix: 'Controller', command: 'mod:ctrl')
+        ->generates('migration', in: 'migrations:', timestamped: true)
+        ->generates('routes', in: 'routes', using: fn (FileType $k) => $k->file())
+        ->generates('internal', in: 'Internal', command: false)
         ->compile();
 
     expect($preset->kind('model')->shape)->toBe(IdentityShape::PhpClass)
         ->and($preset->kind('model')->command)->toBe('mod:model')
         ->and($preset->kind('controller')->command)->toBe('mod:ctrl')
-        ->and($preset->kind('controller')->namePolicy->describe())->toBe((new Layout('x'))->root('a', 'A\\', 'a')->kind('c', in: '', suffix: 'Controller')->compile()->kind('c')->namePolicy->describe())
+        ->and($preset->kind('controller')->namePolicy->describe())->toBe(((new Layout('x'))->path('app'))->mounts('a', 'A\\', 'a')->generates('c', in: '', suffix: 'Controller')->compile()->kind('c')->namePolicy->describe())
         ->and($preset->kind('migration')->shape)->toBe(IdentityShape::File)
         ->and($preset->kind('routes')->shape)->toBe(IdentityShape::File)
         ->and($preset->kind('internal')->command)->toBeNull()
@@ -117,14 +117,14 @@ it('derives the shape, name policy and command of a kind', function () {
 });
 
 it('maps relation arguments onto the core relation', function () {
-    $preset = (new Layout('relations'))
-        ->root('app', 'App\\', 'app')
-        ->kind('handler', in: '{team}/{useCase}', fixed: 'Handler')
-        ->kind('request', in: '{team}/{useCase}', fixed: 'Request')
-        ->kind('model', in: '{team}/Models')
-        ->relation('request', from: 'handler', to: 'request')
-        ->relation('model', from: 'request', to: 'model', scope: ['team'], name: 'explicit', mode: RelationMode::Reference)
-        ->relation('store', from: 'handler', to: 'request', name: ['prefix' => 'Store'], mode: 'none')
+    $preset = ((new Layout('relations'))->path('app'))
+        ->mounts('app', 'App\\', 'app')
+        ->generates('handler', in: '{team}/{useCase}', fixed: 'Handler')
+        ->generates('request', in: '{team}/{useCase}', fixed: 'Request')
+        ->generates('model', in: '{team}/Models')
+        ->relates('handler', to: 'request', as: 'request')
+        ->relates('request', to: 'model', as: 'model', scope: ['team'], name: 'explicit', mode: RelationMode::Reference)
+        ->relates('handler', to: 'request', as: 'store', name: ['prefix' => 'Store'], mode: 'none')
         ->compile();
 
     expect($preset->relation('request')->mode)->toBe(RelationMode::Generate)
@@ -134,11 +134,11 @@ it('maps relation arguments onto the core relation', function () {
 });
 
 it('resolves exclusions given as namespaces or paths against the declared roots', function () {
-    $preset = (new Layout('excluded'))
-        ->root('app', 'App\\', 'app')
-        ->root('lib', 'Lib\\Core\\', 'lib/core')
-        ->kind('model', in: 'Models')
-        ->exclude('App\\Support\\', 'app/UI', 'Lib\\Core\\Internal', 'storage/tmp')
+    $preset = ((new Layout('excluded'))->path('app'))
+        ->mounts('app', 'App\\', 'app')
+        ->mounts('lib', 'Lib\\Core\\', 'lib/core')
+        ->generates('model', in: 'Models')
+        ->excludes('App\\Support\\', 'app/UI', 'Lib\\Core\\Internal', 'storage/tmp')
         ->compile();
 
     expect(array_map(fn ($root) => [$root->namespace, $root->path], $preset->excludedRoots()))->toBe([
@@ -150,7 +150,7 @@ it('resolves exclusions given as namespaces or paths against the declared roots'
 });
 
 it('disables mod:* commands for a host layout', function () {
-    expect((new Layout('host'))->root('app', 'App\\', 'app')->kind('model', in: 'Models')->withoutCommands()->compile()->commandsEnabled())->toBeFalse();
+    expect(((new Layout('host'))->path('app'))->mounts('app', 'App\\', 'app')->generates('model', in: 'Models')->withoutCommands()->compile()->commandsEnabled())->toBeFalse();
 });
 
 it('extends a layout: repeated ids override the given arguments and keep the rest', function () {
@@ -158,12 +158,12 @@ it('extends a layout: repeated ids override the given arguments and keep the res
     dddLayout($registry);
 
     $returned = $registry->layout('domains')
-        ->kind('model', suffix: 'Model')
-        ->kind('controller', in: 'Http/{domain}/Controllers')
-        ->kind('query', in: '{domain}/Queries')
-        ->root('app', 'App\\', 'application')
-        ->relation('factory', mode: 'reference')
-        ->exclude('App\\Support\\', 'App\\UI\\');
+        ->generates('model', suffix: 'Model')
+        ->generates('controller', in: 'Http/{domain}/Controllers')
+        ->generates('query', in: '{domain}/Queries')
+        ->mounts('app', 'App\\', 'application')
+        ->relates('model', to: 'factory', as: 'factory', mode: 'reference')
+        ->excludes('App\\Support\\', 'App\\UI\\');
 
     $preset = $registry->compile('domains');
 
@@ -196,19 +196,19 @@ it('refuses changes to a layout already compiled for use', function () {
     $registry = new LayoutRegistry;
     $registry->compile('laravel');
 
-    expect(fn () => $registry->layout('laravel')->kind('job', in: 'Jobs'))
+    expect(fn () => $registry->layout('laravel')->generates('job', in: 'Jobs'))
         ->toThrow(ModException::class, 'Layout [laravel] is already in use');
 });
 
 it('names the layout and the offending call in validation errors', function () {
     $exception = invalidLayout(fn (Layout $layout) => $layout
-        ->root('domain', 'Domain\\', 'src/Domain', fn (Root $r) => $r->kind('model', in: '{domain}/Models'))
-        ->kind('factory', in: 'domian:{domain}/Factories', suffix: 'Factory')
-        ->relation('factory', from: 'model', to: 'factory'));
+        ->mounts('domain', 'Domain\\', 'src/Domain', fn (Root $r) => $r->generates('model', in: '{domain}/Models'))
+        ->generates('factory', in: 'domian:{domain}/Factories', suffix: 'Factory')
+        ->relates('model', to: 'factory', as: 'factory'));
 
     expect($exception->getMessage())->toBe(implode("\n", [
         'Layout [broken] is invalid:',
-        " - ->kind('factory'): root [domian] is not declared (declared: domain) [unknown-root]",
+        " - ->generates('factory'): root [domian] is not declared (declared: domain) [unknown-root]",
     ]))->and($exception->codes())->toBe(['unknown-root']);
 });
 
@@ -219,71 +219,71 @@ it('reports every problem of the chain at once', function (Closure $define, stri
         ->and($exception->codes())->toContain($code);
 })->with([
     'kind without in:' => [
-        fn (Layout $l) => $l->root('app', 'App\\', 'app')->kind('model'),
-        "->kind('model'): needs in:", 'invalid-kind',
+        fn (Layout $l) => $l->mounts('app', 'App\\', 'app')->generates('model'),
+        "->generates('model'): needs in:", 'invalid-kind',
     ],
     'no root' => [
-        fn (Layout $l) => $l->kind('model', in: 'Models'),
-        "->kind('model'): no root is declared", 'unknown-root',
+        fn (Layout $l) => $l->generates('model', in: 'Models'),
+        "->generates('model'): no root is declared", 'unknown-root',
     ],
     'partial placeholder' => [
-        fn (Layout $l) => $l->root('app', 'App\\', 'app')->kind('model', in: 'Team{team}/Models'),
-        "->kind('model'): placeholder [Team{team}] must be a whole folder", 'invalid-kind',
+        fn (Layout $l) => $l->mounts('app', 'App\\', 'app')->generates('model', in: 'Team{team}/Models'),
+        "->generates('model'): placeholder [Team{team}] must be a whole folder", 'invalid-kind',
     ],
     'placeholder typo' => [
-        fn (Layout $l) => $l->root('app', 'App\\', 'app')
-            ->kind('model', in: '{domain}/Models')
-            ->kind('action', in: '{domain}/Actions')
-            ->kind('query', in: '{domian}/Queries'),
-        "->kind('query'): placeholder {domian} is used by no other file type; did you mean {domain}?", 'unknown-dimension',
+        fn (Layout $l) => $l->mounts('app', 'App\\', 'app')
+            ->generates('model', in: '{domain}/Models')
+            ->generates('action', in: '{domain}/Actions')
+            ->generates('query', in: '{domian}/Queries'),
+        "->generates('query'): placeholder {domian} is used by no other file type; did you mean {domain}?", 'unknown-dimension',
     ],
     'duplicate command' => [
-        fn (Layout $l) => $l->root('app', 'App\\', 'app')->kind('model', in: 'Models')->kind('entity', in: 'Entities', command: 'mod:model'),
-        "->kind('entity'): command [mod:model] is already used by file type [model]", 'duplicate-command-name',
+        fn (Layout $l) => $l->mounts('app', 'App\\', 'app')->generates('model', in: 'Models')->generates('entity', in: 'Entities', command: 'mod:model'),
+        "->generates('entity'): command [mod:model] is already used by file type [model]", 'duplicate-command-name',
     ],
     'unknown relation target' => [
-        fn (Layout $l) => $l->root('app', 'App\\', 'app')->kind('model', in: 'Models')->relation('factory', from: 'model', to: 'factory'),
-        "->relation('factory'): to file type [factory] is not declared", 'unknown-relation-target',
+        fn (Layout $l) => $l->mounts('app', 'App\\', 'app')->generates('model', in: 'Models')->relates('model', to: 'factory', as: 'factory'),
+        "->relates('factory'): to file type [factory] is not declared", 'unknown-relation-target',
     ],
     'scope keeps an unknown placeholder' => [
-        fn (Layout $l) => $l->root('app', 'App\\', 'app')->kind('model', in: '{team}/Models')->kind('policy', in: '{team}/Policies')->relation('policy', from: 'model', to: 'policy', scope: ['taem']),
-        "->relation('policy'): scope keeps dimension [taem] which is not declared", 'unknown-dimension',
+        fn (Layout $l) => $l->mounts('app', 'App\\', 'app')->generates('model', in: '{team}/Models')->generates('policy', in: '{team}/Policies')->relates('model', to: 'policy', as: 'policy', scope: ['taem']),
+        "->relates('policy'): scope keeps dimension [taem] which is not declared", 'unknown-dimension',
     ],
     'exclusion outside every root' => [
-        fn (Layout $l) => $l->root('app', 'App\\', 'app')->kind('model', in: 'Models')->exclude('Vendor\\Thing\\'),
-        "->exclude('Vendor\\Thing\\'): lies inside no declared root", 'unknown-root',
+        fn (Layout $l) => $l->mounts('app', 'App\\', 'app')->generates('model', in: 'Models')->excludes('Vendor\\Thing\\'),
+        "->excludes('Vendor\\Thing\\'): lies inside no declared root", 'unknown-root',
     ],
     'invalid root namespace' => [
-        fn (Layout $l) => $l->root('app', 'App', 'app')->kind('model', in: 'Models'),
-        "->root('app'): namespace must be a PSR-4 prefix", 'invalid-root',
+        fn (Layout $l) => $l->mounts('app', 'App', 'app')->generates('model', in: 'Models'),
+        "->mounts('app'): namespace must be a PSR-4 prefix", 'invalid-root',
     ],
     'non-camelCase placeholder' => [
-        fn (Layout $l) => $l->root('app', 'App\\', 'app')->kind('model', in: '{Team}/Models')->kind('policy', in: '{Team}/Policies'),
+        fn (Layout $l) => $l->mounts('app', 'App\\', 'app')->generates('model', in: '{Team}/Models')->generates('policy', in: '{Team}/Policies'),
         'placeholder {Team}: must be a camelCase identifier', 'invalid-dimension',
     ],
 ]);
 
 it('reports a relation to a broken kind once, on the kind', function () {
-    $exception = invalidLayout(fn (Layout $l) => $l->root('app', 'App\\', 'app')
-        ->kind('model', in: 'Models')
-        ->kind('factory', in: 'nowhere:Factories')
-        ->relation('factory', from: 'model', to: 'factory'));
+    $exception = invalidLayout(fn (Layout $l) => $l->mounts('app', 'App\\', 'app')
+        ->generates('model', in: 'Models')
+        ->generates('factory', in: 'nowhere:Factories')
+        ->relates('model', to: 'factory', as: 'factory'));
 
     expect($exception->issues)->toHaveCount(1)
-        ->and($exception->issues[0]->subject)->toBe("->kind('factory')");
+        ->and($exception->issues[0]->subject)->toBe("->generates('factory')");
 });
 
 it('compiles a fresh preset each time', function () {
-    $layout = (new Layout('fresh'))->root('app', 'App\\', 'app')->kind('model', in: 'Models');
+    $layout = ((new Layout('fresh'))->path('app'))->mounts('app', 'App\\', 'app')->generates('model', in: 'Models');
 
     expect($layout->compile())->toBeInstanceOf(CompiledLayout::class)
         ->and($layout->compile())->not->toBe($layout->compile());
 });
 
 it('takes discover: anywhere or folder, with discoverExcept only for anywhere', function () {
-    $preset = (new Layout('anywhere'))->root('app', 'App\\', 'app')
-        ->kind('provider', in: 'Providers', discover: 'anywhere', discoverExcept: ['Tests'])
-        ->kind('listener', in: 'Listeners', discover: 'folder')
+    $preset = ((new Layout('anywhere'))->path('app'))->mounts('app', 'App\\', 'app')
+        ->generates('provider', in: 'Providers', discover: 'anywhere', discoverExcept: ['Tests'])
+        ->generates('listener', in: 'Listeners', discover: 'folder')
         ->compile();
     $provider = $preset->rule('provider');
     $listener = $preset->rule('listener');
@@ -292,15 +292,15 @@ it('takes discover: anywhere or folder, with discoverExcept only for anywhere', 
     expect($provider->anywhere())->toBeTrue()
         ->and($provider->except())->toBe(['Tests'])
         ->and($listener->anywhere())->toBeFalse()
-        ->and(fn () => (new Layout('no'))->root('app', 'App\\', 'app')->kind('provider', in: 'Providers', discover: 'everywhere'))
+        ->and(fn () => ((new Layout('no'))->path('app'))->mounts('app', 'App\\', 'app')->generates('provider', in: 'Providers', discover: 'everywhere'))
         ->toThrow(ModException::class, "File type [provider]: discover must be 'folder' or 'anywhere'.")
-        ->and(fn () => (new Layout('no'))->root('app', 'App\\', 'app')->kind('provider', in: 'Providers', discoverExcept: ['Tests']))
+        ->and(fn () => ((new Layout('no'))->path('app'))->mounts('app', 'App\\', 'app')->generates('provider', in: 'Providers', discoverExcept: ['Tests']))
         ->toThrow(ModException::class, "File type [provider]: discoverExcept needs discover: 'anywhere'.");
 
     // Back to its own folder.
-    $back = (new Layout('back'))->root('app', 'App\\', 'app')
-        ->kind('provider', in: 'Providers', discover: 'anywhere', discoverExcept: ['Tests'])
-        ->kind('provider', discover: 'folder')
+    $back = ((new Layout('back'))->path('app'))->mounts('app', 'App\\', 'app')
+        ->generates('provider', in: 'Providers', discover: 'anywhere', discoverExcept: ['Tests'])
+        ->generates('provider', discover: 'folder')
         ->compile()
         ->rule('provider');
     assert($back instanceof TemplateRule);
@@ -309,29 +309,29 @@ it('takes discover: anywhere or folder, with discoverExcept only for anywhere', 
 });
 
 it('lets kinds share a command name when the layout registers no commands', function () {
-    $shared = (new Layout('host'))->root('app', 'App\\', 'app')
-        ->kind('model', in: 'Models', command: 'host:model')
-        ->kind('legacy-model', in: 'Legacy/Models', command: 'host:model')
+    $shared = ((new Layout('host'))->path('app'))->mounts('app', 'App\\', 'app')
+        ->generates('model', in: 'Models', command: 'host:model')
+        ->generates('legacy-model', in: 'Legacy/Models', command: 'host:model')
         ->withoutCommands()
         ->compile();
 
     expect($shared->kind('model')->command)->toBe('host:model')
         ->and($shared->kind('legacy-model')->command)->toBe('host:model')
-        ->and(fn () => (new Layout('mod'))->root('app', 'App\\', 'app')
-            ->kind('model', in: 'Models', command: 'host:model')
-            ->kind('legacy-model', in: 'Legacy/Models', command: 'host:model')
+        ->and(fn () => ((new Layout('mod'))->path('app'))->mounts('app', 'App\\', 'app')
+            ->generates('model', in: 'Models', command: 'host:model')
+            ->generates('legacy-model', in: 'Legacy/Models', command: 'host:model')
             ->compile())
         ->toThrow(InvalidLayout::class, 'already used by file type [model]');
 });
 
 it('validates dimensions populated from a relation source name', function () {
     $layout = (new LayoutRegistry)->layout('operations')
-        ->root('app', 'App\\', 'app')
-        ->kind('controller', in: '{area}/Controllers')
-        ->kind('request', in: '{area}/{operation}', fixed: 'Request')
-        ->relation('request', from: 'controller', to: 'request', scope: ['name' => 'operation']);
+        ->mounts('app', 'App\\', 'app')
+        ->generates('controller', in: '{area}/Controllers')
+        ->generates('request', in: '{area}/{operation}', fixed: 'Request')
+        ->relates('controller', to: 'request', as: 'request', scope: ['name' => 'operation']);
     $preset = $layout->compile();
     expect($preset->relation('request')->scope->nameDimension)->toBe('operation');
-    $layout->relation('request', scope: ['name' => 'unknown']);
+    $layout->relates('controller', to: 'request', as: 'request', scope: ['name' => 'unknown']);
     expect(fn () => $layout->compile())->toThrow(InvalidLayout::class, 'scope name must identify a declared dimension');
 });

@@ -176,12 +176,6 @@ final class PresetValidator
             return null;
         }
 
-        if (str_starts_with($path, '/') || preg_match('/^[A-Za-z]:/', $path) === 1) {
-            $this->issue(PresetIssueCode::InvalidRoot, $subject, "path [{$path}] must be relative to the application");
-
-            return null;
-        }
-
         if (in_array('..', explode('/', CompiledRoot::normalisePath($path)), true)) {
             $this->issue(PresetIssueCode::InvalidRoot, $subject, "path [{$path}] must not leave the application");
 
@@ -620,7 +614,7 @@ final class PresetValidator
      * The placement options of a kind that would shadow an option the
      * generating command already defines (its native options and their
      * shortcuts, and mod's own --in). The command registers without them;
-     * the layout should rename them with ->placementOption().
+     * the layout should rename them with ->path().
      *
      * @param  list<string>  $taken  option names and shortcuts the command defines
      * @return array<string, PresetIssue> dimension name → issue
@@ -641,7 +635,7 @@ final class PresetValidator
             $issues[$dimension] = new PresetIssue(
                 PresetIssueCode::PlacementOptionCollision,
                 $command,
-                "placeholder {{$dimension}} would add --{$option}, which {$command} already defines. It is left out; use --in or the \"Group:Name\" prefix, or rename it with ->placementOption('...', '{{$dimension}}').",
+                "placeholder {{$dimension}} would add --{$option}, which {$command} already defines. It is left out; use --in or the \"Group:Name\" prefix, or rename it with ->path('app/{group}').",
             );
         }
 

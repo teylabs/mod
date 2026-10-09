@@ -115,6 +115,6 @@ it('refuses a second registration with a different preset on the same applicatio
     $this->app->setBasePath($fx->path());
     DiscoveryRegistrar::register($this->app, $preset);
 
-    expect(fn () => DiscoveryRegistrar::register($this->app, $preset, DiscoveryOptions::fromConfig(['kinds' => ['listener' => false]])))
+    expect(fn () => DiscoveryRegistrar::register($this->app, $preset, DiscoveryOptions::fromConfig(['file_types' => ['listener' => false]])))
         ->toThrow(ModException::class, 'already registered');
 }));

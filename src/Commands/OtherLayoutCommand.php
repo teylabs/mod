@@ -35,7 +35,7 @@ final class OtherLayoutCommand extends Command
         $names = $layouts === [] ? "The {$last} layout has it." : 'The '.implode(', ', $layouts)." and {$last} layouts have it.";
 
         $this->components->error("{$this->getName()} is not a command of the {$this->layout} layout. {$names}");
-        $this->line("  To add it, declare the file type in a service provider: Mod::layout('{$this->layout}')->kind('{$this->kindId}', in: '<folder>'). Or switch layouts in config/mod.php.");
+        $this->line("  To add it, declare the file type in a service provider: Mod::layout('{$this->layout}')->generates('{$this->kindId}', in: '<folder>'). Or switch layouts in config/mod.php.");
 
         return self::FAILURE;
     }

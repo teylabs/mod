@@ -35,10 +35,10 @@ it('adds an infrastructure layer to the ddd layout', function () {
         config()->set('mod.layout', 'ddd');
 
         Mod::layout('ddd')
-            ->root('infrastructure', 'Infrastructure\\', 'src/Infrastructure', fn (Root $root) => $root
-                ->kind('repository', in: '{domain+}/Repositories', suffix: 'Repository')
-                ->kind('client', in: '{domain+}/Clients', suffix: 'Client'));
-        Mod::layout('ddd')->kind('job', in: 'infrastructure:{domain+}/Jobs');
+            ->mounts('infrastructure', 'Infrastructure\\', 'src/Infrastructure', fn (Root $root) => $root
+                ->generates('repository', in: '{domain+}/Repositories', suffix: 'Repository')
+                ->generates('client', in: '{domain+}/Clients', suffix: 'Client'));
+        Mod::layout('ddd')->generates('job', in: 'infrastructure:{domain+}/Jobs');
 
         expect($workspace->artisan('mod:repository', ['name' => 'Knowledge:Document']))
             ->toHaveGenerated('src/Infrastructure/Knowledge/Repositories/DocumentRepository.php', 'Infrastructure\\Knowledge\\Repositories')
@@ -62,7 +62,7 @@ it('adds a kind with an alias, its stub and a swapped generator from a plugin', 
         $workspace->write('package/stubs/builder.stub', "<?php\n\nnamespace {{ namespace }};\n\nuse Illuminate\\Database\\Eloquent\\Builder;\n\nclass {{ class }} extends Builder\n{\n    //\n}\n");
 
         Mod::layout('ddd')
-            ->kind('builder', in: '{domain+}/Builders', suffix: 'Builder', aliases: ['mod:query-builder'], label: 'Query builder');
+            ->generates('builder', in: '{domain+}/Builders', suffix: 'Builder', aliases: ['mod:query-builder'], label: 'Query builder');
         Mod::stubs()->for('builder', Stub::file($workspace->root->path('package/stubs/builder.stub')));
         Mod::generators()->use('builder', DocsBuilderCommand::class);
 
@@ -83,7 +83,7 @@ it('adds to the aliases of an existing kind', function () {
         isolatedDomainNamespace();
         withoutOptionalPackages();
 
-        Mod::layout('ddd')->kind('dto', aliases: ['mod:payload']);
+        Mod::layout('ddd')->generates('dto', aliases: ['mod:payload']);
 
         expect($workspace->artisan('mod:payload', ['name' => 'Knowledge:DocumentData']))->toHaveGenerated('src/Domain/Knowledge/Data/DocumentData.php')
             ->and($workspace->artisan('mod:data', ['name' => 'Knowledge:ChunkData']))->toHaveGenerated('src/Domain/Knowledge/Data/ChunkData.php');
@@ -100,7 +100,7 @@ it('reads a plugin base from its own config key before detection and the generat
         $dto = fn () => Stub::file($workspace->root->path('package/stubs/dto.stub'))
             ->base(config: 'ddd.base_dto')
             ->whenInstalled('spatie/laravel-data', base: 'Spatie\\LaravelData\\Data')
-            ->generatesBase(GeneratedBase::named('DataTransferObject', in: 'Shared/Data', stub: $workspace->root->path('package/stubs/bases/data-transfer-object.stub'))->inKindRoot());
+            ->generatesBase(GeneratedBase::named('DataTransferObject', in: 'Shared/Data', stub: $workspace->root->path('package/stubs/bases/data-transfer-object.stub'))->inFileTypeRoot());
 
         Mod::stubs()->for('dto', $dto());
         $generated = $workspace->artisan('mod:dto', ['name' => 'Knowledge:DocumentData']);

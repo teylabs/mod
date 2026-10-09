@@ -28,8 +28,9 @@ final class LayoutRegistry
             return $this->layouts[$name];
         }
 
-        $layout = new Layout($name);
+        $layout = new Layout($name, $this);
         $this->builtIn->define($name, $layout);
+        $layout->beginChain();
 
         return $this->layouts[$name] = $layout;
     }

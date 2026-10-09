@@ -3,7 +3,6 @@
 use Illuminate\Support\Composer;
 use Pest\TestSuite;
 use Tey\Mod\Facades\Mod;
-use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\TestCase;
@@ -20,7 +19,7 @@ it('autoloads E17 moved areas and then generates the model', function (bool $int
             }
             $workspace->write('composer.json', "{\n    \"name\": \"tey-mod/owned-app\",\n    \"autoload\": {\n        \"psr-4\": {\n            \"App\\\\\": \"app/\"\n        }\n    },\n    \"autoload-dev\": {\n        \"psr-4\": {\n            \"Tests\\\\\": \"tests/\"\n        }\n    }\n}\n");
             // This is the actual E17 declaration, enabled by the lead after merging lane 3.
-            Mod::layout('areas')->extends('modules')->path('src/Areas/{area}'); // @phpstan-ignore method.notFound (needs lane 3)
+            Mod::layout('areas')->extends('modules')->path('src/Areas/{area}');
             config()->set('mod.layout', 'areas');
             $composer = Mockery::mock(Composer::class);
             $composer->shouldReceive('setWorkingPath')->once()->with($workspace->root->path)->andReturnSelf();
@@ -39,18 +38,18 @@ it('autoloads E17 moved areas and then generates the model', function (bool $int
                 expect(str_replace("\r\n", "\n", $result->output))->toBe($notice."\n   INFO  composer.json is missing 1 autoload entry for the areas layout.  \n\n  \"Areas\\\\\": \"src/Areas/\" ...................................... added  \n  composer dump-autoload ........................................ DONE  \n\n");
             }
 
-            expect($workspace->read('composer.json'))->toBe("{\n    \"name\": \"tey-mod/owned-app\",\n    \"autoload\": {\n        \"psr-4\": {\n            \"App\\\\\": \"app/\",\n            \"Areas\\\\\": \"src/Areas/\"\n        }\n    },\n    \"autoload-dev\": {\n        \"psr-4\": {\n            \"Tests\\\\\": \"tests/\"\n        }\n    }\n}\n");
+            expect(str_replace("\r\n", "\n", $workspace->read('composer.json')))->toBe("{\n    \"name\": \"tey-mod/owned-app\",\n    \"autoload\": {\n        \"psr-4\": {\n            \"App\\\\\": \"app/\",\n            \"Areas\\\\\": \"src/Areas/\"\n        }\n    },\n    \"autoload-dev\": {\n        \"psr-4\": {\n            \"Tests\\\\\": \"tests/\"\n        }\n    }\n}\n");
 
             $workspace->artisan('mod:model', ['name' => 'Knowledge:Document'])->assertSuccessful()
                 ->expectsOutputToContain('Model [src/Areas/Knowledge/Models/Document.php] created successfully.');
             expect($workspace->files())->toBe(['src/Areas/Knowledge/Models/Document.php'])
-                ->and($workspace->read('src/Areas/Knowledge/Models/Document.php'))->toBe("<?php\n\nnamespace Areas\\Knowledge\\Models;\n\nuse Illuminate\\Database\\Eloquent\\Model;\n\nclass Document extends Model\n{\n    //\n}\n");
+                ->and(str_replace("\r\n", "\n", $workspace->read('src/Areas/Knowledge/Models/Document.php')))->toBe("<?php\n\nnamespace Areas\\Knowledge\\Models;\n\nuse Illuminate\\Database\\Eloquent\\Model;\n\nclass Document extends Model\n{\n    //\n}\n");
         });
     } finally {
         putenv($columns === false ? 'COLUMNS' : 'COLUMNS='.$columns);
     }
 })->with([[true, null], [false, null], [false, 'Areas\\']])
-    ->skip('needs lane 3 (->path/->extends)');
+    ->skip('needs the lead’s namespaceFor() autoload integration');
 
 it('E17 extends modules with the area token in options and notices', function () {
     putenv('COLUMNS=72');
@@ -61,9 +60,9 @@ it('E17 extends modules with the area token in options and notices', function ()
         $workspace->artisan('mod:model', ['name' => 'Document', '--area' => 'Knowledge'])->assertSuccessful();
         $result = $workspace->artisan('mod:model', ['name' => 'Billing:Invoice']);
         $result->assertSuccessful();
-        expect($result->output)->toBe("\n   INFO  Created new area Billing (existing: Knowledge).  \n\n   INFO  Model [app/Modules/Billing/Models/Invoice.php] created successfully.  \n\n")
+        expect(str_replace("\r\n", "\n", $result->output))->toBe("\n   INFO  Created new area Billing (existing: Knowledge).  \n\n   INFO  Model [app/Modules/Billing/Models/Invoice.php] created successfully.  \n\n")
             ->and($workspace->files())->toBe(['app/Modules/Billing/Models/Invoice.php', 'app/Modules/Knowledge/Models/Document.php'])
-            ->and($workspace->read('app/Modules/Knowledge/Models/Document.php'))->toContain('namespace App\\Modules\\Knowledge\\Models;');
+            ->and(str_replace("\r\n", "\n", $workspace->read('app/Modules/Knowledge/Models/Document.php')))->toContain('namespace App\\Modules\\Knowledge\\Models;');
     });
 });
 
@@ -74,8 +73,8 @@ it('E17 moves every modules file type to a project-relative or absolute path', f
         $original = $registry->layout('modules')->compile();
         $moved = $registry->layout('areas')->extends('modules')->path(($absolute ? $workspace->root->path.'/' : '').'src/Areas/{area}')->compile();
         foreach ($original->kinds() as $id => $kind) {
-            $before = place($original, $id, 'Example', 'Knowledge', ['timestamp' => MIGRATION_TIMESTAMP]);
-            $after = place($moved, $id, 'Example', 'Knowledge', ['timestamp' => MIGRATION_TIMESTAMP]);
+            $before = place($original, $id, ($id === 'migration' ? 'create_examples_table' : 'Example'), 'Knowledge', ['timestamp' => MIGRATION_TIMESTAMP]);
+            $after = place($moved, $id, ($id === 'migration' ? 'create_examples_table' : 'Example'), 'Knowledge', ['timestamp' => MIGRATION_TIMESTAMP]);
             // Tests keep their separate root; all application file types move together.
             $expected = str_replace('app/Modules/', 'src/Areas/', $before->path());
             expect($after->path())->toBe($expected, $id);
@@ -86,9 +85,30 @@ it('E17 moves every modules file type to a project-relative or absolute path', f
     });
 })->with([false, true]);
 
-it('E17 names the Composer entry needed for a moved group path', function () {
+it('E17 compiles an unautoloaded path and exposes its default namespace', function () {
     Workspace::run(null, function () {
-        expect(fn () => (new LayoutRegistry)->layout('areas')->extends('modules')->path('src/Areas/{area}')->compile())
-            ->toThrow(InvalidLayout::class, '"Areas\\\\": "src/Areas/"');
+        $layout = (new LayoutRegistry)->layout('areas')->extends('modules')->path('src/Areas/{area}')->compile();
+        expect($layout->namespaceFor('src/Areas'))->toBe('Areas\\')
+            ->and($layout->namespaceFor('src/Areas/Knowledge'))->toBe('Areas\\Knowledge\\')
+            ->and($layout->namespaceFor('app/Modules'))->toBe('App\\Modules\\');
     });
 });
+
+it('E17 warns about an unautoloaded path or mount and still generates', function (bool $mount) {
+    putenv('COLUMNS=72');
+    Workspace::run(null, function (Workspace $workspace) use ($mount) {
+        config()->set('mod.layout', 'areas');
+        $layout = Mod::layout('areas')->extends('modules');
+        if ($mount) {
+            $layout->mounts('areas', 'Areas\\', 'src/Areas')->generates('tool', in: 'areas:{area}/Tools');
+        } else {
+            $layout->path('src/Areas/{area}')->generates('tool', in: '@area/Tools');
+        }
+        $workspace->write('stubs/mod.tool.stub', "<?php\n\nnamespace {{ namespace }};\n\nclass {{ class }}\n{\n}\n");
+        mkdir($workspace->root->path('src/Areas/Knowledge'), 0700, true);
+        $result = $workspace->artisan('mod:tool', ['name' => 'Knowledge:Search']);
+        $result->assertSuccessful();
+        expect(str_replace("\r\n", "\n", $result->output))->toContain("src/Areas isn't autoloaded yet. Run php artisan mod:autoload.")
+            ->and(str_replace("\r\n", "\n", $workspace->read('src/Areas/Knowledge/Tools/Search.php')))->toBe("<?php\n\nnamespace Areas\\Knowledge\\Tools;\n\nclass Search\n{\n}\n");
+    });
+})->with([false, true]);

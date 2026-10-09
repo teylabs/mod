@@ -147,19 +147,19 @@ it('keeps the stub registered last for a kind and the provider that registered i
 });
 
 it('compiles kind aliases and refuses an alias that is already a command name', function () {
-    $preset = (new Layout('aliases'))
-        ->root('app', 'App\\', 'app', fn (Root $root) => $root
-            ->kind('record', in: 'Records', aliases: ['mod:records', 'mod:entry'])
-            ->kind('entry', in: 'Entries', command: false))
+    $preset = ((new Layout('aliases'))->path('app'))
+        ->mounts('app', 'App\\', 'app', fn (Root $root) => $root
+            ->generates('record', in: 'Records', aliases: ['mod:records', 'mod:entry'])
+            ->generates('entry', in: 'Entries', command: false))
         ->compile();
 
     expect($preset->kind('record')->aliases)->toBe(['mod:records', 'mod:entry'])
         ->and($preset->kind('record')->command)->toBe('mod:record');
 
-    $collision = (new Layout('collide'))
-        ->root('app', 'App\\', 'app', fn (Root $root) => $root
-            ->kind('record', in: 'Records', aliases: ['mod:entry'])
-            ->kind('entry', in: 'Entries'));
+    $collision = ((new Layout('collide'))->path('app'))
+        ->mounts('app', 'App\\', 'app', fn (Root $root) => $root
+            ->generates('record', in: 'Records', aliases: ['mod:entry'])
+            ->generates('entry', in: 'Entries'));
 
     expect(fn () => $collision->compile())->toThrow(InvalidLayout::class, 'command [mod:entry] is already used by file type [record]');
 
@@ -175,8 +175,8 @@ it('compiles kind aliases and refuses an alias that is already a command name', 
 
 it('keeps the stub a layout declares on the compiled preset', function () {
     $stub = Stub::file('/record.stub');
-    $preset = (new Layout('stubs'))
-        ->root('app', 'App\\', 'app', fn (Root $root) => $root->kind('record', in: 'Records', stub: $stub))
+    $preset = ((new Layout('stubs'))->path('app'))
+        ->mounts('app', 'App\\', 'app', fn (Root $root) => $root->generates('record', in: 'Records', stub: $stub))
         ->compile();
 
     expect($preset->stub('record'))->toBe($stub)
@@ -195,10 +195,10 @@ it('declares the ddd kinds with laravel-ddd command names and aliases', function
 });
 
 it('compiles a kind label and refuses an empty one', function () {
-    $preset = (new Layout('labels'))
-        ->root('app', 'App\\', 'app', fn (Root $root) => $root
-            ->kind('record', in: 'Records', label: 'Ledger record')
-            ->kind('entry', in: 'Entries'))
+    $preset = ((new Layout('labels'))->path('app'))
+        ->mounts('app', 'App\\', 'app', fn (Root $root) => $root
+            ->generates('record', in: 'Records', label: 'Ledger record')
+            ->generates('entry', in: 'Entries'))
         ->compile();
 
     expect($preset->kind('record')->label)->toBe('Ledger record')
@@ -227,7 +227,7 @@ it('maps each starter to the kind ids it applies to, and no other', function () 
 
     expect($registry->starterFor('dto')?->generatedBase()?->name)->toBe('DataTransferObject')
         ->and($registry->starterFor('dto')?->generatedBase()?->in)->toBe('Data')
-        ->and($registry->starterFor('dto')?->generatedBase()?->inKindRoot)->toBeFalse()
+        ->and($registry->starterFor('dto')?->generatedBase()?->inFileTypeRoot)->toBeFalse()
         ->and($registry->starterFor('view-model')?->generatedBase()?->in)->toBe('ViewModels')
         ->and($registry->starterFor('value-object')?->generatedBase())->toBeNull()
         ->and($registry->starterFor('action')?->generatedBase())->toBeNull();
@@ -252,10 +252,10 @@ it('keeps the ddd bases in the domain root, where laravel-ddd puts them', functi
     $dto = $preset->stub('dto')?->generatedBase();
     $viewModel = $preset->stub('view-model')?->generatedBase();
 
-    expect([$dto?->in, $dto?->inKindRoot])->toBe(['Shared/Data', true])
-        ->and([$viewModel?->in, $viewModel?->inKindRoot])->toBe(['Shared/ViewModels', true])
+    expect([$dto?->in, $dto?->inFileTypeRoot])->toBe(['Shared/Data', true])
+        ->and([$viewModel?->in, $viewModel?->inFileTypeRoot])->toBe(['Shared/ViewModels', true])
         ->and($preset->stub('value-object'))->toBeNull()
-        ->and(GeneratedBase::named('Record', in: 'Records', stub: 'x')->inKindRoot()->inKindRoot)->toBeTrue();
+        ->and(GeneratedBase::named('Record', in: 'Records', stub: 'x')->inFileTypeRoot()->inFileTypeRoot)->toBeTrue();
 });
 
 it('declares dto, view-model and value-object in the modules layout', function () {
@@ -281,12 +281,12 @@ it('fills stub placeholders with LF line endings on every OS', function () {
 });
 
 it('gives every hyphenated command and alias a dash-free alias, unless the name is taken', function () {
-    $preset = (new Layout('dashes'))
-        ->root('app', 'App\\', 'app', fn (Root $root) => $root
-            ->kind('api-resource', in: 'Resources')
-            ->kind('job-middleware', in: 'Jobs/Middleware')
-            ->kind('report-builder', in: 'Reports', aliases: ['mod:report-maker'])
-            ->kind('jobmiddleware', in: 'Other'))
+    $preset = ((new Layout('dashes'))->path('app'))
+        ->mounts('app', 'App\\', 'app', fn (Root $root) => $root
+            ->generates('api-resource', in: 'Resources')
+            ->generates('job-middleware', in: 'Jobs/Middleware')
+            ->generates('report-builder', in: 'Reports', aliases: ['mod:report-maker'])
+            ->generates('jobmiddleware', in: 'Other'))
         ->compile();
 
     expect($preset->kind('api-resource')->aliases)->toBe(['mod:apiresource'])

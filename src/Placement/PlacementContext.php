@@ -52,7 +52,7 @@ final readonly class PlacementContext
             throw InvalidPlacementOption::noDimensions($option);
         }
 
-        $parts = explode('/', $option);
+        $parts = count($dimensions) === 1 && $dimensions[0]->multi ? [str_replace('/', '.', $option)] : explode('/', $option);
 
         if (count($parts) > count($dimensions)) {
             throw InvalidPlacementOption::tooManyValues($option, $preset->dimensionNames());

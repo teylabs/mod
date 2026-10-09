@@ -36,13 +36,16 @@ final class LayoutCompiler
     {
         $this->issues = [];
         $chain = $this->layout->toArray();
-        $roots = $chain['roots'];
+        if ($chain['errors'] !== []) {
+            throw new InvalidLayout($this->layout->name, [], "Layout [{$this->layout->name}] is invalid:\n".implode("\n", $chain['errors']));
+        }
+        [$types, $roots, $rename] = GroupPath::resolve($this->layout->name, $chain['path'], $chain['kinds'], $chain['roots'], $chain['nesting']);
 
         $kinds = [];
         $placeholders = [];
         $failed = [];
 
-        foreach ($chain['kinds'] as $id => $kind) {
+        foreach ($types as $id => $kind) {
             $compiled = $this->kind($id, $kind->toArray(), $roots);
 
             if ($compiled === null) {
@@ -62,6 +65,18 @@ final class LayoutCompiler
 
         [$excluded, $excludedCalls] = $this->excluded($chain['excluded'], $roots);
 
+        $relations = $chain['relations'];
+        foreach ($relations as &$relation) {
+            if (is_array($relation['scope'])) {
+                array_walk_recursive($relation['scope'], static function (&$value) use ($rename): void {
+                    if (is_string($value)) {
+                        $value = $rename[$value] ?? $value;
+                    }
+                });
+            }
+        }
+        unset($relation);
+
         $definition = [
             'commands' => $chain['commands'],
             'roots' => array_map(
@@ -71,8 +86,8 @@ final class LayoutCompiler
             'dimensions' => array_keys($placeholders),
             'excluded' => $excluded,
             'kinds' => $kinds,
-            'relations' => array_map($this->relation(...), $chain['relations']),
-            'placement_options' => $this->placementOptions($chain['placement_options'], array_keys($placeholders)),
+            'relations' => array_map($this->relation(...), $relations),
+            'placement_options' => [],
         ];
 
         $reported = array_flip(array_map(static fn (PresetIssue $issue): string => $issue->subject, $this->issues));
@@ -99,7 +114,7 @@ final class LayoutCompiler
      */
     private function kind(string $id, array $kind, array $roots): ?array
     {
-        $call = "->kind('{$id}')";
+        $call = "->generates('{$id}')";
         $in = $kind['in'];
 
         if ($in === null && $kind['place'] === null) {
@@ -118,7 +133,7 @@ final class LayoutCompiler
         $rootName ??= array_key_first($roots);
 
         if ($rootName === null) {
-            $this->issue(PresetIssueCode::UnknownRoot, $call, 'no root is declared; add ->root() before compiling');
+            $this->issue(PresetIssueCode::UnknownRoot, $call, 'no root is declared; add ->mounts() before compiling');
 
             return null;
         }
@@ -220,7 +235,7 @@ final class LayoutCompiler
                 }
 
                 if (strcasecmp($name, $other) === 0 || levenshtein($name, $other) <= 2) {
-                    $this->issue(PresetIssueCode::UnknownDimension, "->kind('{$kinds[0]}')", "placeholder {{$name}} is used by no other file type; did you mean {{$other}}?");
+                    $this->issue(PresetIssueCode::UnknownDimension, "->generates('{$kinds[0]}')", "placeholder {{$name}} is used by no other file type; did you mean {{$other}}?");
 
                     break;
                 }
@@ -239,7 +254,7 @@ final class LayoutCompiler
         $calls = [];
 
         foreach ($entries as $entry) {
-            $call = "->exclude('{$entry}')";
+            $call = "->excludes('{$entry}')";
             $resolved = str_contains($entry, '\\') ? $this->excludedNamespace($entry, $roots) : $this->excludedPath($entry, $roots);
 
             if ($resolved === null) {
@@ -346,53 +361,15 @@ final class LayoutCompiler
         [$section, $key] = array_pad(explode('.', $subject, 2), 2, '');
 
         return match ($section) {
-            'kinds' => "->kind('{$key}')",
-            'relations' => "->relation('{$key}')",
-            'roots' => "->root('{$key}')",
-            'excluded' => $excludedCalls[(int) $key] ?? '->exclude()',
+            'kinds' => "->generates('{$key}')",
+            'relations' => "->relates('{$key}')",
+            'roots' => "->mounts('{$key}')",
+            'excluded' => $excludedCalls[(int) $key] ?? '->excludes()',
             'dimensions' => 'placeholder {'.($placeholders[(int) $key] ?? $key).'}',
             'commands' => '->withoutCommands()',
-            'placement_options' => "->placementOption('...', '{{$key}}')",
+            'placement_options' => "->path('app/{{$key}}')",
             default => $subject,
         };
-    }
-
-    /**
-     * The placeholder each ->placementOption() renames; the unnamed form needs exactly one placeholder.
-     *
-     * @param  array<string, string>  $overrides  placeholder ('' for the only one) → option
-     * @param  list<string>  $placeholders
-     * @return array<string, string> placeholder → option
-     */
-    private function placementOptions(array $overrides, array $placeholders): array
-    {
-        $options = [];
-
-        foreach ($overrides as $placeholder => $option) {
-            $call = $placeholder === '' ? "->placementOption('{$option}')" : "->placementOption('{$option}', '{{$placeholder}}')";
-
-            if ($placeholder === '') {
-                if (count($placeholders) !== 1) {
-                    $this->issue(PresetIssueCode::UnknownDimension, $call, $placeholders === []
-                        ? 'this layout has no placeholders to name an option after'
-                        : 'this layout has several placeholders; name the one to rename ('.implode(', ', array_map(static fn (string $name): string => "{{$name}}", $placeholders)).')');
-
-                    continue;
-                }
-
-                $placeholder = $placeholders[0];
-            }
-
-            if (! in_array($placeholder, $placeholders, true)) {
-                $this->issue(PresetIssueCode::UnknownDimension, $call, "placeholder {{$placeholder}} is used by no file type");
-
-                continue;
-            }
-
-            $options[$placeholder] = $option;
-        }
-
-        return $options;
     }
 
     /**

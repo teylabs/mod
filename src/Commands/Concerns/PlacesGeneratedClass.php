@@ -2,6 +2,7 @@
 
 namespace Tey\Mod\Commands\Concerns;
 
+use Composer\Autoload\ClassLoader;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Artifact\ArtifactKind;
@@ -102,6 +103,7 @@ trait PlacesGeneratedClass
 
             if ($this->plansEagerly()) {
                 $this->resolvePlan();
+                $this->warnIfNotAutoloaded();
             }
 
             $exitCode = parent::execute($input, $output);
@@ -124,6 +126,33 @@ trait PlacesGeneratedClass
 
             $this->plan = $previous;
         }
+    }
+
+    private function warnIfNotAutoloaded(): void
+    {
+        $primary = $this->plan?->primary;
+        if ($primary === null || ! $primary->kind->isClass()) {
+            return;
+        }
+        $root = $this->layout()->rule($primary->kind->id)->root();
+        foreach (spl_autoload_functions() as $autoload) {
+            $loader = is_array($autoload) ? $autoload[0] : null;
+            if (! $loader instanceof ClassLoader) {
+                continue;
+            }
+            foreach ($loader->getPrefixesPsr4() as $prefix => $directories) {
+                if (! str_starts_with((string) $root->namespace, $prefix)) {
+                    continue;
+                }
+                $below = str_replace('\\', '/', substr((string) $root->namespace, strlen($prefix)));
+                foreach ($directories as $directory) {
+                    if (Path::same(Path::join($directory, $below), $this->existingArtifacts()->absolute($root->path))) {
+                        return;
+                    }
+                }
+            }
+        }
+        $this->components->warn("{$root->path} isn't autoloaded yet. Run php artisan mod:autoload.");
     }
 
     /**
