@@ -29,7 +29,7 @@ it('disables both app templates whose file names normalize to one command', func
             $workspace->write('stubs/mod/@module/Pages/'.$file.'.stub', TemplateScenario::CLASS_STUB);
         }
         $result = $workspace->artisan('mod:tool', ['name' => 'Agents:Search'])->assertSuccessful();
-        expect(Artisan::all())->not->toHaveKey('mod:show-page')
+        expect(Artisan::all()['mod:show-page']->isHidden())->toBeTrue()
             ->and($result->normalisedOutput())->toContain('show-page.stub', 'ShowPage.stub')
             ->and(app(TemplateCatalog::class)->skipped())->toHaveCount(2);
     });
@@ -89,8 +89,11 @@ it('skips template commands whose dash-free aliases collide', function () {
             $workspace->write('stubs/mod/@module/Pages/'.$file.'.stub', TemplateScenario::CLASS_STUB);
         }
         $workspace->artisan('mod:tool', ['name' => 'Agents:Search'])->assertSuccessful();
-        expect(Artisan::all())->not->toHaveKey('mod:show-page');
-        expect(Artisan::all())->not->toHaveKey('mod:showpage');
+        expect(Artisan::all()['mod:show-page']->isHidden())->toBeTrue();
+        expect(Artisan::all()['mod:showpage']->isHidden())->toBeTrue();
+        $workspace->artisan('mod:show-page', ['name' => 'Agents:Blocked'])->assertFailed()->expectsOutputToContain('same command mod:showpage');
+        $workspace->artisan('mod:showpage', ['name' => 'Agents:Blocked'])->assertFailed()->expectsOutputToContain('same command mod:showpage');
+        expect($workspace->exists('app/Modules/Agents/Pages/Blocked.php'))->toBeFalse();
     });
 });
 

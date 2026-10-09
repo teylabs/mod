@@ -275,7 +275,7 @@ class CreateTemplateCommand extends Command
         $file = $this->laravel->basePath($display);
         // A differently cased filename must not create a second canonical command.
         foreach ($catalog->templates() as $id => $template) {
-            if ($id === $parsed->id && ! Path::same($template['file'], $file) && $template['source'] === 'app') {
+            if ($id === $parsed->id && ! Path::same($template['file'], $file) && ($template['source'] === 'app' || str_starts_with($template['source'], 'app (overrides '))) {
                 throw new RuntimeException("mod:{$id} already comes from [{$template['path']}]. Use that template path with --force, or choose another name.");
             }
         }
