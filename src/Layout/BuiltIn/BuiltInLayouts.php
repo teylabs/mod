@@ -58,8 +58,10 @@ final readonly class BuiltInLayouts
             default => '',
         };
         $resources = $base === '' ? 'resources' : $base.'/resources';
-        $layout->frontend(pages: $resources.'/js/pages', components: $resources.'/js/components', css: $resources.'/css', views: $resources.'/views', pageName: $token === '' ? '{path}' : $token.'::{path}')
+        $layout->frontend(pages: $resources.'/js/pages', components: $resources.'/js/components', css: $resources.'/css', views: $name === 'type-first' ? 'resources/views/{feature?}' : $resources.'/views', pageName: $token === '' ? '{path}' : $token.'::{path}')
             ->mounts('routes', null, $base === '' ? 'routes' : $base.'/routes');
+        $layout->generates('view', in: 'resources-views:', using: fn (FileType $type) => $type->file());
+        $layout->generates('component', in: $name === 'ddd' ? '{domain+}/View/Components' : ($name === 'type-first' ? '@feature/View/Components' : ($base === '' ? 'View/Components' : $base.'/View/Components')), using: fn (FileType $type) => $type->withinRoot($name === 'ddd' ? 'application' : 'app')->nested());
         $layout->mirrorsPages();
 
         return true;

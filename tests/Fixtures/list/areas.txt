@@ -7,6 +7,7 @@ mod:cast           app/Modules/{area}/Casts               Laravel
 mod:channel        app/Modules/{area}/Channels            Laravel     
 mod:class          app/Modules/{area}                     Laravel     
 mod:command        app/Modules/{area}/Console             Laravel     
+mod:component      app/Modules/{area}/View/Components     Laravel     
 mod:controller     app/Modules/{area}/Http/Controllers    Laravel     
 mod:dto            app/Modules/{area}/Data                starter     
 mod:enum           app/Modules/{area}/Enums               Laravel     
@@ -34,5 +35,6 @@ mod:seeder         app/Modules/{area}/Database/Seeders    Laravel
 mod:test           tests/Feature/Modules/{area}           Laravel     
 mod:trait          app/Modules/{area}                     Laravel     
 mod:value-object   app/Modules/{area}/ValueObjects        starter     
+mod:view           app/Modules/{area}/resources/views     Laravel     
 mod:view-model     app/Modules/{area}/ViewModels          starter     
   Discovery: off

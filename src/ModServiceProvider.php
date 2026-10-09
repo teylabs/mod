@@ -45,6 +45,7 @@ use Tey\Mod\Support\Path;
 use Tey\Mod\Support\Stack;
 use Tey\Mod\Templates\TemplateCatalog;
 use Tey\Mod\Templates\TemplateDiagnostics;
+use Tey\Mod\Views\ViewNamespaceRegistrar;
 use Throwable;
 
 class ModServiceProvider extends ServiceProvider
@@ -112,6 +113,8 @@ class ModServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->app->booted(fn (Application $app) => ViewNamespaceRegistrar::register($app));
+
         // Model::factory() through the layout's factory relation; a resolver registered
         // before this one is delegated to, one registered after it wins.
         if ($this->discoveryEnabled() && DiscoveryOptions::fromConfig((array) $this->app->make('config')->get('mod.discovery', []))->factories) {

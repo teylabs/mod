@@ -8,7 +8,7 @@ it('F6 generates a mailable and its qualified Markdown view', function () {
         $w->write('app/Modules/Inventory/Models/.gitkeep', '');
         $result = $w->artisan('mod:mail', ['name' => 'Inventory:WidgetRestocked', '--markdown' => 'mail.widget-restocked']);
         expect($result->exitCode)->toBe(0)
-            ->and(trim($result->normalisedOutput()))->toBe("INFO  Mailable [app/Modules/Inventory/Mail/WidgetRestocked.php] created successfully.\n\n   INFO  Markdown view [app/Modules/Inventory/resources/views/mail/widget-restocked.blade.php] created successfully.")
+            ->and(trim((string) preg_replace('/[ \t]+$/m', '', $result->normalisedOutput())))->toBe("INFO  Mailable [app/Modules/Inventory/Mail/WidgetRestocked.php] created successfully.\n\n   INFO  Markdown view [app/Modules/Inventory/resources/views/mail/widget-restocked.blade.php] created successfully.")
             ->and($w->read('app/Modules/Inventory/Mail/WidgetRestocked.php'))->toContain("markdown: 'inventory::mail.widget-restocked',")
             ->and($w->read('app/Modules/Inventory/resources/views/mail/widget-restocked.blade.php'))->toContain('<x-mail::message>');
     });

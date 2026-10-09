@@ -145,7 +145,15 @@ it('generates through the dimension options exactly as through the shorthand', f
             ->and($workspace->files())->toBe(array_keys($files));
 
         foreach ($files as $path => $bytes) {
-            expect($workspace->read($path))->toBe($bytes);
+            $actual = $workspace->read($path);
+
+            if (in_array($kindId, ['view', 'component'], true) && str_ends_with($path, '.blade.php')) {
+                // Laravel selects the stub comment through Randomizer, independently for each run.
+                $actual = preg_replace('/<!-- [^\n]+ -->/', '<!-- native quote -->', $actual);
+                $bytes = preg_replace('/<!-- [^\n]+ -->/', '<!-- native quote -->', $bytes);
+            }
+
+            expect($actual)->toBe($bytes);
         }
     });
 })->with(placedKinds());

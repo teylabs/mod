@@ -6,6 +6,7 @@ mod:cast           app/Features/{feature}/Casts               Laravel
 mod:channel        app/Features/{feature}/Broadcasting        Laravel     
 mod:class          app/Features/{feature}                     Laravel     
 mod:command        app/Features/{feature}/Console/Commands    Laravel     
+mod:component      app/Features/{feature}/View/Components     Laravel     
 mod:controller     app/Features/{feature}/Http/Controllers    Laravel     
 mod:enum           app/Features/{feature}/Enums               Laravel     
 mod:event          app/Features/{feature}/Events              Laravel     
@@ -32,4 +33,5 @@ mod:seeder         app/Features/{feature}/Database/Seeders    Laravel
 mod:test           tests/Feature/{feature}                    Laravel     
 mod:trait          app/Features/{feature}                     Laravel     
 mod:validator      app/Features/{feature}/Validation          empty class 
+mod:view           app/Features/{feature}/resources/views     Laravel     
   Discovery: off

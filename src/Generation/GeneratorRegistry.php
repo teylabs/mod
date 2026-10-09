@@ -9,6 +9,7 @@ use Illuminate\Database\Console\Seeds\SeederMakeCommand;
 use Illuminate\Foundation\Console\CastMakeCommand;
 use Illuminate\Foundation\Console\ChannelMakeCommand;
 use Illuminate\Foundation\Console\ClassMakeCommand;
+use Illuminate\Foundation\Console\ComponentMakeCommand;
 use Illuminate\Foundation\Console\ConfigMakeCommand;
 use Illuminate\Foundation\Console\ConsoleMakeCommand;
 use Illuminate\Foundation\Console\EnumMakeCommand;
@@ -30,6 +31,7 @@ use Illuminate\Foundation\Console\RuleMakeCommand;
 use Illuminate\Foundation\Console\ScopeMakeCommand;
 use Illuminate\Foundation\Console\TestMakeCommand;
 use Illuminate\Foundation\Console\TraitMakeCommand;
+use Illuminate\Foundation\Console\ViewMakeCommand;
 use Illuminate\Routing\Console\ControllerMakeCommand;
 use Illuminate\Routing\Console\MiddlewareMakeCommand;
 use Symfony\Component\Console\Command\Command;
@@ -37,6 +39,7 @@ use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Commands\CastCommand;
 use Tey\Mod\Commands\ChannelCommand;
 use Tey\Mod\Commands\ClassCommand;
+use Tey\Mod\Commands\ComponentCommand;
 use Tey\Mod\Commands\ConfigCommand;
 use Tey\Mod\Commands\ConsoleCommand;
 use Tey\Mod\Commands\ControllerCommand;
@@ -65,6 +68,7 @@ use Tey\Mod\Commands\SeederCommand;
 use Tey\Mod\Commands\TemplateCommand;
 use Tey\Mod\Commands\TestCommand;
 use Tey\Mod\Commands\TraitCommand;
+use Tey\Mod\Commands\ViewCommand;
 use Tey\Mod\Exceptions\InvalidGeneratorSetup;
 use Tey\Mod\Layout\CompiledLayout;
 
@@ -78,6 +82,8 @@ final class GeneratorRegistry
 {
     /** @var array<string, class-string<GeneratorAdapter&Command>> */
     public const DEFAULTS = [
+        'view' => ViewCommand::class,
+        'component' => ComponentCommand::class,
         'cast' => CastCommand::class,
         'channel' => ChannelCommand::class,
         'class' => ClassCommand::class,
@@ -113,6 +119,8 @@ final class GeneratorRegistry
      * @var array<string, class-string<GeneratorAdapter&Command>>
      */
     public const NATIVE = [
+        ViewMakeCommand::class => ViewCommand::class,
+        ComponentMakeCommand::class => ComponentCommand::class,
         ModelMakeCommand::class => ModelCommand::class,
         RequestMakeCommand::class => RequestCommand::class,
         PolicyMakeCommand::class => PolicyCommand::class,

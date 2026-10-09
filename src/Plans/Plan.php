@@ -4,6 +4,7 @@ namespace Tey\Mod\Plans;
 
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Support\Path;
+use Tey\Mod\Views\ViewIdentity;
 
 /** @internal The additive, read-only description shared by every writing command. */
 final class Plan
@@ -30,6 +31,9 @@ final class Plan
         $exists = is_file(Path::resolve($basePath, $artifact->path()));
         $class = $artifact->fqcn();
         $identity = $class === null ? ['identity' => ['path' => $artifact->path()]] : ['class' => $class];
+        if ($artifact->identity instanceof ViewIdentity) {
+            $identity = ['identity' => ['path' => $artifact->path(), 'name' => $artifact->identity->name(), 'tag' => $artifact->identity->tag()]];
+        }
         $this->files[] = ['alias' => $alias, 'type' => $artifact->kind->id, 'path' => $artifact->path(), ...$identity, 'group' => $group, 'existing' => $exists, 'exists' => $exists];
         $this->group ??= $group;
     }

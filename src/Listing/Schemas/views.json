@@ -1,0 +1,55 @@
+{
+  "type": "object",
+  "required": [
+    "views"
+  ],
+  "properties": {
+    "views": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "group",
+          "namespace",
+          "path",
+          "components"
+        ],
+        "properties": {
+          "group": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "namespace": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "components": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "path",
+                "tag"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "tag": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

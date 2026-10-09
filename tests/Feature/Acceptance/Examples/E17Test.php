@@ -71,8 +71,8 @@ it('E17 moves every modules file type to a project-relative or absolute path', f
         $original = $registry->layout('modules')->compile();
         $moved = $registry->layout('areas')->extends('modules')->path(($absolute ? $workspace->root->path.'/' : '').'src/Areas/{area}')->compile();
         foreach ($original->kinds() as $id => $kind) {
-            $before = place($original, $id, ($id === 'migration' ? 'create_examples_table' : 'Example'), 'Knowledge', ['timestamp' => MIGRATION_TIMESTAMP]);
-            $after = place($moved, $id, ($id === 'migration' ? 'create_examples_table' : 'Example'), 'Knowledge', ['timestamp' => MIGRATION_TIMESTAMP]);
+            $before = place($original, $id, ($id === 'migration' ? 'create_examples_table' : ($kind->isClass() ? 'Example' : 'example')), 'Knowledge', ['timestamp' => MIGRATION_TIMESTAMP]);
+            $after = place($moved, $id, ($id === 'migration' ? 'create_examples_table' : ($kind->isClass() ? 'Example' : 'example')), 'Knowledge', ['timestamp' => MIGRATION_TIMESTAMP]);
             // Tests keep their separate root; all application file types move together.
             $expected = str_replace('app/Modules/', 'src/Areas/', $before->path());
             expect($after->path())->toBe($expected, $id);

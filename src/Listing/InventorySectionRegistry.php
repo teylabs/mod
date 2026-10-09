@@ -21,7 +21,7 @@ final class InventorySectionRegistry
     /** @return list<InventorySection> */
     public function sections(): array
     {
-        return [new LayoutSection, new TypesSection, new TemplatesSection, new ScaffoldsSection, new DiscoverySection, new FrontendSection, new WiringSection, new RoutesSection, ...$this->additionalSections];
+        return [new LayoutSection, new TypesSection, new TemplatesSection, new ScaffoldsSection, new DiscoverySection, new FrontendSection, new ViewsSection, new WiringSection, new RoutesSection, ...$this->additionalSections];
     }
 
     /** @return Report */
@@ -31,7 +31,7 @@ final class InventorySectionRegistry
         $options = DiscoveryOptions::fromConfig((array) $app->make('config')->get('mod.discovery', []));
         $discovery = $options->enabled ? ($app->bound(Discovery::class) ? $app->make(Discovery::class) : new Discovery($layout, $options, $app->basePath())) : null;
         $inventory = $discovery?->inventory() ?? new Inventory;
-        $report = ['layout' => '', 'extends' => null, 'path' => null, 'token' => null, 'groups' => [], 'types' => [], 'templates' => ['problems' => [], 'notices' => []], 'scaffolds' => ['items' => [], 'problems' => []], 'discovery' => ['enabled' => false, 'source' => null, 'counts' => [], 'entries' => [], 'rejections' => [], 'stale_cache' => null], 'frontend' => ['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'page_name' => null, 'view_namespace' => null], 'wiring' => ['inertia' => false, 'vite_alias' => false, 'tailwind' => false], 'routes' => []];
+        $report = ['layout' => '', 'extends' => null, 'path' => null, 'token' => null, 'groups' => [], 'types' => [], 'templates' => ['problems' => [], 'notices' => []], 'scaffolds' => ['items' => [], 'problems' => []], 'discovery' => ['enabled' => false, 'source' => null, 'counts' => [], 'entries' => [], 'rejections' => [], 'stale_cache' => null], 'views' => [], 'frontend' => ['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'page_name' => null, 'view_namespace' => null], 'wiring' => ['inertia' => false, 'vite_alias' => false, 'tailwind' => false], 'routes' => []];
         $keys = [];
         foreach ($this->sections() as $section) {
             $data = $section->read($app, $layout, $options, $inventory, $discovery);
