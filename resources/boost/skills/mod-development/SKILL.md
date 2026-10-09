@@ -6,12 +6,13 @@ metadata:
   author: Jasper Tey / Tey Labs
 ---
 
-# Mod Development
+# Mod development
 
 Work within the application's layout and existing conventions. Mod places files and discovers classes; it does not require any business-logic pattern.
 
-## Establish the Layout
+## Establish the layout
 
+- Run `php artisan mod:list --json` first. Read the active layout, file types, templates, scaffolds and discovery before choosing a command.
 - `config/mod.php` names the layout with `'layout'`. Without that file, the package default is `laravel`, which places files exactly like `make:*`.
 - The built-in layouts are `laravel`, `modules` (`app/Modules/<Module>`), `features` (`app/Features/<Feature>`), `slices` (`app/<Feature>/<Slice>`), `type-first` (`app/Models/<Feature?>`) and `ddd` (`src/Domain/<Domain>`, with controllers, requests and middleware in `app/Modules/<Domain>`).
 - Search the service providers for `Mod::layout(`. A call with a built-in name customizes that layout; another name defines a new one. `->generates('validator', in: 'Modules/{module}/Validators')` adds a file type, and each `{placeholder}` in a folder becomes an option of that type's command (`--module=`).
@@ -21,16 +22,16 @@ Work within the application's layout and existing conventions. Mod places files 
 - `php artisan list mod` lists the generators this layout has. `php artisan help mod:<type>` shows a generator's placement options and Laravel's own options.
 - The installed package's `vendor/tey/mod/docs/layouts.md` lists every built-in layout's folders.
 
-## Generate Files
+## Generate files
 
-Always pass the class name and the placement, so no command prompts or fails for missing input. File types with a fixed name, such as a slice's handler, need only the placement:
+Always pass `--no-interaction`, the class name and the placement. Answer required questions with their options; use `php artisan help mod:<type>` to find them. File types with a fixed name, such as a slice's handler, need only the placement:
 
 ```bash
-php artisan mod:model Knowledge:Document -mf
-php artisan mod:model Document --in=Knowledge
-php artisan mod:model Document --module=Knowledge
-php artisan mod:handler --in=Knowledge/IndexDocument           # slices: feature, then slice; writes Handler.php
-php artisan mod:model Report --domain=Knowledge.Search        # ddd: nested domain
+php artisan mod:model Knowledge:Document -mf --no-interaction
+php artisan mod:model Document --in=Knowledge --no-interaction
+php artisan mod:model Document --module=Knowledge --no-interaction
+php artisan mod:handler --in=Knowledge/IndexDocument --no-interaction # slices: feature, then slice; writes Handler.php
+php artisan mod:model Report --domain=Knowledge.Search --no-interaction # ddd: nested domain
 ```
 
 - The first three commands are equivalent. Use one form per command.
@@ -44,11 +45,33 @@ php artisan mod:model Report --domain=Knowledge.Search        # ddd: nested doma
 
 Inspect the generated namespace, imports and related files, then run the tests relevant to the change.
 
-## Self-Contained Modules
+## Generator templates
+
+When a class shape repeats, use `mod:template <type> <name>` with both arguments, or extract it with `mod:template --from=<Class> --into=<path> --no-interaction`. Pass `--no-interaction` for creation too. With one argument, it is the name of a class template, not the starting type.
+
+Generator templates live in `stubs/mod/`. An anchor such as `@module` follows the layout's group folder; `[source]` creates a required `--source` option. Quote shell paths containing a `[slot]`. Edit the template once, then use its `mod:<name>` command with explicit placement and slot options. Extraction changes namespace and declared class-name tokens; inspect comments, imports and the remaining application-specific code.
+
+Use `->generates()` to refine a template or declare a file type in PHP; `->mounts()`, `->relates()` and `->excludes()` are the Layout API verbs. Use `->extends()` only when copying another layout.
+
+## Scaffolds
+
+Use a scaffold when several file types form a reusable recipe. Register it in a provider with `Mod::scaffold()` and import `Tey\Mod\Scaffolds\Scaffold`. Chain `->makes('model', as: 'model')` and other members; their paths follow the active layout. `Mod::scaffolds()` also accepts invokable recipe classes, and a layout's `->scaffolds()` overrides a global recipe.
+
+- `as:` names sibling aliases: `{{ model }}` is the short class name, `{{ model.fqcn }}` is the full name. Name forms chain left to right (`{{ name.plural.kebab }}`).
+- `stub: 'crud'` selects `stubs/mod.<type>.crud.stub`. Create that variant before non-interactive generation; variant publication happens only after the plan is accepted.
+- `->include('recipe')` reuses a recipe. A later member with the same alias replaces the included member.
+- Read the complete file and insert plan before writing. Pass `--no-interaction` and required question options. Choose `--skip-existing` to keep existing files or `--force` to overwrite them.
+- `->asks()` declares questions and options; `->each()` repeats a `->part()`. Parts can use another scaffold and pass values with `with:`. Use `configure:` for a closure after named arguments.
+- `->inserts()` on a part writes an insert stub before a retained `mod:<anchor>` marker in a file owned by that parent. It uses fully qualified names and does not edit imports. A child command `mod:<root>.<part>` can grow an existing cluster.
+- Members support PHP class file types and migrations, including template file types. Pages, Blade, Vue and CSS remain manual. Only a routes file can be started by an insert; its module provider must load it.
+
+Before writing a reusable recipe, record required packages, import aliases and configured model bases. Keep authorization, validation and frontend work explicit in the application's task. App recipes override package recipes; check `mod:list --json` for effective provenance and tree children.
+
+## Self-contained modules
 
 In `modules`, everything a module needs (models, migrations, factories, policies, controllers, requests, actions, DTOs, events, listeners, jobs) is under `app/Modules/<Module>`. Route files aren't discovered: load a module's routes from its own provider (`mod:provider Knowledge:Knowledge`, then `$this->loadRoutesFrom(__DIR__.'/../routes/web.php')` in `boot()`), which discovery registers. A module copied into another application that has mod installed with the same layout brings its routes, migrations, listeners, factories and policies with it. Its DTOs and view models extend base classes in `app/Support`; run `php artisan mod:bases` in the new application to write any that are missing.
 
-## Stubs and Base Classes
+## Stubs and base classes
 
 - `mod:dto` (alias `mod:data`), `mod:view-model`, `mod:value-object` (alias `mod:value`) and `mod:action` start from starter stubs in any layout that has those types (`modules` and `ddd` have all four).
 - When `spatie/laravel-data`, `spatie/laravel-view-models` or `lorisleiva/laravel-actions` is installed, the matching command uses it. Don't install them only because an example mentions them.
@@ -66,11 +89,11 @@ In `modules`, everything a module needs (models, migrations, factories, policies
 - `mod:cache` reports files it found but didn't register as "rejected", with a reason; `mod:cache -v` lists them. Files "placed by no file type" need nothing.
 - `config/mod.php` `discovery.enabled`, `discovery.file_types`, `discovery.factories` and `discovery.policies` control what is discovered.
 
-## What Not to Do
+## What to avoid
 
 - Don't move existing code to match an example or a different layout.
 - Don't edit `vendor/tey/mod`. Change the layout with `Mod::layout()` in a service provider, the output with stubs, and the settings in `config/mod.php`.
 - Don't use `make:*` for a file that belongs in a module.
-- Don't invent `mod:*` commands or options. Check `php artisan list mod` and `php artisan help mod:<type>`. A missing file type is added with `->generates()`, after confirming the change with the user.
+- Don't invent `mod:*` commands or options. Check `php artisan list mod` and `php artisan help mod:<type>`. Add a missing file type with a generator template or `->generates()` when it is within the requested scope.
 
 The installed package's source and README describe its exact behaviour. Application instructions and the user's chosen scope take precedence over these examples.

@@ -43,6 +43,8 @@ app/Modules/Knowledge/
 - [Related files follow](#related-files): a model's factory, migration, policy and form requests land beside it
 - [Auto-discovery](#auto-discovery) of providers, commands, listeners, migrations, factories and policies
 - [Your own file types](#your-own-file-types) in one line
+- **Modular templates**. Put a template in `stubs/mod/@module/Tools/` (or run `php artisan mod:template tool`) and you have `mod:tool`. See [Custom generators](https://mod.teylabs.com/going-further/custom-generators).
+- [Scaffolds](#scaffolds): generate several file types together, with questions, repeated parts and anchored inserts
 
 The full documentation is at [mod.teylabs.com](https://mod.teylabs.com).
 
@@ -239,7 +241,7 @@ php artisan mod:listener Knowledge:GenerateEmbeddings --event=DocumentUploaded
 # -> app/Modules/Knowledge/Listeners/GenerateEmbeddings.php (imports App\Modules\Knowledge\Events\DocumentUploaded)
 ```
 
-`php artisan list mod` shows every command your layout has. `make:*` is untouched and keeps writing to Laravel's default folders.
+`php artisan mod:list` shows the active layout's file types, templates and scaffolds. Use `--json` for scripts or `-v` to see discovered classes. `make:*` is untouched and keeps writing to Laravel's default folders.
 
 Every command is `mod:<file type>`. A hyphenated one also works without the dash, so `mod:view-model` can be typed as `mod:viewmodel` and `mod:value-object` as `mod:valueobject`. Running a command your layout doesn't have names the layouts that have it.
 
@@ -283,12 +285,12 @@ A value names a folder. Only folders that hold the layout's files for a group co
 
 ```bash
 php artisan mod:model Knowledg:Note --no-interaction
-# ->  INFO  Created new module Knowledg (existing: Agents, Knowledge).
+# ->  INFO  Created new module Knowledg (did you mean Knowledge?).
 ```
 
 ### The DDD Layout
 
-The `ddd` layout uses [laravel-ddd](https://github.com/teylabs/laravel-ddd)'s folders: domain classes in `src/Domain`, and controllers, requests and middleware in `app/Modules`. Add the `Domain` namespace to your `composer.json` autoload first:
+The `ddd` layout uses [laravel-ddd](https://github.com/teylabs/laravel-ddd)'s folders: domain classes in `src/Domain`, and controllers, requests and middleware in `app/Modules`. Run `php artisan mod:autoload` to add the `Domain` namespace to your `composer.json` autoload and reload Composer:
 
 ```json
 "autoload": {
@@ -300,7 +302,7 @@ The `ddd` layout uses [laravel-ddd](https://github.com/teylabs/laravel-ddd)'s fo
 ```
 
 ```bash
-composer dump-autoload
+php artisan mod:autoload
 
 php artisan mod:dto Knowledge:DocumentData
 # -> src/Domain/Shared/Data/DataTransferObject.php (created once)
@@ -355,7 +357,7 @@ use Tey\Mod\Facades\Mod;
 
 public function boot(): void
 {
-    Mod::layout('modules')->kind('validator', in: 'Modules/{module}/Validators', suffix: 'Validator');
+    Mod::layout('modules')->generates('validator', in: 'Modules/{module}/Validators', suffix: 'Validator');
 }
 ```
 
@@ -365,6 +367,30 @@ php artisan mod:validator Knowledge:Upload
 ```
 
 It starts as an empty class. To start from your own stub, add `stubs/mod.validator.stub` to your app, using `{{ namespace }}` and `{{ class }}` where the class's namespace and name go.
+
+### Scaffolds
+
+A scaffold is a recipe of several file types generated together. Register it in a service provider:
+
+```php
+use Tey\Mod\Facades\Mod;
+use Tey\Mod\Scaffolds\Scaffold;
+
+Mod::scaffold('document', fn (Scaffold $s) => $s
+    ->makes('model', as: 'model')
+    ->makes('controller', name: '{name}Controller', as: 'controller',
+        options: ['--resource']));
+```
+
+```bash
+php artisan mod:document Knowledge:Document --no-interaction
+```
+
+Each member follows the active layout. Aliases such as `{{ model }}` and `{{ model.fqcn }}` expose sibling class names to templates. Use named variants (`stub: 'crud'`, stored in `stubs/mod.controller.crud.stub`) for a house pattern, and `->include('document')` to reuse a recipe. A later member with the same alias replaces an included member.
+
+Mod plans the whole scaffold before writing. Use `--skip-existing` to keep existing members and generate the rest, or `--force` to replace them. Questions, repeated parts and anchored inserts let a recipe grow later through `mod:<root>.<part>` commands. Members generate PHP classes and migrations; frontend pages, Blade, Vue and CSS stay manual. An insert can start a routes file; load it from a module provider.
+
+See [Scaffolds](https://mod.teylabs.com/going-further/scaffolds) for recipes, packages and growing a cluster.
 
 ### Self-Contained Modules
 
@@ -480,7 +506,7 @@ To define a layout from scratch instead, see [Defining a Layout](docs/layouts.md
 | `bases` | `null` each | The class DTOs, view models, value objects and actions extend, by file type |
 | `bases_path` | `'app/Support'` | Where generated base classes go |
 | `discovery.enabled` | `true` | Register discovered providers, commands, listeners and subscribers; `false` also turns off factory and policy lookup |
-| `discovery.kinds` | `[]` | Discover more file types by file type id, or `false` to skip one, such as `'migration' => false` |
+| `discovery.file_types` | `[]` | Discover more file types by file type id, or `false` to skip one, such as `'migration' => false` |
 | `discovery.cache` | `'bootstrap/cache/mod-discovery.php'` | Where the discovery cache is written |
 | `discovery.on_stale_cache` | `'scan'` | `'scan'` ignores an outdated cache with a warning; `'fail'` stops the app booting |
 | `discovery.factories` | `true` | Find factories for models the layout places |
@@ -507,7 +533,7 @@ Yes. Mod doesn't move or change existing files, and `make:*` keeps working. Star
 
 ### Do Folders Outside `app/` Need Autoloading?
 
-Yes. A layout that writes outside `app/`, such as `ddd`'s `src/Domain`, needs a PSR-4 entry in your `composer.json` autoload, as shown in [The DDD Layout](#the-ddd-layout). Run `composer dump-autoload` after adding it.
+Yes. A layout that writes outside `app/`, such as `ddd`'s `src/Domain`, needs a PSR-4 entry in your `composer.json` autoload, as shown in [The DDD Layout](#the-ddd-layout). Run `php artisan mod:autoload` to add missing mappings and reload Composer.
 
 ### How Is This Different from nwidart/laravel-modules or InterNACHI/modular?
 

@@ -2,6 +2,28 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Generator templates in `stubs/mod/`: anchors, value slots, name and sibling placeholders, package template folders and PHP refinements. App templates take precedence over package templates.
+- `mod:template` creates a template from a class, interface, trait, enum, starter or usable file type, or extracts an existing PHP class with `--from` and `--into` without loading it.
+- `mod:list` shows the active layout, groups, file types, templates, scaffolds and discovery. `-v` lists discovered classes, `--type` filters a file type and `--json` supplies a machine-readable inventory.
+- `mod:autoload` registers missing Composer PSR-4 mappings for layout roots and moved group folders, with `--dry-run`, `--no-dump` and `--namespace`.
+- `->path()`, `->extends()` and `->allowsNesting()` for group folders, layout inheritance and nesting.
+- Scaffolds generate several file types together: sibling aliases, named stub variants, `include()`, invokable recipe classes, packages, layout overrides and collision choices.
+- Scaffold trees with `asks()`, `each()`, `part()`, `inserts()` and `mod:<root>.<part>` commands to grow a cluster. Anchored inserts can register routes; recursive trees remain finite in the registry and cache.
+- Laravel Prompts for outcomes that one answer resolves, with actionable options for non-interactive runs.
+
+### Changed
+- Layout API names are renamed outright: `root()` → `mounts()`, `kind()` → `generates()`, `relation()` → `relates()`, `exclude()` → `excludes()`, and `typeFolders()` → `path()`.
+- `placementOption()` is removed. The token in `path()` names the placement option, anchor and placeholder.
+- Public `Kind` → `FileType`, `UnknownKind` → `UnknownFileType`, `inKindRoot()` → `inFileTypeRoot()`, and `discovery.kinds` → `discovery.file_types`. Existing layout customizations must update these names.
+- The discovery cache stores template inventory and finite scaffold tree metadata, and checks template fingerprints for stale caches.
+
+### Fixed
+- Generation avoids false autoload warnings for Composer-covered folders and repeated new-group notices for companion files.
+- House factory stubs retain their `$model` value. Migrations can be scaffold members.
+
 ## [0.1.1] - 2026-10-08
 
 ### Fixed
