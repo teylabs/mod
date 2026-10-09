@@ -1,6 +1,7 @@
 <?php
 
 use Tey\Mod\Layout\LayoutRegistry;
+use Tey\Mod\Listing\LayoutInventory;
 use Tey\Mod\Relation\RelationMode;
 
 it('ships the common native kinds in every built-in', function (string $name) {
@@ -54,3 +55,13 @@ it('names every built-in relation <from>-<to>[-qualifier], meaning the same in e
     'ddd' => ['ddd', ['controller-update-request' => ['controller', 'request'], 'model-update-request' => ['model', 'request']]],
     'slices' => ['slices', ['handler-request' => ['handler', 'request'], 'request-model' => ['request', 'model']]],
 ]);
+
+it('pins every built-in file type folder for 0.3', function (string $name) {
+    $snapshot = json_decode((string) file_get_contents(__DIR__.'/../../Fixtures/layout-folders-03.json'), true, flags: JSON_THROW_ON_ERROR);
+    $layout = (new LayoutRegistry)->compile($name);
+    $folders = [];
+    foreach ($layout->kinds() as $id => $kind) {
+        $folders[$id] = LayoutInventory::folder($layout, $id);
+    }
+    expect($folders)->toBe($snapshot[$name]);
+})->with(['laravel', 'features', 'slices', 'type-first', 'modules', 'ddd']);
