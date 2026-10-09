@@ -33,6 +33,13 @@ final class FrontendScenario
         throw new \LogicException("Missing catalogue fixture {$id}: {$label}");
     }
 
+    public static function output(string $id): string
+    {
+        $outputs = json_decode((string) file_get_contents(__DIR__.'/../../../../Fixtures/Frontend/output.json'), true, flags: JSON_THROW_ON_ERROR);
+
+        return $outputs[$id];
+    }
+
     public static function crud(Workspace $w, string $stack = 'vue'): void
     {
         Examples::setup($w);
@@ -51,7 +58,7 @@ final class FrontendScenario
         }
         if ($stack === 'react') {
             foreach (['crud-index', 'crud-form', 'crud-show'] as $variant) {
-                $w->write('stubs/mod.page.'.$variant.'.tsx.stub', "export default function {{ name.studly }}() { return <p>{{ name.studly }}</p>; }");
+                $w->write('stubs/mod.page.'.$variant.'.tsx.stub', 'export default function {{ name.studly }}() { return <p>{{ name.studly }}</p>; }');
             }
         }
     }

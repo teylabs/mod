@@ -1,7 +1,6 @@
 <?php
 
 use Tey\Mod\Facades\Mod;
-use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Plans\Plan;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Tests\Feature\Acceptance\Examples\Support\FrontendScenario as Frontend;
@@ -33,6 +32,16 @@ it('honours a file type case override', function () {
         Mod::layout('modules')->generates('widget', case: 'kebab');
         $w->artisan('mod:widget', ['name' => 'Inventory:APIKey'])->assertSuccessful();
         expect($w->exists('app/Modules/Inventory/resources/js/components/api-key.vue'))->toBeTrue();
+    });
+});
+
+it('keeps class roots namespaced when a plain template shares their folder', function () {
+    Workspace::run(null, function (Workspace $w) {
+        Frontend::setup($w);
+        $w->write('stubs/mod/@module/Models/card.vue.stub', '<template />');
+        $w->artisan('mod:card', ['name' => 'Inventory:Card'])->assertSuccessful();
+        $w->artisan('mod:model', ['name' => 'Inventory:Widget'])->assertSuccessful();
+        expect($w->read('app/Modules/Inventory/Models/Widget.php'))->toContain('namespace App\\Modules\\Inventory\\Models;');
     });
 });
 

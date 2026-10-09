@@ -13,6 +13,7 @@ it('F13 copies a Vue source byte for byte and reports name mentions without repl
         $preview = json_decode($w->artisan('mod:template', [...$args, '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
         expect($preview['mentions'])->not->toBeEmpty()->and($w->exists('stubs/mod/@module/resources/js/pages/list-page.vue.stub'))->toBeFalse();
         $result = $w->artisan('mod:template', $args)->assertSuccessful();
+        expect($result->normalisedOutput())->toBe(Frontend::output('F13'));
         expect($w->read('stubs/mod/@module/resources/js/pages/list-page.vue.stub'))->toBe($source)
             ->and($result->normalisedOutput())->toContain('(copied as it is)', 'Mentions', 'mod:list-page');
     });
