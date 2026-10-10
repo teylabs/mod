@@ -17,7 +17,7 @@ Organizing an app by module, feature or domain usually means fighting Laravel's 
 
 Your structure lives in code, not in a prompt, so AI agents follow it from the first session to the hundredth.
 
-Created by [Jasper Tey](https://github.com/jaspertey), building on the lessons from [laravel-ddd](https://github.com/teylabs/laravel-ddd) and generalized for the many different ways developers and their agents organize their growing Laravel applications.
+Created by [Jasper Tey](https://github.com/jaspertey), building on the lessons from [laravel-ddd](https://github.com/teylabs/laravel-ddd) and generalized for the many different ways developers and their agents organize growing Laravel applications.
 
 ```bash
 php artisan mod:model Knowledge:Document -mf   # with 'layout' => 'modules'
