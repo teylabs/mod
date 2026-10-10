@@ -44,6 +44,8 @@ app/Modules/Knowledge/
 - [Your own file types](#your-own-file-types) in one line
 - **Modular templates**. Put a template in `stubs/mod/@module/Tools/` (or run `php artisan mod:template tool`) and you have `mod:tool`. See [Custom generators](https://mod.teylabs.com/going-further/custom-generators).
 - **Frontend members**. Generate a page and its controller in one command with a [frontend scaffold](https://mod.teylabs.com/going-further/frontend#generating-pages-with-their-controller).
+- **Rename and move clusters**. Preview an app-owned recipe, apply supported references and review one staged diff. See [Renaming clusters](#renaming-clusters).
+- **Build on mod**. Packages can own layout/discovery/generator lifecycle through the [supported host API](docs/extending.md#building-on-mod).
 - [Scaffolds](#scaffolds): generate several file types together, with questions, repeated parts and anchored inserts
 
 The full documentation is at [mod.teylabs.com](https://mod.teylabs.com).
@@ -549,6 +551,19 @@ Yes. A layout that writes outside `app/`, such as `ddd`'s `src/Domain`, needs a 
 | Discovered | providers | providers, commands, migrations, factories, policies, listeners, Blade components, translations | providers, commands, listeners, subscribers, migrations, factories, policies |
 
 Both are mature. nwidart/laravel-modules also enables and disables modules at runtime and handles per-module assets. InterNACHI/modular also loads Blade components and translations. Mod doesn't discover per-module routes, views, translations or assets; a module loads its routes from its own provider, as in [Module Routes](#module-routes). Choose mod to keep a structure you already have, or to use DDD, feature folders or vertical slices instead of one module format.
+
+## Renaming clusters
+
+Start with a clean committed Git application and the complete recipe that generated its members:
+
+```bash
+php artisan mod:rename Inventory:Widget Catalog:Gadget --scaffold=<app-recipe> --dry-run --json
+php artisan mod:rename Inventory:Widget Catalog:Gadget --scaffold=<app-recipe> --yes --no-interaction
+```
+
+The compiled layout determines both identities. Supported PHP/frontend references change while edited bodies are preserved; missing parsing capabilities leave reference bytes unchanged with a located manual checklist. Review the staged diff and application checks before committing. Rename moves a cluster, never an entire module or its layout defaults. Historical migrations stay unchanged; `--table-migration` selects a new reversible candidate without executing it.
+
+After interruption, inspect `php artisan mod:rename --recover --dry-run --json`, then use `--recover --yes --no-interaction` after reviewing conflicts and preserving outside edits. See [Renaming and moving](docs/renaming.md) for explicit recipe history, all flags, parser support and recovery limits.
 
 ## Documentation
 

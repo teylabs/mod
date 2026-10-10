@@ -246,7 +246,7 @@ Pass the public framework MigrationCreator and Composer to MigrationCommand. Exa
 
 For app recipes that declare these answers, `mod:rename --base=<class> --model=<class> --tab=<value> --tabs=<value>` supplies the same explicit recipe inputs. Repeat list flags for every existing item. These flags are registered from app recipes, not built-in recipes.
 
-## Optional table migration during rename
+### Optional table migration
 
 Review historical migration and database-name checklist locations. Existing migrations, `$table` and Schema strings remain byte-identical. A class rename can change Eloquent's inferred table; a module-only move does not. Foreign keys, implicit route bindings and serialized identities still need application review.
 
@@ -254,20 +254,28 @@ Use `mod:rename Inventory:Widget Inventory:Gadget --scaffold=<app-recipe> --tabl
 
 Framework HasFactory and SoftDeletes traits are supported without loading models; other traits and trait adaptations require review. Do not guess computed/inherited/trait-provided table names or instantiate a model to discover them. Ambiguous names and unsupported app-custom native migration creators block selected generation with a corrective diagnostic. Omit the flag for report-only behaviour, then create a reviewed migration separately. An explicit unchanged `$table` must not be reported as automatically moving to the new inferred table.
 
-## Frontend rename review
+### Frontend reference review
 
 The shipped `resources/js/rename/helper.cjs` reads the target app's installed Babel 7.29.x and, for Vue, compiler-sfc 3.5.x parsers. It never installs packages or writes sources. Review static imports, neighbouring relative imports of moved files, exact Vue component identities and Blade literal identities in the plan. Keep `@modules/` below its compiled module root and `@/` below app resources; alias imports cannot traverse `../`. PHP render/view identities remain with the PHP contributor. When Node/parsers are unavailable, source syntax is unsupported, or an identity/import is computed, leave the bytes unchanged and follow the located checklist's `after_file` and `suggestion`. CSS URLs and unrelated labels remain review items. Read the installed `resources/js/rename/README.md` for the protocol/capability matrix. Do not substitute regex rewrites, dependency installation or a saved helper response for a fresh validated rename plan.
 
-## Review PHP references in a rename plan
+### PHP reference review
 
 PHP edits bind mapped class names against each original namespace/import table, including grouped imports, explicit aliases, types, attributes, inheritance, traits, `new`, `instanceof`, static calls and `::class`. Explicit aliases remain; unaliased bound names change with their import. Import/declaration collisions and malformed PHP block before execution. Manually edited bodies, comments and line endings are preserved; rename never re-renders generator templates.
 
 Review exact page-name edits only in bound `Inertia::render`/`inertia` calls, and exact view-name edits only in `view` calls. Plain labels and computed identities remain review items. Runtime route/URI, translation, configuration, database, class-string, morph/serialization and historical migration values remain unchanged. Checklist rows use original `file` and `line`, with prospective `after_file`; suggestions are advisory and dynamic analysis is incomplete. PHP tokens in Blade have separate byte ownership from frontend directives and markup. Never infer that a green PHP plan establishes database, frontend or persisted-data compatibility.
 
-## Applying and recovering a rename
+### Applying and recovering
 
 Apply a recipe-owned rename only after reviewing its complete plan. `mod:rename ... --yes --no-interaction` stages moves, supported reference edits and selected new table migrations together without committing or running a database migration. Execution holds a worktree-specific lock before planning, validates outputs and destinations, and rechecks input bytes, modes, root membership, read dependencies and Git state immediately before mutation. Changed inputs preserve outside edits and require a fresh preview.
 
 On ordinary failure, the journal restores only transaction-owned paths, bytes, permissions, index entries and created empty directories. Compare-before-restore preserves editor changes; incomplete rollback reports `Rollback incomplete; recovery required` with the journal path and remaining operations. An interrupted journal blocks fresh execution.
 
 Inspect recovery with `mod:rename --recover --dry-run --json`, or `mod-plan` for `mod:rename` with `--recover`; tools remain read-only and do not acquire locks. Recovery takes no cluster arguments or recipe options. `mod:rename --recover` defaults confirmation to No; `mod:rename --recover --yes --no-interaction` restores after comparison. Git resolves the worktree-specific `mod-rename/` journal and lock directory, including linked worktrees. Unrelated working and staged changes remain; changed transaction-owned bytes/modes/index entries block restoration until the user preserves and resolves the reported conflicts. Repeated recovery is safe. Never substitute reset, clean, stash or an automatic commit.
+
+### Recipe and recovery limits
+
+Declare native option-generated companions as explicit recipe members; model --all/--migration/--factory do not prove rename membership. All original answers, including defaults and grown parts, are required. Stable keep/shared members stay in place; changing kept identities block. Ungrouped is placement, not shared ownership. Unaccounted candidates require recipe review, never prefix-only ownership, force or an exclusion bypass.
+
+Use compiled paths and scan_roots. Scans cover compiled roots plus app/bootstrap/config/resources/routes/tests and root lang when present, excluding dependencies/build/cache/Git metadata/generator templates. Historical migrations are immutable. The ddd defaults keep Controllers/Requests/Middleware outside Http, and frontend/views/routes opt-in. Rename neither upgrades layout nor moves an entire module. Execution requires the app to be the Git worktree root; nested apps are refused. Recovery guarantees concern process termination, not machine power loss or arbitrary external writer serialization. Index restoration requires the filesystem's exclusive hard-link support.
+
+After success inspect git diff --cached and build/type-check/request the renamed application. Fallback preserves reference bytes and does not establish runtime correctness until reported manual fixes are applied. Read vendor/tey/mod/docs/renaming.md for all flags, exact migration, parser matrix and recovery commands. Building on mod host guidance remains in docs/extending.md; rename services remain internal.
