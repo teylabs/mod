@@ -5,7 +5,7 @@ namespace Tey\Mod\Rename;
 use RuntimeException;
 use Symfony\Component\Process\Process as SymfonyProcess;
 
-/** @internal Bounded rename subprocesses, including Windows waits and process-tree termination. */
+/** @internal Rename subprocesses with deadlines for Windows waits and process-tree termination. */
 final class Process extends SymfonyProcess
 {
     /** @phpstan-impure Reads live child status, which can change without a PHP method call. */
