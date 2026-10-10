@@ -99,10 +99,6 @@ See [Agents](https://mod.teylabs.com/going-further/agents).
 
 Yes. Mod doesn't move existing files, and `make:*` keeps working. Start on the `laravel` layout and switch when you're ready.
 
-### Do Folders Outside `app/` Need Autoloading?
-
-Yes. Run `php artisan mod:autoload` to add the mappings to `composer.json`.
-
 ### When to Choose Mod over the Alternatives
 
 There are several good ways to organize a Laravel app. Pick by what you need:
