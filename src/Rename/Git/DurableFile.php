@@ -3,6 +3,7 @@
 namespace Tey\Mod\Rename\Git;
 
 use RuntimeException;
+use Tey\Mod\Rename\Diagnostic;
 
 /** @internal Atomic replacement with a flushed file before its name becomes visible. */
 final class DurableFile
@@ -24,7 +25,7 @@ final class DurableFile
                 }
                 $offset += $written;
             }
-            if (! fflush($handle) || ! fsync($handle)) {
+            if (! Diagnostic::measure('flush '.$temporary, fn () => fflush($handle) && fsync($handle))) {
                 throw new RuntimeException("mod:rename cannot flush {$temporary}.");
             }
         } finally {
@@ -33,7 +34,7 @@ final class DurableFile
         if ($flushed !== null) {
             $flushed();
         }
-        if (! rename($temporary, $path)) {
+        if (! Diagnostic::measure('replace '.$path, fn () => rename($temporary, $path))) {
             throw new RuntimeException("mod:rename cannot replace {$path}.");
         }
         self::directory(dirname($path));

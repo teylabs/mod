@@ -38,7 +38,7 @@ final class GitProbe
     private function read(string $directory, array $arguments, bool $trim = true): ?string
     {
         $process = new Process(['git', '-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', '-C', $directory, ...$arguments], env: ['GIT_OPTIONAL_LOCKS' => '0']);
-        $process->run();
+        Diagnostic::measure('probe '.$arguments[0], fn () => $process->run());
 
         return $process->isSuccessful() ? ($trim ? trim($process->getOutput()) : $process->getOutput()) : null;
     }

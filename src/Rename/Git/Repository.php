@@ -4,6 +4,7 @@ namespace Tey\Mod\Rename\Git;
 
 use RuntimeException;
 use Symfony\Component\Process\Process;
+use Tey\Mod\Rename\Diagnostic;
 use Tey\Mod\Rename\GitProbe;
 use Tey\Mod\Rename\GitState;
 
@@ -28,7 +29,7 @@ final readonly class Repository
     {
         $process = new Process(['git', '-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', ...$arguments], $this->basePath, ['GIT_OPTIONAL_LOCKS' => '0']);
         $process->setInput($input);
-        $process->mustRun();
+        Diagnostic::measure('git '.$arguments[0], fn () => $process->mustRun());
 
         return $process->getOutput();
     }
