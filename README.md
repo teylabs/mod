@@ -103,14 +103,16 @@ Yes. Mod doesn't move existing files, and `make:*` keeps working. Start on the `
 
 Yes. Run `php artisan mod:autoload` to add the mappings to `composer.json`.
 
-### How Does Mod Compare with Other Packages?
+### Which Package Is Right for Me?
 
-There are several good ways to organize a Laravel app, and each package makes different tradeoffs:
+There are several good ways to organize a Laravel app. Pick by what you need:
 
-- **[nwidart/laravel-modules](https://github.com/nWidart/laravel-modules)** is the most established. Modules live in `Modules/<Module>/` with their own config and assets, can be enabled or disabled at runtime, and have their own `module:make-*` generators. Choose it when you want modules managed as self-contained units.
-- **[InterNACHI/modular](https://github.com/InterNACHI/modular)** stays close to Laravel. Each module in `app-modules/` is a Composer package, generated with `make:*` and `--module=`, and it also loads Blade components and translations. Choose it when you want each module to be its own package.
-- **[laravel-ddd](https://github.com/teylabs/laravel-ddd)** generates domain-driven design folders with `ddd:*` commands. Choose it for DDD with nothing else to learn. Mod's `ddd` layout keeps the same folders if you outgrow it.
-- **Mod** works with the structure you choose rather than one module format: a modular monolith, feature folders, vertical slices, DDD or your own, with Laravel's own `make:*` underneath. It doesn't manage modules as packages, or load per-module translations and assets.
+- **Modules you can switch on and off, each with its own config and assets:** [nwidart/laravel-modules](https://github.com/nWidart/laravel-modules), the most established option.
+- **Each module as its own Composer package**, close to plain Laravel, with Blade components and translations loaded per module: [InterNACHI/modular](https://github.com/InterNACHI/modular).
+- **Domain-driven design with nothing else to learn:** [laravel-ddd](https://github.com/teylabs/laravel-ddd). Mod's `ddd` layout keeps the same folders if you outgrow it.
+- **Your own structure**, whether feature folders, vertical slices, DDD, a modular monolith or a mix, with Laravel's own `make:*`, generators for your team's patterns, and a structure your coding agents can read: mod.
+
+Mod isn't the right fit yet if you need a stable 1.0 API, per-module translations or assets, or modules you can switch on and off at runtime.
 
 ## Documentation
 
