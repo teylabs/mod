@@ -15,8 +15,6 @@ Mod is a lightweight toolkit for modular development in Laravel.
 
 Organizing an app by module, feature or domain usually means fighting Laravel's defaults: `make:*` writes to `app/Models`, and every module's providers, commands and listeners need registering by hand. Mod makes Laravel's own tools work in the structure you choose. Pick or extend a common layout like DDD or a modular monolith, or create your own.
 
-Your structure lives in code, not in a prompt, so AI agents follow it from the first session to the hundredth.
-
 Created by [Jasper Tey](https://github.com/jaspertey), building on the lessons from [laravel-ddd](https://github.com/teylabs/laravel-ddd) and generalized for the many different ways developers and their agents organize growing Laravel applications.
 
 ```bash
