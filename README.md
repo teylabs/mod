@@ -20,7 +20,7 @@ Created by [Jasper Tey](https://github.com/jaspertey), building on the lessons f
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://mod.teylabs.com/evolve-dark.svg">
-    <img alt="A terminal watching a Laravel app grow from laravel new: an Actions folder, then modules, then a versioned API in src beside app" src="https://mod.teylabs.com/evolve-light.svg" width="600">
+    <img alt="A terminal watching a Laravel app grow from laravel new: an Actions folder, then modules, a versioned API in src, and a timelapse of ever more folders until it all collapses into a single index.php" src="https://mod.teylabs.com/evolve-light.svg" width="600">
   </picture>
 </p>
 
