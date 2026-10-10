@@ -17,22 +17,12 @@ Laravel lets you organize your app however you like. Mod makes that easy without
 
 Created by [Jasper Tey](https://github.com/jaspertey), building on the lessons from [laravel-ddd](https://github.com/teylabs/laravel-ddd) and generalized for the many different ways developers and their agents organize growing Laravel applications.
 
-```bash
-php artisan mod:model Knowledge:Document -mf   # with 'layout' => 'modules'
-```
-
-```text
-app/Modules/Knowledge/
-├── Database/
-│   ├── Factories/
-│   │   └── DocumentFactory.php
-│   └── Migrations/
-│       └── 2026_10_08_120000_create_documents_table.php
-└── Models/
-    └── Document.php
-```
-
-`php artisan migrate` runs that migration, and `Document::factory()` finds that factory.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://mod.teylabs.com/evolve-dark.svg">
+    <img alt="A terminal watching a Laravel app grow from laravel new: an Actions folder, then modules, then a versioned API in src beside app" src="https://mod.teylabs.com/evolve-light.svg" width="600">
+  </picture>
+</p>
 
 > [!NOTE]
 > Mod is pre-1.0. Minor releases may change the API until 1.0.
