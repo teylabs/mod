@@ -11,11 +11,11 @@
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/teylabs/mod/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/teylabs/mod/actions?query=workflow%3A%22Fix+PHP+code+style+issues%22+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/tey/mod.svg?style=flat-square)](https://packagist.org/packages/tey/mod)
 
-Mod is a lightweight toolkit for modular development in Laravel.
+Mod is a lightweight toolkit for modular development in Laravel, for you and your coding agents.
 
 Organizing an app by module, feature or domain usually means fighting Laravel's defaults: `make:*` writes to `app/Models`, and every module's providers, commands and listeners need registering by hand. Mod makes Laravel's own tools work in the structure you choose. Pick or extend a common layout like DDD or a modular monolith, or create your own.
 
-Created by [Jasper Tey](https://github.com/jaspertey), building on the lessons from [laravel-ddd](https://github.com/teylabs/laravel-ddd) and generalized for the many different ways developers organize their growing Laravel applications.
+Created by [Jasper Tey](https://github.com/jaspertey), building on the lessons from [laravel-ddd](https://github.com/teylabs/laravel-ddd) and generalized for the many different ways developers and their agents organize growing Laravel applications.
 
 ```bash
 php artisan mod:model Knowledge:Document -mf   # with 'layout' => 'modules'
@@ -37,16 +37,11 @@ app/Modules/Knowledge/
 > [!NOTE]
 > Mod is pre-1.0. Minor releases may change the API until 1.0.
 
-- [Six built-in layouts](#choosing-a-layout), including modular monolith and DDD
-- [Laravel's own generators](#generating) for every file type, writing into your layout
-- [Related files follow](#related-files): a model's factory, migration, policy and form requests land beside it
+- **Built for AI agents**. Your layout, templates and scaffolds tell agents where everything goes, and every generator previews its plan as JSON before writing. See [Working with AI agents](#working-with-ai-agents).
+- [Six built-in layouts](#choosing-a-layout), including modular monolith and DDD, or your own
+- [Laravel's own generators](#generating) for every file type, writing into your layout, with [related files](#related-files) alongside
+- [Templates and scaffolds](#scaffolds): turn your own patterns into commands, then [rename a whole cluster](#renaming-clusters) when the feature changes
 - [Auto-discovery](#auto-discovery) of providers, commands, listeners, migrations, factories and policies
-- [Your own file types](#your-own-file-types) in one line
-- **Modular templates**. Put a template in `stubs/mod/@module/Tools/` (or run `php artisan mod:template tool`) and you have `mod:tool`. See [Custom generators](https://mod.teylabs.com/going-further/custom-generators).
-- **Frontend members**. Generate a page and its controller in one command with a [frontend scaffold](https://mod.teylabs.com/going-further/frontend#generating-pages-with-their-controller).
-- **Rename and move clusters**. Preview an app-owned recipe, apply supported references and review one staged diff. See [Renaming clusters](#renaming-clusters).
-- **Build on mod**. Packages can own layout/discovery/generator lifecycle through the [supported host API](docs/extending.md#building-on-mod).
-- [Scaffolds](#scaffolds): generate several file types together, with questions, repeated parts and anchored inserts
 
 The full documentation is at [mod.teylabs.com](https://mod.teylabs.com).
 
@@ -58,10 +53,6 @@ Mod requires PHP 8.3+ and Laravel 12 or 13.
 composer require tey/mod
 php artisan vendor:publish --tag=mod-config
 ```
-
-### Laravel Boost
-
-Mod ships a [Laravel Boost](https://laravel.com/docs/boost) guideline and a `mod-development` skill, so AI agents check your layout and place files with `mod:*` generators. With Boost installed in your app, run `php artisan boost:install`, choose `tey/mod` among the third-party packages, and select its guideline and skill. Run `php artisan boost:update` after updating mod.
 
 ## Quick Start
 
@@ -397,6 +388,30 @@ Mod plans the whole scaffold before writing. Use `--skip-existing` to keep exist
 
 See [Scaffolds](https://mod.teylabs.com/going-further/scaffolds) for recipes, packages and growing a cluster.
 
+### Renaming Clusters
+
+Start with a clean committed Git application and the complete recipe that generated its members:
+
+```bash
+php artisan mod:rename Inventory:Widget Catalog:Gadget --scaffold=<app-recipe> --dry-run --json
+php artisan mod:rename Inventory:Widget Catalog:Gadget --scaffold=<app-recipe> --yes --no-interaction
+```
+
+The compiled layout determines both identities. Supported PHP/frontend references change while edited bodies are preserved; missing parsing capabilities leave reference bytes unchanged with a located manual checklist. Review the staged diff and application checks before committing. Rename moves a cluster, never an entire module or its layout defaults. Historical migrations stay unchanged; `--table-migration` selects a new reversible candidate without executing it.
+
+After interruption, inspect `php artisan mod:rename --recover --dry-run --json`, then use `--recover --yes --no-interaction` after reviewing conflicts and preserving outside edits. See [Renaming and moving](docs/renaming.md) for explicit recipe history, all flags, parser support and recovery limits.
+
+### Working with AI Agents
+
+Agents drift. Each session works out again where a model, a page or a listener belongs. Conventions written in a prompt or `CLAUDE.md` go stale as the app grows, and five sessions later the same feature has five shapes. Mod keeps the structure in code, where an agent can ask for it and can't get it wrong:
+
+- **It knows where things go.** `php artisan mod:list --json` describes the layout: its groups, file types, templates, scaffolds, routes, views and frontend paths. Agents read it before writing anything.
+- **Generators place files, agents don't.** `mod:model Billing:Invoice` puts the model, its factory and its migration where your layout says, the same way every time.
+- **Previews before writes.** Every command that writes files accepts `--dry-run --json` and prints exactly what it would create or change, without writing or prompting. An agent (or its reviewer) checks the plan, then runs the command.
+- **Your patterns become commands.** A template or scaffold captures how your team builds a feature, so an agent generates the same shape you would, instead of improvising.
+- **Names stay aligned.** When a feature is renamed, `mod:rename` moves every member and updates the references, so old names don't linger for the next session to copy.
+- **Laravel Boost support.** Mod ships a [Laravel Boost](https://laravel.com/docs/boost) guideline and a `mod-development` skill, plus read-only `mod-inventory` and `mod-plan` MCP tools. With Boost installed, run `php artisan boost:install`, choose `tey/mod` among the third-party packages, and select its guideline and skill. Run `php artisan boost:update` after updating mod.
+
 ### Self-Contained Modules
 
 Keep everything a feature needs in one folder, so you can copy it to the next project. The `modules` layout keeps models, migrations, factories, policies, controllers, actions, DTOs, view models, value objects, events, listeners and jobs inside each module. Build two modules, Knowledge and Agents:
@@ -467,19 +482,22 @@ Inside a module, `--model=Document` means the module's `Document`, so the policy
 
 #### Module Routes
 
-Mod doesn't discover route files. Load a module's routes from a provider in the module, which discovery registers:
-
-```bash
-php artisan mod:provider Knowledge:Knowledge
-# -> app/Modules/Knowledge/Providers/KnowledgeServiceProvider.php
-```
+A module keeps its routes in its own `routes/` folder. Load every module's route files with one call in `bootstrap/app.php`:
 
 ```php
-// app/Modules/Knowledge/Providers/KnowledgeServiceProvider.php
-public function boot(): void
-{
-    $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
-}
+// bootstrap/app.php
+use Tey\Mod\Facades\Mod;
+
+->withRouting(
+    web: __DIR__.'/../routes/web.php',
+    commands: __DIR__.'/../routes/console.php',
+    then: fn () => Mod::routes(),
+)
+```
+
+```bash
+php artisan mod:routes Knowledge
+# -> app/Modules/Knowledge/routes/web.php
 ```
 
 ```php
@@ -489,12 +507,10 @@ public function boot(): void
 use App\Modules\Knowledge\Http\Controllers\DocumentController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('web')->group(function () {
-    Route::resource('documents', DocumentController::class);
-});
+Route::resource('documents', DocumentController::class);
 ```
 
-`php artisan route:list` shows the module's routes, and `route:cache` includes them.
+Web route files get Laravel's `web` middleware; `--api` adds an `api.php` with the `api` middleware and `/api` prefix. `php artisan route:list` shows the module's routes, and `route:cache` includes them. See [Module Routes](https://mod.teylabs.com/going-further/routes) for ordering, `only`/`except` and route groups.
 
 #### Copying a Module
 
@@ -548,22 +564,9 @@ Yes. A layout that writes outside `app/`, such as `ddd`'s `src/Domain`, needs a 
 | Structure | `Modules/<Module>/` | `app-modules/<module>/` | a built-in layout or your own |
 | Per module | config, plus a Composer merge plugin | a `composer.json` | a folder |
 | Generators | `module:make-*` | `make:*` with `--module=` | `mod:*`, built on `make:*` |
-| Discovered | providers | providers, commands, migrations, factories, policies, listeners, Blade components, translations | providers, commands, listeners, subscribers, migrations, factories, policies |
+| Discovered | providers | providers, commands, migrations, factories, policies, listeners, Blade components, translations | providers, commands, listeners, subscribers, migrations, factories, policies, plus module routes (one `Mod::routes()` call) and view namespaces |
 
-Both are mature. nwidart/laravel-modules also enables and disables modules at runtime and handles per-module assets. InterNACHI/modular also loads Blade components and translations. Mod doesn't discover per-module routes, views, translations or assets; a module loads its routes from its own provider, as in [Module Routes](#module-routes). Choose mod to keep a structure you already have, or to use DDD, feature folders or vertical slices instead of one module format.
-
-## Renaming clusters
-
-Start with a clean committed Git application and the complete recipe that generated its members:
-
-```bash
-php artisan mod:rename Inventory:Widget Catalog:Gadget --scaffold=<app-recipe> --dry-run --json
-php artisan mod:rename Inventory:Widget Catalog:Gadget --scaffold=<app-recipe> --yes --no-interaction
-```
-
-The compiled layout determines both identities. Supported PHP/frontend references change while edited bodies are preserved; missing parsing capabilities leave reference bytes unchanged with a located manual checklist. Review the staged diff and application checks before committing. Rename moves a cluster, never an entire module or its layout defaults. Historical migrations stay unchanged; `--table-migration` selects a new reversible candidate without executing it.
-
-After interruption, inspect `php artisan mod:rename --recover --dry-run --json`, then use `--recover --yes --no-interaction` after reviewing conflicts and preserving outside edits. See [Renaming and moving](docs/renaming.md) for explicit recipe history, all flags, parser support and recovery limits.
+Both are mature. nwidart/laravel-modules also enables and disables modules at runtime and handles per-module assets. InterNACHI/modular also loads Blade components and translations. Mod doesn't load per-module translations or assets; module routes load with one `Mod::routes()` call, as in [Module Routes](#module-routes). Choose mod to keep a structure you already have, or to use DDD, feature folders or vertical slices instead of one module format.
 
 ## Documentation
 
