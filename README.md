@@ -13,35 +13,25 @@
 
 Mod is a lightweight toolkit for modular development in Laravel, for you and your coding agents.
 
-Organizing an app by module, feature or domain usually means fighting Laravel's defaults: `make:*` writes to `app/Models`, and every module's providers, commands and listeners need registering by hand. Mod makes Laravel's own tools work in the structure you choose. Pick or extend a common layout like DDD or a modular monolith, or create your own.
+Laravel lets you organize your app however you like. Mod makes that easy without fighting the framework: start from Laravel's defaults, adopt patterns from modular or domain-driven designs where they help, and keep Laravel's own `make:*` commands and conventions throughout.
 
 Created by [Jasper Tey](https://github.com/jaspertey), building on the lessons from [laravel-ddd](https://github.com/teylabs/laravel-ddd) and generalized for the many different ways developers and their agents organize growing Laravel applications.
 
-```bash
-php artisan mod:model Knowledge:Document -mf   # with 'layout' => 'modules'
-```
-
-```text
-app/Modules/Knowledge/
-├── Database/
-│   ├── Factories/
-│   │   └── DocumentFactory.php
-│   └── Migrations/
-│       └── 2026_10_08_120000_create_documents_table.php
-└── Models/
-    └── Document.php
-```
-
-`php artisan migrate` runs that migration, and `Document::factory()` finds that factory.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://mod.teylabs.com/evolve-dark.svg">
+    <img alt="A terminal watching a Laravel app grow from laravel new: an Actions folder, then modules, then a versioned API in src beside app" src="https://mod.teylabs.com/evolve-light.svg" width="600">
+  </picture>
+</p>
 
 > [!NOTE]
 > Mod is pre-1.0. Minor releases may change the API until 1.0.
 
-- **Built for AI agents**. Your layout, templates and scaffolds tell agents where everything goes, and every generator previews its plan as JSON before writing. See [Working with AI agents](#working-with-ai-agents).
-- [Six built-in layouts](#choosing-a-layout), including modular monolith and DDD, or your own
-- [Laravel's own generators](#generating) for every file type, writing into your layout, with [related files](#related-files) alongside
-- [Templates and scaffolds](#scaffolds): turn your own patterns into commands, then [rename a whole cluster](#renaming-clusters) when the feature changes
-- [Auto-discovery](#auto-discovery) of providers, commands, listeners, migrations, factories and policies
+- [Six built-in layouts](https://mod.teylabs.com/basics/layouts), including modular monolith and DDD, or your own
+- [Laravel's own generators](https://mod.teylabs.com/basics/generating-files) for every file type, writing into your layout, with related files alongside
+- [Templates and scaffolds](https://mod.teylabs.com/going-further/scaffolds): turn your own patterns into commands, then [rename a whole cluster](https://mod.teylabs.com/going-further/renaming) when the feature changes
+- [Auto-discovery](https://mod.teylabs.com/basics/auto-discovery) of providers, commands, listeners, migrations, factories and policies
+- **Agent-friendly**: your structure lives in code, so coding agents can look it up and preview every write. See [Working with AI agents](#working-with-ai-agents).
 
 The full documentation is at [mod.teylabs.com](https://mod.teylabs.com).
 
@@ -71,510 +61,48 @@ php artisan migrate
 # -> runs 2026_10_08_120000_create_documents_table from app/Modules/Knowledge/Database/Migrations
 ```
 
-## Usage
+## What Mod Does
 
-### Choosing a Layout
-
-Six layouts are built in. The default, `laravel`, places files exactly like `make:*`, so you can install mod first and switch layouts later.
-
-| Layout | Organizes code as | `mod:model Knowledge:Document` writes |
+| | Try it | Learn more |
 | --- | --- | --- |
-| `laravel` | Laravel's own folders | `app/Models/Document.php` (no `Knowledge:`) |
-| `modules` | a modular monolith: one folder per module | `app/Modules/Knowledge/Models/Document.php` |
-| `features` | feature folders | `app/Features/Knowledge/Models/Document.php` |
-| `slices` | vertical slices: features, each split into slices | `app/Knowledge/Models/Document.php` |
-| `type-first` | Laravel's folders, with an optional sub-folder | `app/Models/Knowledge/Document.php` |
-| `ddd` | domain-driven design, as in laravel-ddd | `src/Domain/Knowledge/Models/Document.php` |
-
-Each tree below is the result of `php artisan mod:model Knowledge:Document --all` in a fresh app.
-
-<details>
-<summary><code>modules</code></summary>
-
-```text
-app/Modules/Knowledge/
-├── Database/
-│   ├── Factories/
-│   │   └── DocumentFactory.php
-│   ├── Migrations/
-│   │   └── 2026_10_08_120000_create_documents_table.php
-│   └── Seeders/
-│       └── DocumentSeeder.php
-├── Http/
-│   ├── Controllers/
-│   │   └── DocumentController.php
-│   └── Requests/
-│       ├── StoreDocumentRequest.php
-│       └── UpdateDocumentRequest.php
-├── Models/
-│   └── Document.php
-└── Policies/
-    └── DocumentPolicy.php
-```
-
-</details>
-
-<details>
-<summary><code>features</code></summary>
-
-```text
-app/Features/Knowledge/
-├── Database/
-│   ├── Factories/
-│   │   └── DocumentFactory.php
-│   ├── Migrations/
-│   │   └── 2026_10_08_120000_create_documents_table.php
-│   └── Seeders/
-│       └── DocumentSeeder.php
-├── Http/
-│   ├── Controllers/
-│   │   └── DocumentController.php
-│   └── Requests/
-│       ├── StoreDocumentRequest.php
-│       └── UpdateDocumentRequest.php
-├── Models/
-│   └── Document.php
-└── Policies/
-    └── DocumentPolicy.php
-```
-
-</details>
-
-<details>
-<summary><code>slices</code></summary>
-
-A slice holds one operation's classes, each with a fixed name. This tree is the result of `mod:model Knowledge:Document -mf`, then `mod:handler`, `mod:request` and `mod:message` with `--in=Knowledge/IndexDocument`:
-
-```text
-app/Knowledge/
-├── Database/
-│   ├── Factories/
-│   │   └── DocumentFactory.php
-│   └── Migrations/
-│       └── 2026_10_08_120000_create_documents_table.php
-├── IndexDocument/
-│   ├── Command.php
-│   ├── Handler.php
-│   └── Http/
-│       └── Requests/
-│           └── Request.php
-└── Models/
-    └── Document.php
-```
-
-</details>
-
-<details>
-<summary><code>type-first</code></summary>
-
-```text
-app/
-├── Http/
-│   ├── Controllers/
-│   │   └── Knowledge/
-│   │       └── DocumentController.php
-│   └── Requests/
-│       └── Knowledge/
-│           ├── StoreDocumentRequest.php
-│           └── UpdateDocumentRequest.php
-├── Models/
-│   └── Knowledge/
-│       └── Document.php
-└── Policies/
-    └── Knowledge/
-        └── DocumentPolicy.php
-database/
-├── factories/
-│   └── Knowledge/
-│       └── DocumentFactory.php
-├── migrations/
-│   └── Knowledge/
-│       └── 2026_10_08_120000_create_documents_table.php
-└── seeders/
-    └── Knowledge/
-        └── DocumentSeeder.php
-```
-
-</details>
-
-<details>
-<summary><code>ddd</code></summary>
-
-```text
-app/Modules/Knowledge/
-├── Controllers/
-│   └── DocumentController.php
-└── Requests/
-    ├── StoreDocumentRequest.php
-    └── UpdateDocumentRequest.php
-src/Domain/Knowledge/
-├── Database/
-│   ├── Factories/
-│   │   └── DocumentFactory.php
-│   ├── Migrations/
-│   │   └── 2026_10_08_120000_create_documents_table.php
-│   └── Seeders/
-│       └── DocumentSeeder.php
-├── Models/
-│   └── Document.php
-└── Policies/
-    └── DocumentPolicy.php
-```
-
-</details>
-
-[docs/layouts.md](docs/layouts.md) lists every folder of every built-in layout.
-
-### Generating
-
-Each file type in your layout has a `mod:*` command. Class and Blade adapters use Laravel's own `make:*` commands, with the same arguments and options:
-
-```bash
-php artisan mod:event Knowledge:DocumentUploaded
-# -> app/Modules/Knowledge/Events/DocumentUploaded.php
-
-php artisan mod:listener Knowledge:GenerateEmbeddings --event=DocumentUploaded
-# -> app/Modules/Knowledge/Listeners/GenerateEmbeddings.php (imports App\Modules\Knowledge\Events\DocumentUploaded)
-```
-
-`php artisan mod:list` shows the active layout's file types, templates and scaffolds. Use `--json` for scripts or `-v` to see discovered classes. `make:*` is untouched and keeps writing to Laravel's default folders.
-
-Every command is `mod:<file type>`. A hyphenated one also works without the dash, so `mod:view-model` can be typed as `mod:viewmodel` and `mod:value-object` as `mod:valueobject`. Running a command your layout doesn't have names the layouts that have it.
-
-#### Related Files
-
-Options such as `-m`, `-f`, `--policy`, `--requests` and `--all` create the related files in the same module, as in the trees above. `Document::factory()` finds the module's factory through [auto-discovery](#auto-discovery). `mod:model -f` also writes a `newFactory()` method into the model, so the model keeps working without mod.
-
-`mod:*` checks every file it is about to write before writing any of them. When one already exists, it prints an error and writes nothing. It exits with 0 when every file it would write already exists, as `make:*` does, and with 1, printing "Nothing was written.", when it holds back a file that doesn't exist yet.
-
-### Placement
-
-The `laravel` layout puts files where `make:*` does. The other layouts group your code, so each command also takes the group a file belongs to.
-
-Each way a layout groups code is a **dimension**. `modules` has one: the module. `slices` has two: the feature, and the slice inside it. A layout's folders show each one as a placeholder, such as `{module}` in `app/Modules/{module}/Models`, and you give it a value, such as `Knowledge`. These three commands do the same thing:
-
-```bash
-php artisan mod:model Document --module=Knowledge   # an option named after the placeholder
-php artisan mod:model Document --in=Knowledge       # every value at once
-php artisan mod:model Knowledge:Document            # the short form: value, colon, class name
-```
-
-When there are two values, `--in` and the short form take them in order, separated by `/`:
-
-```bash
-php artisan mod:handler --feature=Knowledge --slice=IndexDocument
-php artisan mod:handler --in=Knowledge/IndexDocument
-# -> app/Knowledge/IndexDocument/Handler.php (a slice's handler has a fixed name, so it takes none)
-```
-
-| Layout | Options | Values |
-| --- | --- | --- |
-| `modules` | `--module` | `Knowledge` |
-| `features` | `--feature` | `Knowledge` |
-| `slices` | `--feature`, `--slice` | `Knowledge`, `IndexDocument` |
-| `type-first` | `--feature` (optional) | `Knowledge`, or none for `app/Models/Document.php` |
-| `ddd` | `--domain` (one or more folders) | `Knowledge`, or `Knowledge.Search` for `src/Domain/Knowledge/Search` |
-
-Commands in `features` and `slices` go to `app/Console/Commands` when you leave the value out.
-
-A value names a folder. Only folders that hold the layout's files for a group count as existing groups, so Laravel's own `app/Http` and `app/Models` next to `slices` features are not groups. A value that differs from an existing module only by case uses that module: `mod:model knowledge:Note` prints "Using existing module Knowledge (you typed knowledge)." and writes to `app/Modules/Knowledge`. A near miss, one or two letters from an existing name such as `Knowledg`, asks whether you meant an existing module or a new one. Without a terminal to ask in, such as with `--no-interaction` or in CI, it starts the new module and says so:
-
-```bash
-php artisan mod:model Knowledg:Note --no-interaction
-# ->  INFO  Created new module Knowledg (existing: Agents, Knowledge).
-```
-
-### The DDD Layout
-
-The `ddd` layout uses [laravel-ddd](https://github.com/teylabs/laravel-ddd)'s folders: domain classes in `src/Domain`, and controllers, requests and middleware in `app/Modules`. The preset declares no frontend folders, view namespaces or routes root. Markdown mail and notification views use Laravel’s normal `resources/views` folder and unqualified names. Extend the layout with `->frontend(...)` or a routes mount to opt in. Run `php artisan mod:autoload` to add the `Domain` namespace to your `composer.json` autoload and reload Composer:
-
-```json
-"autoload": {
-    "psr-4": {
-        "App\\": "app/",
-        "Domain\\": "src/Domain/"
-    }
-}
-```
-
-```bash
-php artisan mod:autoload
-
-php artisan mod:dto Knowledge:DocumentData
-# -> src/Domain/Shared/Data/DataTransferObject.php (created once)
-# -> src/Domain/Knowledge/Data/DocumentData.php
-
-php artisan mod:action Knowledge:IndexDocument
-# -> src/Domain/Knowledge/Actions/IndexDocument.php
-```
-
-`mod:value-object` and `mod:view-model` complete the set, and laravel-ddd's command names work as aliases (`mod:data`, `mod:value`, `mod:viewmodel`). See [docs/layouts.md](docs/layouts.md#the-ddd-layout) for every folder and for adding a layer such as `src/Infrastructure`.
-
-### Starter Stubs and Base Classes
-
-`mod:dto`, `mod:view-model`, `mod:value-object` and `mod:action` start as plain Laravel-style classes, in any layout that has them (`modules` and `ddd` have all four). When [spatie/laravel-data](https://github.com/spatie/laravel-data), [spatie/laravel-view-models](https://github.com/spatie/laravel-view-models) or [lorisleiva/laravel-actions](https://github.com/lorisleiva/laravel-actions) is installed, mod uses it instead:
-
-```bash
-php artisan mod:dto Knowledge:DocumentData
-# ->  INFO  Using spatie/laravel-data (installed).
-```
-
-Otherwise DTOs and view models extend a base class mod writes into your app once: `App\Support\Data\DataTransferObject` and `App\Support\ViewModels\ViewModel` in `app/Support`, or `src/Domain/Shared` in the `ddd` layout. A base is yours from then on: mod never overwrites it, and `php artisan mod:bases` writes any that are missing. [Starter Stubs](docs/layouts.md#starter-stubs) covers each starter, your own base classes and published stubs.
-
-### Auto-Discovery
-
-Providers, Artisan commands, event listeners and event subscribers anywhere your layout places them are registered with Laravel. The listener from [Generating](#generating) needs no registration:
-
-```bash
-php artisan event:list --event=DocumentUploaded
-# -> App\Modules\Knowledge\Events\DocumentUploaded
-# ->   ⇂ App\Modules\Knowledge\Listeners\GenerateEmbeddings@handle
-```
-
-A listener Laravel's own event discovery already registers is never registered twice. Migration folders such as `app/Modules/Knowledge/Database/Migrations` are added to Laravel's migrator, so `migrate`, `migrate:rollback` and `migrate:status` include them. A model finds its factory and policy through the layout, with no registration:
-
-```php
-use App\Modules\Knowledge\Models\Document;
-use Illuminate\Support\Facades\Gate;
-
-Document::factory();                 // App\Modules\Knowledge\Database\Factories\DocumentFactory
-Gate::getPolicyFor(Document::class); // App\Modules\Knowledge\Policies\DocumentPolicy
-```
-
-[docs/discovery.md](docs/discovery.md) covers what is discovered where.
-
-### Your Own File Types
-
-Add a file type to any layout with one line in a service provider:
-
-```php
-// app/Providers/AppServiceProvider.php
-use Tey\Mod\Facades\Mod;
-
-public function boot(): void
-{
-    Mod::layout('modules')->generates('validator', in: 'Modules/{module}/Validators', suffix: 'Validator');
-}
-```
-
-```bash
-php artisan mod:validator Knowledge:Upload
-# -> app/Modules/Knowledge/Validators/UploadValidator.php
-```
-
-It starts as an empty class. To start from your own stub, add `stubs/mod.validator.stub` to your app, using `{{ namespace }}` and `{{ class }}` where the class's namespace and name go.
-
-### Scaffolds
-
-A scaffold is a recipe of several file types generated together. Register it in a service provider:
-
-```php
-use Tey\Mod\Facades\Mod;
-use Tey\Mod\Scaffolds\Scaffold;
-
-Mod::scaffold('document', fn (Scaffold $s) => $s
-    ->makes('model', as: 'model')
-    ->makes('controller', name: '{name}Controller', as: 'controller',
-        options: ['--resource']));
-```
-
-```bash
-php artisan mod:document Knowledge:Document --no-interaction
-```
-
-Each member follows the active layout. Aliases such as `{{ model }}` and `{{ model.fqcn }}` expose sibling class names to templates. Use named variants (`stub: 'crud'`, stored in `stubs/mod.controller.crud.stub`) for a house pattern, and `->include('document')` to reuse a recipe. A later member with the same alias replaces an included member.
-
-Mod plans the whole scaffold before writing. Use `--skip-existing` to keep existing members and generate the rest, or `--force` to replace them. Questions, repeated parts and anchored inserts let a recipe grow later through `mod:<root>.<part>` commands. Members generate PHP classes, migrations and plain frontend files. An insert can start an anchored routes file; load it with `Mod::routes()` or a module provider.
-
-See [Scaffolds](https://mod.teylabs.com/going-further/scaffolds) for recipes, packages and growing a cluster.
-
-### Renaming Clusters
-
-Start with a clean committed Git application and the complete recipe that generated its members:
-
-```bash
-php artisan mod:rename Inventory:Widget Catalog:Gadget --scaffold=<app-recipe> --dry-run --json
-php artisan mod:rename Inventory:Widget Catalog:Gadget --scaffold=<app-recipe> --yes --no-interaction
-```
-
-The compiled layout determines both identities. Supported PHP/frontend references change while edited bodies are preserved; missing parsing capabilities leave reference bytes unchanged with a located manual checklist. Review the staged diff and application checks before committing. Rename moves a cluster, never an entire module or its layout defaults. Historical migrations stay unchanged; `--table-migration` selects a new reversible candidate without executing it.
-
-After interruption, inspect `php artisan mod:rename --recover --dry-run --json`, then use `--recover --yes --no-interaction` after reviewing conflicts and preserving outside edits. See [Renaming and moving](docs/renaming.md) for explicit recipe history, all flags, parser support and recovery limits.
-
-### Working with AI Agents
-
-Agents drift. Each session works out again where a model, a page or a listener belongs. Conventions written in a prompt or `CLAUDE.md` go stale as the app grows, and five sessions later the same feature has five shapes. Mod keeps the structure in code, where an agent can ask for it and can't get it wrong:
-
-- **It knows where things go.** `php artisan mod:list --json` describes the layout: its groups, file types, templates, scaffolds, routes, views and frontend paths. Agents read it before writing anything.
-- **Generators place files, agents don't.** `mod:model Billing:Invoice` puts the model, its factory and its migration where your layout says, the same way every time.
-- **Previews before writes.** Every command that writes files accepts `--dry-run --json` and prints exactly what it would create or change, without writing or prompting. An agent (or its reviewer) checks the plan, then runs the command.
-- **Your patterns become commands.** A template or scaffold captures how your team builds a feature, so an agent generates the same shape you would, instead of improvising.
-- **Names stay aligned.** When a feature is renamed, `mod:rename` moves every member and updates the references, so old names don't linger for the next session to copy.
-- **Laravel Boost support.** Mod ships a [Laravel Boost](https://laravel.com/docs/boost) guideline and a `mod-development` skill, plus read-only `mod-inventory` and `mod-plan` MCP tools. With Boost installed, run `php artisan boost:install`, choose `tey/mod` among the third-party packages, and select its guideline and skill. Run `php artisan boost:update` after updating mod.
-
-### Self-Contained Modules
-
-Keep everything a feature needs in one folder, so you can copy it to the next project. The `modules` layout keeps models, migrations, factories, policies, controllers, actions, DTOs, view models, value objects, events, listeners and jobs inside each module. Build two modules, Knowledge and Agents:
-
-```bash
-php artisan mod:model Knowledge:Document -mf --controller --resource --requests
-php artisan mod:policy Knowledge:DocumentPolicy --model=Document
-php artisan mod:action Knowledge:IndexDocument
-php artisan mod:dto Knowledge:DocumentData
-php artisan mod:event Knowledge:DocumentUploaded
-php artisan mod:listener Knowledge:GenerateEmbeddings --event=DocumentUploaded
-php artisan mod:view-model Knowledge:ShowDocument
-
-php artisan mod:model Agents:Conversation -m
-php artisan mod:action Agents:AnswerQuestion
-php artisan mod:value-object Agents:TokenUsage
-php artisan mod:job Agents:GenerateReply
-```
-
-<details>
-<summary>The resulting <code>app/Modules/</code> folder</summary>
-
-```text
-app/Modules/
-├── Agents/
-│   ├── Actions/
-│   │   └── AnswerQuestion.php
-│   ├── Database/
-│   │   └── Migrations/
-│   │       └── 2026_10_08_120001_create_conversations_table.php
-│   ├── Jobs/
-│   │   └── GenerateReply.php
-│   ├── Models/
-│   │   └── Conversation.php
-│   └── ValueObjects/
-│       └── TokenUsage.php
-└── Knowledge/
-    ├── Actions/
-    │   └── IndexDocument.php
-    ├── Data/
-    │   └── DocumentData.php
-    ├── Database/
-    │   ├── Factories/
-    │   │   └── DocumentFactory.php
-    │   └── Migrations/
-    │       └── 2026_10_08_120000_create_documents_table.php
-    ├── Events/
-    │   └── DocumentUploaded.php
-    ├── Http/
-    │   ├── Controllers/
-    │   │   └── DocumentController.php
-    │   └── Requests/
-    │       ├── StoreDocumentRequest.php
-    │       └── UpdateDocumentRequest.php
-    ├── Listeners/
-    │   └── GenerateEmbeddings.php
-    ├── Models/
-    │   └── Document.php
-    ├── Policies/
-    │   └── DocumentPolicy.php
-    └── ViewModels/
-        └── ShowDocument.php
-```
-
-</details>
-
-Inside a module, `--model=Document` means the module's `Document`, so the policy imports `App\Modules\Knowledge\Models\Document` and `Gate::getPolicyFor(Document::class)` finds it. The DTO and the view model extend the shared base classes in `app/Support`, which the first `mod:dto` and `mod:view-model` write once.
-
-#### Module Routes
-
-A module keeps its routes in its own `routes/` folder. Load every module's route files with one call in `bootstrap/app.php`:
-
-```php
-// bootstrap/app.php
-use Tey\Mod\Facades\Mod;
-
-->withRouting(
-    web: __DIR__.'/../routes/web.php',
-    commands: __DIR__.'/../routes/console.php',
-    then: fn () => Mod::routes(),
-)
-```
-
-```bash
-php artisan mod:routes Knowledge
-# -> app/Modules/Knowledge/routes/web.php
-```
-
-```php
-// app/Modules/Knowledge/routes/web.php
-<?php
-
-use App\Modules\Knowledge\Http\Controllers\DocumentController;
-use Illuminate\Support\Facades\Route;
-
-Route::resource('documents', DocumentController::class);
-```
-
-Web route files get Laravel's `web` middleware; `--api` adds an `api.php` with the `api` middleware and `/api` prefix. `php artisan route:list` shows the module's routes, and `route:cache` includes them. See [Module Routes](https://mod.teylabs.com/going-further/routes) for ordering, `only`/`except` and route groups.
-
-#### Copying a Module
-
-Each module is one folder, and its routes, migrations, listeners, factories and policies come with it. The other project needs mod installed with `'layout' => 'modules'` in `config/mod.php`. Then copy the folder and run `php artisan mod:bases` once to write the base classes its DTOs and view models extend.
-
-To define a layout from scratch instead, see [Defining a Layout](docs/layouts.md#defining-a-layout).
-
-## Configuration
-
-| Option | Default | Description |
-| --- | --- | --- |
-| `layout` | `'laravel'` | The active layout: a built-in name or one you define |
-| `commands` | `true` | Register the `mod:*` commands |
-| `generators` | `[]` | Replace the command behind a file type, by type |
-| `bases` | `null` each | The class DTOs, view models, value objects and actions extend, by file type |
-| `bases_path` | `'app/Support'` | Where generated base classes go |
-| `discovery.enabled` | `true` | Register discovered providers, commands, listeners and subscribers; `false` also turns off factory and policy lookup |
-| `discovery.file_types` | `[]` | Discover more file types by file type id, or `false` to skip one, such as `'migration' => false` |
-| `discovery.cache` | `'bootstrap/cache/mod-discovery.php'` | Where the discovery cache is written |
-| `discovery.on_stale_cache` | `'scan'` | `'scan'` ignores an outdated cache with a warning; `'fail'` stops the app booting |
-| `discovery.factories` | `true` | Find factories for models the layout places |
-| `discovery.policies` | `true` | Find policies for models the layout places |
-
-## Production
-
-`php artisan optimize` caches discovery, and `php artisan optimize:clear` clears it:
-
-```bash
-php artisan mod:cache   # also run by optimize
-php artisan mod:clear   # also run by optimize:clear
-```
-
-Like Laravel's own caches, the discovery cache doesn't pick up new classes. Run `php artisan optimize:clear` after adding a provider, command or listener while it exists.
-
-`mod:cache` counts the files it found but didn't register as "rejected", and says why. Plain classes such as `app/Models/User.php` need nothing; [Caching](docs/discovery.md#caching) explains each reason.
+| Layouts | `'layout' => 'modules'` in `config/mod.php` | [Layouts](https://mod.teylabs.com/basics/layouts) |
+| Generators | `mod:model Knowledge:Document --all` | [Generating files](https://mod.teylabs.com/basics/generating-files) |
+| Auto-discovery | providers, commands, listeners, migrations, factories and policies, found wherever they live | [Auto-discovery](https://mod.teylabs.com/basics/auto-discovery) |
+| Your own generators | `mod:template tool`, then `mod:tool Knowledge:Search` | [Custom generators](https://mod.teylabs.com/going-further/custom-generators) |
+| Scaffolds | several related files from one recipe | [Scaffolds](https://mod.teylabs.com/going-further/scaffolds) |
+| Module routes and views | `Mod::routes()`, `view('knowledge::documents.show')` | [Routes](https://mod.teylabs.com/going-further/routes) |
+| Renames | `mod:rename Knowledge:Document Knowledge:Article` | [Renaming](https://mod.teylabs.com/going-further/renaming) |
+
+## Working with AI Agents
+
+Conventions written in a prompt drift as an app grows. Mod keeps your structure in code, where coding agents can ask for it:
+
+- `php artisan mod:list --json` tells an agent where every kind of file goes.
+- Every command that writes files previews its plan with `--dry-run --json`.
+- Mod ships a [Laravel Boost](https://laravel.com/docs/boost) guideline, skill and read-only MCP tools. Run `php artisan boost:install` and choose `tey/mod`.
+
+See [Agents](https://mod.teylabs.com/going-further/agents).
 
 ## FAQ
 
 ### Can I Add Mod to an Existing App?
 
-Yes. Mod doesn't move or change existing files, and `make:*` keeps working. Start on the `laravel` layout, which places files like `make:*`, and switch layouts when you're ready. Classes already in Laravel's default folders keep working as before.
+Yes. Mod doesn't move existing files, and `make:*` keeps working. Start on the `laravel` layout and switch when you're ready.
 
-### Do Folders Outside `app/` Need Autoloading?
+### When to Choose Mod over the Alternatives
 
-Yes. A layout that writes outside `app/`, such as `ddd`'s `src/Domain`, needs a PSR-4 entry in your `composer.json` autoload, as shown in [The DDD Layout](#the-ddd-layout). Run `php artisan mod:autoload` to add missing mappings and reload Composer.
+There are several good ways to organize a Laravel app. Pick by what you need:
 
-### How Is This Different from nwidart/laravel-modules or InterNACHI/modular?
+- **[nwidart/laravel-modules](https://github.com/nWidart/laravel-modules)**: modules you can switch on and off, each with its own config and assets. The most established option.
+- **[InterNACHI/modular](https://github.com/InterNACHI/modular)**: each module as its own Composer package, close to plain Laravel, with Blade components and translations loaded per module.
+- **[laravel-ddd](https://github.com/teylabs/laravel-ddd)**: mod's precursor, for domain-driven design with nothing else to learn. Mod's `ddd` layout keeps the same folders if you outgrow it.
+- **Mod**: your own structure, whether feature folders, vertical slices, DDD, a modular monolith or a mix, with Laravel's own `make:*`, generators for your team's patterns, and a structure your coding agents can read.
 
-| | [nwidart/laravel-modules](https://github.com/nWidart/laravel-modules) | [InterNACHI/modular](https://github.com/InterNACHI/modular) | Mod |
-| --- | --- | --- | --- |
-| Structure | `Modules/<Module>/` | `app-modules/<module>/` | a built-in layout or your own |
-| Per module | config, plus a Composer merge plugin | a `composer.json` | a folder |
-| Generators | `module:make-*` | `make:*` with `--module=` | `mod:*`, built on `make:*` |
-| Discovered | providers | providers, commands, migrations, factories, policies, listeners, Blade components, translations | providers, commands, listeners, subscribers, migrations, factories, policies, plus module routes (one `Mod::routes()` call) and view namespaces |
-
-Both are mature. nwidart/laravel-modules also enables and disables modules at runtime and handles per-module assets. InterNACHI/modular also loads Blade components and translations. Mod doesn't load per-module translations or assets; module routes load with one `Mod::routes()` call, as in [Module Routes](#module-routes). Choose mod to keep a structure you already have, or to use DDD, feature folders or vertical slices instead of one module format.
+Mod isn't the right fit yet if you need a stable 1.0 API, per-module translations or assets, or modules you can switch on and off at runtime.
 
 ## Documentation
 
-The full documentation, with guides and a complete reference, is at [mod.teylabs.com](https://mod.teylabs.com). The pages below cover the same ground in this repository.
-
-- [Layouts](docs/layouts.md): every built-in layout's folders, defining a layout, and adding a layer
-- [Discovery](docs/discovery.md): what is discovered where, caching, and supplying your own files
-- [Extending Mod](docs/extending.md): writing a package that adds file types, stubs and commands
+Everything else, including [configuration](https://mod.teylabs.com/reference/configuration), [production caching](https://mod.teylabs.com/basics/auto-discovery#caching-discovery-in-production) and the [command reference](https://mod.teylabs.com/reference/commands), is at [mod.teylabs.com](https://mod.teylabs.com).
 
 ## Testing
 
