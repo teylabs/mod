@@ -103,7 +103,7 @@ Yes. Mod doesn't move existing files, and `make:*` keeps working. Start on the `
 
 Yes. Run `php artisan mod:autoload` to add the mappings to `composer.json`.
 
-### Which Package Is Right for Me?
+### When to Choose Mod over the Alternatives
 
 There are several good ways to organize a Laravel app. Pick by what you need:
 
