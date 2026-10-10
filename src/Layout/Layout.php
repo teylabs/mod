@@ -49,6 +49,12 @@ final class Layout
     /** @var list<string> */
     private array $excluded = [];
 
+    /** @var list<string> exclusions eligible for claims by this child */
+    private array $inheritedExclusions = [];
+
+    /** @var array<string, list<string>> exclusion entry → explicitly claimed root names */
+    private array $exclusionMounts = [];
+
     /** @var array<string, Scaffold> */
     private array $scaffoldRecipes = [];
 
@@ -94,6 +100,8 @@ final class Layout
 
     /**
      * A namespace ↔ folder mapping file types are placed in; a null namespace makes a root for plain files.
+     * After extends(), an explicit mount removes an equal inherited exclusion or
+     * carves its subtree out of a broader one. Child exclusions still apply.
      *
      * @param  (Closure(Root): mixed)|null  $fn  declares file types that live in this root
      *
@@ -104,6 +112,9 @@ final class Layout
         $this->guard();
 
         $this->roots[$name] = ['namespace' => $namespace === '' ? null : $namespace, 'path' => $path];
+        foreach ($this->inheritedExclusions as $entry) {
+            $this->exclusionMounts[$entry] = array_values(array_unique([...($this->exclusionMounts[$entry] ?? []), $name]));
+        }
 
         if ($fn !== null) {
             $fn(new Root($name, $this));
@@ -266,6 +277,9 @@ final class Layout
         $this->guard();
 
         foreach ($excluded as $entry) {
+            // Re-declaring an inherited entry is an explicit child exclusion.
+            unset($this->exclusionMounts[$entry]);
+            $this->inheritedExclusions = array_values(array_diff($this->inheritedExclusions, [$entry]));
             if (! in_array($entry, $this->excluded, true)) {
                 $this->excluded[] = $entry;
             }
@@ -331,6 +345,8 @@ final class Layout
         $this->kinds = array_map(static fn (FileType $type): FileType => clone $type, $source->kinds);
         $this->relations = $source->relations;
         $this->excluded = $source->excluded;
+        $this->inheritedExclusions = $source->excluded;
+        $this->exclusionMounts = $source->exclusionMounts;
         $this->commands = $source->commands;
         $this->scaffoldRecipes = $source->scaffoldRecipes;
         $this->groupPath = $source->groupPath;
@@ -477,7 +493,7 @@ final class Layout
     }
 
     /**
-     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, FileType>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, mode: string|RelationMode|null}>, excluded: list<string>, commands: bool, path: ?string, nesting: list<string>, errors: list<string>, frontend: array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string}, mirror_pages: bool}
+     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, FileType>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, mode: string|RelationMode|null}>, excluded: list<string>, exclusion_mounts: array<string, list<string>>, commands: bool, path: ?string, nesting: list<string>, errors: list<string>, frontend: array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string}, mirror_pages: bool}
      *
      * @internal
      */
@@ -524,6 +540,7 @@ final class Layout
             'kinds' => $kinds,
             'relations' => $this->relations,
             'excluded' => $this->excluded,
+            'exclusion_mounts' => $this->exclusionMounts,
             'commands' => $this->commands,
             'path' => $path,
             'nesting' => $this->nesting,

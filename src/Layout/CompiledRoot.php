@@ -12,12 +12,46 @@ use Tey\Mod\Support\Path;
  */
 final readonly class CompiledRoot
 {
+    /** @param list<self> $exceptions subtrees claimed inside an exclusion */
     private function __construct(
         /** @api */
         public ?string $namespace,
         /** @api */
         public string $path,
+        private array $exceptions = [],
     ) {}
+
+    /**
+     * @internal
+     *
+     * @param  list<self>  $exceptions
+     */
+    public function except(array $exceptions): self
+    {
+        return new self($this->namespace, $this->path, $exceptions);
+    }
+
+    /**
+     * @internal
+     *
+     * @return list<self>
+     */
+    public function exceptions(): array
+    {
+        return $this->exceptions;
+    }
+
+    /** Keep walking an excluded directory if it contains a claimed subtree. @internal */
+    public function canTraverse(string $path): bool
+    {
+        foreach ($this->exceptions as $exception) {
+            if (Path::relative($path, $exception->path) !== null) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /** @internal */
     public static function psr4(string $namespace, string $path): self
@@ -48,6 +82,12 @@ final readonly class CompiledRoot
             return null;
         }
 
+        foreach ($this->exceptions as $exception) {
+            if ($exception->namespaceRemainder($fqcn) !== null) {
+                return null;
+            }
+        }
+
         return substr($fqcn, strlen($this->namespace));
     }
 
@@ -58,6 +98,12 @@ final readonly class CompiledRoot
      */
     public function pathRemainder(string $path): ?string
     {
+        foreach ($this->exceptions as $exception) {
+            if ($exception->pathRemainder($path) !== null) {
+                return null;
+            }
+        }
+
         return Path::relative($this->path, $path);
     }
 

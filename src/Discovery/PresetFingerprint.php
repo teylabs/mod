@@ -43,7 +43,7 @@ final readonly class PresetFingerprint
 
         return hash('sha256', serialize([
             'roots' => $roots,
-            'excluded' => array_map($describeRoot, $preset->excludedRoots()),
+            'excluded' => array_map(static fn (CompiledRoot $root): string|array => $root->exceptions() === [] ? $describeRoot($root) : [$describeRoot($root), array_map($describeRoot, $root->exceptions())], $preset->excludedRoots()),
             'dimensions' => $preset->dimensionNames(),
             'kinds' => $kinds,
             'templates' => array_map(static fn (array $template): array => [$template['path'], $template['source'], $template['digest']], $preset->templates()),
