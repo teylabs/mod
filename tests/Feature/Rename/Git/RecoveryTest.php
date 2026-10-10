@@ -10,6 +10,7 @@ use Tey\Mod\Tests\Feature\Acceptance\Examples\Rename\Support\RenameScenario as S
 use Tey\Mod\Tests\Feature\Boost\Scenario;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Feature\Scaffolds\Support\Examples;
+use Tey\Mod\Tests\Support\Checkpoint;
 use Tey\Mod\Tests\Support\JsonSchema;
 
 function transactionWorker(Workspace $w, string $action, string $phase = ''): Process
@@ -22,7 +23,7 @@ function killAtBarrier(Process $process): void
     $process->setTimeout(60);
     $process->start();
     try {
-        expect($process->waitUntil(static fn (string $type, string $output): bool => str_contains($output, 'BARRIER')))->toBeTrue($process->getErrorOutput());
+        expect(Checkpoint::wait($process))->toBeTrue($process->getErrorOutput());
     } finally {
         $process->stop(0, 9);
     }
@@ -35,7 +36,7 @@ it('serializes worktree execution before planning and reuses a stale kernel lock
         $process = transactionWorker($w, 'execute', 'prepared');
         $process->start();
         try {
-            expect($process->waitUntil(static fn (string $type, string $output): bool => str_contains($output, 'BARRIER')))->toBeTrue($process->getErrorOutput());
+            expect(Checkpoint::wait($process))->toBeTrue($process->getErrorOutput());
             $w->artisan('mod:rename', ['old' => 'Inventory:Widget', 'new' => 'Inventory:Gadget', '--scaffold' => 'model-only', '--yes' => true])->assertFailed()->expectsOutputToContain('already running in this worktree');
         } finally {
             $process->stop(0, 9);

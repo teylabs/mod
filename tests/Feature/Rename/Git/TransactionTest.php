@@ -7,6 +7,7 @@ use Tey\Mod\Rename\Request;
 use Tey\Mod\Rename\Result;
 use Tey\Mod\Tests\Feature\Acceptance\Examples\Rename\Support\RenameScenario as S;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
+use Tey\Mod\Tests\Support\Checkpoint;
 
 function renameRequest(): Request
 {
@@ -94,7 +95,7 @@ it('recovers a killed process and preserves unrelated working and staged changes
         $process = new Process([PHP_BINARY, $worker, $w->root->path, 'execute', $phase], timeout: 60);
         $process->start();
         try {
-            expect($process->waitUntil(static fn (string $type, string $output): bool => str_contains($output, 'BARRIER')))->toBeTrue($process->getErrorOutput());
+            expect(Checkpoint::wait($process))->toBeTrue($process->getErrorOutput());
         } finally {
             $process->stop(0, 9);
         }
