@@ -107,10 +107,10 @@ Yes. Run `php artisan mod:autoload` to add the mappings to `composer.json`.
 
 There are several good ways to organize a Laravel app. Pick by what you need:
 
-- **Modules you can switch on and off, each with its own config and assets:** [nwidart/laravel-modules](https://github.com/nWidart/laravel-modules), the most established option.
-- **Each module as its own Composer package**, close to plain Laravel, with Blade components and translations loaded per module: [InterNACHI/modular](https://github.com/InterNACHI/modular).
-- **Domain-driven design with nothing else to learn:** [laravel-ddd](https://github.com/teylabs/laravel-ddd). Mod's `ddd` layout keeps the same folders if you outgrow it.
-- **Your own structure**, whether feature folders, vertical slices, DDD, a modular monolith or a mix, with Laravel's own `make:*`, generators for your team's patterns, and a structure your coding agents can read: mod.
+- **[nwidart/laravel-modules](https://github.com/nWidart/laravel-modules)**: modules you can switch on and off, each with its own config and assets. The most established option.
+- **[InterNACHI/modular](https://github.com/InterNACHI/modular)**: each module as its own Composer package, close to plain Laravel, with Blade components and translations loaded per module.
+- **[laravel-ddd](https://github.com/teylabs/laravel-ddd)**: domain-driven design with nothing else to learn. Mod's `ddd` layout keeps the same folders if you outgrow it.
+- **Mod**: your own structure, whether feature folders, vertical slices, DDD, a modular monolith or a mix, with Laravel's own `make:*`, generators for your team's patterns, and a structure your coding agents can read.
 
 Mod isn't the right fit yet if you need a stable 1.0 API, per-module translations or assets, or modules you can switch on and off at runtime.
 
