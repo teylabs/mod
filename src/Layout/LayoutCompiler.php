@@ -364,7 +364,10 @@ final class LayoutCompiler
 
         foreach ($entries as $entry) {
             $call = "->excludes('{$entry}')";
-            $resolved = str_contains($entry, '\\') ? $this->excludedNamespace($entry, $roots) : $this->excludedPath($entry, $roots);
+            // Drive and UNC paths can contain backslashes just like namespaces.
+            $isNamespace = str_contains($entry, '\\') && ! str_contains($entry, '/')
+                && preg_match('#^(?:[A-Za-z]:/|//)#', Path::normalize($entry)) !== 1;
+            $resolved = $isNamespace ? $this->excludedNamespace($entry, $roots) : $this->excludedPath($entry, $roots);
 
             if ($resolved === null) {
                 $this->issue(PresetIssueCode::UnknownRoot, $call, 'lies inside no declared root');
@@ -383,13 +386,13 @@ final class LayoutCompiler
                 // Normalize boundaries before testing containment.
                 $namespace = $root['namespace'] === null ? null : trim($root['namespace'], '\\').'\\';
                 $path = CompiledRoot::normalisePath($root['path']);
-                $within = str_contains($entry, '\\')
+                $within = $isNamespace
                     ? $namespace !== null && str_starts_with($namespace, $resolved['namespace'] ?? '')
                     : Path::relative($resolved['path'], $path) !== null;
                 if (! $within) {
                     continue;
                 }
-                $equal = $equal || (str_contains($entry, '\\')
+                $equal = $equal || ($isNamespace
                     ? $namespace === ($resolved['namespace'] ?? null)
                     : $path === $resolved['path']);
                 $exceptions[] = array_filter(['namespace' => $namespace, 'path' => $path], static fn (?string $value): bool => $value !== null);

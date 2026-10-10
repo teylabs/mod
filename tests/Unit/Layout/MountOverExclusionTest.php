@@ -4,6 +4,32 @@ use Tey\Mod\Discovery\PresetFingerprint;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Layout\Root;
 use Tey\Mod\Reverse\ReverseMapper;
+use Tey\Mod\Support\Path;
+
+it('treats Windows absolute exclusions as paths with native or mixed separators', function (string $appPath, string $exclusion, bool $equal) {
+    $registry = new LayoutRegistry;
+    $registry->layout('parent')->path('app')->mounts('app', 'App\\', $appPath)->excludes($exclusion);
+    $kitPath = Path::join($appPath, 'Support/Kit');
+    $compiled = $registry->layout('child')->extends('parent')
+        ->mounts('kit', 'App\\Support\\Kit\\', $kitPath, fn (Root $root) => $root->generates('kit', in: ''))->compile();
+    $mapper = new ReverseMapper($compiled);
+    expect($compiled->excludedRoots())->toHaveCount($equal ? 0 : 1)
+        ->and($mapper->fromClass('App\\Support\\Kit\\Thing')->isMatched())->toBeTrue()
+        ->and($mapper->fromPath(Path::join($kitPath, 'Thing.php'))->isMatched())->toBeTrue();
+    if (! $equal) {
+        foreach (['Other', 'KitExtra'] as $sibling) {
+            expect($mapper->fromClass('App\\Support\\'.$sibling.'\\Thing')->reason)->toContain('excluded')
+                ->and($mapper->fromPath(Path::join($appPath, 'Support', $sibling, 'Thing.php'))->reason)->toContain('excluded');
+        }
+    }
+})->with([
+    'drive native broader' => ['C:\\work\\app', 'C:\\work\\app\\Support', false],
+    'drive mixed broader' => ['C:\\work\\app', 'C:\\work\\app/Support', false],
+    'drive native equal' => ['C:\\work\\app', 'C:\\work\\app\\Support\\Kit', true],
+    'UNC native broader' => ['\\\\server\\share\\app', '\\\\server\\share\\app\\Support', false],
+    'UNC mixed broader' => ['\\\\server\\share\\app', '\\\\server\\share\\app/Support', false],
+    'UNC native equal' => ['\\\\server\\share\\app', '\\\\server\\share\\app\\Support\\Kit', true],
+]);
 
 it('carves only mounted subtrees out of inherited namespace and path exclusions', function (string $exclusion) {
     $registry = new LayoutRegistry;
