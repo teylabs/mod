@@ -2,7 +2,6 @@
 
 namespace Tey\Mod\Rename;
 
-use Symfony\Component\Process\Process;
 use Tey\Mod\Support\Path;
 
 /** @internal Read-only even when Git normally refreshes the index on status. */

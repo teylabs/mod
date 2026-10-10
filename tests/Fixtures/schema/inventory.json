@@ -716,7 +716,8 @@
         "requires_scaffold",
         "flags",
         "nested_answer",
-        "recipes"
+        "recipes",
+        "recovery"
       ],
       "properties": {
         "command": {
@@ -775,6 +776,37 @@
                   "type": "string"
                 }
               }
+            }
+          }
+        },
+        "recovery": {
+          "type": "object",
+          "required": [
+            "inspection",
+            "execution",
+            "cluster_arguments",
+            "clean_tree",
+            "storage",
+            "compare_before_restore"
+          ],
+          "properties": {
+            "inspection": {
+              "type": "boolean"
+            },
+            "execution": {
+              "type": "boolean"
+            },
+            "cluster_arguments": {
+              "type": "boolean"
+            },
+            "clean_tree": {
+              "type": "boolean"
+            },
+            "storage": {
+              "type": "string"
+            },
+            "compare_before_restore": {
+              "type": "boolean"
             }
           }
         }

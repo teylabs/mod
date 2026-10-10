@@ -24,5 +24,6 @@ SOURCE;
         $result = app(Planner::class)->build(new Request('Inventory:Widget', 'Inventory:Gadget', 'model-only'));
         expect($result->bodies[$path])->toBe(str_replace(['{Widget as', 'Models\\Widget::'], ['{Gadget as', 'Models\\Gadget::'], $before));
         expect($result->bodies['app/Consumer.php'])->toBe('<?php use App\Modules\Inventory\Models\Gadget; $w = new Gadget; Gadget::find(1);');
+        S::apply($w);
     });
 });

@@ -4,7 +4,7 @@ namespace Tey\Mod\Rename\Frontend;
 
 use Symfony\Component\Process\Exception\RuntimeException;
 use Symfony\Component\Process\ExecutableFinder;
-use Symfony\Component\Process\Process;
+use Tey\Mod\Rename\Process;
 
 /** @internal Arguments and stdin are passed without a shell. */
 final class NodeRunner implements Runner

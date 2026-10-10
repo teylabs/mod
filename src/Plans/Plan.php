@@ -33,6 +33,11 @@ final class Plan
 
     public bool $wouldWrite = true;
 
+    public ?string $notice = null;
+
+    /** @var null|array{journal: string, phase: string, operations: list<string>, checkpoint: string} */
+    public ?array $recovery = null;
+
     public function __construct(public readonly string $command, public ?string $group = null, public ?string $name = null) {}
 
     public function artifact(string $alias, ResolvedArtifact $artifact, string $basePath, ?string $existing = null): void
@@ -86,6 +91,6 @@ final class Plan
     /** @return array<string, mixed> */
     public function toArray(): array
     {
-        return ['command' => $this->command, 'group' => $this->group, 'name' => $this->name, 'files' => $this->files, 'inserts' => $this->inserts, 'warnings' => $this->warnings, 'would_write' => $this->wouldWrite, ...($this->command === 'mod:rename' ? $this->renameFields() : []), ...($this->mentions === [] ? [] : ['mentions' => $this->mentions])];
+        return ['command' => $this->command, 'group' => $this->group, 'name' => $this->name, 'files' => $this->files, 'inserts' => $this->inserts, 'warnings' => $this->warnings, 'would_write' => $this->wouldWrite, ...($this->command === 'mod:rename' ? $this->renameFields() : []), ...($this->recovery === null ? [] : ['recovery' => $this->recovery]), ...($this->mentions === [] ? [] : ['mentions' => $this->mentions])];
     }
 }

@@ -19,5 +19,10 @@ it('R6 preserves manual model bytes and reports explicit table strings', functio
         $w->write($path, str_replace('class Widget', 'class StockItem', $before));
         S::commit($w);
         expect(S::preview($w)['would_write'])->toBeFalse();
+        S::apply($w, success: false);
+        $w->write($path, $before);
+        S::commit($w);
+        S::apply($w);
+        expect($w->read('app/Modules/Inventory/Models/Gadget.php'))->toBe(str_replace('class Widget', 'class Gadget', $before));
     });
 })->with(["\n", "\r\n"]);

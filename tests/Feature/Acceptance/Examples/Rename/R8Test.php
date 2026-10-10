@@ -17,6 +17,7 @@ it('R8 refuses missing sources occupied destinations and canonical no-ops withou
         S::commit($w);
         $data = S::preview($w, $options);
         expect($data['would_write'])->toBeFalse()->and(array_column($data['warnings'], 'message'))->toContain($message);
+        S::apply($w, $options, false);
     });
 })->with([
     ['missing', 'mod:rename source app/Modules/Inventory/Models/Widget.php is missing. Restore it or choose a recipe matching the cluster. Nothing was written.'],

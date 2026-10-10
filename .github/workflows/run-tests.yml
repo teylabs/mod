@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -91,6 +92,7 @@ jobs:
 
       - name: Execute tests
         run: vendor/bin/pest --ci --no-coverage
+
 
   boost:
     name: Verify Boost resources

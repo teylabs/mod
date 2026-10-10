@@ -28,5 +28,6 @@ it('R4 requires the full eight-member grown tree and never replays its inserts',
         expect($data['warnings'])->toBe([])->and($data['would_write'])->toBeTrue()->and(count($data['moves']))->toBe(8)
             ->and($data['selection']['answers'])->toBe(['tabs' => ['Overview', 'Details', 'Notes']])->and($data['inserts'])->toBe([])
             ->and(array_column($data['moves'], 'to'))->toContain('app/Modules/Inventory/ViewModels/GadgetNotesViewModel.php', 'app/Modules/Inventory/resources/js/pages/Gadget/Notes.vue');
+        S::apply($w, ['--scaffold' => 'resource-tabs', '--tabs' => ['Overview', 'Details', 'Notes']]);
     });
 });
