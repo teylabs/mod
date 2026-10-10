@@ -103,16 +103,14 @@ Yes. Mod doesn't move existing files, and `make:*` keeps working. Start on the `
 
 Yes. Run `php artisan mod:autoload` to add the mappings to `composer.json`.
 
-### How Is This Different from nwidart/laravel-modules or InterNACHI/modular?
+### How Does Mod Compare with Other Packages?
 
-| | [nwidart/laravel-modules](https://github.com/nWidart/laravel-modules) | [InterNACHI/modular](https://github.com/InterNACHI/modular) | Mod |
-| --- | --- | --- | --- |
-| Structure | `Modules/<Module>/` | `app-modules/<module>/` | a built-in layout or your own |
-| Per module | config, plus a Composer merge plugin | a `composer.json` | a folder |
-| Generators | `module:make-*` | `make:*` with `--module=` | `mod:*`, built on `make:*` |
-| Discovered | providers | providers, commands, migrations, factories, policies, listeners, Blade components, translations | providers, commands, listeners, subscribers, migrations, factories, policies, plus module routes (one `Mod::routes()` call) and view namespaces |
+There are several good ways to organize a Laravel app, and each package makes different tradeoffs:
 
-Both are mature. nwidart/laravel-modules also enables and disables modules at runtime and handles per-module assets. InterNACHI/modular also loads Blade components and translations. Mod doesn't load per-module translations or assets; module routes load with one `Mod::routes()` call, as in [Module Routes](https://mod.teylabs.com/going-further/routes). Choose mod to keep a structure you already have, or to use DDD, feature folders or vertical slices instead of one module format.
+- **[nwidart/laravel-modules](https://github.com/nWidart/laravel-modules)** is the most established. Modules live in `Modules/<Module>/` with their own config and assets, can be enabled or disabled at runtime, and have their own `module:make-*` generators. Choose it when you want modules managed as self-contained units.
+- **[InterNACHI/modular](https://github.com/InterNACHI/modular)** stays close to Laravel. Each module in `app-modules/` is a Composer package, generated with `make:*` and `--module=`, and it also loads Blade components and translations. Choose it when you want each module to be its own package.
+- **[laravel-ddd](https://github.com/teylabs/laravel-ddd)** generates domain-driven design folders with `ddd:*` commands. Choose it for DDD with nothing else to learn. Mod's `ddd` layout keeps the same folders if you outgrow it.
+- **Mod** works with the structure you choose rather than one module format: a modular monolith, feature folders, vertical slices, DDD or your own, with Laravel's own `make:*` underneath. It doesn't manage modules as packages, or load per-module translations and assets.
 
 ## Documentation
 
