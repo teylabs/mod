@@ -1,6 +1,6 @@
 {
     "name": "tey/mod",
-    "description": "Lightweight toolkit for modular development in Laravel. Choose or extend common layouts like DDD and modular monoliths, or create your own.",
+    "description": "Lightweight toolkit for modular development in Laravel, for you and your coding agents. Choose or extend common layouts like DDD and modular monoliths, or create your own.",
     "keywords": [
         "laravel",
         "modules",
@@ -13,7 +13,11 @@
         "generators",
         "artisan",
         "auto-discovery",
-        "scaffolding"
+        "scaffolding",
+        "ai-agents",
+        "coding-agents",
+        "laravel-boost",
+        "mcp"
     ],
     "homepage": "https://github.com/teylabs/mod",
     "license": "MIT",
