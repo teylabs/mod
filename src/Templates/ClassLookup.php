@@ -10,6 +10,7 @@ use RecursiveIteratorIterator;
 use RuntimeException;
 use SplFileInfo;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Support\Path;
 
 /** @internal Filesystem and tokenizer lookup. Never calls class_exists or includes a source. */
@@ -18,7 +19,14 @@ final class ClassLookup
     /** @var list<array{name: string, class: string, file: string}>|null */
     private ?array $index = null;
 
-    public function __construct(private readonly string $basePath, private readonly CompiledLayout $layout) {}
+    /** @var list<CompiledRoot> */
+    private readonly array $exclusions;
+
+    public function __construct(private readonly string $basePath, private readonly CompiledLayout $layout)
+    {
+        $absolute = fn (CompiledRoot $root): CompiledRoot => CompiledRoot::files(Path::resolve($this->basePath, $root->path));
+        $this->exclusions = array_map(static fn (CompiledRoot $root): CompiledRoot => $absolute($root)->except(array_map($absolute, $root->exceptions())), $layout->excludedRoots());
+    }
 
     /** @return list<array{name: string, class: string, file: string}> */
     public function all(): array
@@ -121,8 +129,8 @@ final class ClassLookup
         if (in_array('vendor', explode('/', $path), true)) {
             return true;
         }
-        foreach ($this->layout->excludedRoots() as $root) {
-            if (Path::relative(Path::resolve($this->basePath, $root->path), $path) !== null) {
+        foreach ($this->exclusions as $root) {
+            if ($root->pathRemainder($path) !== null && ! $root->canTraverse($path)) {
                 return true;
             }
         }

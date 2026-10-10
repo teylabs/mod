@@ -2,6 +2,11 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- Explicit `mounts()` after `extends()` takes ownership back from inherited exclusions: an equal exclusion is removed, while a broader exclusion keeps every sibling outside the mounted subtree excluded. Child-declared exclusions still apply. Generation, reverse mapping, discovery and `mod:list` agree on the mounted root.
+
 ## [0.4.0] - 2026-10-10
 
 ### Added

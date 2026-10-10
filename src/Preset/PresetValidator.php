@@ -294,7 +294,19 @@ final class PresetValidator
             $root = $this->root("excluded.{$index}", $entry);
 
             if ($root !== null) {
-                $roots[] = $root;
+                $exceptions = [];
+                $except = is_array($entry) ? ($entry['except'] ?? []) : [];
+                if (! is_array($except) || ! array_is_list($except)) {
+                    $this->issue(PresetIssueCode::InvalidShape, "excluded.{$index}.except", 'must be a list of roots');
+                } else {
+                    foreach ($except as $key => $value) {
+                        $exception = $this->root("excluded.{$index}.except.{$key}", $value);
+                        if ($exception !== null) {
+                            $exceptions[] = $exception;
+                        }
+                    }
+                }
+                $roots[] = $exceptions === [] ? $root : $root->except($exceptions);
             }
         }
 

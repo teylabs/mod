@@ -117,7 +117,7 @@ final class LayoutCompiler
 
         $this->checkPlaceholderTypos($placeholders);
 
-        [$excluded, $excludedCalls] = $this->excluded($chain['excluded'], $roots);
+        [$excluded, $excludedCalls] = $this->excluded($chain['excluded'], $roots, $chain['exclusion_mounts']);
 
         $relations = $chain['relations'];
         foreach ($relations as &$relation) {
@@ -354,9 +354,10 @@ final class LayoutCompiler
     /**
      * @param  list<string>  $entries
      * @param  array<string, array{namespace: ?string, path: string}>  $roots
-     * @return array{list<array<string, string>>, list<string>} the internal exclusions and the call behind each
+     * @param  array<string, list<string>>  $mounts
+     * @return array{list<array{namespace?: string, path: string, except?: list<array{namespace?: string, path: string}>}>, list<string>} the internal exclusions and the call behind each
      */
-    private function excluded(array $entries, array $roots): array
+    private function excluded(array $entries, array $roots, array $mounts): array
     {
         $excluded = [];
         $calls = [];
@@ -371,6 +372,34 @@ final class LayoutCompiler
                 continue;
             }
 
+            $exceptions = [];
+            $equal = false;
+            foreach ($mounts[$entry] ?? [] as $name) {
+                $root = $roots[$name] ?? null;
+                if ($root === null) {
+                    continue;
+                }
+                // Namespace entries claim namespaces; path entries claim paths.
+                // Normalize boundaries before testing containment.
+                $namespace = $root['namespace'] === null ? null : trim($root['namespace'], '\\').'\\';
+                $path = CompiledRoot::normalisePath($root['path']);
+                $within = str_contains($entry, '\\')
+                    ? $namespace !== null && str_starts_with($namespace, $resolved['namespace'] ?? '')
+                    : Path::relative($resolved['path'], $path) !== null;
+                if (! $within) {
+                    continue;
+                }
+                $equal = $equal || (str_contains($entry, '\\')
+                    ? $namespace === ($resolved['namespace'] ?? null)
+                    : $path === $resolved['path']);
+                $exceptions[] = array_filter(['namespace' => $namespace, 'path' => $path], static fn (?string $value): bool => $value !== null);
+            }
+            if ($equal) {
+                continue;
+            }
+            if ($exceptions !== []) {
+                $resolved['except'] = $exceptions;
+            }
             $excluded[] = $resolved;
             $calls[] = $call;
         }
@@ -380,7 +409,7 @@ final class LayoutCompiler
 
     /**
      * @param  array<string, array{namespace: ?string, path: string}>  $roots
-     * @return array<string, string>|null
+     * @return array{namespace: string, path: string}|null
      */
     private function excludedNamespace(string $entry, array $roots): ?array
     {
@@ -405,7 +434,7 @@ final class LayoutCompiler
 
     /**
      * @param  array<string, array{namespace: ?string, path: string}>  $roots
-     * @return array<string, string>
+     * @return array{namespace?: string, path: string}
      */
     private function excludedPath(string $entry, array $roots): array
     {
