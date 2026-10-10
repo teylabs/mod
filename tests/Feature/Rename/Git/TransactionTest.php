@@ -1,12 +1,12 @@
 <?php
 
-use Symfony\Component\Process\Process;
 use Tey\Mod\Rename\Git\Transaction;
 use Tey\Mod\Rename\Planner;
 use Tey\Mod\Rename\Request;
 use Tey\Mod\Rename\Result;
 use Tey\Mod\Tests\Feature\Acceptance\Examples\Rename\Support\RenameScenario as S;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
+use Tey\Mod\Tests\Support\BoundedProcess as Process;
 
 function renameRequest(): Request
 {
@@ -91,16 +91,20 @@ it('recovers a killed process and preserves unrelated working and staged changes
         $before = $w->read($source);
         $originalIndex = S::git($w, ['ls-files', '--stage', '-z']);
         $worker = dirname(__DIR__, 3).'/Fixtures/rename/transaction-worker.php';
-        $process = new Process([PHP_BINARY, $worker, $w->root->path, 'execute', $phase]);
+        $process = new Process([PHP_BINARY, $worker, $w->root->path, 'execute', $phase], timeout: 60);
         $process->start();
-        expect($process->waitUntil(static fn (string $type, string $output): bool => str_contains($output, 'BARRIER')))->toBeTrue($process->getErrorOutput());
-        $process->stop(0, 9);
+        try {
+            expect($process->waitUntil(static fn (string $type, string $output): bool => str_contains($output, 'BARRIER')))->toBeTrue($process->getErrorOutput());
+        } finally {
+            $process->stop(0, 9);
+        }
+        expect($process->isRunning())->toBeFalse();
         $w->write('notes.txt', 'outside working change');
         $w->write('staged.txt', 'outside staged change');
         S::git($w, ['add', '--', 'staged.txt']);
         $preview = $w->artisan('mod:rename', ['--recover' => true, '--dry-run' => true, '--json' => true])->assertSuccessful();
         expect(json_decode($preview->output, true, flags: JSON_THROW_ON_ERROR)['would_write'])->toBeTrue();
-        $recover = new Process([PHP_BINARY, $worker, $w->root->path, 'recover']);
+        $recover = new Process([PHP_BINARY, $worker, $w->root->path, 'recover'], timeout: 60);
         $recover->mustRun();
         expect($w->read($source))->toBe($before)
             ->and($w->read('notes.txt'))->toBe('outside working change')
@@ -181,7 +185,7 @@ it('detects an externally changed non-executable permission bit after confirmati
         $mode = fileperms($source) & 0777;
         $transaction = new Transaction($w->root->path);
         $confirm = static function () use ($source): bool {
-            (new Process([PHP_BINARY, '-r', 'chmod($argv[1], 0400);', $source]))->mustRun();
+            (new Process([PHP_BINARY, '-r', 'chmod($argv[1], 0400);', $source], timeout: 60))->mustRun();
 
             return true;
         };
@@ -207,5 +211,28 @@ it('preserves the original executable Git entry independently of filesystem mode
         S::git($w, ['-c', 'user.name=Test', '-c', 'user.email=test@example.test', 'commit', '-m', 'Executable fixture']);
         $w->artisan('mod:rename', ['old' => 'Inventory:Widget', 'new' => 'Inventory:Gadget', '--scaffold' => 'model-only', '--yes' => true])->assertSuccessful();
         expect(S::git($w, ['ls-files', '--stage', '--', 'app/Modules/Inventory/Models/Gadget.php']))->toStartWith('100755 ');
+    });
+});
+
+it('preserves an outside edit to a not-yet-mutated owned file during rollback', function () {
+    Workspace::run(null, function (Workspace $w) {
+        S::setup($w);
+        $w->write('routes/web.php', "<?php\nuse App\\Modules\\Inventory\\Models\\Widget;\n");
+        S::commit($w);
+        $transaction = new Transaction($w->root->path, static function (string $phase) use ($w): void {
+            if ($phase === 'applied:1') {
+                throw new RuntimeException('injected move failure');
+            }
+            if ($phase === 'before-restore:app/Modules/Inventory/Models/Widget.php') {
+                $w->write('routes/web.php', '<?php // outside editor during rollback');
+            }
+        });
+        $messages = [];
+        expect($transaction->execute(renameRequest(), app(Planner::class)->build(...), function (Result $result) use (&$messages): void {
+            $messages = [...$messages, ...array_column($result->plan->warnings, 'message')];
+        }, fn () => true))->toBe(1);
+        expect($w->read('routes/web.php'))->toBe('<?php // outside editor during rollback')
+            ->and(implode(' ', $messages))->toContain('Rollback incomplete; recovery required', 'Outside bytes or permissions: routes/web.php')
+            ->and($w->exists('.git/mod-rename/journal.json'))->toBeTrue();
     });
 });

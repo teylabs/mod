@@ -507,13 +507,16 @@ final class Transaction implements Executor, RecoveryInspector
         $restorePaths = $journal->paths;
         uksort($restorePaths, static fn (string $a, string $b): int => (int) str_ends_with($b, '.mod-rename-tmp') <=> (int) str_ends_with($a, '.mod-rename-tmp'));
         foreach ($restorePaths as $path => $row) {
+            // The initial full comparison already proved these paths unchanged.
+            // Keep them in subsequent comparisons, but do not rewrite them or
+            // launch Git once more for a restore that has no effect.
+            if ($journal->expectedFiles[$path] === [$row['original']]) {
+                continue;
+            }
             $journal->operation = 'restoring '.$path;
             $journal->save();
             $this->checkpoint('before-restore:'.$path);
-            // Recompare at every boundary; repeated recovery accepts already restored bytes.
-            if ($this->conflicts($journal) !== []) {
-                throw new RuntimeException(implode('; ', $this->conflicts($journal)));
-            }
+            // intend() recompares every owned file and index entry after the hook.
             $absolute = $this->basePath.'/'.$path;
             $restore = [$path => $row['original']];
             if ($row['original'] !== null) {

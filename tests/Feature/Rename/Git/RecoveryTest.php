@@ -1,7 +1,6 @@
 <?php
 
 use Laravel\Mcp\Request;
-use Symfony\Component\Process\Process;
 use Tey\Mod\Boost\PlanTool;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Rename\Executor;
@@ -10,18 +9,24 @@ use Tey\Mod\Tests\Feature\Acceptance\Examples\Rename\Support\RenameScenario as S
 use Tey\Mod\Tests\Feature\Boost\Scenario;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Feature\Scaffolds\Support\Examples;
+use Tey\Mod\Tests\Support\BoundedProcess as Process;
 use Tey\Mod\Tests\Support\JsonSchema;
 
 function transactionWorker(Workspace $w, string $action, string $phase = ''): Process
 {
-    return new Process([PHP_BINARY, dirname(__DIR__, 3).'/Fixtures/rename/transaction-worker.php', $w->root->path, $action, $phase]);
+    return new Process([PHP_BINARY, dirname(__DIR__, 3).'/Fixtures/rename/transaction-worker.php', $w->root->path, $action, $phase], timeout: 60);
 }
 
 function killAtBarrier(Process $process): void
 {
+    $process->setTimeout(60);
     $process->start();
-    expect($process->waitUntil(static fn (string $type, string $output): bool => str_contains($output, 'BARRIER')))->toBeTrue($process->getErrorOutput());
-    $process->stop(0, 9);
+    try {
+        expect($process->waitUntil(static fn (string $type, string $output): bool => str_contains($output, 'BARRIER')))->toBeTrue($process->getErrorOutput());
+    } finally {
+        $process->stop(0, 9);
+    }
+    expect($process->isRunning())->toBeFalse();
 }
 
 it('serializes worktree execution before planning and reuses a stale kernel lock safely', function () {
@@ -29,8 +34,8 @@ it('serializes worktree execution before planning and reuses a stale kernel lock
         S::setup($w);
         $process = transactionWorker($w, 'execute', 'prepared');
         $process->start();
-        expect($process->waitUntil(static fn (string $type, string $output): bool => str_contains($output, 'BARRIER')))->toBeTrue();
         try {
+            expect($process->waitUntil(static fn (string $type, string $output): bool => str_contains($output, 'BARRIER')))->toBeTrue($process->getErrorOutput());
             $w->artisan('mod:rename', ['old' => 'Inventory:Widget', 'new' => 'Inventory:Gadget', '--scaffold' => 'model-only', '--yes' => true])->assertFailed()->expectsOutputToContain('already running in this worktree');
         } finally {
             $process->stop(0, 9);

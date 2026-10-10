@@ -32,9 +32,15 @@ $transaction = new Transaction($argv[1], static function (string $current) use (
         if ($server === false) {
             throw new RuntimeException('Cannot open checkpoint barrier.');
         }
-        fwrite(STDOUT, "BARRIER\n");
+        fwrite(STDOUT, 'BARRIER '.$current.' PID '.getmypid()."\n");
         fflush(STDOUT);
-        stream_socket_accept($server, -1);
+        $connection = @stream_socket_accept($server, 60);
+        if ($connection === false) {
+            throw new RuntimeException('Checkpoint barrier exceeded its 60-second hard timeout: '.$current);
+        }
+        fclose($connection);
+        fclose($server);
+        throw new RuntimeException('Checkpoint barrier was released instead of terminating its worker: '.$current);
     }
 });
 $show = static function (Result $result): void {

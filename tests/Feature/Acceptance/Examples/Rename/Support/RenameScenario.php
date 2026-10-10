@@ -2,12 +2,12 @@
 
 namespace Tey\Mod\Tests\Feature\Acceptance\Examples\Rename\Support;
 
-use Symfony\Component\Process\Process;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Rename\Planner;
 use Tey\Mod\Rename\Request;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
+use Tey\Mod\Tests\Support\BoundedProcess as Process;
 
 final class RenameScenario
 {
@@ -57,7 +57,7 @@ final class RenameScenario
     /** @param list<string> $arguments */
     public static function git(Workspace $w, array $arguments): string
     {
-        $process = new Process(['git', ...$arguments], $w->root->path, ['GIT_OPTIONAL_LOCKS' => '0']);
+        $process = new Process(['git', ...$arguments], $w->root->path, ['GIT_OPTIONAL_LOCKS' => '0'], timeout: 60);
         $process->mustRun();
 
         return $process->getOutput();
