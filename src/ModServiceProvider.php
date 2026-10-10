@@ -43,6 +43,9 @@ use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Rename\Contributors;
+use Tey\Mod\Rename\Executor;
+use Tey\Mod\Rename\Git\Transaction;
+use Tey\Mod\Rename\RecoveryInspector;
 use Tey\Mod\Resolution\ModelConventions;
 use Tey\Mod\Routing\RouteServiceRegistrar;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
@@ -77,6 +80,9 @@ class ModServiceProvider extends ServiceProvider
 
         $this->app->singleton(ScaffoldRegistry::class);
         $this->app->singleton(Contributors::class);
+        $this->app->register(Rename\Tables\ServiceProvider::class);
+        $this->app->bind(Executor::class, fn (Application $app) => new Transaction($app->basePath()));
+        $this->app->bind(RecoveryInspector::class, fn (Application $app) => new Transaction($app->basePath()));
         $this->app->singleton(TemplateCatalog::class, function (Application $app): TemplateCatalog {
             $options = DiscoveryOptions::fromConfig((array) $app->make('config')->get('mod.discovery', []));
             $cache = new DiscoveryCache(Path::resolve($app->basePath(), $options->cachePath));

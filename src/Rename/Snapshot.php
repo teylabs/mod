@@ -99,7 +99,9 @@ final class Snapshot
         return $files;
     }
 
-    /** Lane 4 calls under its lock immediately before applying the plan. */
+    /** Lane 4 calls under its lock immediately before applying the plan.
+     * @phpstan-impure Reads current filesystem and Git state on every invocation.
+     */
     public function unchanged(Inputs $inputs, string $definitionHash): bool
     {
         $git = (new GitProbe)->inspect($inputs->basePath);

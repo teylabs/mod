@@ -588,7 +588,7 @@
     "rename": {
         "command": "mod:rename",
         "preview": true,
-        "execution": false,
+        "execution": true,
         "requires_git": true,
         "requires_clean_tree": true,
         "requires_scaffold": true,
@@ -610,6 +610,14 @@
                 "required_answers": [],
                 "parts": []
             }
-        ]
+        ],
+        "recovery": {
+            "inspection": true,
+            "execution": true,
+            "cluster_arguments": false,
+            "clean_tree": false,
+            "storage": "worktree-git-directory",
+            "compare_before_restore": true
+        }
     }
 }

@@ -350,6 +350,39 @@
       "items": {
         "type": "string"
       }
+    },
+    "recovery": {
+      "type": "object",
+      "required": [
+        "journal",
+        "phase",
+        "operations",
+        "checkpoint"
+      ],
+      "properties": {
+        "journal": {
+          "type": "string"
+        },
+        "phase": {
+          "enum": [
+            "prepared",
+            "applying",
+            "rolling-back",
+            "committed",
+            "restored"
+          ]
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "checkpoint": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

@@ -106,7 +106,7 @@ final class RenameCommand extends Command
 
             return self::FAILURE;
         }
-        $confirmation = function () use ($interactive): bool {
+        $confirmation = function () use ($interactive, $recover): bool {
             if ((bool) $this->option('yes')) {
                 return true;
             }
@@ -115,7 +115,7 @@ final class RenameCommand extends Command
 
                 return false;
             }
-            if (! confirm('Rename this cluster and stage the changes?', default: false)) {
+            if (! confirm($recover ? 'Restore this interrupted rename?' : 'Rename this cluster and stage the changes?', default: false)) {
                 $this->line('Rename cancelled. Nothing was written.');
 
                 return false;
@@ -129,10 +129,13 @@ final class RenameCommand extends Command
             }
         } else {
             if ($this->laravel->bound(Executor::class)) {
-                $prepareAndBuild = function (Request $request) use ($interactive, $build): Result {
-                    if ($interactive && $this->laravel->bound(Preparation::class)) {
+                $prepared = false;
+                $prepareAndBuild = function (Request $request) use ($interactive, $build, &$prepared): Result {
+                    if (! $prepared && $interactive && $this->laravel->bound(Preparation::class)) {
                         $request = $this->laravel->make(Preparation::class)->prepare($request, $build, $this);
                     }
+
+                    $prepared = true;
 
                     return $build($request);
                 };

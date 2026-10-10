@@ -23,6 +23,7 @@ it('R13 rewrites route class symbols and keeps located runtime strings', functio
         expect($rows[0])->toMatchArray(['file' => $path, 'after_file' => 'app/Modules/Inventory/Models/Gadget.php', 'line' => 4]);
         $result = app(Planner::class)->build(new Request('Inventory:Widget', 'Inventory:Gadget', 'model-only'));
         expect($result->bodies[$path])->toBe(str_replace(['class Widget', '[Widget::'], ['class Gadget', '[Gadget::'], $source));
+        S::apply($w);
     });
 });
 
@@ -49,5 +50,6 @@ SOURCE;
         foreach ($rows as $row) {
             expect($row)->toMatchArray(['file' => $path, 'after_file' => $path, 'line' => 4]);
         }
+        S::apply($w, ['--scaffold' => 'route-cluster']);
     });
 });

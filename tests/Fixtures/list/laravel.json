@@ -448,7 +448,7 @@
     "rename": {
         "command": "mod:rename",
         "preview": true,
-        "execution": false,
+        "execution": true,
         "requires_git": true,
         "requires_clean_tree": true,
         "requires_scaffold": true,
@@ -463,6 +463,14 @@
             "--recover"
         ],
         "nested_answer": "--answer=part.Item.question=<JSON>",
-        "recipes": []
+        "recipes": [],
+        "recovery": {
+            "inspection": true,
+            "execution": true,
+            "cluster_arguments": false,
+            "clean_tree": false,
+            "storage": "worktree-git-directory",
+            "compare_before_restore": true
+        }
     }
 }

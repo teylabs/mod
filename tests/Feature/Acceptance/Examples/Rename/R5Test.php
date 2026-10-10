@@ -19,5 +19,6 @@ it('R5 retains stable shared members and blocks identity-changing keep members',
         } else {
             expect($data['retained'])->toBe([['alias' => 'formatter', 'path' => 'app/Support/StockFormatter.php', 'reason' => 'stable kept member']]);
         }
+        S::apply($w, ['--scaffold' => 'shared'], ! $changing);
     });
 })->with([false, true]);

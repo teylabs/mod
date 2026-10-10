@@ -31,6 +31,8 @@ it('R11 preserves unavailable frontend bytes with original lines and intended al
         expect($data['warnings'])->toBe([])->and($data['moves'])->toHaveCount(1)->and($data['rewrites'])->toBe([]);
         $row = array_values(array_filter($data['checklist'], static fn (array $row): bool => $row['line'] === 2))[0];
         expect($row['file'])->toBe($file)->and($row['after_file'])->toBe(str_replace('Widget', 'Gadget', $file))->and($row['category'])->toBe('frontend-toolchain')->and($row['suggestion'])->toBe('@modules/Inventory/resources/js/pages/Gadget/Show'.$extension);
+        S::apply($w, ['--scaffold' => 'page-only']);
+        expect($w->read(str_replace('Widget', 'Gadget', $file)))->toBe($source);
     });
 })->with(['.vue', '']);
 
@@ -47,6 +49,7 @@ it('R11 maps Blade directive and anonymous component identities without touching
         expect($data['warnings'])->toBe([])->and($data['rewrites'])->toHaveCount(1)->and($data['rewrites'][0]['before'])->toBe('inventory::widgets.show')->and($data['rewrites'][0]['after'])->toBe('inventory::gadgets.show')->and($data['rewrites'][0]['line'])->toBe(1);
         expect(in_array('identity-string', array_column($data['checklist'], 'category'), true))->toBeTrue();
         expect(array_values(array_filter($data['checklist'], static fn (array $row): bool => $row['category'] === 'blade-identity'))[0]['line'])->toBe(4);
+        S::apply($w, ['--scaffold' => 'view-only']);
     });
 });
 
@@ -94,5 +97,6 @@ SOURCE;
         expect(array_column($bladeEdits, 'category'))->toBe(['blade-identity', 'php-identity', 'php-identity'])->and(array_column($bladeEdits, 'line'))->toBe([1, 2, 3]);
         expect($result->bodies[$page] ?? $frontend)->toBe($frontend);
         expect(array_column($data['checklist'], 'category'))->toContain('frontend-toolchain', 'unsupported-identity', 'identity-string');
+        S::apply($w, ['--scaffold' => 'render-views']);
     });
 });

@@ -46,6 +46,25 @@ final class PlanWriter
 
             return;
         }
+        if ($plan->notice !== null) {
+            $command->line($plan->notice);
+
+            return;
+        }
+        if ($plan->recovery !== null) {
+            $command->line('Recovery journal: '.$plan->recovery['journal'].' ['.$plan->recovery['phase'].']');
+            foreach ($plan->recovery['operations'] as $path) {
+                $command->line('Restore: '.$path.' (compare before restoring bytes, permissions and index)');
+            }
+            foreach ($plan->warnings as $warning) {
+                $command->line($warning['message']);
+            }
+            if ((bool) $command->option('dry-run')) {
+                $command->line('Dry run. Nothing was written.');
+            }
+
+            return;
+        }
         if ($plan->command === 'mod:rename') {
             $this->rename($command, $plan);
 

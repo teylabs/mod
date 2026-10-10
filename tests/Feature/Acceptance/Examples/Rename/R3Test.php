@@ -66,5 +66,6 @@ it('R3 derives the cluster from the compiled layout including explicit frontend 
         ksort($expected);
         expect($data['warnings'])->toBe([])->and(array_column($data['moves'], 'to', 'from'))->toBe($expected)
             ->and(count($data['moves']))->toBe($frontend ? 10 : 6);
+        S::apply($w, ['--scaffold' => 'crud', 'new' => 'Catalog:Gadget']);
     });
 })->with([['modules', true], ['ddd', true], ['ddd', false]]);

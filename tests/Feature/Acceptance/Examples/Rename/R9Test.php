@@ -11,6 +11,7 @@ it('R9 requires explicit recipe selection and refuses execution until the execut
         S::setup($w);
         $data = S::preview($w, ['--scaffold' => null]);
         expect($data['would_write'])->toBeFalse()->and($data['warnings'][0]['message'])->toContain('requires --scaffold');
+        app()->offsetUnset(Executor::class);
         $w->artisan('mod:rename', ['old' => 'Inventory:Widget', 'new' => 'Inventory:Gadget', '--scaffold' => 'model-only', '--yes' => true])->assertFailed()->expectsOutputToContain('executor is unavailable');
         expect(S::git($w, ['status', '--porcelain=v1']))->toBe('');
     });

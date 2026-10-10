@@ -43,6 +43,10 @@ it('validates a controlled parsed response through the planner and snapshots rea
         expect($snapshot->unchanged($result->inputs, $result->inputs->definitionHash))->toBeTrue();
         $w->write('package.json', '{"changed":true}');
         expect($snapshot->unchanged($result->inputs, $result->inputs->definitionHash))->toBeFalse();
+        $w->write('package.json', '{}');
+        S::commit($w);
+        S::apply($w, ['--scaffold' => 'pages']);
+        expect($w->read($file))->toBe(str_replace($before, $after, $source));
     });
 });
 
