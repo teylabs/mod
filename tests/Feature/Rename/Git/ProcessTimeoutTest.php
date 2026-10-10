@@ -1,10 +1,10 @@
 <?php
 
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
-use Tey\Mod\Tests\Support\BoundedProcess;
+use Tey\Mod\Rename\Process;
 
 it('fails a missing checkpoint within its hard timeout and terminates the worker', function (string $wait) {
-    $process = new BoundedProcess([PHP_BINARY, '-r', '$server = stream_socket_server("tcp://127.0.0.1:0"); stream_socket_accept($server, 10);'], timeout: 0.25);
+    $process = new Process([PHP_BINARY, '-r', '$server = stream_socket_server("tcp://127.0.0.1:0"); stream_socket_accept($server, 10);'], timeout: 0.25);
     $started = microtime(true);
     try {
         $process->start();

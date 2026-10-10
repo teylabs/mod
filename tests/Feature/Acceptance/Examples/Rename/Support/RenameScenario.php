@@ -4,10 +4,10 @@ namespace Tey\Mod\Tests\Feature\Acceptance\Examples\Rename\Support;
 
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Rename\Planner;
+use Tey\Mod\Rename\Process;
 use Tey\Mod\Rename\Request;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
-use Tey\Mod\Tests\Support\BoundedProcess as Process;
 
 final class RenameScenario
 {

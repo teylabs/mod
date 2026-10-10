@@ -4,8 +4,7 @@ namespace Tey\Mod\Rename\Frontend;
 
 use Symfony\Component\Process\Exception\RuntimeException;
 use Symfony\Component\Process\ExecutableFinder;
-use Symfony\Component\Process\Process;
-use Tey\Mod\Rename\Diagnostic;
+use Tey\Mod\Rename\Process;
 
 /** @internal Arguments and stdin are passed without a shell. */
 final class NodeRunner implements Runner
@@ -33,7 +32,6 @@ final class NodeRunner implements Runner
         $process->setTimeout(20);
         $excessive = false;
         $size = 0;
-        $started = Diagnostic::start('node helper');
         try {
             $process->run(function (string $type, string $bytes) use (&$size, &$excessive, $process): void {
                 $size += strlen($bytes);
@@ -44,8 +42,6 @@ final class NodeRunner implements Runner
             });
         } catch (RuntimeException $exception) {
             return new RunResult(null, 'Node helper failed: '.substr($exception->getMessage(), 0, 1000), $dependencies);
-        } finally {
-            Diagnostic::finish('node helper', $started);
         }
         if ($excessive || ! $process->isSuccessful()) {
             return new RunResult(null, 'Node helper failed: '.substr($process->getErrorOutput(), 0, 1000), $dependencies);

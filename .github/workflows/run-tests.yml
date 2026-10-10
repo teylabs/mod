@@ -91,35 +91,8 @@ jobs:
         run: composer show --direct
 
       - name: Execute tests
-        if: runner.os != 'Windows'
         run: vendor/bin/pest --ci --no-coverage
 
-      - name: Execute Windows tests with event diagnostics
-        if: runner.os == 'Windows'
-        timeout-minutes: 23
-        run: |
-          $env:GIT_TRACE_PERFORMANCE = (Join-Path $env:GITHUB_WORKSPACE 'git-performance.log').Replace('\', '/')
-          $env:MOD_RENAME_DIAGNOSTIC_LOG = Join-Path $env:GITHUB_WORKSPACE 'rename-timings.log'
-          vendor/bin/pest --ci --no-coverage --debug --log-events-verbose-text=phpunit-events.log --log-junit=junit.xml
-
-      - name: Print Windows test events
-        if: always() && runner.os == 'Windows'
-        run: |
-          if (Test-Path phpunit-events.log) { Get-Content phpunit-events.log }
-          if (Test-Path git-performance.log) { Get-Content git-performance.log -Tail 200 }
-          if (Test-Path rename-timings.log) { Get-Content rename-timings.log -Tail 200 }
-
-      - name: Upload test diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: junit-${{ strategy.job-index }}
-          path: |
-            junit.xml
-            phpunit-events.log
-            git-performance.log
-            rename-timings.log
-          if-no-files-found: ignore
 
   boost:
     name: Verify Boost resources

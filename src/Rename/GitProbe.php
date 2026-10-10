@@ -2,7 +2,6 @@
 
 namespace Tey\Mod\Rename;
 
-use Symfony\Component\Process\Process;
 use Tey\Mod\Support\Path;
 
 /** @internal Read-only even when Git normally refreshes the index on status. */
@@ -38,7 +37,7 @@ final class GitProbe
     private function read(string $directory, array $arguments, bool $trim = true): ?string
     {
         $process = new Process(['git', '-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', '-C', $directory, ...$arguments], env: ['GIT_OPTIONAL_LOCKS' => '0']);
-        Diagnostic::measure('probe '.$arguments[0], fn () => $process->run());
+        $process->run();
 
         return $process->isSuccessful() ? ($trim ? trim($process->getOutput()) : $process->getOutput()) : null;
     }

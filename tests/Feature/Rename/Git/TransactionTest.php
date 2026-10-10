@@ -2,11 +2,11 @@
 
 use Tey\Mod\Rename\Git\Transaction;
 use Tey\Mod\Rename\Planner;
+use Tey\Mod\Rename\Process;
 use Tey\Mod\Rename\Request;
 use Tey\Mod\Rename\Result;
 use Tey\Mod\Tests\Feature\Acceptance\Examples\Rename\Support\RenameScenario as S;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
-use Tey\Mod\Tests\Support\BoundedProcess as Process;
 
 function renameRequest(): Request
 {

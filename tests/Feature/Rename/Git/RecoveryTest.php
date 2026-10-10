@@ -5,11 +5,11 @@ use Tey\Mod\Boost\PlanTool;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Rename\Executor;
 use Tey\Mod\Rename\GitProbe;
+use Tey\Mod\Rename\Process;
 use Tey\Mod\Tests\Feature\Acceptance\Examples\Rename\Support\RenameScenario as S;
 use Tey\Mod\Tests\Feature\Boost\Scenario;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Feature\Scaffolds\Support\Examples;
-use Tey\Mod\Tests\Support\BoundedProcess as Process;
 use Tey\Mod\Tests\Support\JsonSchema;
 
 function transactionWorker(Workspace $w, string $action, string $phase = ''): Process
