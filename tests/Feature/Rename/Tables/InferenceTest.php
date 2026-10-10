@@ -50,7 +50,11 @@ it('locates unchanged Schema strings and foreign keys at original lines', functi
         S::commit($w);
         $json = S::preview($w);
         $rows = array_values(array_filter($json['checklist'], fn (array $row): bool => $row['file'] === 'app/Support/tables.php'));
-        expect(array_column($rows, 'category'))->toBe(['database-name', 'foreign-key'])->and(array_column($rows, 'line'))->toBe([3, 4]);
+        $tableRows = array_values(array_filter($rows, fn (array $row): bool => in_array($row['suggestion'], ['Review the database name for runtime compatibility.', 'Review relation foreign keys before using the renamed model.'], true)));
+        expect(array_column($tableRows, 'category'))->toBe(['database-name', 'foreign-key'])->and(array_column($tableRows, 'line'))->toBe([3, 4]);
+        $phpRows = array_values(array_filter($rows, fn (array $row): bool => $row['suggestion'] === null));
+        expect(array_column($phpRows, 'category'))->toBe(['database-name', 'uncertain-string'])->and(array_column($phpRows, 'line'))->toBe([3, 3]);
+        expect(array_column($phpRows, 'message'))->toBe(["'legacy' is unchanged.", "'widgets' is unchanged."]);
         expect($w->read('app/Support/tables.php'))->toBe($source);
     });
 });
