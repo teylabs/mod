@@ -2,6 +2,19 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Supported host API for packages owning layouts, discovery and generators: isolated compilation, compiled file type metadata, placement/ownership lookup, explicit host cache operations, public relation/plan values and selected adapter hooks. Laravel migration creators can be passed directly; custom creator dispatch remains native.
+- Recipe-owned cluster renames and group moves through `mod:rename`, preserving edited bodies and staging validated Git moves and reference edits without committing. Complete historical recipe answers and a clean Git tree/index are required.
+- Namespace/import-aware PHP symbol edits, exact mapped Inertia/view/Blade identities, and static frontend references through the app's installed Node parsers, with located manual-review fallback when parsing is unavailable or unsafe.
+- Optional reversible rename-table migration generation for unambiguous inferred Eloquent table changes, without editing historical migrations or querying/executing database changes.
+- Worktree-specific durable rename journals, ordinary rollback and explicit `mod:rename --recover`, including read-only inspection and compare-before-restore protection for outside edits.
+- Additive rename/recovery plans and inventory capability, read-only `mod-plan` support, current Boost guidance and application verification documentation.
+
+### Fixed
+- Native-collision migration generation retains Laravel's per-directory timestamps instead of applying Mod's planned timestamp policy.
+
 ## [0.3.1] - 2026-10-09
 
 ### Fixed

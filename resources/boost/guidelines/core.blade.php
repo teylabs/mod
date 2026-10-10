@@ -76,13 +76,13 @@ A host Laravel provider uses ModServiceProvider::registerGenerationServices($app
 
 Pass the public framework MigrationCreator and Composer to MigrationCommand. Exact framework creators are adapted inside Mod; custom application subclasses keep native dispatch with no plan or plan-specific callbacks. nativePathAllowed() controls explicit --path/--realpath. For isolated hosts, module-owned generator template rebinding is outside this helper; it needs the full Mod provider and app layouts. The full recipes and lifecycle promises are in vendor/tey/mod/docs/extending.md, Building on mod, and the signatures are pinned by the published API snapshot.
 
-### Rename plans
+## Rename clusters
 
-Preview a recipe-owned cluster with `mod:rename Group:Old Group:New --scaffold=<recipe> --dry-run --json`. Pass complete historical question/part flags (including repeated `--tabs` where declared), or qualified nested `--answer=part.Item.question=<JSON>`; keep defaults are not historical evidence. `mod:rename --yes --no-interaction` is the final confirmation path after review. `mod:rename --table-migration` requests a new reversible migration candidate; it never runs migrations. `mod:rename --recover` bypasses normal cluster planning, while `mod:rename --recover --dry-run --json` is read-only inspection. Execution is unavailable until the sole executor is installed. `mod-plan` remains read-only even when supplied recovery or confirmation flags. Follow `mod:list --json` rename capabilities and review all blockers/checklist entries.
+Preview a recipe-owned cluster with `mod:rename Group:Old Group:New --scaffold=<recipe> --dry-run --json`. Pass complete historical question/part flags (including repeated `--tabs` where declared), or qualified nested `--answer=part.Item.question=<JSON>`; keep defaults are not historical evidence. `mod:rename Group:Old Group:New --scaffold=<recipe> --yes --no-interaction` is the final confirmation path after review. `mod:rename --table-migration` requests a new reversible migration candidate; it never runs migrations. `mod:rename --recover` bypasses normal cluster planning, while `mod:rename --recover --dry-run --json` is read-only inspection. `mod-plan` remains read-only even when supplied recovery or confirmation flags. Follow `mod:list --json` rename capabilities and review all blockers/checklist entries.
 
 For app recipes that declare these answers, `mod:rename --base=<class> --model=<class> --tab=<value> --tabs=<value>` supplies the same explicit recipe inputs. Repeat list flags for every existing item. These flags are registered from app recipes, not built-in recipes.
 
-## Optional table migration during rename
+### Optional table migration
 
 Historical migration files and database strings stay unchanged. For an Eloquent model with a directly declared framework parent and no custom table logic, renaming the class can change its inferred table. Review the located table, foreign-key, route-binding and serialization checklist before using the renamed model. An explicit `$table` remains on the same table; a module-only move has no table rename to offer.
 
@@ -100,10 +100,18 @@ Rename binds PHP class references through each original namespace and import tab
 
 Only exact mapped page names in bound Inertia render calls or the inertia helper, and exact mapped view names in the view helper, receive PHP identity edits. Plain strings, computed identities, route URIs/names, translation/configuration values, database names, serialization and historical migration references stay unchanged for review. Read every original `file`, `line`, `category`, suggestion and prospective `after_file` in the checklist. The checklist is advisory and cannot establish complete runtime compatibility. PHP regions in Blade are analysed separately from frontend directive/markup identities; unavailable frontend parsing never permits guessed replacements.
 
-## Applying and recovering a rename
+### Applying and recovering
 
 `mod:rename` computes a fresh complete plan under one worktree lock, previews every move, rewrite, retained member and review item, then defaults confirmation to No. Pass `--yes --no-interaction` to apply a reviewed rename. Moves, supported consumer rewrites and any explicitly selected reversible table migration form one staged Git diff; the command never commits or executes a migration.
 
 Execution validates output PHP and destinations, then rechecks input bytes, permissions, scan-root membership, recipe/layout/template/parser dependencies and Git state before writing. A changed input refuses and preserves the editor's changes. Ordinary failures restore transaction-owned paths, bytes, permissions, index entries and created empty directories; outside changes are compared before restoration. Incomplete restoration reports `Rollback incomplete; recovery required` and the journal path.
 
 After interruption, fresh execution blocks. Inspect with `mod:rename --recover --dry-run --json` or `mod-plan` using command `mod:rename` and argument `--recover`. Inspection never takes a lock or restores anything. Recovery takes no cluster arguments, scaffold/recipe answers or table-migration flag: use `mod:rename --recover`, default No, or `mod:rename --recover --yes --no-interaction`. Journals and locks live under Git's actual worktree metadata directory in `mod-rename/`; linked worktrees have separate state. Recovery preserves unrelated working/staged edits and refuses changed transaction-owned bytes, permissions or index entries. Preserve those outside edits separately and resolve the reported conflicts before retrying recovery. Repeated recovery is safe; never erase user changes with reset, clean or stash.
+
+### Recipe and recovery limits
+
+Declare native option-generated companions as explicit recipe members; model --all/--migration/--factory do not prove rename membership. All original answers, including defaults and grown parts, are required. Stable keep/shared members stay in place; changing kept identities block. Ungrouped is placement, not shared ownership. Unaccounted candidates require recipe review, never prefix-only ownership, force or an exclusion bypass.
+
+Use compiled paths and scan_roots. Scans cover compiled roots plus app/bootstrap/config/resources/routes/tests and root lang when present, excluding dependencies/build/cache/Git metadata/generator templates. Historical migrations are immutable. The ddd defaults keep Controllers/Requests/Middleware outside Http, and frontend/views/routes opt-in. Rename neither upgrades layout nor moves an entire module. Execution requires the app to be the Git worktree root; nested apps are refused. Recovery guarantees concern process termination, not machine power loss or arbitrary external writer serialization. Index restoration requires the filesystem's exclusive hard-link support.
+
+After success inspect git diff --cached and build/type-check/request the renamed application. Fallback preserves reference bytes and does not establish runtime correctness until reported manual fixes are applied. Read vendor/tey/mod/docs/renaming.md for all flags, exact migration, parser matrix and recovery commands. Building on mod host guidance remains in docs/extending.md; rename services remain internal.
