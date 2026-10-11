@@ -13,6 +13,7 @@ use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
+use Tey\Mod\Pages\PageEntry;
 use Tey\Mod\Routing\ModRoutes;
 use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Scaffold;
@@ -128,6 +129,12 @@ final readonly class ModManager
             }
         }
         ($this->container ?? Container::getInstance())->make(ModRoutes::class)->load($only, $except, $call);
+    }
+
+    /** Map an Inertia page name to its project-relative Vite entry. @api */
+    public function pageEntry(string $page, string $extension): string
+    {
+        return ($this->container ?? Container::getInstance())->make(PageEntry::class)->path($page, $extension);
     }
 
     /** @api */

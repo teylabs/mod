@@ -12863,6 +12863,7 @@
         "interfaces": [],
         "parent": "Illuminate\\Support\\Facades\\Facade",
         "facade": [
+            "static string pageEntry(string $page, string $extension)",
             "static void routes(?list<string> $only = null, list<string> $except = [])",
             "static Tey\\Mod\\ModManager scaffold(string $name, \\Closure $recipe)",
             "static Tey\\Mod\\ModManager scaffolds(array<array-key, \\Closure|class-string> $recipes)",
@@ -14622,6 +14623,33 @@
         "parameters": [],
         "return": "array",
         "shape": "@return list<string>"
+    },
+    "Tey\\Mod\\ModManager::pageEntry": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "page",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "extension",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "string",
+        "shape": ""
     },
     "Tey\\Mod\\ModManager::routes": {
         "visibility": "public",
