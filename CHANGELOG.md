@@ -6,6 +6,7 @@ All notable changes to `mod` will be documented in this file.
 
 ### Added
 - The read-only `mod-survey` Boost tool reports app structure, references, recurring file sets, vendor ownership and Git identity within an enforced app-only privacy boundary (#62).
+- A scaffold recipe can declare a default name with `->named('Acme')`. Its command then runs without a name argument and shows the default in `--help`; an explicit name still wins, and `--dry-run --json` reports the name used (#119).
 
 ### Fixed
 - Package pages and frontend wiring support symlinked Composer path repositories, preserve installed vendor paths, and report unusable declarations without interrupting boot (#116).

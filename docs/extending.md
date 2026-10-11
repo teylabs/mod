@@ -303,6 +303,16 @@ Mod::vendor('acme')->scaffold('pages', fn (Scaffold $s) => $s->makes('page'), co
 
 The default command is `mod:acme/pages`; parts use `mod:acme/pages.form`. Dots mean declared parts. `command:` opts into one canonical Artisan name, with the same options, questions and messages; it adds no alias. An existing command is never replaced. Invokable classes declare `$name`, and may declare a string `$command`.
 
+A recipe can declare a default name with `named()`. Its command then runs without a name argument, and `--help` shows the default:
+
+```php
+Mod::vendor('acme')->scaffold('pages', fn (Scaffold $s) => $s
+    ->named('Acme')
+    ->makes('page', name: '{name}/Index'), command: 'acme:pages');
+```
+
+`php artisan acme:pages` uses `Acme`; `php artisan acme:pages Billing` uses `Billing`. `--dry-run --json` reports the name it used. Parts take their root's name, so `named()` belongs on the root recipe; a part that calls it is refused.
+
 Use full ids in `include('acme/pages')`, layout scaffold overrides and `mod:rename --scaffold=acme/pages`. App scaffolds may contain slashes. An app definition with the same id wins and emits `vendor_scaffold_overridden`. An app name under a registered vendor prefix that the vendor does not supply emits `vendor_prefix_shadowed`, suggests a hyphenated name and asks to continue (default Yes). Non-interactive runs emit the notice on stderr and continue. Ordinary unprefixed app names and prefixes without registered vendors have no notice.
 
 Two packages supplying the same id emit `vendor_scaffold_conflict`. An interactive invocation chooses a provider for that run; non-interactive invocation refuses (exit 1, including JSON previews) unless you pin the provider or define the scaffold in your app:

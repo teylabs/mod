@@ -1,8 +1,10 @@
 <?php
 
 use Illuminate\Support\Facades\Artisan;
+use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
+use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Scaffold;
@@ -115,6 +117,35 @@ it('honours custom command names and refuses Artisan command collisions', functi
         expect(array_column($data['scaffolds']['items'], 'id'))->toContain('acme/pages');
         $w->artisan('mod:list', ['--vendor' => 'acme'])->assertSuccessful()->expectsOutputToContain('kit:pages');
     });
+});
+
+it('runs a custom command bare with the recipe default name, and an explicit name wins', function () {
+    Workspace::run(null, function (Workspace $w) {
+        Mod::vendor('acme')->scaffold('pages', fn (Scaffold $s) => $s->named('Acme')->makes('job')->part('form', fn (Part $p) => $p->makes('model')), command: 'acme:pages');
+        Mod::vendor('acme')->scaffold('reports', fn (Scaffold $s) => $s->named('Report')->makes('job')->makes('model', name: '{name}Total'));
+        expect($w->artisan('help', ['command_name' => 'acme:pages'])->output)->toContain('[default: "Acme"]');
+        $plan = json_decode($w->artisan('acme:pages', ['--dry-run' => true, '--json' => true])->assertSuccessful()->output, true);
+        expect($plan['name'])->toBe('Acme')->and(array_column($plan['files'], 'path'))->toBe(['app/Jobs/Acme.php']);
+        $w->artisan('acme:pages')->assertSuccessful()->expectsOutputToContain('for Acme.');
+        $w->artisan('acme:pages', ['name' => 'Billing'])->assertSuccessful();
+        $w->artisan('mod:acme/reports')->assertSuccessful();
+        expect($w->exists('app/Jobs/Acme.php'))->toBeTrue()->and($w->exists('app/Jobs/Billing.php'))->toBeTrue()
+            ->and($w->exists('app/Jobs/Report.php'))->toBeTrue()->and($w->exists('app/Models/ReportTotal.php'))->toBeTrue();
+        // The part's command still takes the root's name and its own value.
+        expect(Artisan::all()['acme:pages.form']->getDefinition()->getArgument('name')->isRequired())->toBeTrue();
+    });
+});
+
+it('still requires the name when a recipe declares no default', function () {
+    Workspace::run(null, function (Workspace $w) {
+        Mod::vendor('acme')->scaffold('pages', fn (Scaffold $s) => $s->makes('job'), command: 'acme:pages');
+        $w->artisan('acme:pages');
+    });
+})->throws(RuntimeException::class, 'Not enough arguments (missing: "name").');
+
+it('refuses an empty default name and a default name on a part', function () {
+    expect(fn () => (new Scaffold)->named(' '))->toThrow(GenerationRefused::class, 'A scaffold default name cannot be empty.')
+        ->and(fn () => (new Part)->named('Acme'))->toThrow(GenerationRefused::class, "A part takes its root scaffold's name.");
 });
 
 it('keeps vendor ids in includes and layout overrides and diagnoses undeclared parts', function () {

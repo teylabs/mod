@@ -4,6 +4,7 @@ namespace Tey\Mod\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Container\Container;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
@@ -51,6 +52,9 @@ final class ScaffoldCommand extends Command
         parent::__construct();
         $this->setName($command ?? 'mod:'.$recipeName);
         $this->setDescription('Generate the '.$recipeName.' scaffold');
+        if ($recipe->defaultName() !== null) {
+            $this->getDefinition()->setArguments([new InputArgument('name', InputArgument::OPTIONAL, '', $recipe->defaultName())]);
+        }
         $this->treeOptions();
         $recipes = [$recipe];
         $container = Container::getInstance();

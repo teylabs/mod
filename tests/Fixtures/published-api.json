@@ -15833,6 +15833,25 @@
         "return": "Tey\\Mod\\Scaffolds\\Scaffold",
         "shape": "@param array<array-key, mixed> $options"
     },
+    "Tey\\Mod\\Scaffolds\\Part::named": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "name",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "Tey\\Mod\\Scaffolds\\Scaffold",
+        "shape": ""
+    },
     "Tey\\Mod\\Scaffolds\\Part::part": {
         "visibility": "public",
         "static": false,
@@ -16083,6 +16102,25 @@
         ],
         "return": "Tey\\Mod\\Scaffolds\\Scaffold",
         "shape": "@param array<array-key, mixed> $options"
+    },
+    "Tey\\Mod\\Scaffolds\\Scaffold::named": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "name",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "Tey\\Mod\\Scaffolds\\Scaffold",
+        "shape": ""
     },
     "Tey\\Mod\\Scaffolds\\Scaffold::part": {
         "visibility": "public",

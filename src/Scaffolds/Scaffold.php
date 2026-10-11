@@ -34,6 +34,8 @@ class Scaffold
     /** @var list<string> */
     private array $errors = [];
 
+    private ?string $defaultName = null;
+
     /** @param (Closure(string): ?self)|null $resolve */
     public function __construct(private readonly ?Closure $resolve = null) {}
 
@@ -90,6 +92,27 @@ class Scaffold
         $this->questions[$name] = new Question($name, $type, $default, $label, $options);
 
         return $this;
+    }
+
+    /** The name the command uses when none is passed. * @api
+     */
+    public function named(string $name): static
+    {
+        if ($this instanceof Part) {
+            throw GenerationRefused::because("A part takes its root scaffold's name. Call named() on the root scaffold.");
+        }
+        if (trim($name) === '') {
+            throw GenerationRefused::because('A scaffold default name cannot be empty. Pass a name such as named(\'Acme\').');
+        }
+        $this->defaultName = trim($name);
+
+        return $this;
+    }
+
+    /** @internal */
+    public function defaultName(): ?string
+    {
+        return $this->defaultName;
     }
 
     /** @api */
