@@ -4,7 +4,9 @@ use Illuminate\Foundation\Application;
 use Tey\Mod\Discovery\Discovery;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\Inventory;
+use Tey\Mod\Layout\BuiltIn\BuiltInLayouts;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Listing\InventorySection;
 use Tey\Mod\Listing\InventorySectionRegistry;
 use Tey\Mod\Support\Path;
@@ -13,6 +15,10 @@ use Tey\Mod\Tests\Support\JsonSchema;
 
 it('pins inventory bytes with the intended 0.3 HTTP placements and additive frontend section', function (string $layout) {
     Workspace::run(null, function (Workspace $w) use ($layout) {
+        // Pin the baseline separately from optional package declarations.
+        starterPackages();
+        app()->forgetInstance(BuiltInLayouts::class);
+        app()->forgetInstance(LayoutRegistry::class);
         config()->set('mod.layout', $layout);
         $output = $w->artisan('mod:list', ['--json' => true])->assertSuccessful()->normalisedOutput();
         // Package templates have absolute source paths; normalize only the checkout root.

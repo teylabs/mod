@@ -34,6 +34,10 @@ use Illuminate\Foundation\Console\TraitMakeCommand;
 use Illuminate\Foundation\Console\ViewMakeCommand;
 use Illuminate\Routing\Console\ControllerMakeCommand;
 use Illuminate\Routing\Console\MiddlewareMakeCommand;
+use Laravel\Mcp\Console\Commands\MakePromptCommand;
+use Laravel\Mcp\Console\Commands\MakeResourceCommand;
+use Laravel\Mcp\Console\Commands\MakeServerCommand;
+use Laravel\Mcp\Console\Commands\MakeToolCommand;
 use Symfony\Component\Console\Command\Command;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Commands\CastCommand;
@@ -53,6 +57,10 @@ use Tey\Mod\Commands\JobCommand;
 use Tey\Mod\Commands\JobMiddlewareCommand;
 use Tey\Mod\Commands\ListenerCommand;
 use Tey\Mod\Commands\MailCommand;
+use Tey\Mod\Commands\McpPromptCommand;
+use Tey\Mod\Commands\McpResourceCommand;
+use Tey\Mod\Commands\McpServerCommand;
+use Tey\Mod\Commands\McpToolCommand;
 use Tey\Mod\Commands\MiddlewareCommand;
 use Tey\Mod\Commands\MigrationCommand;
 use Tey\Mod\Commands\ModelCommand;
@@ -171,6 +179,19 @@ final class GeneratorRegistry
 
         if (class_exists(ConfigMakeCommand::class)) {
             $adapters['config'] = ConfigCommand::class;
+        }
+
+        // Only reviewed single-class package generators: arbitrary make:* commands
+        // may write companions that Mod cannot plan or collision-check.
+        foreach ([
+            'mcp-tool' => [MakeToolCommand::class, McpToolCommand::class],
+            'mcp-server' => [MakeServerCommand::class, McpServerCommand::class],
+            'mcp-resource' => [MakeResourceCommand::class, McpResourceCommand::class],
+            'mcp-prompt' => [MakePromptCommand::class, McpPromptCommand::class],
+        ] as $id => [$native, $adapter]) {
+            if (class_exists($native)) {
+                $adapters[$id] = $adapter;
+            }
         }
 
         $this->adapters = $adapters;

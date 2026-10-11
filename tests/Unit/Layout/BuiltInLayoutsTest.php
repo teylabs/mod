@@ -1,5 +1,7 @@
 <?php
 
+use Tey\Mod\Generation\PackageDetector;
+use Tey\Mod\Layout\BuiltIn\BuiltInLayouts;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Listing\LayoutInventory;
 use Tey\Mod\Relation\RelationMode;
@@ -57,10 +59,43 @@ it('names every built-in relation <from>-<to>[-qualifier], meaning the same in e
 
 it('pins every built-in file type folder for 0.3', function (string $name) {
     $snapshot = json_decode((string) file_get_contents(__DIR__.'/../../Fixtures/layout-folders-03.json'), true, flags: JSON_THROW_ON_ERROR);
-    $layout = (new LayoutRegistry)->compile($name);
+    $packages = mcpLayoutPackages(false);
+    $layout = (new LayoutRegistry(new BuiltInLayouts($packages)))->compile($name);
     $folders = [];
     foreach ($layout->kinds() as $id => $kind) {
         $folders[$id] = LayoutInventory::folder($layout, $id);
     }
     expect($folders)->toBe($snapshot[$name]);
 })->with(['laravel', 'features', 'slices', 'type-first', 'modules', 'ddd']);
+
+it('adds MCP placements only to module and DDD layouts when the package is installed', function (bool $installed, string $name) {
+    $packages = mcpLayoutPackages($installed);
+    $layout = (new LayoutRegistry(new BuiltInLayouts($packages)))->compile($name);
+    foreach (['server' => 'Servers', 'tool' => 'Tools', 'resource' => 'Resources', 'prompt' => 'Prompts'] as $id => $folder) {
+        $expected = $installed && in_array($name, ['modules', 'ddd'], true);
+        expect($layout->hasKind('mcp-'.$id))->toBe($expected);
+        if ($expected) {
+            expect(LayoutInventory::folder($layout, 'mcp-'.$id))
+                ->toBe('app/Modules/'.($name === 'modules' ? '{module}' : '{domain+}').'/Mcp/'.$folder);
+        }
+    }
+    expect($layout->hasKind('mcp-app-resource'))->toBeFalse();
+})->with([true, false])->with(['laravel', 'features', 'slices', 'type-first', 'modules', 'ddd']);
+
+function mcpLayoutPackages(bool $installed): PackageDetector
+{
+    return new class($installed) implements PackageDetector
+    {
+        public function __construct(private bool $installed) {}
+
+        public function isInstalled(string $package): bool
+        {
+            return $package === 'laravel/mcp' && $this->installed;
+        }
+
+        public function classExists(string $class): bool
+        {
+            return class_exists($class);
+        }
+    };
+}

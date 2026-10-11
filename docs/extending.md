@@ -418,3 +418,11 @@ For controller store/update forwarding, place targets through the host's request
 `MigrationCommand::__construct(Illuminate\Database\Migrations\MigrationCreator $creator, Illuminate\Support\Composer $composer)` accepts the framework creator directly. Mod adapts an exact framework creator internally, preserving filesystem and custom stub path, and pins planned timestamps. Existing internal Mod creators still work. Native `--path`/`--realpath` require the supported `nativePathAllowed(): bool` opt-in.
 
 An application creator subclass keeps its actual native dispatch and bypasses Mod planning independently of `--path`. It has no Mod plan and does not run plan-specific callbacks. A host can retain its domain directory override using only the public framework creator classification; do not reflect into or construct a Mod creator. Arbitrary creator output cannot be promised to match a Mod timestamp/path plan.
+
+## Installed package generators
+
+When `laravel/mcp` is installed, file types named `mcp-tool`, `mcp-server`, `mcp-resource` and `mcp-prompt` use explicit adapters for the package's own generators. They retain native stub selection (including published `stubs/mcp-*.stub`), placeholder replacements and options. Mod places the class and checks its plan before writing. App-owned generator registrations still take precedence.
+
+The `modules` layout adds `@module/Mcp/Tools`, `Servers`, `Resources` and `Prompts`; `ddd` puts these application-facing classes in `app/Modules/<Domain>/Mcp/...`, including nested domains. For example, `php artisan mod:mcp-tool Inventory:Probe --dry-run --json` previews the tool without writing it. Extend the layout to choose other folders with `->generates('mcp-tool', in: '@module/Protocol/Tools')`.
+
+Mod does not automatically wrap arbitrary installed `make:*` commands. Their constructors, typed overrides and companion writes need a reviewed adapter. Unsupported ids retain the generic declarative class generator; matching a native command name alone does not imply native output. In particular, `mcp-app-resource` is not adapted because its native command also writes a Blade view. Use that native command directly or register an application-owned adapter that plans and collision-checks both files. Mod ships no MCP stub copies or scaffold recipes.

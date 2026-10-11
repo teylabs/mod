@@ -4,6 +4,9 @@ All notable changes to `mod` will be documented in this file.
 
 ## Unreleased
 
+### Added
+- MCP tools, servers, resources and prompts use Laravel MCP's own generators for app-declared file types, with optional module and DDD application-layer placements when the package is installed. Their native stubs, placeholders and options are preserved; previews and collisions use Mod's existing plan.
+
 ### Fixed
 - The layout-move guide calls out persisted polymorphic class names and serialized queued work, with a pre-deployment identity mapping and application-owned migration and rollback review.
 - Customized Inertia bootstraps receive exact resolver and Tailwind snippets with file and insertion-point instructions, preserving existing adapters and layouts.

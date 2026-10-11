@@ -40,6 +40,7 @@ use Tey\Mod\Generation\ModMigrationCreator;
 use Tey\Mod\Generation\PackageDetector;
 use Tey\Mod\Generation\Starters;
 use Tey\Mod\Generation\StubRegistry;
+use Tey\Mod\Layout\BuiltIn\BuiltInLayouts;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Pages\PageDirectories;
@@ -93,6 +94,7 @@ class ModServiceProvider extends ServiceProvider
             return new TemplateCatalog($app->basePath(), $app->make(StubRegistry::class), ! $app->runningInConsole() && $options->enabled ? $cache->templates() : null);
         });
         $this->app->singleton(TemplateDiagnostics::class);
+        $this->app->singleton(BuiltInLayouts::class, fn (Application $app) => new BuiltInLayouts($app->make(PackageDetector::class)));
         $this->app->singleton(LayoutRegistry::class);
         $this->app->bind(Stack::class, fn (Application $app): Stack => new Stack($app->basePath()));
         $this->app->singleton(StubRegistry::class, fn (): StubRegistry => Starters::register(new StubRegistry));
