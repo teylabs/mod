@@ -422,11 +422,13 @@
         "stale_cache": null
     },
     "views": [],
+    "translations": [],
     "frontend": {
         "pages": "resources/js/pages",
         "components": "resources/js/components",
         "css": "resources/css",
         "views": "resources/views",
+        "lang": null,
         "page_name": "{path}",
         "view_namespace": null,
         "import_alias": {

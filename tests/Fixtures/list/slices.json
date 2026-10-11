@@ -460,11 +460,13 @@
         "stale_cache": null
     },
     "views": [],
+    "translations": [],
     "frontend": {
         "pages": "app/{feature}/{slice}/resources/js/pages",
         "components": "app/{feature}/{slice}/resources/js/components",
         "css": "app/{feature}/{slice}/resources/css",
         "views": "app/{feature}/{slice}/resources/views",
+        "lang": null,
         "page_name": "{feature}::{path}",
         "view_namespace": "{feature.kebab}.{slice.kebab}",
         "import_alias": {

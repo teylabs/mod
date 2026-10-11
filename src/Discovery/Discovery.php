@@ -157,13 +157,14 @@ final class Discovery
      * Scan cold and write the result to the cache file.
      *
      * @param  array<string, Node>  $scaffolds
+     * @param  list<array{group: ?string, namespace: string, path: string}>  $translations
      *
      * @internal
      */
-    public function writeCache(array $scaffolds = []): Inventory
+    public function writeCache(array $scaffolds = [], array $translations = []): Inventory
     {
         $inventory = $this->scan();
-        $this->cache()->write($inventory, $this->presetFingerprint(), $this->definitionsFingerprint(), $this->preset->templates(), $scaffolds);
+        $this->cache()->write($inventory, $this->presetFingerprint(), $this->definitionsFingerprint(), $this->preset->templates(), $scaffolds, $translations);
 
         return $inventory;
     }

@@ -1,0 +1,33 @@
+{
+  "type": "object",
+  "required": [
+    "translations"
+  ],
+  "properties": {
+    "translations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "group",
+          "namespace",
+          "path"
+        ],
+        "properties": {
+          "group": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

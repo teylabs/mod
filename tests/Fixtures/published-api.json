@@ -14113,6 +14113,14 @@
                 "variadic": false,
                 "reference": false,
                 "default": null
+            },
+            {
+                "name": "lang",
+                "type": "?string",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
             }
         ],
         "return": "Tey\\Mod\\Layout\\Layout",

@@ -455,11 +455,13 @@
         "stale_cache": null
     },
     "views": [],
+    "translations": [],
     "frontend": {
         "pages": null,
         "components": null,
         "css": null,
         "views": null,
+        "lang": null,
         "page_name": null,
         "view_namespace": null,
         "import_alias": null

@@ -84,6 +84,9 @@ final readonly class BuiltInLayouts
                     using: fn (FileType $type) => $type->withinRoot($name === 'modules' ? 'app' : 'application'));
             }
         }
+        if ($name === 'modules') {
+            $layout->frontend(lang: '@module/lang');
+        }
         $layout->mirrorsPages();
 
         return true;

@@ -8,6 +8,7 @@ use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\Inventory;
 use Tey\Mod\Discovery\RejectionReason;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
+use Tey\Mod\Translations\TranslationDirectories;
 
 /**
  * @internal the command, mod:cache, is the public part
@@ -18,9 +19,9 @@ final class DiscoveryCacheCommand extends Command
 
     protected $description = 'Scan the layout and cache the discovered providers, commands, listeners, subscribers and directories';
 
-    public function handle(Discovery $discovery, ScaffoldRegistry $scaffolds): int
+    public function handle(Discovery $discovery, ScaffoldRegistry $scaffolds, TranslationDirectories $translations): int
     {
-        $inventory = $discovery->writeCache($scaffolds->nodes());
+        $inventory = $discovery->writeCache($scaffolds->nodes(), $translations->discover());
 
         $this->components->info(sprintf(
             'Discovery cached in [%s]: %d providers, %d commands, %d listeners, %d subscribers, %d directories, %d rejected.',

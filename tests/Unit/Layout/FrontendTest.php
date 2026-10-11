@@ -7,7 +7,7 @@ use Tey\Mod\Layout\LayoutRegistry;
 it('allows frontend with every argument omitted on a custom layout', function () {
     $layout = (new Layout('custom'))->path('app')->mounts('app', 'App\\', 'app')->generates('model', in: 'Models');
     expect($layout->frontend())->toBe($layout)
-        ->and($layout->compile()->frontend())->toBe(['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'page_name' => null]);
+        ->and($layout->compile()->frontend())->toBe(['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'lang' => null, 'page_name' => null]);
 });
 
 it('resolves frontend defaults against a customized group path and inherited token', function () {

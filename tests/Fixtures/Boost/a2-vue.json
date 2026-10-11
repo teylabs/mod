@@ -553,11 +553,13 @@
             ]
         }
     ],
+    "translations": [],
     "frontend": {
         "pages": "app/Modules/{module}/resources/js/pages",
         "components": "app/Modules/{module}/resources/js/components",
         "css": "app/Modules/{module}/resources/css",
         "views": "app/Modules/{module}/resources/views",
+        "lang": "app/Modules/{module}/lang",
         "page_name": "{module}::{path}",
         "view_namespace": "{module.kebab}",
         "import_alias": {

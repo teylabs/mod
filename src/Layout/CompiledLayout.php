@@ -43,7 +43,7 @@ final readonly class CompiledLayout
      * @param  list<CompiledRoot>  $excludedRoots  never owned by any rule
      * @param  array<string, string>  $placementOptions  dimension name → command option name
      * @param  array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}>  $templates
-     * @param  array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string}  $frontendPaths
+     * @param  array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string}  $frontendPaths
      * @param  array<string, Stub>  $stubs  kind id → the stub the layout declares for it
      *
      * @internal
@@ -59,7 +59,7 @@ final readonly class CompiledLayout
         private array $placementOptions = [],
         private array $stubs = [],
         private array $templates = [],
-        private array $frontendPaths = ['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'page_name' => null],
+        private array $frontendPaths = ['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'lang' => null, 'page_name' => null],
         private bool $mirrorPages = false,
     ) {}
 
@@ -103,7 +103,7 @@ final readonly class CompiledLayout
     /**
      * Resolved project-relative path templates and the declared page-name pattern.
      *
-     * @return array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string}
+     * @return array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string}
      *
      * @internal
      */

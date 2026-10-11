@@ -14,7 +14,7 @@ Mod registers the providers, Artisan commands, event listeners and event subscri
 
 Discovery runs after every provider has booted. Only classes that really are providers, commands, listeners or subscribers are registered; everything else is skipped.
 
-Route files, views and translations aren't discovered. A module loads its routes from a provider of its own, which is discovered; [Module routes](../README.md#module-routes) shows how.
+Class discovery does not load route files, views or translations. Views and [module translations](translations.md) register independently from their declared folders. A module can load routes from a provider of its own; [Module routes](../README.md#module-routes) shows how.
 
 A subscriber in a `Listeners` folder is treated the way Laravel's own event discovery treats it: its typed `handle*()` methods are registered as listeners, and `subscribe()` isn't called. To register subscribers, give them a `subscriber` file type of their own. Imports belong at file scope; registration goes in the provider's `boot()`:
 

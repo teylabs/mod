@@ -434,11 +434,13 @@
         "stale_cache": null
     },
     "views": [],
+    "translations": [],
     "frontend": {
         "pages": "app/Features/{feature}/resources/js/pages",
         "components": "app/Features/{feature}/resources/js/components",
         "css": "app/Features/{feature}/resources/css",
         "views": "app/Features/{feature}/resources/views",
+        "lang": null,
         "page_name": "{feature}::{path}",
         "view_namespace": "{feature.kebab}",
         "import_alias": {

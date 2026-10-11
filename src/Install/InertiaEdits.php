@@ -135,8 +135,10 @@ final readonly class InertiaEdits
     private function resourcesGlob(string $pages): string
     {
         $directories = [];
-        foreach ($this->layout->frontend($this->stack) as $key => $path) {
-            if ($key !== 'page_name' && $path !== null && str_contains($path, '{') && ! str_starts_with($path, 'resources/')) {
+        $frontend = $this->layout->frontend($this->stack);
+        foreach (['pages', 'components', 'css', 'views'] as $key) {
+            $path = $frontend[$key];
+            if ($path !== null && str_contains($path, '{') && ! str_starts_with($path, 'resources/')) {
                 $directories[] = explode('/', dirname($path));
             }
         }
