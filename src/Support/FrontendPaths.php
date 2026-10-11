@@ -42,7 +42,7 @@ final class FrontendPaths
             $ancestor = dirname($ancestor);
         }
         $real = realpath($ancestor);
-        if ($real === false) {
+        if (! file_exists($ancestor) || $real === false) {
             return $this->skip('frontend_path_unavailable', $original, 'The path cannot be resolved.');
         }
         if (! str_starts_with($relative, 'vendor/') && Path::relative((string) realpath($this->basePath), $real) === null) {

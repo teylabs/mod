@@ -29,7 +29,7 @@ it('removes directory links without traversing their targets', function () {
             } else {
                 symlink($target->path, $root->path('linked'));
             }
-            expect(Path::isLink($root->path('linked')))->toBeTrue();
+            expect(Path::isLink($root->path('linked')))->toBeTrue(json_encode(['is_link' => is_link($root->path('linked')), 'realpath' => realpath($root->path('linked')), 'parent' => realpath($root->path), 'lstat' => lstat($root->path('linked'))], flags: JSON_THROW_ON_ERROR));
 
             return $root->path;
         });

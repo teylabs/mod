@@ -19,7 +19,15 @@ final class Path
         if (is_link($path)) {
             return true;
         }
-        if (PHP_OS_FAMILY !== 'Windows' || ! is_dir($path)) {
+        if (PHP_OS_FAMILY !== 'Windows') {
+            return false;
+        }
+        $real = realpath($path);
+        $parent = realpath(dirname($path));
+        if ($real !== false && $parent !== false && ! self::same($real, self::join($parent, basename($path)))) {
+            return true;
+        }
+        if (! is_dir($path)) {
             return false;
         }
         // Composer identifies junctions by the non-directory lstat mode.
