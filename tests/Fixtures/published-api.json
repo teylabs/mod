@@ -12864,6 +12864,8 @@
         "parent": "Illuminate\\Support\\Facades\\Facade",
         "facade": [
             "static string pageEntry(string $page, string $extension)",
+            "static Tey\\Mod\\ModManager routeFiles(string $group, string $directory)",
+            "static Tey\\Mod\\ModManager routeRegistrar(string $group, class-string<\\Tey\\Mod\\Routing\\RegistersRoutes> $class)",
             "static void routes(?list<string> $only = null, list<string> $except = [])",
             "static \\Tey\\Mod\\Scaffolds\\VendorScaffolds vendor(string $id)",
             "static Tey\\Mod\\ModManager scaffold(string $name, \\Closure $recipe, ?string $command = null)",
@@ -14659,6 +14661,60 @@
         ],
         "return": "string",
         "shape": ""
+    },
+    "Tey\\Mod\\ModManager::routeFiles": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "group",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "directory",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "Tey\\Mod\\ModManager",
+        "shape": ""
+    },
+    "Tey\\Mod\\ModManager::routeRegistrar": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "group",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "class",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "Tey\\Mod\\ModManager",
+        "shape": "@param class-string<Tey\\Mod\\Routing\\RegistersRoutes> $class"
     },
     "Tey\\Mod\\ModManager::routes": {
         "visibility": "public",

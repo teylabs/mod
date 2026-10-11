@@ -30,6 +30,29 @@ final class ModRoutes
     /** @var list<string> */
     private array $warnings = [];
 
+    /** @var array<string, array{directory: ?string, class: ?class-string<RegistersRoutes>}> */
+    private array $packages = [];
+
+    public function files(string $group, string $directory): void
+    {
+        $this->addPackage($group, ['directory' => $directory, 'class' => null]);
+    }
+
+    /** @param class-string<RegistersRoutes> $class */
+    public function registrar(string $group, string $class): void
+    {
+        $this->addPackage($group, ['directory' => null, 'class' => $class]);
+    }
+
+    /** @param array{directory: ?string, class: ?class-string<RegistersRoutes>} $entry */
+    private function addPackage(string $group, array $entry): void
+    {
+        if (trim($group) === '' || isset($this->packages[$group]) || $this->calledFor($group)) {
+            throw new \LogicException("Package route group [{$group}] must be unique and registered before loading routes.");
+        }
+        $this->packages[$group] = $entry;
+    }
+
     /** @param list<string> $baseline */
     public function __construct(private readonly Application $app, private readonly array $baseline) {}
 
@@ -75,7 +98,7 @@ final class ModRoutes
                     $attributes['prefix'] = 'api';
                 }
                 $router->group($attributes, function () use ($entry, $method): void {
-                    if ($entry['kind'] === 'file') {
+                    if (! str_contains($entry['entrypoint'], '::')) {
                         $this->includeFile($entry['entrypoint']);
                     } else {
                         [$class] = explode('::', $entry['entrypoint']);
@@ -106,7 +129,7 @@ final class ModRoutes
 
     private function includeFile(string $path): void
     {
-        require $this->app->basePath($path);
+        require Path::resolve($this->app->basePath(), $path);
     }
 
     /** @return list<string> */
@@ -119,19 +142,22 @@ final class ModRoutes
     public function entries(): array
     {
         $layout = $this->app->make(CompiledLayout::class);
-        if (! isset($layout->roots()['routes'])) {
-            return [];
-        }
         $paths = new RoutePaths($layout);
         $groups = (new GroupFolders($this->app->basePath()))->groups($layout);
-        $template = $layout->roots()['routes']->path;
-        $groups = [...$groups, ...$this->groupsForTemplate($template)];
+        $template = $layout->roots()['routes']->path ?? '';
+        $groups = $template === '' ? [] : [...$groups, ...$this->groupsForTemplate($template)];
         $registrarTemplate = $layout->hasKind('controller') ? $paths->registrarDirectoryTemplate() : null;
         if ($registrarTemplate !== null) {
             $groups = [...$groups, ...$this->groupsForTemplate($registrarTemplate)];
         }
         $groups = array_values(array_filter($groups, static fn (string $group): bool => count(PlacementContext::fromOption($group, $layout)->toArray()) === count($layout->dimensionNames())));
         $groups = array_values(array_unique($groups));
+        foreach (array_keys($this->packages) as $group) {
+            if (in_array($group, $groups, true)) {
+                throw new \LogicException("Package route group [{$group}] conflicts with a layout group.");
+            }
+        }
+        $groups = [...$groups, ...array_keys($this->packages)];
         sort($groups);
         $order = (array) $this->app->make('config')->get('mod.routes.order', []);
         $this->warnings = [];
@@ -145,6 +171,30 @@ final class ModRoutes
         $included = array_map(Path::normalize(...), array_diff(get_included_files(), $this->baseline));
         $entries = [];
         foreach ($groups as $index => $group) {
+            if (isset($this->packages[$group])) {
+                $package = $this->packages[$group];
+                foreach ($package['class'] === null ? ['web', 'api', 'console'] : ['web', 'api'] as $method) {
+                    if ($package['class'] !== null) {
+                        $entrypoint = $package['class'].'::'.$method;
+                        if (! is_subclass_of($package['class'], RegistersRoutes::class)) {
+                            throw new \LogicException('Package route registrar must implement RegistersRoutes.');
+                        }
+                    } else {
+                        $absolute = Path::resolve($this->app->basePath(), Path::join((string) $package['directory'], $method.'.php'));
+                        if (! is_file($absolute)) {
+                            continue;
+                        }
+                        $entrypoint = Path::relative($this->app->basePath(), $absolute) ?? $absolute;
+                    }
+                    $by = $this->loaded[$entrypoint] ?? null;
+                    if ($by === null && in_array(Path::normalize(realpath(Path::resolve($this->app->basePath(), $entrypoint)) ?: $entrypoint), $included, true)) {
+                        $by = $this->provider($entrypoint);
+                    }
+                    $entries[] = ['group' => $group, 'entrypoint' => $entrypoint, 'kind' => 'package', 'middleware_group' => $method, 'order' => $this->orders[$group] ?? $index + 1, 'loaded_by' => $by];
+                }
+
+                continue;
+            }
             foreach (['web', 'api', 'console'] as $method) {
                 $path = Path::join($paths->directory($group), $method.'.php');
                 if (! is_file($this->app->basePath($path))) {
@@ -185,7 +235,7 @@ final class ModRoutes
                 continue;
             }
             $file = (new ReflectionClass($class))->getFileName();
-            if ($file !== false && (str_starts_with(Path::normalize($file), Path::normalize($this->app->basePath(dirname(dirname($path)))))
+            if ($file !== false && (str_starts_with(Path::normalize($file), Path::normalize(Path::resolve($this->app->basePath(), dirname(dirname($path)))))
                 || str_contains((string) file_get_contents($file), $path))) {
                 return 'provider: '.$class;
             }
