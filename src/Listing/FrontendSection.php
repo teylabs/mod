@@ -36,7 +36,7 @@ final class FrontendSection implements InventorySection
             $packages[] = ['namespace' => $name, 'path' => Path::relative($app->basePath(), $directory)];
         }
 
-        return ['package_pages' => $packages, 'frontend' => [...$frontend, 'view_namespace' => $namespace, 'import_alias' => self::importAlias($layout)]];
+        return ['package_pages' => $packages, 'frontend_owners' => $layout->frontendOwners(), 'frontend' => [...$frontend, 'view_namespace' => $namespace, 'import_alias' => self::importAlias($layout)]];
     }
 
     /** @return array{alias: string, root: string}|null */

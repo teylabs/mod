@@ -13,7 +13,7 @@ final class PageRoots
 
     public function register(string $namespace, string $directory): void
     {
-        if (preg_match('/^[A-Za-z0-9_-]+$/D', $namespace) !== 1) {
+        if (preg_match('~^[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*$~D', $namespace) !== 1) {
             throw new InvalidArgumentException('Page namespaces must contain letters, numbers, underscores or hyphens.');
         }
         $directory = Path::normalize(\Symfony\Component\Filesystem\Path::canonicalize($directory));

@@ -25,6 +25,14 @@ final readonly class Root
         private Layout $layout,
     ) {}
 
+    /** Declare paths relative to this mount; page and view names are explicit. @api */
+    public function frontend(?string $pages = null, ?string $components = null, ?string $css = null, ?string $views = null, ?string $pageName = null, ?string $viewNamespace = null, ?string $alias = null): self
+    {
+        $this->layout->frontendAtRoot($this->name, $pages, $components, $css, $views, $pageName, $viewNamespace, $alias);
+
+        return $this;
+    }
+
     /**
      * @param  string|null  $discover  'folder' or 'anywhere'
      * @param  list<string>|null  $discoverExcept

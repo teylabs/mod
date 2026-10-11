@@ -31,6 +31,8 @@ use Tey\Mod\Support\Stack;
  * as you like side by side.
  *
  * @api
+ *
+ * @phpstan-type Owner array{owner: string, pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string, view_namespace: ?string, alias: ?string}
  */
 final readonly class CompiledLayout
 {
@@ -44,6 +46,7 @@ final readonly class CompiledLayout
      * @param  array<string, string>  $placementOptions  dimension name → command option name
      * @param  array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}>  $templates
      * @param  array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string}  $frontendPaths
+     * @param  list<Owner>  $frontendOwners
      * @param  array<string, Stub>  $stubs  kind id → the stub the layout declares for it
      *
      * @internal
@@ -61,6 +64,7 @@ final readonly class CompiledLayout
         private array $templates = [],
         private array $frontendPaths = ['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'lang' => null, 'page_name' => null],
         private bool $mirrorPages = false,
+        private array $frontendOwners = [],
     ) {}
 
     /**
@@ -73,7 +77,7 @@ final readonly class CompiledLayout
         $slots = array_merge([], ...array_column($templates, 'slots'));
         $dimensions = array_values(array_filter($this->dimensions, static fn (Dimension $dimension): bool => ! in_array($dimension->name, $slots, true)));
 
-        return new self($this->roots, $dimensions, $this->kinds, $this->rules, $this->relations, $this->excludedRoots, $this->commandsEnabled, $this->placementOptions, $this->stubs, $templates, $this->frontendPaths, $this->mirrorPages);
+        return new self($this->roots, $dimensions, $this->kinds, $this->rules, $this->relations, $this->excludedRoots, $this->commandsEnabled, $this->placementOptions, $this->stubs, $templates, $this->frontendPaths, $this->mirrorPages, $this->frontendOwners);
     }
 
     /**
@@ -143,7 +147,15 @@ final readonly class CompiledLayout
             }
         }
 
-        return new self($roots, $this->dimensions, $kinds, $rules, $this->relations, $this->excludedRoots, $this->commandsEnabled, $this->placementOptions, $this->stubs, $this->templates, $paths, $this->mirrorPages);
+        return new self($roots, $this->dimensions, $kinds, $rules, $this->relations, $this->excludedRoots, $this->commandsEnabled, $this->placementOptions, $this->stubs, $this->templates, $paths, $this->mirrorPages, $this->frontendOwners);
+    }
+
+    /** @internal
+     * @return list<Owner>
+     */
+    public function frontendOwners(): array
+    {
+        return $this->frontendOwners;
     }
 
     /** Whether a candidate lies inside a declared root that holds no classes. @internal */

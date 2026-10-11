@@ -131,7 +131,24 @@ final class LayoutCompiler
         }
         unset($relation);
 
+        $owners = [];
+        foreach ($chain['mounted_frontend'] as $name => $declaration) {
+            $root = $roots[$name] ?? null;
+            if ($root === null) {
+                throw new \InvalidArgumentException('Unknown frontend root ['.$name.'].');
+            }
+            foreach (['pages', 'components', 'css', 'views'] as $field) {
+                FrontendDeclarations::path($declaration[$field], $name);
+                if ($declaration[$field] !== null) {
+                    $declaration[$field] = Path::join($root['path'], $declaration[$field]);
+                }
+            }
+            $owners[] = ['owner' => $name, ...$declaration];
+        }
+        $owners = FrontendDeclarations::validate($owners);
+
         $definition = [
+            'frontend_owners' => $owners,
             'frontend' => $frontend,
             'mirror_pages' => $chain['mirror_pages'],
             'commands' => $chain['commands'],

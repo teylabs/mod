@@ -19,7 +19,7 @@ final class PageDirectories
     public function namespaces(): array
     {
         $namespaces = $this->namespaces ??= $this->discover();
-        foreach ($this->packages->all() as $namespace => $directory) {
+        foreach ($this->additional() as $namespace => $directory) {
             $relative = Path::relative($this->basePath, $directory);
             if ($relative === null || str_contains($relative, '..') || ! is_dir($directory)) {
                 throw new \InvalidArgumentException('Page root ['.$namespace.'] must be an existing directory inside the application.');
@@ -38,9 +38,28 @@ final class PageDirectories
     }
 
     /** @return array<string, string> */
-    private function discover(): array
+    public function additional(): array
     {
-        $frontend = $this->layout->frontend(new Stack($this->basePath));
+        $namespaces = $this->packages->all();
+        foreach ($this->layout->frontendOwners() as $owner) {
+            foreach ($this->discover($owner) as $namespace => $path) {
+                if (isset($namespaces[$namespace]) && $namespaces[$namespace] !== $path) {
+                    throw new \InvalidArgumentException('Conflicting page namespace ['.$namespace.'].');
+                }
+                $namespaces[$namespace] = $path;
+            }
+        }
+
+        return $namespaces;
+    }
+
+    /**
+     * @param  array{pages: ?string, page_name: ?string}  $frontend
+     * @return array<string, string>
+     */
+    private function discover(?array $frontend = null): array
+    {
+        $frontend ??= $this->layout->frontend(new Stack($this->basePath));
         $template = $frontend['pages'];
         $name = $frontend['page_name'];
         if ($template === null || $name === null || ! str_ends_with($name, '::{path}')) {

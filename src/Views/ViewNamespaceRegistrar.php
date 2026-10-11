@@ -65,7 +65,7 @@ final class ViewNamespaceRegistrar
             $path = Path::resolve($app->basePath(), $entry['path']);
             View::addNamespace($namespace, $path);
             Blade::anonymousComponentPath(Path::join($path, 'components'), $namespace);
-            if ($layout->hasKind('component')) {
+            if ($entry['group'] !== null && $layout->hasKind('component')) {
                 $component = (new PlacementResolver($layout))->resolve(ArtifactRequest::for('component', 'Component', $entry['context']));
                 $class = $component->class();
                 if ($class !== null) {

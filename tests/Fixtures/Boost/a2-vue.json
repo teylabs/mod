@@ -560,6 +560,7 @@
     ],
     "translations": [],
     "package_pages": [],
+    "frontend_owners": [],
     "frontend": {
         "pages": "app/Modules/{module}/resources/js/pages",
         "components": "app/Modules/{module}/resources/js/components",

@@ -18,8 +18,14 @@ final readonly class ViewDirectories
     public function entries(): array
     {
         $template = $this->layout->frontend()['views'];
+        $mounted = [];
+        foreach ($this->layout->frontendOwners() as $owner) {
+            if ($owner['views'] !== null && is_dir(Path::resolve($this->basePath, $owner['views']))) {
+                $mounted[] = ['group' => null, 'namespace' => $owner['view_namespace'], 'path' => $owner['views'], 'context' => PlacementContext::of([])];
+            }
+        }
         if ($template === null) {
-            return [];
+            return $mounted;
         }
         $pattern = preg_quote($template, '#');
         foreach ($this->layout->dimensions() as $dimension) {
@@ -31,7 +37,7 @@ final readonly class ViewDirectories
         $prefix = $first === false ? $template : rtrim(substr($template, 0, $first), '/');
         $directory = Path::resolve($this->basePath, $prefix);
         if (! is_dir($directory)) {
-            return [];
+            return $mounted;
         }
         $paths = [$directory];
         if ($first !== false) {
@@ -39,7 +45,7 @@ final readonly class ViewDirectories
                 $paths[] = $folder->getPathname();
             }
         }
-        $entries = [];
+        $entries = $mounted;
         $groups = (new GroupFolders($this->basePath))->groups($this->layout);
         foreach ($paths as $path) {
             $relative = Path::relative($this->basePath, $path);

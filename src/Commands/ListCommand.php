@@ -82,6 +82,10 @@ final class ListCommand extends Command
             $rows[] = $detail ? [$type['id'], $type['command'], $type['folder'], $type['source']] : [$type['command'], $type['folder'], $type['source']];
         }
         $this->table($detail ? ['File type', 'Command', 'Folder', 'From'] : ['Generator', 'Folder', 'From'], $rows, 'compact');
+        foreach ($report['frontend_owners'] as $owner) {
+            $paths = array_filter([$owner['components'], $owner['pages'], $owner['views']]);
+            $this->components->twoColumnDetail('Frontend '.$owner['owner'], implode(', ', $paths).($owner['alias'] === null ? '' : ' ['.$owner['alias'].']').($owner['page_name'] === null ? '' : ' '.$owner['page_name']));
+        }
         $this->renderScaffolds($report['scaffolds']['items'], $detail);
         if ($filter === null && $report['views'] !== []) {
             $this->line('  Views');

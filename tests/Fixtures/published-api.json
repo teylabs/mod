@@ -13497,7 +13497,7 @@
         "final": true,
         "abstract": false,
         "readonly": true,
-        "shapes": "",
+        "shapes": "@phpstan-type Owner array{owner: string, pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string, view_namespace: ?string, alias: ?string}",
         "interfaces": [],
         "parent": null
     },
@@ -14570,6 +14570,73 @@
         "shapes": "",
         "interfaces": [],
         "parent": null
+    },
+    "Tey\\Mod\\Layout\\Root::frontend": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "pages",
+                "type": "?string",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "components",
+                "type": "?string",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "css",
+                "type": "?string",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "views",
+                "type": "?string",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "pageName",
+                "type": "?string",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "viewNamespace",
+                "type": "?string",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "alias",
+                "type": "?string",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "Tey\\Mod\\Layout\\Root",
+        "shape": ""
     },
     "Tey\\Mod\\Layout\\Root::generates": {
         "visibility": "public",
