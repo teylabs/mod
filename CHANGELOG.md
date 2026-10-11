@@ -2,7 +2,7 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## Unreleased
+## [0.6.1] - 2026-10-11
 
 ### Fixed
 - Package pages and frontend wiring support symlinked Composer path repositories, preserve installed vendor paths, and report unusable declarations without interrupting boot (#116).
