@@ -5,15 +5,17 @@ All notable changes to `mod` will be documented in this file.
 ## Unreleased
 
 ### Added
-- MCP tools, servers, resources and prompts use Laravel MCP's own generators for app-declared file types, with optional module and DDD application-layer placements when the package is installed. Their native stubs, placeholders and options are preserved; previews and collisions use Mod's existing plan.
+- Module pages work with Inertia's page-existence check (`ensure_pages_exist`) and `assertInertia()`: mod registers each module's page folder with Inertia's page finders. A missing module page still fails (#72).
+- `Mod::pageEntry()` gives the root Blade view the real Vite entry for any page, so direct (full-page) loads of module pages work (#73).
+- With laravel/mcp installed, `mod:mcp-tool`, `mod:mcp-server`, `mod:mcp-resource` and `mod:mcp-prompt` write laravel/mcp's own output into a module (`modules`) or a domain's application layer (`ddd`), and app-declared file types with those ids use the same generators (#77).
+- A guide to persisted class names when moving models: polymorphic `*_type` columns and queued jobs, reviewed before deployment (#75).
+
+### Changed
+- The Boost core guideline is one short paragraph; the generator, frontend, rename and host API reference moved into the on-demand `mod-development` skill (#76).
+- On an app with a customized Inertia bootstrap, `mod:install inertia` prints the exact resolver and Tailwind lines to add, with the file and where, instead of only asking for manual wiring. It still writes nothing (#74).
 
 ### Fixed
-- The layout-move guide calls out persisted polymorphic class names and serialized queued work, with a pre-deployment identity mapping and application-owned migration and rollback review.
-- Customized Inertia bootstraps receive exact resolver and Tailwind snippets with file and insertion-point instructions, preserving existing adapters and layouts.
-- `Mod::pageEntry()` maps qualified Inertia pages to their Vite entries for direct full-page loads from a starter-kit Blade shell.
-- Qualified frontend page folders register with Inertia's page finder, so page-existence checks and `assertInertia()` work for module pages.
-- The Boost core guideline is a short inventory-and-preview instruction; generator and package API reference lives in the on-demand `mod-development` skill.
-- Root-scoped file type warnings explain the `@<token>/...` declaration for placing a file in a module; the layouts guide shows the anchor syntax.
+- Giving a module to a file type declared without a module token now names the fix (`in: '@module/...'`), and the layouts guide documents the form (#78).
 
 ## [0.4.1] - 2026-10-10
 
