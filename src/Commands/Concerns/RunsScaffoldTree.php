@@ -187,7 +187,7 @@ trait RunsScaffoldTree
             }
             if ($this->dryPlan !== null) {
                 if ($this->unloadedTreeRoutes()) {
-                    $this->dryPlan->warnings[] = ['file' => null, 'line' => null, 'message' => "Without a Mod::routes() call these routes won't load. Add then: fn () => Mod::routes() to withRouting() in bootstrap/app.php."];
+                    $this->dryPlan->warning("Without a Mod::routes() call these routes won't load. Add then: fn () => Mod::routes() to withRouting() in bootstrap/app.php.", blocking: false, code: 'routes_not_loaded');
                 }
                 foreach ($this->treeInserts as $insert) {
                     $anchor = $writer->anchor($sources[$insert['path']], $insert['at'], $insert['path']);
@@ -277,7 +277,7 @@ trait RunsScaffoldTree
             if ($this->dryPlan !== null) {
                 throw $exception;
             }
-            foreach (explode("\n", $exception->getMessage()) as $line) {
+            foreach (explode("\n", $this->scaffoldRefusal($exception)) as $line) {
                 $this->components->error($line);
             }
 

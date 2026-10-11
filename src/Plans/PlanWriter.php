@@ -6,7 +6,9 @@ use Illuminate\Console\Command;
 use RuntimeException;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Tey\Mod\Exceptions\MissingDimension;
 use Tey\Mod\Exceptions\ModException;
+use Tey\Mod\Scaffolds\ScaffoldRegistry;
 use Throwable;
 
 /** @internal One formatter for humans and agents; planning never reads a terminal. */
@@ -29,7 +31,14 @@ final class PlanWriter
             if (! $exception instanceof ModException && ! $exception instanceof RuntimeException) {
                 throw $exception;
             }
-            $plan->warning($exception->getMessage());
+            if ($exception instanceof MissingDimension) {
+                $options = method_exists($command, 'placementWarningOptions') ? $command->placementWarningOptions($exception->dimension) : ['--in'];
+                $choices = array_keys(app(ScaffoldRegistry::class)->groupDirectories());
+                $message = $command->getName().' needs a ['.$exception->dimension.']; pass '.implode(' or ', $options).'=<'.$exception->dimension.'>, or '.$exception->dimension.':'.($plan->name ?? 'Name').'.';
+                $plan->warning($message, code: 'missing_placement', data: ['file_type' => $exception->kindId, 'dimension' => $exception->dimension, 'options' => $options, 'choices' => $choices]);
+            } else {
+                $plan->warning($exception->getMessage());
+            }
         } finally {
             $input->setInteractive($interactive);
             $output->setVerbosity($verbosity);

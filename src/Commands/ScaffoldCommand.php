@@ -10,6 +10,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Commands\Concerns\InteractsWithLayout;
 use Tey\Mod\Commands\Concerns\RunsScaffoldTree;
 use Tey\Mod\Exceptions\GenerationRefused;
+use Tey\Mod\Exceptions\MissingDimension;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Layout\BuiltIn\GeneratorSources;
@@ -343,7 +344,7 @@ final class ScaffoldCommand extends Command
             if ($this->dryPlan !== null) {
                 throw $exception;
             }
-            foreach (explode("\n", $exception->getMessage()) as $line) {
+            foreach (explode("\n", $this->scaffoldRefusal($exception)) as $line) {
                 $this->components->error($line);
             }
 
@@ -351,6 +352,17 @@ final class ScaffoldCommand extends Command
         } finally {
             $previous === null ? $this->laravel->forgetInstance(ScaffoldExecution::class) : $this->laravel->instance(ScaffoldExecution::class, $previous);
         }
+    }
+
+    private function scaffoldRefusal(ModException $exception): string
+    {
+        if (! $exception instanceof MissingDimension) {
+            return $exception->getMessage();
+        }
+        $option = $this->preset->placementOptions()[$exception->dimension] ?? null;
+        $ways = $option === null ? '--in' : '--'.$option.' or --in';
+
+        return $this->getName().' needs a ['.$exception->dimension.']; pass '.$ways.'=<'.$exception->dimension.'>, or '.$exception->dimension.':'.$this->shorthand()[1].'.';
     }
 
     /** @param array<string, mixed> $values */

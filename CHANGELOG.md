@@ -2,6 +2,14 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## Unreleased
+
+### Added
+- Plan warnings include stable codes and structured data, including missing placement options and choices (#99).
+
+### Fixed
+- Missing placement messages name the running command’s option and the group/name short form (#99).
+
 ## [0.5.1] - 2026-10-11
 
 ### Fixed

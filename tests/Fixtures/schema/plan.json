@@ -134,6 +134,14 @@
           },
           "message": {
             "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable codes: missing_placement, generation_refused, advisory, routes_not_loaded. Additional codes may be added."
+          },
+          "data": {
+            "type": "object",
+            "description": "Code-specific data. missing_placement supplies file_type, dimension, options and choices."
           }
         }
       }
