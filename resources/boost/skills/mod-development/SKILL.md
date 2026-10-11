@@ -213,7 +213,7 @@ In `modules`, everything a module needs (models, migrations, factories, policies
 
 ## Read-only Boost tools and import metadata
 
-When connected to Laravel Boost, read `mod-inventory` before generating files. It returns `php artisan mod:list --json` with the complete inventory. Boost is optional; Mod appends `mod-inventory` and `mod-plan` through `boost.mcp.tools.include` while preserving other includes.
+When connected to Laravel Boost, read `mod-inventory` before generating files. It returns `php artisan mod:list --json` with the complete inventory. Boost is optional; Mod appends `mod-inventory`, `mod-plan` and `mod-survey` through `boost.mcp.tools.include` while preserving other includes.
 
 Request a plan with an exact registered command and positional arguments/option tokens:
 
@@ -221,7 +221,32 @@ Request a plan with an exact registered command and positional arguments/option 
 {"command":"mod:resource-tabs.tab","arguments":["Inventory:Widget","History"]}
 ```
 
-`mod-plan` enforces `--dry-run --json` and non-interactivity; it never applies the command. Check files, inserts, warnings and `would_write`. Missing answers remain warnings, and commands without preview support are refused. Neither tool writes files. Apply reviewed plans with `php artisan mod:*`.
+`mod-plan` enforces `--dry-run --json` and non-interactivity; it never applies the command. Check files, inserts, warnings and `would_write`. Missing answers remain warnings, and commands without preview support are refused. None of these tools writes files. Apply reviewed plans with `php artisan mod:*`.
+
+Call `mod-survey` with `{}` to inspect how this app is actually organized, rather than only where generators would place new files. With no configured layout it uses `laravel`. The sorted JSON contains:
+
+- `types`: every configured file type, including empty and non-discovered types, grouped by actual folder and namespace with every class and file. `classes` also lists declarations in unplaced files.
+- `unplaced`: a count and project-relative paths for files no rule places. Ambiguous and callback-only placements appear separately in `unresolved`; invalid PHP appears in `unparsed`.
+- `references`: directed `from`, `kind`, `to` edges for tokenizer-parsed class imports and class references, literal `Inertia::render` pages, registered routes to controllers, and policy/model pairs. Aliases, grouped imports and bracketed namespaces are supported. Function/constant imports and computed page names are not class/page edges.
+- `sets`: connected app files (`basis: references`), co-located files (`basis: folder`), and overlapping model-centred sets (`basis: model`, with the model path in `anchor`). Model sets take direct neighbours and one outward reference hop, retaining procedural callers without traversing them or crossing into other models. This keeps shared base controllers and route files from merging every model's set. Vendor nodes do not join otherwise unrelated app files. `recurring_sets` groups sets with the same basis and file types; `naming_patterns` lists repeated file-type basename templates and their paths. These are evidence, not proof that files belong to one feature.
+- `vendor`: referenced classes located under this app's `vendor/`, their paths and callers, using Composer's already loaded class maps and PSR-4 mappings without loading those classes.
+- `git`: branch, commit, dirty state, origin remote URL and root commit. The remote and root commit identify the app across checkouts. Remote credentials, query strings and fragments are removed.
+
+An excerpt (other types and fields omitted):
+
+```json
+{
+  "references": [{"from": "App\\Http\\Controllers\\WidgetController", "kind": "page", "to": "page:Widgets/Show"}],
+  "types": [{"groups": [{"classes": ["App\\Models\\Widget"], "files": ["app/Models/Widget.php"], "folder": "app/Models", "namespace": "App\\Models"}], "id": "model"}],
+  "unplaced": {"count": 1, "paths": ["notes.txt"]}
+}
+```
+
+The boundary is enforced in code: no arguments or alternate roots, no parent/sibling/home scans, no network calls and no writes. Paths are resolved inside `base_path()`; all discovered symlinks are skipped, and nested repositories and `node_modules/` are excluded. `.env*`, `storage/`, keys (`.key`, `.pem`), logs and database files are never opened or reported. PHP is tokenized, not executed; page files are not read for references. Only structure and class names are returned, never source or secret contents. Run the tool separately in each app if a person wants a comparison. Files larger than 1 MiB (1,048,576 bytes) are skipped before reading; `skipped` lists their relative paths with `size-limit`, and links with `symlink`. `bootstrap/cache`, `public/build`, `public/hot` and `public/storage` are excluded.
+
+The survey reuses compiled placement and discovery relation definitions, not a cold discovery scan or autoloading policy callbacks. Registered Gate policies take precedence over layout conventions. It does not execute template/discovery loaders to fill missing registrations. Dynamic references, custom policy-guessing callbacks and opaque placement callbacks cannot be inferred safely.
+
+Git commands run in `base_path()` with explicit local metadata, no global/system config, helpers, optional locks or network protocols. Git fields are null without a repository or when metadata would escape the boundary (including linked worktrees, alternate object stores or config includes). A skipped `.gitignore` also leaves Git fields null so Git cannot read a linked or oversized ignore file. A shallow checkout has a null root commit; nothing is fetched. Dirty detection compares staged metadata, tracked file metadata and safe file hashes; protected files are never hashed and excluded untracked files do not affect it. Timestamp-only changes may conservatively report dirty. It does not run Git clean filters. Keys and lists are sorted and duplicate observations removed, so repeated surveys of the same tree and runtime registrations are byte-identical.
 
 The additive `frontend.import_alias` is an object such as `{"alias":"@modules","root":"app/Modules"}`, or null without frontend declarations; ddd retains every frontend key with a null value. `frontend.view_namespace` remains unchanged. Use `@/` for files under `resources/js/`; use `@modules/` relative to the reported root for module files. Never traverse an alias with `../`. This metadata describes the intended mapping; check `wiring.vite_alias` to know whether it is installed.
 

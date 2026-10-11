@@ -1,0 +1,776 @@
+{
+    "classes": [
+        {
+            "class": "App\\Http\\Controllers\\CommentController",
+            "path": "app/Http/Controllers/CommentController.php"
+        },
+        {
+            "class": "App\\Http\\Controllers\\Controller",
+            "path": "app/Http/Controllers/Controller.php"
+        },
+        {
+            "class": "App\\Http\\Controllers\\PostController",
+            "path": "app/Http/Controllers/PostController.php"
+        },
+        {
+            "class": "App\\Http\\Requests\\StoreCommentRequest",
+            "path": "app/Http/Requests/StoreCommentRequest.php"
+        },
+        {
+            "class": "App\\Http\\Requests\\StorePostRequest",
+            "path": "app/Http/Requests/StorePostRequest.php"
+        },
+        {
+            "class": "App\\Models\\Comment",
+            "path": "app/Models/Comment.php"
+        },
+        {
+            "class": "App\\Models\\Post",
+            "path": "app/Models/Post.php"
+        },
+        {
+            "class": "App\\Models\\User",
+            "path": "app/Models/User.php"
+        },
+        {
+            "class": "App\\Policies\\CommentPolicy",
+            "path": "app/Policies/CommentPolicy.php"
+        },
+        {
+            "class": "App\\Policies\\PostPolicy",
+            "path": "app/Policies/PostPolicy.php"
+        },
+        {
+            "class": "App\\Services\\Markdown",
+            "path": "app/Services/Markdown.php"
+        },
+        {
+            "class": "Database\\Factories\\CommentFactory",
+            "path": "database/factories/CommentFactory.php"
+        },
+        {
+            "class": "Database\\Factories\\PostFactory",
+            "path": "database/factories/PostFactory.php"
+        }
+    ],
+    "git": {
+        "branch": null,
+        "commit": null,
+        "dirty": null,
+        "remote": null,
+        "root_commit": null
+    },
+    "layout": "laravel",
+    "naming_patterns": [
+        {
+            "files": [
+                "app/Http/Controllers/CommentController.php",
+                "app/Http/Controllers/PostController.php"
+            ],
+            "pattern": "{name}Controller.php",
+            "type": "controller"
+        },
+        {
+            "files": [
+                "app/Http/Requests/StoreCommentRequest.php",
+                "app/Http/Requests/StorePostRequest.php"
+            ],
+            "pattern": "{name}Request.php",
+            "type": "request"
+        },
+        {
+            "files": [
+                "app/Models/Comment.php",
+                "app/Models/Post.php",
+                "app/Models/User.php"
+            ],
+            "pattern": "{name}.php",
+            "type": "model"
+        },
+        {
+            "files": [
+                "app/Policies/CommentPolicy.php",
+                "app/Policies/PostPolicy.php"
+            ],
+            "pattern": "{name}Policy.php",
+            "type": "policy"
+        },
+        {
+            "files": [
+                "database/factories/CommentFactory.php",
+                "database/factories/PostFactory.php"
+            ],
+            "pattern": "{name}Factory.php",
+            "type": "factory"
+        },
+        {
+            "files": [
+                "resources/js/pages/Comments/Index.vue",
+                "resources/js/pages/Comments/Show.vue",
+                "resources/js/pages/Posts/Index.vue",
+                "resources/js/pages/Posts/Show.vue"
+            ],
+            "pattern": "{name}.vue",
+            "type": "page"
+        }
+    ],
+    "recurring_sets": [
+        {
+            "basis": "folder",
+            "occurrences": [
+                [
+                    "resources/js/pages/Comments/Index.vue",
+                    "resources/js/pages/Comments/Show.vue"
+                ],
+                [
+                    "resources/js/pages/Posts/Index.vue",
+                    "resources/js/pages/Posts/Show.vue"
+                ]
+            ],
+            "types": [
+                "page"
+            ]
+        },
+        {
+            "basis": "model",
+            "occurrences": [
+                [
+                    "app/Http/Controllers/CommentController.php",
+                    "app/Http/Controllers/Controller.php",
+                    "app/Http/Requests/StoreCommentRequest.php",
+                    "app/Models/Comment.php",
+                    "app/Policies/CommentPolicy.php",
+                    "resources/js/pages/Comments/Index.vue",
+                    "routes/web.php"
+                ],
+                [
+                    "app/Http/Controllers/Controller.php",
+                    "app/Http/Controllers/PostController.php",
+                    "app/Http/Requests/StorePostRequest.php",
+                    "app/Models/Post.php",
+                    "app/Policies/PostPolicy.php",
+                    "resources/js/pages/Posts/Index.vue",
+                    "routes/web.php"
+                ]
+            ],
+            "types": [
+                "controller",
+                "model",
+                "page",
+                "policy",
+                "request"
+            ]
+        }
+    ],
+    "references": [
+        {
+            "from": "App\\Http\\Controllers\\CommentController",
+            "kind": "class",
+            "to": "App\\Http\\Controllers\\Controller"
+        },
+        {
+            "from": "App\\Http\\Controllers\\CommentController",
+            "kind": "class",
+            "to": "App\\Http\\Requests\\StoreCommentRequest"
+        },
+        {
+            "from": "App\\Http\\Controllers\\CommentController",
+            "kind": "class",
+            "to": "App\\Models\\Comment"
+        },
+        {
+            "from": "App\\Http\\Controllers\\CommentController",
+            "kind": "import",
+            "to": "App\\Http\\Requests\\StoreCommentRequest"
+        },
+        {
+            "from": "App\\Http\\Controllers\\CommentController",
+            "kind": "import",
+            "to": "App\\Models\\Comment"
+        },
+        {
+            "from": "App\\Http\\Controllers\\CommentController",
+            "kind": "page",
+            "to": "page:Comments/Index"
+        },
+        {
+            "from": "App\\Http\\Controllers\\PostController",
+            "kind": "class",
+            "to": "App\\Http\\Controllers\\Controller"
+        },
+        {
+            "from": "App\\Http\\Controllers\\PostController",
+            "kind": "class",
+            "to": "App\\Http\\Requests\\StorePostRequest"
+        },
+        {
+            "from": "App\\Http\\Controllers\\PostController",
+            "kind": "class",
+            "to": "App\\Models\\Post"
+        },
+        {
+            "from": "App\\Http\\Controllers\\PostController",
+            "kind": "import",
+            "to": "App\\Http\\Requests\\StorePostRequest"
+        },
+        {
+            "from": "App\\Http\\Controllers\\PostController",
+            "kind": "import",
+            "to": "App\\Models\\Post"
+        },
+        {
+            "from": "App\\Http\\Controllers\\PostController",
+            "kind": "page",
+            "to": "page:Posts/Index"
+        },
+        {
+            "from": "App\\Models\\Comment",
+            "kind": "policy",
+            "to": "App\\Policies\\CommentPolicy"
+        },
+        {
+            "from": "App\\Models\\Post",
+            "kind": "policy",
+            "to": "App\\Policies\\PostPolicy"
+        },
+        {
+            "from": "App\\Policies\\CommentPolicy",
+            "kind": "import",
+            "to": "App\\Models\\Comment"
+        },
+        {
+            "from": "App\\Policies\\CommentPolicy",
+            "kind": "import",
+            "to": "App\\Models\\User"
+        },
+        {
+            "from": "App\\Policies\\CommentPolicy",
+            "kind": "model",
+            "to": "App\\Models\\Comment"
+        },
+        {
+            "from": "App\\Policies\\PostPolicy",
+            "kind": "import",
+            "to": "App\\Models\\Post"
+        },
+        {
+            "from": "App\\Policies\\PostPolicy",
+            "kind": "import",
+            "to": "App\\Models\\User"
+        },
+        {
+            "from": "App\\Policies\\PostPolicy",
+            "kind": "model",
+            "to": "App\\Models\\Post"
+        },
+        {
+            "from": "App\\Services\\Markdown",
+            "kind": "class",
+            "to": "Acme\\Text\\Parser"
+        },
+        {
+            "from": "App\\Services\\Markdown",
+            "kind": "import",
+            "to": "Acme\\Text\\Parser"
+        },
+        {
+            "from": "App\\Services\\Markdown",
+            "kind": "import",
+            "to": "Acme\\Text\\Renderer"
+        },
+        {
+            "from": "file:app/Http/Controllers/CommentController.php",
+            "kind": "import",
+            "to": "App\\Http\\Requests\\StoreCommentRequest"
+        },
+        {
+            "from": "file:app/Http/Controllers/CommentController.php",
+            "kind": "import",
+            "to": "App\\Models\\Comment"
+        },
+        {
+            "from": "file:app/Http/Controllers/PostController.php",
+            "kind": "import",
+            "to": "App\\Http\\Requests\\StorePostRequest"
+        },
+        {
+            "from": "file:app/Http/Controllers/PostController.php",
+            "kind": "import",
+            "to": "App\\Models\\Post"
+        },
+        {
+            "from": "file:app/Policies/CommentPolicy.php",
+            "kind": "import",
+            "to": "App\\Models\\Comment"
+        },
+        {
+            "from": "file:app/Policies/CommentPolicy.php",
+            "kind": "import",
+            "to": "App\\Models\\User"
+        },
+        {
+            "from": "file:app/Policies/PostPolicy.php",
+            "kind": "import",
+            "to": "App\\Models\\Post"
+        },
+        {
+            "from": "file:app/Policies/PostPolicy.php",
+            "kind": "import",
+            "to": "App\\Models\\User"
+        },
+        {
+            "from": "file:app/Services/Markdown.php",
+            "kind": "import",
+            "to": "Acme\\Text\\Parser"
+        },
+        {
+            "from": "file:app/Services/Markdown.php",
+            "kind": "import",
+            "to": "Acme\\Text\\Renderer"
+        },
+        {
+            "from": "file:routes/web.php",
+            "kind": "class",
+            "to": "App\\Http\\Controllers\\CommentController"
+        },
+        {
+            "from": "file:routes/web.php",
+            "kind": "class",
+            "to": "App\\Http\\Controllers\\PostController"
+        },
+        {
+            "from": "file:routes/web.php",
+            "kind": "import",
+            "to": "App\\Http\\Controllers\\CommentController"
+        },
+        {
+            "from": "file:routes/web.php",
+            "kind": "import",
+            "to": "App\\Http\\Controllers\\PostController"
+        },
+        {
+            "from": "route:GET|HEAD posts",
+            "kind": "route",
+            "to": "App\\Http\\Controllers\\PostController"
+        },
+        {
+            "from": "route:GET|HEAD vendor-page",
+            "kind": "route",
+            "to": "Acme\\Text\\Parser"
+        },
+        {
+            "from": "route:POST comments",
+            "kind": "route",
+            "to": "App\\Http\\Controllers\\CommentController"
+        }
+    ],
+    "sets": [
+        {
+            "anchor": "app/Models/Comment.php",
+            "basis": "model",
+            "files": [
+                "app/Http/Controllers/CommentController.php",
+                "app/Http/Controllers/Controller.php",
+                "app/Http/Requests/StoreCommentRequest.php",
+                "app/Models/Comment.php",
+                "app/Policies/CommentPolicy.php",
+                "resources/js/pages/Comments/Index.vue",
+                "routes/web.php"
+            ],
+            "types": [
+                "controller",
+                "model",
+                "page",
+                "policy",
+                "request"
+            ]
+        },
+        {
+            "anchor": "app/Models/Post.php",
+            "basis": "model",
+            "files": [
+                "app/Http/Controllers/Controller.php",
+                "app/Http/Controllers/PostController.php",
+                "app/Http/Requests/StorePostRequest.php",
+                "app/Models/Post.php",
+                "app/Policies/PostPolicy.php",
+                "resources/js/pages/Posts/Index.vue",
+                "routes/web.php"
+            ],
+            "types": [
+                "controller",
+                "model",
+                "page",
+                "policy",
+                "request"
+            ]
+        },
+        {
+            "anchor": "app/Models/User.php",
+            "basis": "model",
+            "files": [
+                "app/Models/User.php",
+                "app/Policies/CommentPolicy.php",
+                "app/Policies/PostPolicy.php"
+            ],
+            "types": [
+                "model",
+                "policy"
+            ]
+        },
+        {
+            "basis": "folder",
+            "files": [
+                "app/Http/Controllers/CommentController.php",
+                "app/Http/Controllers/Controller.php",
+                "app/Http/Controllers/PostController.php"
+            ],
+            "types": [
+                "controller"
+            ]
+        },
+        {
+            "basis": "folder",
+            "files": [
+                "app/Http/Requests/StoreCommentRequest.php",
+                "app/Http/Requests/StorePostRequest.php"
+            ],
+            "types": [
+                "request"
+            ]
+        },
+        {
+            "basis": "folder",
+            "files": [
+                "app/Models/Comment.php",
+                "app/Models/Post.php",
+                "app/Models/User.php"
+            ],
+            "types": [
+                "model"
+            ]
+        },
+        {
+            "basis": "folder",
+            "files": [
+                "app/Policies/CommentPolicy.php",
+                "app/Policies/PostPolicy.php"
+            ],
+            "types": [
+                "policy"
+            ]
+        },
+        {
+            "basis": "folder",
+            "files": [
+                "database/factories/CommentFactory.php",
+                "database/factories/PostFactory.php"
+            ],
+            "types": [
+                "factory"
+            ]
+        },
+        {
+            "basis": "folder",
+            "files": [
+                "resources/js/pages/Comments/Index.vue",
+                "resources/js/pages/Comments/Show.vue"
+            ],
+            "types": [
+                "page"
+            ]
+        },
+        {
+            "basis": "folder",
+            "files": [
+                "resources/js/pages/Posts/Index.vue",
+                "resources/js/pages/Posts/Show.vue"
+            ],
+            "types": [
+                "page"
+            ]
+        },
+        {
+            "basis": "references",
+            "files": [
+                "app/Http/Controllers/CommentController.php",
+                "app/Http/Controllers/Controller.php",
+                "app/Http/Controllers/PostController.php",
+                "app/Http/Requests/StoreCommentRequest.php",
+                "app/Http/Requests/StorePostRequest.php",
+                "app/Models/Comment.php",
+                "app/Models/Post.php",
+                "app/Models/User.php",
+                "app/Policies/CommentPolicy.php",
+                "app/Policies/PostPolicy.php",
+                "resources/js/pages/Comments/Index.vue",
+                "resources/js/pages/Posts/Index.vue",
+                "routes/web.php"
+            ],
+            "types": [
+                "controller",
+                "model",
+                "page",
+                "policy",
+                "request"
+            ]
+        }
+    ],
+    "skipped": [],
+    "types": [
+        {
+            "groups": [],
+            "id": "cast"
+        },
+        {
+            "groups": [],
+            "id": "channel"
+        },
+        {
+            "groups": [],
+            "id": "class"
+        },
+        {
+            "groups": [],
+            "id": "command"
+        },
+        {
+            "groups": [],
+            "id": "component"
+        },
+        {
+            "groups": [],
+            "id": "config"
+        },
+        {
+            "groups": [],
+            "id": "enum"
+        },
+        {
+            "groups": [],
+            "id": "event"
+        },
+        {
+            "groups": [],
+            "id": "exception"
+        },
+        {
+            "groups": [],
+            "id": "interface"
+        },
+        {
+            "groups": [],
+            "id": "job"
+        },
+        {
+            "groups": [],
+            "id": "job-middleware"
+        },
+        {
+            "groups": [],
+            "id": "listener"
+        },
+        {
+            "groups": [],
+            "id": "mail"
+        },
+        {
+            "groups": [],
+            "id": "middleware"
+        },
+        {
+            "groups": [],
+            "id": "notification"
+        },
+        {
+            "groups": [],
+            "id": "observer"
+        },
+        {
+            "groups": [],
+            "id": "provider"
+        },
+        {
+            "groups": [],
+            "id": "resource"
+        },
+        {
+            "groups": [],
+            "id": "rule"
+        },
+        {
+            "groups": [],
+            "id": "scope"
+        },
+        {
+            "groups": [],
+            "id": "seeder"
+        },
+        {
+            "groups": [],
+            "id": "test"
+        },
+        {
+            "groups": [],
+            "id": "trait"
+        },
+        {
+            "groups": [],
+            "id": "view"
+        },
+        {
+            "groups": [
+                {
+                    "classes": [
+                        "App\\Http\\Controllers\\CommentController",
+                        "App\\Http\\Controllers\\PostController"
+                    ],
+                    "files": [
+                        "app/Http/Controllers/CommentController.php",
+                        "app/Http/Controllers/PostController.php"
+                    ],
+                    "folder": "app/Http/Controllers",
+                    "namespace": "App\\Http\\Controllers"
+                }
+            ],
+            "id": "controller"
+        },
+        {
+            "groups": [
+                {
+                    "classes": [
+                        "App\\Http\\Requests\\StoreCommentRequest",
+                        "App\\Http\\Requests\\StorePostRequest"
+                    ],
+                    "files": [
+                        "app/Http/Requests/StoreCommentRequest.php",
+                        "app/Http/Requests/StorePostRequest.php"
+                    ],
+                    "folder": "app/Http/Requests",
+                    "namespace": "App\\Http\\Requests"
+                }
+            ],
+            "id": "request"
+        },
+        {
+            "groups": [
+                {
+                    "classes": [
+                        "App\\Models\\Comment",
+                        "App\\Models\\Post",
+                        "App\\Models\\User"
+                    ],
+                    "files": [
+                        "app/Models/Comment.php",
+                        "app/Models/Post.php",
+                        "app/Models/User.php"
+                    ],
+                    "folder": "app/Models",
+                    "namespace": "App\\Models"
+                }
+            ],
+            "id": "model"
+        },
+        {
+            "groups": [
+                {
+                    "classes": [
+                        "App\\Policies\\CommentPolicy",
+                        "App\\Policies\\PostPolicy"
+                    ],
+                    "files": [
+                        "app/Policies/CommentPolicy.php",
+                        "app/Policies/PostPolicy.php"
+                    ],
+                    "folder": "app/Policies",
+                    "namespace": "App\\Policies"
+                }
+            ],
+            "id": "policy"
+        },
+        {
+            "groups": [
+                {
+                    "classes": [
+                        "Database\\Factories\\CommentFactory",
+                        "Database\\Factories\\PostFactory"
+                    ],
+                    "files": [
+                        "database/factories/CommentFactory.php",
+                        "database/factories/PostFactory.php"
+                    ],
+                    "folder": "database/factories",
+                    "namespace": "Database\\Factories"
+                }
+            ],
+            "id": "factory"
+        },
+        {
+            "groups": [
+                {
+                    "classes": [],
+                    "files": [
+                        "database/migrations/2026_01_01_000000_create_posts_table.php"
+                    ],
+                    "folder": "database/migrations",
+                    "namespace": null
+                }
+            ],
+            "id": "migration"
+        },
+        {
+            "groups": [
+                {
+                    "classes": [],
+                    "files": [
+                        "resources/js/pages/Comments/Index.vue",
+                        "resources/js/pages/Comments/Show.vue"
+                    ],
+                    "folder": "resources/js/pages/Comments",
+                    "namespace": null
+                },
+                {
+                    "classes": [],
+                    "files": [
+                        "resources/js/pages/Posts/Index.vue",
+                        "resources/js/pages/Posts/Show.vue"
+                    ],
+                    "folder": "resources/js/pages/Posts",
+                    "namespace": null
+                }
+            ],
+            "id": "page"
+        }
+    ],
+    "unparsed": [],
+    "unplaced": {
+        "count": 5,
+        "paths": [
+            ".tey-mod-owned",
+            "app/Http/Controllers/Controller.php",
+            "app/Services/Markdown.php",
+            "composer.json",
+            "routes/web.php"
+        ]
+    },
+    "unresolved": [],
+    "vendor": [
+        {
+            "class": "Acme\\Text\\Parser",
+            "path": "vendor/acme/text/src/Parser.php",
+            "used_by": [
+                "App\\Services\\Markdown",
+                "file:app/Services/Markdown.php",
+                "route:GET|HEAD vendor-page"
+            ]
+        },
+        {
+            "class": "Acme\\Text\\Renderer",
+            "path": "vendor/acme/text/src/Renderer.php",
+            "used_by": [
+                "App\\Services\\Markdown",
+                "file:app/Services/Markdown.php"
+            ]
+        }
+    ]
+}

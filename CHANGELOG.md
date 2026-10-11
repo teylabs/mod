@@ -2,6 +2,11 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## Unreleased
+
+### Added
+- The read-only `mod-survey` Boost tool reports app structure, references, recurring file sets, vendor ownership and Git identity within an enforced app-only privacy boundary (#62).
+
 ## [0.6.0] - 2026-10-11
 
 ### Upgrading
