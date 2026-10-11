@@ -13,6 +13,7 @@ mod 1.0 lets you decide where every generated file goes (modules, features, slic
 - [x] **[v0.5 — Proven in real apps](https://github.com/teylabs/mod/milestone/4?closed=1).** Existing Laravel-DDD apps moved to mod, and what they ran into was fixed: Inertia page checks and direct page loads for module pages, MCP classes in modules, and module translations.
 - [x] **[v0.5.1 — Installer recognizes existing wiring](https://github.com/teylabs/mod/milestone/10?closed=1).** `mod:install inertia` says "Already wired." for wiring an app already has, instead of asking for it again.
 - [x] **[v0.6 — Packages build on mod](https://github.com/teylabs/mod/milestone/5?closed=1).** Packages ship vendor-named scaffolds (`mod:acme/pages`) that mod reconciles with an app's own, and register route files, Inertia pages and frontend wiring; they can read the app's stack, including Svelte and Livewire. Apps gain a module's own database connection, frontend files in roots that aren't modules, and per-module assets.
+- [x] **[v0.6.1 — Packages from path repositories](https://github.com/teylabs/mod/milestone/11?closed=1).** Packages installed through symlinked Composer path repositories work, unusable frontend declarations are reported instead of breaking boot, and TypeScript wiring maps bare aliases.
 
 ## The countdown to 1.0
 
