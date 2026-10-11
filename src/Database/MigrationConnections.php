@@ -11,15 +11,15 @@ final class MigrationConnections
     public static function register(Application $app): void
     {
         $app->extend('migrator', static function (Migrator $native, Application $app): Migrator {
-            if (get_class($native) !== Migrator::class) {
-                if ($app->make(GroupConnections::class)->declarations() !== []) {
-                    throw new \LogicException('Group connections need the native Laravel migrator; the application has replaced it.');
-                }
-
+            $groups = $app->make(GroupConnections::class);
+            if ($groups->declarations() === []) {
                 return $native;
             }
+            if (get_class($native) !== Migrator::class) {
+                throw new \LogicException('Group connections need the native Laravel migrator; the application has replaced it.');
+            }
             $migrator = new ConnectionMigrator($app->make('migration.repository'), $app->make('db'), $app->make('files'), $app->make('events'));
-            $migrator->groups = $app->make(GroupConnections::class);
+            $migrator->groups = $groups;
             $migrator->applicationPath = $app->databasePath('migrations');
             foreach ($native->paths() as $path) {
                 $migrator->path($path);

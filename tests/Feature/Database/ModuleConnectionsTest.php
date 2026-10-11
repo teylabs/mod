@@ -2,14 +2,41 @@
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Tey\Mod\Database\ConnectionMigrator;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\DiscoveryRegistrar;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Listing\LayoutInventory;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
+
+it('returns Laravel\'s migrator untouched without connection declarations', function () {
+    $native = new Migrator(app('migration.repository'), app('db'), app('files'), app('events'));
+    $native->path('/existing/migrations');
+    app()->singleton('migrator', fn () => $native);
+
+    $resolved = app('migrator');
+
+    expect($resolved)->toBe($native)
+        ->and(get_class($resolved))->toBe(Migrator::class)
+        ->and($resolved->paths())->toBe(['/existing/migrations']);
+});
+
+it('preserves a replaced migrator without declarations and refuses it with declarations', function () {
+    Workspace::run('modules', function (Workspace $w) {
+        $custom = new class(app('migration.repository'), app('db'), app('files'), app('events')) extends Migrator {};
+        app()->singleton('migrator', fn () => $custom);
+        expect(app('migrator'))->toBe($custom);
+
+        config()->set('database.connections.catalogue', ['driver' => 'sqlite', 'database' => ':memory:']);
+        Mod::connection('Catalogue', 'catalogue');
+        app()->forgetInstance('migrator');
+        expect(fn () => app('migrator'))->toThrow(LogicException::class, 'the application has replaced it');
+    });
+});
 
 it('isolates migration execution and repositories by connection and preserves the default schema', function () {
     Workspace::run('modules', function (Workspace $w) {
@@ -22,6 +49,7 @@ it('isolates migration execution and repositories by connection and preserves th
         $w->write('app/Modules/Billing/Database/Migrations/2026_01_01_000002_create_bills_table.php', migrationSource('bills'));
         Mod::connection('Catalogue', 'catalogue');
         DiscoveryRegistrar::register(app(), app(CompiledLayout::class), new DiscoveryOptions);
+        expect(get_class(app('migrator')))->toBe(ConnectionMigrator::class);
         expect($w->artisan('migrate', ['--force' => true])->exitCode)->toBe(0);
         expect(Schema::connection('primary')->hasTable('app_rows'))->toBeTrue()->and(Schema::connection('primary')->hasTable('bills'))->toBeTrue();
         expect(Schema::connection('catalogue')->hasTable('items'))->toBeFalse();

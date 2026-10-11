@@ -45,6 +45,10 @@ without `UsesGroupConnection` follow the scoped default while seeding.
 
 ## Migrations
 
+Without `Mod::connection()` declarations, mod returns Laravel's original migrator
+instance untouched. When declarations exist at resolution time, mod replaces
+the native migrator with its connection-aware subclass.
+
 With discovery enabled, plain `migrate` includes undeclared groups and groups on
 the application's default connection. It leaves separately connected groups
 out. `migrate --database=catalogue` selects the discovered migration directories
