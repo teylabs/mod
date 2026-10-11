@@ -43,6 +43,7 @@
         "spatie/laravel-view-models": "Used by mod:view-model when installed"
     },
     "require-dev": {
+        "inertiajs/inertia-laravel": "^2.0|^3.0",
         "larastan/larastan": "^3.0",
         "laravel/boost": "^2.10.3",
         "laravel/pint": "^1.21",
