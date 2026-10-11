@@ -391,7 +391,7 @@ trait RunsScaffoldTree
             if ($member->stub !== null) {
                 $id = $member->fileType.'.'.$member->stub.($artifact->kind->extension ?? '');
                 try {
-                    $scope->variants[$artifact->path()] = $this->treeStub($id);
+                    $scope->variants[$artifact->path()] = $this->treeStub($id, $member->fileType.'.'.$member->stub);
                 } catch (GenerationRefused $exception) {
                     if ($member->fileType !== 'page' || ! $this->interactive()) {
                         throw $exception;
@@ -449,12 +449,12 @@ trait RunsScaffoldTree
         return $override instanceof Part ? $override : ($recipe->parts()[$name] ?? null);
     }
 
-    private function treeStub(string $id): string
+    private function treeStub(string $id, ?string $fallback = null): string
     {
         $file = $this->laravel->basePath('stubs/mod.'.$id.'.stub');
         if (! is_file($file)) {
             $registry = $this->laravel->make(StubRegistry::class);
-            $stub = $registry->get($id);
+            $stub = $registry->get($id) ?? ($fallback === null ? null : $registry->get($fallback));
             $file = $stub === null ? '' : $stub->path;
         }
         if ($file === '' || ! is_file($file)) {

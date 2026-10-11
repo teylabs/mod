@@ -355,7 +355,8 @@ final class ScaffoldCommand extends Command
                 $relative = 'stubs/mod.'.$member->fileType.'.'.$member->stub.$extension.'.stub';
                 $registry = $this->laravel->make(StubRegistry::class);
                 $file = $this->laravel->basePath($relative);
-                $variant = is_file($file) ? $file : $registry->get($member->fileType.'.'.$member->stub)?->path;
+                $key = $member->fileType.'.'.$member->stub;
+                $variant = is_file($file) ? $file : ($registry->get($key.$extension) ?? $registry->get($key))?->path;
                 if ($variant === null || ! is_file($variant)) {
                     $message = "The {$this->recipeName} scaffold uses {$relative}, which doesn't exist.";
                     if (! $this->interactive()) {

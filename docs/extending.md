@@ -314,6 +314,21 @@ Two packages supplying the same id emit `vendor_scaffold_conflict`. An interacti
 
 A pin selects only a registered provider; the app still wins. Includes and rename require a deterministic definition (a pin or app override) when packages conflict. `mod:list --json` supplies `vendor`, `name` (after the vendor slash), `id`, `command`, provider `source`, Composer `package` when known, `overrides` and structured `notices`. `mod:list --vendor=acme` filters scaffolds in both formats, including notices. Unknown command names use Artisan's suggestions; an undeclared dot part is disabled with a diagnostic.
 
+### Supplying member stub variants
+
+A member's `stub: 'list'` uses a key such as `page.list`. Register extension-specific variants for each supported frontend stack:
+
+```php
+use Tey\Mod\Facades\Mod;
+use Tey\Mod\Generation\Stub;
+
+Mod::stubs()->forFileType('page.list.vue', Stub::file(__DIR__.'/../stubs/list.vue.stub'));
+Mod::stubs()->forFileType('page.list.tsx', Stub::file(__DIR__.'/../stubs/list.tsx.stub'));
+Mod::stubs()->forFileType('page.list.jsx', Stub::file(__DIR__.'/../stubs/list.jsx.stub'));
+```
+
+For a planned `.tsx` page, lookup is the app's `stubs/mod.page.list.tsx.stub`, then the registered `page.list.tsx`, then the registered `page.list` fallback. The app's stub wins. Use the extension-free key only for content that works across stacks. Another stack's key is never used: without a matching variant or fallback the plan names the stub to supply and writes nothing. The same precedence applies to flat recipes, tree members and parts, and to any file type with an extension (for example `view.card.blade.php`).
+
 ### Upgrading package scaffolds from 0.5
 
 Unprefixed package registration is refused with `vendor_required`. Replace `Mod::scaffold('pages', $recipe)` with `Mod::vendor('acme')->scaffold('pages', $recipe)`, and `Mod::scaffolds($recipes)` with `Mod::vendor('acme')->scaffolds($recipes)`. Update command calls from `mod:pages` to `mod:acme/pages`, and include, override and rename references from `pages` to `acme/pages`. App registrations keep their existing names.
