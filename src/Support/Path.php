@@ -12,6 +12,23 @@ use Symfony\Component\Filesystem\Filesystem;
  */
 final class Path
 {
+    /** Recognise Composer's Windows directory junctions as well as symlinks. */
+    public static function isLink(string $path): bool
+    {
+        clearstatcache(true, $path);
+        if (is_link($path)) {
+            return true;
+        }
+        if (PHP_OS_FAMILY !== 'Windows' || ! is_dir($path)) {
+            return false;
+        }
+        // Composer identifies junctions by the non-directory lstat mode.
+        // is_link() is false for NTFS junctions even when realpath resolves them.
+        $stat = lstat($path);
+
+        return $stat !== false && ($stat['mode'] & 0xF000) !== 0x4000;
+    }
+
     public static function normalize(string $path): string
     {
         $path = str_replace('\\', '/', $path);

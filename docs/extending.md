@@ -452,7 +452,7 @@ Every `--dry-run --json` warning keeps `file`, `line` and `message`, and adds `c
 
 Packages can call `Mod::pages()` and `Mod::wiring()` unconditionally from their
 providers; see [package pages and wiring](frontend.md#package-pages-and-wiring).
-Composer path repositories installed as symlinks are supported. Use installed
+Composer path repositories installed as symlinks or Windows directory junctions are supported. Use installed
 `vendor/<vendor>/<package>/...` paths for aliases, sources and styles. Page roots
 may use `__DIR__.'/../resources/js/pages'`: Mod maps the package's real location
 back through its installed symlink and keeps lexical vendor paths in page entries

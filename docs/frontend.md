@@ -96,7 +96,7 @@ alias (`"@acme/billing": ["./vendor/acme/billing/resources/js"]`) and its subpat
 uses TypeScript's normal directory index resolution; there is no `index:` option.
 An existing conflicting TypeScript mapping requires a manual edit.
 
-Composer path repositories installed as symlinks are supported. Installed paths
+Composer path repositories installed as symlinks (or Windows directory junctions) are supported. Installed paths
 under `vendor/` may resolve outside the application. A provider's absolute
 `__DIR__` path is mapped back through the installed package symlink, so all page
 entries, globs and planned edits keep their lexical `vendor/...` paths.

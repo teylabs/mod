@@ -23,7 +23,7 @@ final class FrontendPaths
         $relative = $absolute ? Path::relative($this->basePath, $path) : $path;
         if ($absolute && $relative === null) {
             foreach (glob($this->basePath.'/vendor/*/*', GLOB_ONLYDIR) ?: [] as $package) {
-                if (! is_link($package) || ($real = realpath($package)) === false) {
+                if (! Path::isLink($package) || ($real = realpath($package)) === false) {
                     continue;
                 }
                 $suffix = Path::relative($real, $path);
@@ -38,7 +38,7 @@ final class FrontendPaths
         }
         $target = $this->basePath.'/'.$relative;
         $ancestor = $target;
-        while (! file_exists($ancestor) && ! is_link($ancestor) && dirname($ancestor) !== $ancestor) {
+        while (! file_exists($ancestor) && ! Path::isLink($ancestor) && dirname($ancestor) !== $ancestor) {
             $ancestor = dirname($ancestor);
         }
         $real = realpath($ancestor);

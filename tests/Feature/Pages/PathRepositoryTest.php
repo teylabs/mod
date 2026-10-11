@@ -7,6 +7,7 @@ use Pest\TestSuite;
 use Symfony\Component\Process\Process;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Pages\PageDirectories;
+use Tey\Mod\Support\Path;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
 use Tey\Mod\Tests\TestCase;
@@ -25,7 +26,8 @@ it('boots a Composer symlinked package and keeps installed paths in every plan',
             ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
             $process = new Process(['composer', 'install', '--no-interaction', '--no-plugins', '--no-scripts'], $w->root->path, timeout: 120);
             $process->mustRun();
-            expect(is_link($w->root->path('vendor/acme/kit')))->toBeTrue();
+            expect(Path::isLink($w->root->path('vendor/acme/kit')))->toBeTrue()
+                ->and(realpath($w->root->path('vendor/acme/kit')))->toBe(realpath($package->path));
             require_once $w->root->path('vendor/acme/kit/src/KitServiceProvider.php');
             $w->write('package.json', '{"dependencies":{"@inertiajs/vue3":"^2"}}');
             $w->write('resources/js/app.ts', "createInertiaApp({\n});\n");
@@ -61,6 +63,8 @@ it('boots a Composer symlinked package and keeps installed paths in every plan',
             $w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful();
             expect($w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful()->output)->toContain('Already wired.');
         });
+        expect($package->exists())->toBeTrue()
+            ->and(is_file($package->path('resources/js/index.ts')))->toBeTrue();
     });
 });
 
@@ -97,7 +101,10 @@ it('skips non-vendor symlink escapes and dangling links while installing valid w
         Workspace::run(null, function (Workspace $w) use ($outside) {
             config()->set('mod.layout', 'laravel');
             symlink($outside->path, $w->root->path('linked'));
+            mkdir($outside->path('missing'));
             symlink($outside->path('missing'), $w->root->path('broken'));
+            rmdir($outside->path('missing'));
+            clearstatcache();
             $w->write('vite.config.js', "export default defineConfig({\n});\n");
             Mod::pages('escape', $w->root->path('linked'))->pages('broken', $w->root->path('broken'));
             Mod::wiring()->alias('@escape', 'linked')->source('broken')->alias('@valid', 'resources/js')->alias('@valid', 'other/js');

@@ -124,7 +124,7 @@ final class PageDirectories
         }
         foreach ($this->files->directories($directory) as $child) {
             $paths = [...$paths, ...$this->expand($child, $segments)];
-            if ($multi && ! is_link($child)) {
+            if ($multi && ! Path::isLink($child)) {
                 $paths = [...$paths, ...$this->expand($child, [$segment, ...$segments])];
             }
         }
