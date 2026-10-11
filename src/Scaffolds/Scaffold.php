@@ -34,6 +34,8 @@ class Scaffold
     /** @var list<string> */
     private array $errors = [];
 
+    private ?string $defaultName = null;
+
     /** @param (Closure(string): ?self)|null $resolve */
     public function __construct(private readonly ?Closure $resolve = null) {}
 
@@ -81,6 +83,25 @@ class Scaffold
         array_push($this->errors, ...$source->errors);
 
         return $this;
+    }
+
+    /** The name the command uses when run without one. An explicit name still wins. * @api
+     */
+    public function named(string $name): static
+    {
+        $name = trim($name);
+        if ($name === '') {
+            throw GenerationRefused::because('A scaffold default name cannot be empty. Pass a name such as named(\'Acme\').');
+        }
+        $this->defaultName = $name;
+
+        return $this;
+    }
+
+    /** @internal */
+    public function defaultName(): ?string
+    {
+        return $this->defaultName;
     }
 
     /** @param array<array-key, string> $options * @api

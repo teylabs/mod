@@ -173,6 +173,7 @@ Use a scaffold when several file types form a reusable recipe. Register it in a 
 - `stub: 'crud'` selects `stubs/mod.<type>.crud.stub`. Create that variant before non-interactive generation; variant publication happens only after the plan is accepted.
 - `->include('recipe')` reuses a recipe. A later member with the same alias replaces the included member.
 - Read the complete file and insert plan before writing. Pass `--no-interaction` and required question options. Choose `--skip-existing` to keep existing files or `--force` to overwrite them.
+- `->named('Acme')` declares a default name: the command's `name` argument becomes optional (shown in `--help`), an explicit name wins, and `--dry-run --json` reports the resolved name.
 - `->asks()` declares questions and options; `->each()` repeats a `->part()`. Parts can use another scaffold and pass values with `with:`. Use `configure:` for a closure after named arguments.
 - `->inserts()` on a part writes an insert stub before a retained `mod:<anchor>` marker in a file owned by that parent. It uses fully qualified names and does not edit imports. A child command `mod:<root>.<part>` can grow an existing cluster.
 - Members support PHP classes, migrations and plain files, including pages, Blade, Vue, React and CSS. Route aliases can start missing anchored route files. Load routes with Mod::routes() or a module provider.
