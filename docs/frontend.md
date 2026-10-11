@@ -59,3 +59,36 @@ Packages can call `Mod::stack()` from their provider. Its `inertia()` returns
 same `stack` record returned by `mod:list --json`. This reads declarations without
 installing dependencies or changing files. Svelte pages use `.svelte`; an app's
 `stubs/mod.page.svelte.stub` overrides the minimal default.
+
+
+### Package pages and wiring
+
+Register package pages from a provider:
+
+```php
+Mod::pages('billing', __DIR__.'/../resources/js/pages');
+Mod::wiring()
+    ->alias('@acme/billing', 'vendor/acme/billing/resources/js')
+    ->source('vendor/acme/billing/resources/js');
+```
+
+Render `billing::Invoices` normally. Both Inertia page finders and
+`Mod::pageEntry('billing::Invoices', 'vue')` use the declared directory.
+Namespaces must be unique and page directories must exist inside the application,
+including after resolving symlinks. External finder hints retain precedence.
+
+Run `mod:install inertia --dry-run --json` to preview literal package page globs,
+aliases, TypeScript paths/includes and Tailwind sources. Apply with
+`mod:install inertia --no-interaction`. Repeated installation says "Already
+wired." when every declaration is confirmed. Custom bootstraps receive the exact
+manual lines; keep adapters, layout assignment and plugins intact. Adding a new
+package declaration requires another installation; new files under existing
+globs do not. Providers only declare wiring; they never write application files.
+
+A package command can use `$plan = Mod::wiring()->plan()`, inspect
+`$plan->toArray()` and explicitly call `$plan->apply()`. Warnings prevent writing,
+and stale previews are refused before any file is written. `source()` scans
+Tailwind classes without loading CSS. `css()` explicitly imports the chosen
+stylesheet into `resources/css/app.css`; style order remains application-owned.
+Alias declarations reject conflicting targets and are ordered most specific
+first. The JSON inventory adds `package_pages` and `frontend_wiring` records.

@@ -11,11 +11,13 @@
     "templates",
     "scaffolds",
     "discovery",
+    "package_pages",
     "frontend",
     "views",
     "translations",
     "stack",
     "wiring",
+    "frontend_wiring",
     "routes",
     "connections",
     "rename"
@@ -551,6 +553,27 @@
         }
       }
     },
+    "package_pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "namespace",
+          "path"
+        ],
+        "properties": {
+          "namespace": {
+            "type": "string"
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
     "frontend": {
       "description": "All keys remain present with null values when no frontend paths are declared, including the ddd preset.",
       "type": "object",
@@ -741,6 +764,32 @@
         },
         "tailwind": {
           "type": "boolean"
+        }
+      }
+    },
+    "frontend_wiring": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "alias",
+          "root",
+          "vite_alias",
+          "typescript"
+        ],
+        "properties": {
+          "alias": {
+            "type": "string"
+          },
+          "root": {
+            "type": "string"
+          },
+          "vite_alias": {
+            "type": "boolean"
+          },
+          "typescript": {
+            "type": "boolean"
+          }
         }
       }
     },

@@ -5,6 +5,7 @@ All notable changes to `mod` will be documented in this file.
 ## Unreleased
 
 ### Added
+- Packages can declare Inertia page namespaces with `Mod::pages()` and preview or apply explicit aliases, TypeScript paths and Tailwind sources with `Mod::wiring()`. Installation includes canonical package globs and preserves custom bootstraps (#93).
 - `Mod::stack()` exposes the declared Inertia adapter, TypeScript, page path and Livewire status, matching the JSON inventory. Svelte apps can generate `.svelte` pages (#94).
 - Package scaffolds use required vendor ids, reconcile overrides and conflicts, expose provider pins and inventory notices, and may opt into their own command name (#100, #95).
 - Plan warnings include stable codes and structured data, including missing placement options and choices (#99).

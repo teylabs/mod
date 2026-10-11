@@ -8,6 +8,9 @@ use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\Inventory;
 use Tey\Mod\Layout\BuiltIn\ImportContent;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Pages\PageDirectories;
+use Tey\Mod\Pages\PageRoots;
+use Tey\Mod\Support\Path;
 
 /**
  * Frontend paths come from the compiled layout, including overrides and app casing.
@@ -27,7 +30,13 @@ final class FrontendSection implements InventorySection
         $namespace = $frontend['views'] === null || $dimensions === [] ? null
             : implode('.', array_map(static fn (string $name): string => '{'.$name.'.kebab}', $dimensions));
 
-        return ['frontend' => [...$frontend, 'view_namespace' => $namespace, 'import_alias' => self::importAlias($layout)]];
+        $app->make(PageDirectories::class)->namespaces();
+        $packages = [];
+        foreach ($app->make(PageRoots::class)->all() as $name => $directory) {
+            $packages[] = ['namespace' => $name, 'path' => Path::relative($app->basePath(), $directory)];
+        }
+
+        return ['package_pages' => $packages, 'frontend' => [...$frontend, 'view_namespace' => $namespace, 'import_alias' => self::importAlias($layout)]];
     }
 
     /** @return array{alias: string, root: string}|null */

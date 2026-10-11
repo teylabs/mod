@@ -1,9 +1,31 @@
 {
   "type": "object",
   "required": [
+    "package_pages",
     "frontend"
   ],
   "properties": {
+    "package_pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "namespace",
+          "path"
+        ],
+        "properties": {
+          "namespace": {
+            "type": "string"
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
     "frontend": {
       "description": "All keys remain present with null values when no frontend paths are declared, including the ddd preset.",
       "type": "object",

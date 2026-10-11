@@ -1,15 +1,54 @@
 {
-    "type": "object",
-    "required": ["wiring"],
-    "properties": {
-        "wiring": {
-            "type": "object",
-            "required": ["inertia", "vite_alias", "tailwind"],
-            "properties": {
-                "inertia": {"type": "boolean"},
-                "vite_alias": {"type": "boolean"},
-                "tailwind": {"type": "boolean"}
-            }
+  "type": "object",
+  "required": [
+    "wiring",
+    "frontend_wiring"
+  ],
+  "properties": {
+    "wiring": {
+      "type": "object",
+      "required": [
+        "inertia",
+        "vite_alias",
+        "tailwind"
+      ],
+      "properties": {
+        "inertia": {
+          "type": "boolean"
+        },
+        "vite_alias": {
+          "type": "boolean"
+        },
+        "tailwind": {
+          "type": "boolean"
         }
+      }
+    },
+    "frontend_wiring": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "alias",
+          "root",
+          "vite_alias",
+          "typescript"
+        ],
+        "properties": {
+          "alias": {
+            "type": "string"
+          },
+          "root": {
+            "type": "string"
+          },
+          "vite_alias": {
+            "type": "boolean"
+          },
+          "typescript": {
+            "type": "boolean"
+          }
+        }
+      }
     }
+  }
 }

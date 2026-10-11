@@ -13,12 +13,28 @@ final class PageDirectories
     /** @var array<string, string>|null */
     private ?array $namespaces = null;
 
-    public function __construct(private readonly CompiledLayout $layout, private readonly string $basePath, private readonly Filesystem $files) {}
+    public function __construct(private readonly CompiledLayout $layout, private readonly string $basePath, private readonly Filesystem $files, private readonly PageRoots $packages = new PageRoots) {}
 
     /** @return array<string, string> namespace => absolute directory */
     public function namespaces(): array
     {
-        return $this->namespaces ??= $this->discover();
+        $namespaces = $this->namespaces ??= $this->discover();
+        foreach ($this->packages->all() as $namespace => $directory) {
+            $relative = Path::relative($this->basePath, $directory);
+            if ($relative === null || str_contains($relative, '..') || ! is_dir($directory)) {
+                throw new \InvalidArgumentException('Page root ['.$namespace.'] must be an existing directory inside the application.');
+            }
+            $real = realpath($directory);
+            if ($real === false || Path::relative((string) realpath($this->basePath), $real) === null) {
+                throw new \InvalidArgumentException('Page root ['.$namespace.'] escapes the application through a symlink.');
+            }
+            if (isset($namespaces[$namespace]) && $namespaces[$namespace] !== $directory) {
+                throw new \InvalidArgumentException('Conflicting page namespace ['.$namespace.'].');
+            }
+            $namespaces[$namespace] = $directory;
+        }
+
+        return $namespaces;
     }
 
     /** @return array<string, string> */

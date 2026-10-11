@@ -10,11 +10,13 @@ use Tey\Mod\Discovery\DiscoveryCandidates;
 use Tey\Mod\Discovery\DiscoveryDefinition;
 use Tey\Mod\Generation\GeneratorRegistry;
 use Tey\Mod\Generation\StubRegistry;
+use Tey\Mod\Install\Wiring;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Pages\PageEntry;
+use Tey\Mod\Pages\PageRoots;
 use Tey\Mod\Routing\ModRoutes;
 use Tey\Mod\Routing\RegistersRoutes;
 use Tey\Mod\Scaffolds\Part;
@@ -167,6 +169,20 @@ final readonly class ModManager
             }
         }
         ($this->container ?? Container::getInstance())->make(ModRoutes::class)->load($only, $except, $call);
+    }
+
+    /** Declare a package's Inertia page namespace and absolute directory. @api */
+    public function pages(string $namespace, string $directory): self
+    {
+        ($this->container ?? Container::getInstance())->make(PageRoots::class)->register($namespace, $directory);
+
+        return $this;
+    }
+
+    /** Declare frontend wiring for an explicit installation step. @api */
+    public function wiring(): Wiring
+    {
+        return ($this->container ?? Container::getInstance())->make(Wiring::class);
     }
 
     /** Read the application's declared frontend stack. @api */
