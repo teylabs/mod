@@ -70,6 +70,10 @@ function codeTokensMatching(string $pattern, bool $withBuiltInLayouts = false): 
         if ($token['file'] === 'Generation/PlainFile/Identity.php' && $token['text'] === "'@modules/'") {
             continue;
         }
+        // node_modules is npm's dependency folder, which the survey never walks.
+        if ($token['file'] === 'Survey/SurveyScope.php' && $token['text'] === "'node_modules'") {
+            continue;
+        }
         if (preg_match($pattern, $token['text']) === 1) {
             $hits[] = "{$token['file']}:{$token['line']} {$token['text']}";
         }

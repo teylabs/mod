@@ -7,6 +7,7 @@ use Laravel\Boost\Mcp\Tools\ApplicationInfo;
 use Laravel\Mcp\Request;
 use Tey\Mod\Boost\InventoryTool;
 use Tey\Mod\Boost\PlanTool;
+use Tey\Mod\Boost\SurveyTool;
 use Tey\Mod\Boost\ToolRegistrar;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Scaffolds\Scaffold;
@@ -14,14 +15,14 @@ use Tey\Mod\Tests\Feature\Boost\Scenario;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Support\JsonSchema;
 
-it('registers exactly two read-only tools alongside existing Boost includes', function () {
+it('registers exactly three read-only tools alongside existing Boost includes', function () {
     $existing = ApplicationInfo::class;
     config()->set('boost.mcp.tools.include', [$existing]);
     ToolRegistrar::register(app());
     ToolRegistrar::register(app());
-    expect(config('boost.mcp.tools.include'))->toBe([$existing, InventoryTool::class, PlanTool::class]);
+    expect(config('boost.mcp.tools.include'))->toBe([$existing, InventoryTool::class, PlanTool::class, SurveyTool::class]);
     ToolRegistry::clearCache();
-    foreach ([InventoryTool::class => 'mod-inventory', PlanTool::class => 'mod-plan'] as $class => $name) {
+    foreach ([InventoryTool::class => 'mod-inventory', PlanTool::class => 'mod-plan', SurveyTool::class => 'mod-survey'] as $class => $name) {
         expect(ToolRegistry::isToolAllowed($class))->toBeTrue();
         $tool = app($class);
         expect($tool->toArray()['name'])->toBe($name)
@@ -29,7 +30,7 @@ it('registers exactly two read-only tools alongside existing Boost includes', fu
     }
     $server = (new ReflectionClass(Boost::class))->newInstanceWithoutConstructor();
     $tools = (new ReflectionMethod($server, 'discoverTools'))->invoke($server);
-    expect($tools)->toContain(InventoryTool::class, PlanTool::class);
+    expect($tools)->toContain(InventoryTool::class, PlanTool::class, SurveyTool::class);
     ToolRegistry::clearCache();
 });
 
@@ -38,6 +39,12 @@ it('describes positional arguments and flag tokens in the plan tool schema', fun
     expect($schema['required'])->toBe(['command', 'arguments'])
         ->and($schema['properties']['arguments']['type'])->toBe('array')
         ->and($schema['properties']['arguments']['items']['type'])->toBe('string');
+});
+
+it('describes an optional folder in the survey tool schema', function () {
+    $schema = app(SurveyTool::class)->toArray()['inputSchema'];
+    expect($schema['required'] ?? [])->toBe([])
+        ->and($schema['properties']['path']['type'])->toBe('string');
 });
 
 it('forces a noninteractive JSON preview even when flags try to disable it', function (array $arguments) {

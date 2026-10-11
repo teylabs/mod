@@ -3,6 +3,7 @@
 use Symfony\Component\Process\Process;
 use Tey\Mod\Boost\InventoryTool;
 use Tey\Mod\Boost\PlanTool;
+use Tey\Mod\Boost\SurveyTool;
 use Tey\Mod\Tests\Feature\Boost\Scenario;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 
@@ -16,22 +17,32 @@ $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 $executor = $app->make(\Laravel\Boost\Mcp\ToolExecutor::class);
 $inventory = $executor->execute(\Tey\Mod\Boost\InventoryTool::class);
 $plan = $executor->execute(\Tey\Mod\Boost\PlanTool::class, ['command' => 'mod:model', 'arguments' => ['Inventory:Widget']]);
+$survey = $executor->execute(\Tey\Mod\Boost\SurveyTool::class, ['path' => 'app']);
+$refused = $executor->execute(\Tey\Mod\Boost\SurveyTool::class, ['path' => '..']);
 echo json_encode([
     'registered' => config('boost.mcp.tools.include'),
     'inventory_error' => $inventory->isError(),
     'inventory' => (string) $inventory->content(),
     'plan_error' => $plan->isError(),
     'plan' => (string) $plan->content(),
+    'survey_error' => $survey->isError(),
+    'survey' => (string) $survey->content(),
+    'refused' => $refused->isError(),
 ]);
 SCRIPT;
         $process = new Process([PHP_BINARY, '-r', $script, dirname(__DIR__, 3).'/vendor/autoload.php', $w->root->path], $w->root->path);
         $process->mustRun();
         $data = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
-        expect($data['registered'])->toBe([InventoryTool::class, PlanTool::class])
+        expect($data['registered'])->toBe([InventoryTool::class, PlanTool::class, SurveyTool::class])
             ->and($data['inventory_error'])->toBeFalse($data['inventory'])
-            ->and($data['plan_error'])->toBeFalse($data['plan']);
+            ->and($data['plan_error'])->toBeFalse($data['plan'])
+            ->and($data['survey_error'])->toBeFalse($data['survey'])
+            ->and($data['refused'])->toBeTrue();
         $inventory = json_decode($data['inventory'], true, flags: JSON_THROW_ON_ERROR);
         $plan = json_decode($data['plan'], true, flags: JSON_THROW_ON_ERROR);
+        $survey = json_decode($data['survey'], true, flags: JSON_THROW_ON_ERROR);
+        expect($survey['scan']['layout'])->toBe('modules')
+            ->and($survey['scan']['path'])->toBe('app');
         expect($inventory['layout'])->toBe('modules')
             ->and($plan['files'][0]['path'])->toBe('app/Modules/Inventory/Models/Widget.php')
             ->and($w->exists('app/Modules/Inventory/Models/Widget.php'))->toBeFalse();
