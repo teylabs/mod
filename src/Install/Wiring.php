@@ -2,9 +2,8 @@
 
 namespace Tey\Mod\Install;
 
-use InvalidArgumentException;
 use Tey\Mod\Layout\CompiledLayout;
-use Tey\Mod\Support\Path;
+use Tey\Mod\Support\FrontendPaths;
 use Tey\Mod\Support\Stack;
 
 /** Declare inspectable frontend wiring without writing from a provider. @api */
@@ -22,18 +21,35 @@ final class Wiring
      */
     private array $styles = [];
 
+    private FrontendPaths $paths;
+
     /** @internal */
-    public function __construct(private readonly string $basePath) {}
+    public function __construct(private readonly string $basePath)
+    {
+        $this->paths = new FrontendPaths($basePath);
+    }
+
+    public function __clone(): void
+    {
+        $this->paths = clone $this->paths;
+    }
 
     /** Add an explicit Vite alias and matching TypeScript path. @api */
     public function alias(string $name, string $directory): self
     {
         if (preg_match('~^[@A-Za-z_][@A-Za-z0-9_./-]*$~D', $name) !== 1) {
-            throw new InvalidArgumentException('Use a literal import alias without glob characters.');
+            $this->paths->skip('frontend_alias_invalid', $directory, 'Use a literal import alias without glob characters.');
+
+            return $this;
         }
-        $directory = $this->relative($directory);
+        $directory = $this->paths->relative($directory);
+        if ($directory === null) {
+            return $this;
+        }
         if (isset($this->aliases[$name]) && $this->aliases[$name] !== $directory) {
-            throw new InvalidArgumentException('Conflicting import alias ['.$name.'].');
+            $this->paths->skip('frontend_alias_conflict', $directory, 'Conflicting import alias ['.$name.'].');
+
+            return $this;
         }
         $this->aliases[$name] = $directory;
 
@@ -43,7 +59,9 @@ final class Wiring
     /** Add a Tailwind source directory; this does not import styles. @api */
     public function source(string $directory): self
     {
-        $this->sources[] = $this->relative($directory);
+        if (($relative = $this->paths->relative($directory)) !== null) {
+            $this->sources[] = $relative;
+        }
 
         return $this;
     }
@@ -52,10 +70,13 @@ final class Wiring
     public function sourcePattern(string $pattern): self
     {
         if (preg_match('~^/|^[A-Za-z]:|(?:^|/)\.\.(?:/|$)|[\x00-\x1f\x27"`]~', $pattern)) {
-            throw new InvalidArgumentException('Frontend sources must stay inside the application.');
+            $this->paths->skip('frontend_path_invalid', $pattern, 'Frontend sources must stay inside the application.');
+
+            return $this;
         }
-        $this->relative(rtrim(explode('*', $pattern, 2)[0], '/'));
-        $this->sources[] = $pattern;
+        if ($this->paths->relative(rtrim(explode('*', $pattern, 2)[0], '/')) !== null) {
+            $this->sources[] = $pattern;
+        }
 
         return $this;
     }
@@ -63,7 +84,9 @@ final class Wiring
     /** Explicitly import an application-selected stylesheet in its CSS entry. @api */
     public function css(string $file): self
     {
-        $this->styles[] = $this->relative($file);
+        if (($relative = $this->paths->relative($file)) !== null) {
+            $this->styles[] = $relative;
+        }
 
         return $this;
     }
@@ -107,22 +130,13 @@ final class Wiring
         return array_values(array_unique($this->styles));
     }
 
-    private function relative(string $path): string
+    /**
+     * @internal
+     *
+     * @return list<array{code: string, path: string, message: string}>
+     */
+    public function notices(): array
     {
-        $path = Path::normalize($path);
-        $relative = Path::relative($this->basePath, $path) ?? $path;
-        if ($relative === '' || preg_match('~(?:^|/)\.\.(?:/|$)|[\x00-\x1f\x27"`]|^[A-Za-z]:|^/|[{}*?]~', $relative) === 1) {
-            throw new InvalidArgumentException('Frontend paths must be literal paths inside the application.');
-        }
-        $ancestor = $this->basePath.'/'.$relative;
-        while (! file_exists($ancestor) && ! is_link($ancestor) && dirname($ancestor) !== $ancestor) {
-            $ancestor = dirname($ancestor);
-        }
-        $real = realpath($ancestor);
-        if ($real === false || Path::relative((string) realpath($this->basePath), $real) === null) {
-            throw new InvalidArgumentException('Frontend paths cannot follow a symlink outside the application.');
-        }
-
-        return rtrim($relative, '/');
+        return $this->paths->notices();
     }
 }

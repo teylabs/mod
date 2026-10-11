@@ -593,6 +593,7 @@
         "vite_alias": true,
         "tailwind": true
     },
+    "frontend_notices": [],
     "frontend_wiring": [],
     "routes": [
         {

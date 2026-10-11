@@ -5,6 +5,7 @@ use Symfony\Component\Process\Process;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Layout\Root;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
+use Tey\Mod\Tests\Support\OwnedAppRoot;
 
 it('builds a mounted alias and Tailwind source with Vite and checks TypeScript', function () {
     Workspace::run(null, function (Workspace $w) {
@@ -109,5 +110,50 @@ JS);
         $process->run();
         expect($process->isSuccessful())->toBeTrue($process->getOutput().$process->getErrorOutput())
             ->and(json_decode($w->read('public/custom-build/manifest.json'), true))->toHaveKey('app/Modules/Inventory/images/new.svg');
+    });
+})->skip(getenv('MOD_FRONTEND_BUILD') !== '1', 'Set MOD_FRONTEND_BUILD=1 after npm ci in tests/Fixtures/frontend-build.');
+
+it('type checks bare and Vue subpath imports from a symlinked package after installation', function () {
+    OwnedAppRoot::using(function (OwnedAppRoot $package) {
+        app('files')->copyDirectory(__DIR__.'/../../Fixtures/path-package', $package->path);
+        Workspace::run(null, function (Workspace $w) use ($package) {
+            config()->set('mod.layout', 'laravel');
+            $fixture = dirname(__DIR__, 2).'/Fixtures/frontend-build';
+            $w->write('package.json', file_get_contents($fixture.'/package.json'));
+            symlink($fixture.'/node_modules', $w->root->path('node_modules'));
+            mkdir($w->root->path('vendor/acme'), 0755, true);
+            symlink($package->path, $w->root->path('vendor/acme/kit'));
+            $w->write('vite.config.ts', <<<'JS'
+import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
+import vue from '@vitejs/plugin-vue';
+import tailwindcss from '@tailwindcss/vite';
+export default defineConfig({
+    plugins: [laravel({ input: ['resources/js/app.ts', 'resources/css/app.css'], refresh: true }), vue(), tailwindcss()],
+});
+JS);
+            $w->write('tsconfig.json', <<<'JSON'
+{
+    "compilerOptions": {
+        "target": "ES2022", "module": "ESNext", "moduleResolution": "bundler", "strict": true, "types": ["node"],
+        "paths": {}
+    },
+    "include": ["resources/js/**/*"],
+    "exclude": ["node_modules"]
+}
+JSON);
+            $w->write('resources/js/app.ts', "import { kit } from '@acme/kit';\nimport Button from '@acme/kit/Button.vue';\nconsole.log(kit, Button);\n");
+            $w->write('resources/css/app.css', '@import "tailwindcss" source(none);');
+            Mod::wiring()->alias('@acme/kit', 'vendor/acme/kit/resources/js')->source('vendor/acme/kit/resources/js');
+            $w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful();
+            $paths = json_decode($w->read('tsconfig.json'), true, flags: JSON_THROW_ON_ERROR)['compilerOptions']['paths'];
+            expect($paths)->toBe(['@acme/kit/*' => ['./vendor/acme/kit/resources/js/*'], '@acme/kit' => ['./vendor/acme/kit/resources/js']]);
+            foreach ([['node', $fixture.'/node_modules/vue-tsc/bin/vue-tsc.js', '--noEmit'], ['npm', 'run', 'build']] as $command) {
+                $process = new Process($command, $w->root->path, timeout: 120);
+                $process->run();
+                expect($process->isSuccessful())->toBeTrue($process->getOutput().$process->getErrorOutput());
+            }
+            expect($w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful()->output)->toContain('Already wired.');
+        });
     });
 })->skip(getenv('MOD_FRONTEND_BUILD') !== '1', 'Set MOD_FRONTEND_BUILD=1 after npm ci in tests/Fixtures/frontend-build.');

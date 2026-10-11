@@ -3,10 +3,9 @@
 namespace Tey\Mod\Tests\Support;
 
 use FilesystemIterator;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
 use RuntimeException;
 use SplFileInfo;
+use Tey\Mod\Support\Path;
 
 /**
  * A throwaway Laravel application root owned by a single test.
@@ -120,30 +119,7 @@ final class OwnedAppRoot
 
         $this->guardOwnership();
 
-        $items = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($this->path, FilesystemIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::CHILD_FIRST,
-        );
-
-        /** @var SplFileInfo $item */
-        foreach ($items as $item) {
-            $pathname = $item->getPathname();
-
-            if (! str_starts_with($pathname, $this->path.DIRECTORY_SEPARATOR)) {
-                throw new RuntimeException("Refusing to delete [{$pathname}] outside the owned root.");
-            }
-
-            if ($item->isDir() && ! $item->isLink()) {
-                rmdir($pathname);
-            } elseif ($item->isLink() && PHP_OS_FAMILY === 'Windows' && is_dir($pathname)) {
-                rmdir($pathname); // a directory link is removed with rmdir on Windows, never followed
-            } else {
-                if (PHP_OS_FAMILY === 'Windows' && ! $item->isLink()) {
-                    chmod($pathname, 0666); // clear the read-only attribute before unlinking Git objects
-                }
-                unlink($pathname);
-            }
-        }
+        $this->removeContents($this->path);
 
         rmdir($this->path);
 
@@ -156,9 +132,40 @@ final class OwnedAppRoot
         return is_dir($this->path);
     }
 
+    private function removeContents(string $directory): void
+    {
+        // Probe each child before descending: RecursiveDirectoryIterator follows
+        // Windows junctions even without FOLLOW_SYMLINKS, deleting their targets.
+        /** @var SplFileInfo $item */
+        foreach (new FilesystemIterator($directory, FilesystemIterator::SKIP_DOTS) as $item) {
+            $pathname = $item->getPathname();
+            if (! str_starts_with($pathname, $this->path.DIRECTORY_SEPARATOR)) {
+                throw new RuntimeException("Refusing to delete [{$pathname}] outside the owned root.");
+            }
+            $link = Path::isLink($pathname);
+            if ($link && PHP_OS_FAMILY === 'Windows') {
+                // Directory links (including dangling ones) need rmdir; file
+                // links need unlink. Neither operation follows the target.
+                if (! @rmdir($pathname)) {
+                    unlink($pathname);
+                }
+            } elseif ($link) {
+                unlink($pathname);
+            } elseif ($item->isDir()) {
+                $this->removeContents($pathname);
+                rmdir($pathname);
+            } else {
+                if (PHP_OS_FAMILY === 'Windows') {
+                    chmod($pathname, 0666);
+                }
+                unlink($pathname);
+            }
+        }
+    }
+
     private function guardOwnership(): void
     {
-        if (is_link($this->path)
+        if (Path::isLink($this->path)
             || ! is_dir($this->path)
             || ! str_starts_with(basename($this->path), self::PREFIX)
             || ! is_file($this->path(self::MARKER))

@@ -4,6 +4,7 @@ namespace Tey\Mod\Pages;
 
 use Illuminate\Filesystem\Filesystem;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Support\FrontendPaths;
 use Tey\Mod\Support\Path;
 use Tey\Mod\Support\Stack;
 
@@ -13,44 +14,49 @@ final class PageDirectories
     /** @var array<string, string>|null */
     private ?array $namespaces = null;
 
-    public function __construct(private readonly CompiledLayout $layout, private readonly string $basePath, private readonly Filesystem $files, private readonly PageRoots $packages = new PageRoots) {}
+    private FrontendPaths $paths;
+
+    public function __construct(private readonly CompiledLayout $layout, private readonly string $basePath, private readonly Filesystem $files, private readonly PageRoots $packages = new PageRoots)
+    {
+        $this->paths = new FrontendPaths($basePath);
+    }
 
     /** @return array<string, string> namespace => absolute directory */
     public function namespaces(): array
     {
-        $namespaces = $this->namespaces ??= $this->discover();
-        foreach ($this->additional() as $namespace => $directory) {
-            $relative = Path::relative($this->basePath, $directory);
-            if ($relative === null || str_contains($relative, '..') || ! is_dir($directory)) {
-                throw new \InvalidArgumentException('Page root ['.$namespace.'] must be an existing directory inside the application.');
-            }
-            $real = realpath($directory);
-            if ($real === false || Path::relative((string) realpath($this->basePath), $real) === null) {
-                throw new \InvalidArgumentException('Page root ['.$namespace.'] escapes the application through a symlink.');
-            }
-            if (isset($namespaces[$namespace]) && $namespaces[$namespace] !== $directory) {
-                throw new \InvalidArgumentException('Conflicting page namespace ['.$namespace.'].');
-            }
-            $namespaces[$namespace] = $directory;
-        }
-
-        return $namespaces;
+        return [...($this->namespaces ??= $this->discover()), ...$this->additional()];
     }
 
     /** @return array<string, string> */
     public function additional(): array
     {
-        $namespaces = $this->packages->all();
-        foreach ($this->layout->frontendOwners() as $owner) {
-            foreach ($this->discover($owner) as $namespace => $path) {
-                if (isset($namespaces[$namespace]) && $namespaces[$namespace] !== $path) {
-                    throw new \InvalidArgumentException('Conflicting page namespace ['.$namespace.'].');
+        $namespaces = [];
+        foreach ([$this->packages->all(), ...array_map(fn (array $owner): array => $this->discover($owner), $this->layout->frontendOwners())] as $roots) {
+            foreach ($roots as $namespace => $path) {
+                $relative = $this->paths->relative($path, directory: true);
+                if ($relative === null) {
+                    continue;
                 }
-                $namespaces[$namespace] = $path;
+                $directory = $this->basePath.'/'.$relative;
+                $existing = $namespaces[$namespace] ?? ($this->namespaces ??= $this->discover())[$namespace] ?? null;
+                if ($existing !== null && $existing !== $directory) {
+                    $this->paths->skip('page_namespace_conflict', $path, 'Conflicting page namespace ['.$namespace.'].');
+
+                    continue;
+                }
+                $namespaces[$namespace] = $directory;
             }
         }
 
         return $namespaces;
+    }
+
+    /** @return list<array{code: string, path: string, message: string}> */
+    public function notices(): array
+    {
+        $this->namespaces();
+
+        return [...$this->packages->notices(), ...$this->paths->notices()];
     }
 
     /**
@@ -118,7 +124,7 @@ final class PageDirectories
         }
         foreach ($this->files->directories($directory) as $child) {
             $paths = [...$paths, ...$this->expand($child, $segments)];
-            if ($multi && ! is_link($child)) {
+            if ($multi && ! Path::isLink($child)) {
                 $paths = [...$paths, ...$this->expand($child, [$segment, ...$segments])];
             }
         }

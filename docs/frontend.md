@@ -86,12 +86,31 @@ package declaration requires another installation; new files under existing
 globs do not. Providers only declare wiring; they never write application files.
 
 A package command can use `$plan = Mod::wiring()->plan()`, inspect
-`$plan->toArray()` and explicitly call `$plan->apply()`. Warnings prevent writing,
+`$plan->toArray()` and explicitly call `$plan->apply()`. Manual wiring warnings prevent writing,
 and stale previews are refused before any file is written. `source()` scans
 Tailwind classes without loading CSS. `css()` explicitly imports the chosen
 stylesheet into `resources/css/app.css`; style order remains application-owned.
-Alias declarations reject conflicting targets and are ordered most specific
-first. The JSON inventory adds `package_pages` and `frontend_wiring` records.
+Aliases are ordered most specific first. TypeScript paths include both the bare
+alias (`"@acme/billing": ["./vendor/acme/billing/resources/js"]`) and its subpaths
+(`"@acme/billing/*": ["./vendor/acme/billing/resources/js/*"]`). The bare alias
+uses TypeScript's normal directory index resolution; there is no `index:` option.
+An existing conflicting TypeScript mapping requires a manual edit.
+
+Composer path repositories installed as symlinks (or Windows directory junctions) are supported. Installed paths
+under `vendor/` may resolve outside the application. A provider's absolute
+`__DIR__` path is mapped back through the installed package symlink, so all page
+entries, globs and planned edits keep their lexical `vendor/...` paths.
+Other external paths, traversal and symlink escapes are skipped, as are missing
+page directories, invalid names and conflicting declarations. They never stop
+application boot. Wiring paths may name directories that will be created later.
+
+The JSON inventory adds `package_pages`, `frontend_wiring` and
+`frontend_notices`. Each notice has `code`, `path` and `message`. Stable codes are
+`frontend_path_invalid`, `frontend_path_escape`, `frontend_path_unavailable`,
+`frontend_alias_invalid`, `frontend_alias_conflict`, `page_namespace_invalid`
+and `page_namespace_conflict`. `mod:install` prints these notices; JSON previews
+include them in `warnings` with the same code and `data.path`. Skipped declarations
+do not prevent valid declarations from being installed.
 
 
 ### Frontend files in mounted roots
