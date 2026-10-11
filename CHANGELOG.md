@@ -5,6 +5,7 @@ All notable changes to `mod` will be documented in this file.
 ## Unreleased
 
 ### Fixed
+- The Boost core guideline is a short inventory-and-preview instruction; generator and package API reference lives in the on-demand `mod-development` skill.
 - Root-scoped file type warnings explain the `@<token>/...` declaration for placing a file in a module; the layouts guide shows the anchor syntax.
 
 ## [0.4.1] - 2026-10-10
