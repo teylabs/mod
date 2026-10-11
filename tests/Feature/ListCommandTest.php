@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Artisan;
 use Tey\Mod\Facades\Mod;
+use Tey\Mod\Layout\BuiltIn\BuiltInLayouts;
+use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
@@ -41,6 +43,10 @@ it('pins the JSON contract and includes package override members', function () {
 
 it('lists every built-in layout and areas with exact console snapshots', function (string $name) {
     Workspace::run(null, function (Workspace $w) use ($name) {
+        // These snapshots describe the baseline without optional packages.
+        starterPackages();
+        app()->forgetInstance(BuiltInLayouts::class);
+        app()->forgetInstance(LayoutRegistry::class);
         config()->set('mod.layout', $name);
         if ($name === 'areas') {
             Mod::layout('areas')->extends('modules');
@@ -78,13 +84,16 @@ it('reports an invalid layout with exit one', function () {
     });
 });
 
-it('keeps a typical modules inventory readable within seventy-two columns', function () {
-    Workspace::run(null, function (Workspace $w) {
+it('keeps a typical modules inventory readable within seventy-two columns', function (bool $mcp) {
+    starterPackages(...($mcp ? ['laravel/mcp'] : []));
+    app()->forgetInstance(BuiltInLayouts::class);
+    app()->forgetInstance(LayoutRegistry::class);
+    Workspace::run(null, function (Workspace $w) use ($mcp) {
         config()->set('mod.layout', 'modules');
         $output = $w->artisan('mod:list')->assertSuccessful()->normalisedOutput();
         foreach (explode("\n", $output) as $line) {
             expect(mb_strlen(rtrim($line)))->toBeLessThanOrEqual(72);
         }
-        expect(count(explode("\n", $output)))->toBeLessThanOrEqual(42);
+        expect(count(explode("\n", $output)))->toBeLessThanOrEqual(42 + ($mcp ? 4 : 0));
     });
-});
+})->with([true, false]);

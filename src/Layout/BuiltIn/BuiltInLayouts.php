@@ -2,6 +2,8 @@
 
 namespace Tey\Mod\Layout\BuiltIn;
 
+use Tey\Mod\Generation\ComposerPackageDetector;
+use Tey\Mod\Generation\PackageDetector;
 use Tey\Mod\Generation\Starters;
 use Tey\Mod\Layout\FileType;
 use Tey\Mod\Layout\Layout;
@@ -20,6 +22,8 @@ use Tey\Mod\Placement\PlacementRule;
  */
 final readonly class BuiltInLayouts
 {
+    public function __construct(private PackageDetector $packages = new ComposerPackageDetector) {}
+
     /**
      * @return list<string>
      */
@@ -74,6 +78,12 @@ final readonly class BuiltInLayouts
             $layout->generates('view', in: 'resources-views:', using: fn (FileType $type) => $type->file());
         }
         $layout->generates('component', in: $name === 'ddd' ? '{domain+}/View/Components' : ($name === 'type-first' ? '@feature/View/Components' : ($base === '' ? 'View/Components' : $base.'/View/Components')), using: fn (FileType $type) => $type->withinRoot($name === 'ddd' ? 'application' : 'app')->nested());
+        if (in_array($name, ['modules', 'ddd'], true) && $this->packages->isInstalled('laravel/mcp')) {
+            foreach (['server' => 'Servers', 'tool' => 'Tools', 'resource' => 'Resources', 'prompt' => 'Prompts'] as $id => $folder) {
+                $layout->generates('mcp-'.$id, in: $name === 'modules' ? '@module/Mcp/'.$folder : '{domain+}/Mcp/'.$folder,
+                    using: fn (FileType $type) => $type->withinRoot($name === 'modules' ? 'app' : 'application'));
+            }
+        }
         $layout->mirrorsPages();
 
         return true;

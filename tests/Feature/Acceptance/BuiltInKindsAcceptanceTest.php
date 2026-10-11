@@ -24,6 +24,9 @@ function builtInFolders(string $layout, string $group, string $slice): array
             $folders[$kind] = "app/Modules/{$group}/{$folder}";
         }
 
+        foreach (['server' => 'Servers', 'tool' => 'Tools', 'resource' => 'Resources', 'prompt' => 'Prompts'] as $kind => $folder) {
+            $folders['mcp-'.$kind] = "app/Modules/{$group}/Mcp/{$folder}";
+        }
         $folders['test'] = "tests/Feature/{$group}";
 
         return $folders;
@@ -44,6 +47,7 @@ function builtInFolders(string $layout, string $group, string $slice): array
     }
     if ($layout === 'modules') {
         $folders = array_replace($folders, ['channel' => 'Channels', 'command' => 'Console']);
+        $folders += ['mcp-server' => 'Mcp/Servers', 'mcp-tool' => 'Mcp/Tools', 'mcp-resource' => 'Mcp/Resources', 'mcp-prompt' => 'Mcp/Prompts'];
         $folders += ['action' => 'Actions', 'dto' => 'Data', 'value-object' => 'ValueObjects', 'view-model' => 'ViewModels', 'query' => 'Queries'];
     }
     if ($layout === 'features') {

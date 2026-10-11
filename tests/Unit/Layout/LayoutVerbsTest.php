@@ -4,6 +4,8 @@ use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Exceptions\InvalidDiscoveryConfig;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Exceptions\UnknownFileType;
+use Tey\Mod\Generation\PackageDetector;
+use Tey\Mod\Layout\BuiltIn\BuiltInLayouts;
 use Tey\Mod\Layout\FileType;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
@@ -29,9 +31,21 @@ it('keeps every built-in placement from 0.1.1 except the 0.3 HTTP move', functio
         $snapshot['modules'][$id] = ['App\\|app|Modules/{module}/Http/'.$folder];
     }
     $snapshot['slices']['request'] = ['App\\|app|{feature}/{slice}/Http/Requests'];
+    $packages = new class implements PackageDetector
+    {
+        public function isInstalled(string $package): bool
+        {
+            return false;
+        }
+
+        public function classExists(string $class): bool
+        {
+            return false;
+        }
+    };
     $actual = [];
     foreach (array_keys($snapshot) as $name) {
-        $compiled = (new LayoutRegistry)->compile($name);
+        $compiled = (new LayoutRegistry(new BuiltInLayouts($packages)))->compile($name);
         foreach ($compiled->rules() as $id => $rule) {
             if ($compiled->kind($id)->extension !== null) {
                 continue; // New plain file types have separate 0.3 placement assertions.
