@@ -12910,6 +12910,7 @@
         "parent": "Illuminate\\Support\\Facades\\Facade",
         "facade": [
             "static Tey\\Mod\\ModManager connection(string $group, string $connection)",
+            "static Tey\\Mod\\Support\\Stack stack()",
             "static string pageEntry(string $page, string $extension)",
             "static Tey\\Mod\\ModManager routeFiles(string $group, string $directory)",
             "static Tey\\Mod\\ModManager routeRegistrar(string $group, class-string<\\Tey\\Mod\\Routing\\RegistersRoutes> $class)",
@@ -14871,6 +14872,16 @@
         "return": "Tey\\Mod\\ModManager",
         "shape": "@param array<array-key, Closure|class-string> $recipes"
     },
+    "Tey\\Mod\\ModManager::stack": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [],
+        "return": "Tey\\Mod\\Support\\Stack",
+        "shape": ""
+    },
     "Tey\\Mod\\ModManager::stubs": {
         "visibility": "public",
         "static": false,
@@ -16012,5 +16023,64 @@
         ],
         "return": "Tey\\Mod\\Scaffolds\\VendorScaffolds",
         "shape": "@param array<array-key, Closure|class-string> $recipes"
+    },
+    "Tey\\Mod\\Support\\Stack": {
+        "type": "class",
+        "final": true,
+        "abstract": false,
+        "readonly": true,
+        "shapes": "",
+        "interfaces": [],
+        "parent": null
+    },
+    "Tey\\Mod\\Support\\Stack::inertia": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [],
+        "return": "?string",
+        "shape": ""
+    },
+    "Tey\\Mod\\Support\\Stack::livewire": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [],
+        "return": "bool",
+        "shape": ""
+    },
+    "Tey\\Mod\\Support\\Stack::pagesPath": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [],
+        "return": "string",
+        "shape": ""
+    },
+    "Tey\\Mod\\Support\\Stack::toArray": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [],
+        "return": "array",
+        "shape": "@return array{inertia: ?string, typescript: bool, pages: string, livewire: bool}"
+    },
+    "Tey\\Mod\\Support\\Stack::typescript": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [],
+        "return": "bool",
+        "shape": ""
     }
 }

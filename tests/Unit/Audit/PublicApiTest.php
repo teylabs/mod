@@ -9,6 +9,7 @@ use Tey\Mod\Support\Path;
 
 const MOD_PUBLIC_API = [
     'Facades/Mod.php',
+    'Support/Stack.php',
     'Routing/RegistersRoutes.php',
     'Database/ConnectedModel.php',
     'Database/ConnectedSeeder.php',

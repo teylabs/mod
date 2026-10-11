@@ -48,3 +48,14 @@ For Tailwind v4, add the printed `@source` after the Tailwind import in `resourc
 ```
 
 For Tailwind v3, add the printed project-relative glob to the `content` array in the app's Tailwind config. Apply the Vite alias and TypeScript additions printed for their own files too. Then build the app and check a direct module page load.
+
+
+### Read the frontend stack
+
+Packages can call `Mod::stack()` from their provider. Its `inertia()` returns
+`vue`, `react`, `svelte` or `null`; `typescript()` checks for `tsconfig.json`,
+`pagesPath()` preserves the app's `pages`/`Pages` casing, and `livewire()` detects
+`livewire/livewire` or `livewire/flux` in Composer declarations. `toArray()` is the
+same `stack` record returned by `mod:list --json`. This reads declarations without
+installing dependencies or changing files. Svelte pages use `.svelte`; an app's
+`stubs/mod.page.svelte.stub` overrides the minimal default.

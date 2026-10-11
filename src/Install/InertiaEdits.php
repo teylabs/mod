@@ -164,7 +164,9 @@ final readonly class InertiaEdits
 
     private function extension(): string
     {
-        return $this->stack->inertia() === 'vue' ? 'vue' : ($this->stack->typescript() ? 'tsx' : 'jsx');
+        return match ($this->stack->inertia()) {
+            'react' => $this->stack->typescript() ? 'tsx' : 'jsx', 'svelte' => 'svelte', default => 'vue'
+        };
     }
 
     private function entry(): ?string
@@ -191,7 +193,7 @@ final readonly class InertiaEdits
 
     private function manualEntry(string $pageGlob): string
     {
-        $type = $this->stack->typescript() ? "<import('".($this->stack->inertia() === 'vue' ? 'vue' : 'react')."').".($this->stack->inertia() === 'vue' ? 'DefineComponent' : 'ComponentType').'>' : '';
+        $type = $this->stack->typescript() && $this->stack->inertia() !== 'svelte' ? "<import('".($this->stack->inertia() === 'vue' ? 'vue' : 'react')."').".($this->stack->inertia() === 'vue' ? 'DefineComponent' : 'ComponentType').'>' : '';
         $app = 'import.meta.glob'.$type."('./".basename($this->stack->pagesPath()).'/**/*.'.$this->extension()."')";
         $groups = $this->groupMap($pageGlob, 'import.meta.glob'.$type."('../../".$pageGlob."')");
 
@@ -276,7 +278,7 @@ final readonly class InertiaEdits
         if ($this->entryWired($s, $pageGlob)) {
             return $contents;
         }
-        $pattern = '~    resolve:\s*\(name\)\s*=>\s*resolvePageComponent\(\s*`\./(pages|Pages)/\$\{name\}\.(vue|tsx|jsx)`\s*,\s*(import\.meta\.glob(?:<[^\n]+?>)?\([\'\"]\./\1/\*\*/\*\.\2[\'\"]\))\s*,?\s*\),~';
+        $pattern = '~    resolve:\s*\(name\)\s*=>\s*resolvePageComponent\(\s*`\./(pages|Pages)/\$\{name\}\.(vue|tsx|jsx|svelte)`\s*,\s*(import\.meta\.glob(?:<[^\n]+?>)?\([\'\"]\./\1/\*\*/\*\.\2[\'\"]\))\s*,?\s*\),~';
         if (preg_match($pattern, $s, $match) === 1) {
             $groupGlob = str_replace('./'.$match[1].'/', '../../'.explode('/**/', $pageGlob, 2)[0].'/', $match[3]);
             $line = sprintf($this->text('entry_line'), $match[3], $this->groupMap($pageGlob, $groupGlob));

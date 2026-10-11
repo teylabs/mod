@@ -31,7 +31,7 @@ it('A2 pins the full Vue inventory with every previous section intact', function
         $output = str_replace(Path::normalize(dirname(__DIR__, 4)), '<package>', $output);
         expect($output)->toEqualText(file_get_contents(__DIR__.'/../../../Fixtures/Boost/a2-vue.json'));
         $data = json_decode($output, true, flags: JSON_THROW_ON_ERROR);
-        expect($data['stack'])->toBe(['inertia' => 'vue', 'typescript' => true, 'pages' => 'resources/js/pages'])
+        expect($data['stack'])->toBe(['inertia' => 'vue', 'typescript' => true, 'pages' => 'resources/js/pages', 'livewire' => false])
             ->and($data['frontend']['view_namespace'])->toBe('{module.kebab}')
             ->and($data['frontend']['import_alias'])->toBe(['alias' => '@modules', 'root' => 'app/Modules'])
             ->and($data['views'][0]['namespace'])->toBe('inventory')

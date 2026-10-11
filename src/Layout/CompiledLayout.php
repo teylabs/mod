@@ -134,7 +134,9 @@ final readonly class CompiledLayout
         $rules = $this->rules;
         if (isset($kinds['page'])) {
             $kind = $kinds['page'];
-            $extension = $stack->inertia() === 'react' ? ($stack->typescript() ? '.tsx' : '.jsx') : '.vue';
+            $extension = match ($stack->inertia()) {
+                'react' => $stack->typescript() ? '.tsx' : '.jsx', 'svelte' => '.svelte', default => '.vue'
+            };
             $kinds['page'] = new ArtifactKind($kind->id, $kind->shape, $kind->namePolicy, $kind->command, $kind->aliases, $kind->label, $extension, $kind->case);
             if ($this->mirrorPages && $rules['page'] instanceof TemplateRule) {
                 $rules['page'] = $rules['page']->withPageFolder(basename($stack->pagesPath()));
