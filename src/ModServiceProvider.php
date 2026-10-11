@@ -43,6 +43,7 @@ use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Pages\PageDirectories;
+use Tey\Mod\Pages\PageEntry;
 use Tey\Mod\Pages\PageNamespaceRegistrar;
 use Tey\Mod\Rename\Contributors;
 use Tey\Mod\Rename\Executor;
@@ -147,6 +148,7 @@ class ModServiceProvider extends ServiceProvider
         $this->app->booted(fn (Application $app) => ViewNamespaceRegistrar::register($app));
         $this->app->scoped(PageDirectories::class, fn (Application $app) => new PageDirectories($app->make(CompiledLayout::class), $app->basePath(), $app->make('files')));
         PageNamespaceRegistrar::register($this->app);
+        $this->app->bind(PageEntry::class, fn (Application $app) => new PageEntry($app->make(PageDirectories::class), $app->basePath()));
 
         // Model::factory() through the layout's factory relation; a resolver registered
         // before this one is delegated to, one registered after it wins.
