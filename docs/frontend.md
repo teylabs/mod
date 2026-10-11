@@ -12,7 +12,7 @@ For React use the app's entry (such as `resources/js/app.tsx`) and `tsx` or `jsx
 
 ## Customized Inertia bootstraps
 
-Run `php artisan mod:install inertia --dry-run` first. Known starter-kit anchors can be wired automatically. If the bootstrap has a custom resolver, the installer prints the import and exact page lookup for the configured paths, names the entry file and insertion point, and prints the Tailwind sources. JSON previews include the same instructions in `warnings`. It applies no edits while manual wiring is required.
+Run `php artisan mod:install inertia --dry-run` first. Known starter-kit anchors can be wired automatically. Existing wiring is recognised without edits: a vendor `resolveModulePage` import and call inside `resolve`, including multiline callbacks and array globs with `{ import: 'default' }`; an `@modules` alias using `path.resolve(...)` or `fileURLToPath(new URL(...))` with the module views refresh path; and the exact Tailwind `@source` before or after `@import`. A fully wired app reports `Already wired.`. If a custom shape cannot be confirmed, the installer says so and asks you to check the expected wiring. If the bootstrap has a custom resolver, the installer prints the import and exact page lookup for the configured paths, names the entry file and insertion point, and prints the Tailwind sources. JSON previews include the same instructions in `warnings`. It applies no edits while manual wiring is required.
 
 For a modal adapter or persistent default layout, keep the existing adapter import, plugins and setup callback. Add the resolver import beside the other imports in `resources/js/app.ts`:
 

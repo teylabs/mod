@@ -1,0 +1,2 @@
+@import 'tailwindcss';
+@source '../../app/Modules/**/resources/**/*.{vue,ts,blade.php}';

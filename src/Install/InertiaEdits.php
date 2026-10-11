@@ -70,21 +70,21 @@ final readonly class InertiaEdits
         }
         $css = 'resources/css/app.css';
         $tailwind = $this->first(['tailwind.config.js', 'tailwind.config.ts', 'tailwind.config.cjs']);
-        if (str_contains($this->read($css), 'tailwindcss') && ! str_contains($this->read($css), '@tailwind')) {
+        if (preg_match('~^\s*@source\s+[\'"]'.preg_quote($source, '~').'[\'"];~m', $this->activeContents($this->read($css))) === 1 || (str_contains($this->read($css), 'tailwindcss') && ! str_contains($this->read($css), '@tailwind'))) {
             $before = $this->read($css);
-            $after = preg_match('~^\s*@source\s+[\'"]'.preg_quote($source, '~').'[\'"];~m', $before) === 1 ? $before : $this->newlines("@source '".$source."';\n".str_replace("\r\n", "\n", $before), $before);
+            $after = preg_match('~^\s*@source\s+[\'"]'.preg_quote($source, '~').'[\'"];~m', $this->activeContents($before)) === 1 ? $before : $this->newlines("@source '".$source."';\n".str_replace("\r\n", "\n", $before), $before);
             $this->edit($plan, $css, $before, $after, '@source "'.$source.'"');
         } elseif ($tailwind !== null) {
             $before = $this->read($tailwind);
             $content = './'.substr($source, 6);
             $after = str_contains($before, $content) ? $before : preg_replace('/(\bcontent:\s*\[)/', '$1'."'".$content."', ", $before, 1, $count);
             if ($after === null || (! str_contains($before, $content) && $count !== 1)) {
-                $plan->warning('mod:install inertia does not recognize ['.$tailwind.']. Add ['.$content.'] to content.', file: $tailwind);
+                $plan->warning("mod:install inertia couldn't confirm [".$tailwind.']; check that it has ['.$content.'] in content.', file: $tailwind);
             } else {
                 $this->edit($plan, $tailwind, $before, $after, $this->text('content_description'));
             }
         } else {
-            $plan->warning('mod:install inertia needs Tailwind wiring. In ['.$css.'], add this after the Tailwind import (create the CSS entry if needed):'."\n@source '".$source."';\n".'For Tailwind v3, add '."'./".substr($source, 6)."'".' inside the content array of [tailwind.config.js] or your Tailwind config.', file: $css);
+            $plan->warning("mod:install inertia couldn't confirm [".$css.']; check that it has this @source before or after the Tailwind import (create the CSS entry if needed):'."\n@source '".$source."';\n".'For Tailwind v3, add '."'./".substr($source, 6)."'".' inside the content array of [tailwind.config.js] or your Tailwind config.', file: $css);
         }
         $plan->wouldWrite = $plan->warnings === [] && $plan->files !== [];
 
@@ -99,7 +99,7 @@ final readonly class InertiaEdits
         $vite = $this->read($this->first(['vite.config.ts', 'vite.config.js']) ?? 'vite.config.ts');
         $pages = $paths['pages'];
         $source = $pages === null ? null : $this->resourcesGlob($pages).'/**/*.{'.$this->extension().','.($this->stack->typescript() ? 'ts' : 'js').',blade.php}';
-        $tailwind = $this->read('resources/css/app.css').$this->read($this->first(['tailwind.config.js', 'tailwind.config.ts', 'tailwind.config.cjs']) ?? 'tailwind.config.js');
+        $tailwind = $this->activeContents($this->read('resources/css/app.css')."\n".$this->read($this->first(['tailwind.config.js', 'tailwind.config.ts', 'tailwind.config.cjs']) ?? 'tailwind.config.js'));
 
         return [
             'inertia' => $this->stack->inertia() !== null && ($this->mirrored() || ($pages !== null && $this->entryWired($entry, $this->glob($pages, '*').'/**/*.'.$this->extension()))),
@@ -203,19 +203,56 @@ final readonly class InertiaEdits
         [$import, $resolve] = explode("\n", trim($this->manualEntry($pageGlob)), 2);
         $lookup = preg_replace('/^\s*resolve: \(name\) => (.*),$/D', '$1', trim($resolve));
 
-        return 'mod:install inertia found a custom resolve or entry in ['.$entry.']. Keep your adapter, plugins and default layout.'
-            ."\n".'In ['.$entry.'], add this with the other imports at the top (once):'
+        return "mod:install inertia couldn't confirm [".$entry.']; it has a custom resolve or entry. Keep your adapter, plugins and default layout.'
+            ."\n".'Check that it has this with the other imports at the top (once):'
             ."\n".$import
-            ."\n".'Use this page lookup inside your existing resolve callback, in place of the current lookup; keep any layout assignment and return value:'
+            ."\n".'Check for this page lookup inside your existing resolve callback; keep any layout assignment and return value:'
             ."\n".$lookup
-            ."\n".'For an entry without a resolve callback, add this inside the createInertiaApp options:'
+            ."\n".'For an entry without a resolve callback, use this inside the createInertiaApp options:'
             ."\n".$resolve;
     }
 
     private function entryWired(string $contents, string $pageGlob): bool
     {
-        return preg_match('~^'.preg_quote($this->text('import'), '~').'~m', $contents) === 1
-            && preg_match('~^\\s*resolve:\\s*\\(name\\)\\s*=>\\s*'.$this->text('resolver').'\\(name,.*'.preg_quote('../../'.$pageGlob, '~').'~m', $contents) === 1;
+        $active = $this->activeContents($contents);
+        if (preg_match('~\bimport\s*\{\s*resolveModulePage\s*\}\s*from\s*[\'"]\.\./\.\./vendor/tey/mod/resources/js/inertia[\'"]~', $active) !== 1
+            || preg_match('/\bresolve\s*:\s*/', $active, $match, PREG_OFFSET_CAPTURE) !== 1) {
+            return false;
+        }
+        $callback = $this->expression(substr($active, $match[0][1] + strlen($match[0][0])));
+
+        return preg_match('/\bresolveModulePage\s*\(/', $callback) === 1
+            && str_contains($callback, '../../'.$pageGlob);
+    }
+
+    /** Read one balanced property value, keeping calls in other options out. */
+    private function expression(string $contents): string
+    {
+        preg_match_all('~[\'"](?:\\\\.|[^\'"\\\\])*[\'"]|`(?:\\\\.|[^`\\\\])*`|.~s', $contents, $matches);
+        $depth = 0;
+        $expression = '';
+        foreach ($matches[0] as $token) {
+            if ($depth === 0 && in_array($token, [',', '}', ';'], true)) {
+                break;
+            }
+            if (in_array($token, ['(', '[', '{'], true)) {
+                $depth++;
+            } elseif (in_array($token, [')', ']', '}'], true)) {
+                $depth--;
+                if ($depth < 0) {
+                    break;
+                }
+            }
+            $expression .= $token;
+        }
+
+        return $expression;
+    }
+
+    /** Ignore commented examples without treating glob strings as comments. */
+    private function activeContents(string $contents): string
+    {
+        return (string) preg_replace_callback('~[\'"](?:\\\\.|[^\'"\\\\])*[\'"]|`(?:\\\\.|[^`\\\\])*`|//[^\r\n]*|/\*.*?\*/~s', static fn (array $match): string => str_starts_with($match[0], '//') || str_starts_with($match[0], '/*') ? ' ' : $match[0], $contents);
     }
 
     private function groupMap(string $pageGlob, string $expression): string
@@ -259,7 +296,7 @@ final readonly class InertiaEdits
     private function aliasWired(string $contents, string $root): bool
     {
         $path = preg_quote($root, '~');
-        $active = (string) preg_replace('/^\s*\/\/[^\r\n]*$/m', '', $contents);
+        $active = $this->activeContents($contents);
 
         return preg_match(sprintf($this->text('alias_target_pattern'), $path, $path, $path), $active) === 1;
     }
