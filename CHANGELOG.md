@@ -5,6 +5,7 @@ All notable changes to `mod` will be documented in this file.
 ## Unreleased
 
 ### Fixed
+- The layout-move guide calls out persisted polymorphic class names and serialized queued work, with a pre-deployment identity mapping and application-owned migration and rollback review.
 - Customized Inertia bootstraps receive exact resolver and Tailwind snippets with file and insertion-point instructions, preserving existing adapters and layouts.
 - `Mod::pageEntry()` maps qualified Inertia pages to their Vite entries for direct full-page loads from a starter-kit Blade shell.
 - Qualified frontend page folders register with Inertia's page finder, so page-existence checks and `assertInertia()` work for module pages.
