@@ -51,6 +51,6 @@ final class BoostCoverage
 
     private static function mentions(string $text, string $token): bool
     {
-        return preg_match('/(?<![a-zA-Z0-9_.:-])'.preg_quote($token, '/').'(?![a-zA-Z0-9_.-])/', $text) === 1;
+        return preg_match('/(?<![a-zA-Z0-9_.:\/-])'.preg_quote($token, '/').'(?![a-zA-Z0-9_.\/-])/', $text) === 1;
     }
 }

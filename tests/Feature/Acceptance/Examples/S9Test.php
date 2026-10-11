@@ -10,10 +10,10 @@ it('S9 disables only the ambiguous package scaffold', function () {
         config()->set('mod.layout', 'modules');
         $registry = app(ScaffoldRegistry::class);
         foreach (['acme/inertia-kit', 'beta/admin-kit'] as $source) {
-            $registry->register('crud', fn (Scaffold $s) => $s->makes('model'), $source);
+            $registry->register('crud', fn (Scaffold $s) => $s->makes('model'), $source, vendor: 'acme');
         }
-        expect(Artisan::all()['mod:crud']->isHidden())->toBeTrue();
-        expect($registry->problems())->toBe(['crud' => 'Scaffold [crud] is registered by acme/inertia-kit and by beta/admin-kit, so mod:crud is disabled. Define crud in your app to use your own.']);
+        expect(Artisan::all()['mod:acme/crud']->isHidden())->toBeFalse();
+        expect($registry->details('acme/crud')['notices'][0]['code'])->toBe('vendor_scaffold_conflict');
         $w->artisan('mod:model', ['name' => 'Knowledge:Document'])->assertSuccessful();
     });
 });

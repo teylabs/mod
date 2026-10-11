@@ -174,7 +174,7 @@ trait RunsScaffoldTree
                     }
                     $message = "{$path} has no mod:{$insert['at']} anchor.";
                     if (! $this->interactive()) {
-                        throw GenerationRefused::because($message." Create {$path} with // mod:{$insert['at']}, then run mod:{$this->recipeName} again. Nothing was written.");
+                        throw GenerationRefused::because($message." Create {$path} with // mod:{$insert['at']}, then run {$this->getName()} again. Nothing was written.");
                     }
                     if (! confirm($message.' Create it with the anchor?', default: true)) {
                         return self::SUCCESS;
@@ -200,7 +200,7 @@ trait RunsScaffoldTree
             $count = count($plan->files()) - count($scope->keep);
             $inserts = count($this->treeInserts);
             $suffix = $inserts === 0 ? '' : " and {$inserts} inserts";
-            $this->components->info("mod:{$this->recipeName} will write {$count} ".($count === 1 ? 'file' : 'files').$suffix.' for '.$this->rawNameInput().'.');
+            $this->components->info("{$this->getName()} will write {$count} ".($count === 1 ? 'file' : 'files').$suffix.' for '.$this->rawNameInput().'.');
             foreach ($plan->files() as $file) {
                 $this->treeLine($file['artifact']->path(), ScaffoldPlan::label($file, is_file($this->laravel->basePath($file['artifact']->path()))));
             }
@@ -230,7 +230,7 @@ trait RunsScaffoldTree
             foreach ($this->treeCalls as [$command, $arguments, $ungrouped]) {
                 $scope->ungrouped = $ungrouped;
                 if ($this->call($command, $arguments) !== self::SUCCESS) {
-                    throw GenerationRefused::because("Generating mod:{$this->recipeName} failed. Nothing was written.");
+                    throw GenerationRefused::because("Generating {$this->getName()} failed. Nothing was written.");
                 }
             }
             $patched = $this->treeStarts;
@@ -314,14 +314,14 @@ trait RunsScaffoldTree
         foreach ($recipe->questions() as $question) {
             if (array_key_exists($question->name, $given)) {
                 if ($question->type === 'file' && is_string($given[$question->name])) {
-                    $values[$question->name] = $resolver->answer($question, $given[$question->name], false, 'mod:'.$this->recipeName, $name);
+                    $values[$question->name] = $resolver->answer($question, $given[$question->name], false, (string) $this->getName(), $name);
                 }
 
                 continue;
             }
             $option = $this->getDefinition()->hasOption($question->name) ? $this->option($question->name) : null;
             try {
-                $values[$question->name] = $resolver->answer($question, $option, ! $locating && $this->interactive(), 'mod:'.$this->recipeName, $name);
+                $values[$question->name] = $resolver->answer($question, $option, ! $locating && $this->interactive(), (string) $this->getName(), $name);
             } catch (Throwable $exception) {
                 if ($this->dryPlan === null || ! $exception instanceof ModException) {
                     throw $exception;
@@ -374,7 +374,7 @@ trait RunsScaffoldTree
             }
             $scope->reset();
             if ($this->call($command, $arguments) !== self::SUCCESS || $scope->collected() === null) {
-                throw GenerationRefused::because("Planning mod:{$this->recipeName} failed. Nothing was written.");
+                throw GenerationRefused::because("Planning {$this->getName()} failed. Nothing was written.");
             }
             $this->configurePrompts($this->input);
             $memberPlan = $scope->collected();
@@ -458,7 +458,7 @@ trait RunsScaffoldTree
             $file = $stub === null ? '' : $stub->path;
         }
         if ($file === '' || ! is_file($file)) {
-            throw GenerationRefused::because("mod:{$this->recipeName} needs stubs/mod.{$id}.stub. Create the stub before running the command. Nothing was written.");
+            throw GenerationRefused::because("{$this->getName()} needs stubs/mod.{$id}.stub. Create the stub before running the command. Nothing was written.");
         }
 
         return $file;
@@ -648,7 +648,7 @@ trait RunsScaffoldTree
                     return;
                 }
                 if ($recursive && $parentName !== $name) {
-                    throw GenerationRefused::because("Create the parent section with mod:{$this->recipeName} first. Nothing was written.");
+                    throw GenerationRefused::because("Create the parent section with {$this->getName()} first. Nothing was written.");
                 }
                 $given = is_string($list) ? [$list => [$value]] : [];
                 $this->planTreeNode($root, $name, $context, $given, '', '', $plan, $scope, 0);

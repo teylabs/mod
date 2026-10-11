@@ -45,11 +45,11 @@ it('allows a module to override conflicting package scaffolds and refuses the am
         config()->set('mod.layout', 'modules');
         $registry = app(ScaffoldRegistry::class);
         foreach (['acme/kit', 'beta/kit'] as $package) {
-            $registry->register('report', fn (Scaffold $s) => $s->makes('job', name: 'Package{name}'), $package);
+            $registry->register('report', fn (Scaffold $s) => $s->makes('job', name: 'Package{name}'), $package, vendor: 'acme');
         }
-        $registry->register('report', fn (Scaffold $s) => $s->makes('job', name: 'Module{name}'), 'module:Inventory');
-        $w->artisan('mod:report', ['name' => 'Inventory:Widget'])->assertSuccessful();
-        $other = $w->artisan('mod:report', ['name' => 'Knowledge:Widget'])->assertFailed();
+        $registry->register('acme/report', fn (Scaffold $s) => $s->makes('job', name: 'Module{name}'), 'module:Inventory');
+        $w->artisan('mod:acme/report', ['name' => 'Inventory:Widget'])->assertSuccessful();
+        $other = $w->artisan('mod:acme/report', ['name' => 'Knowledge:Widget'])->assertFailed();
         expect($other->normalisedOutput())->toContain('acme/kit', 'beta/kit')
             ->and($w->exists('app/Modules/Knowledge/Jobs/PackageWidget.php'))->toBeFalse();
     });
@@ -123,11 +123,11 @@ it('selects independent module scaffold questions and restores the fallback betw
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'modules');
         $registry = app(ScaffoldRegistry::class);
-        $registry->register('report', fn (Scaffold $s) => $s->asks('title')->makes('job', name: '{title}{name}'), 'module:Inventory');
-        $registry->register('report', fn (Scaffold $s) => $s->makes('job', name: 'Package{name}'), 'acme/kit');
-        Mod::scaffold('report', fn (Scaffold $s) => $s->makes('job', name: 'App{name}'));
-        $w->artisan('mod:report', ['name' => 'Inventory:Stock', '--title' => 'Module'])->assertSuccessful();
-        $w->artisan('mod:report', ['name' => 'Knowledge:Stock'])->assertSuccessful();
+        $registry->register('acme/report', fn (Scaffold $s) => $s->asks('title')->makes('job', name: '{title}{name}'), 'module:Inventory');
+        $registry->register('report', fn (Scaffold $s) => $s->makes('job', name: 'Package{name}'), 'acme/kit', vendor: 'acme');
+        Mod::scaffold('acme/report', fn (Scaffold $s) => $s->makes('job', name: 'App{name}'));
+        $w->artisan('mod:acme/report', ['name' => 'Inventory:Stock', '--title' => 'Module'])->assertSuccessful();
+        $w->artisan('mod:acme/report', ['name' => 'Knowledge:Stock'])->assertSuccessful();
         expect($w->exists('app/Modules/Inventory/Jobs/ModuleStock.php'))->toBeTrue()
             ->and($w->exists('app/Modules/Knowledge/Jobs/AppStock.php'))->toBeTrue();
     });

@@ -16,8 +16,8 @@ it('pins the JSON contract and includes package override members', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'areas');
         Mod::layout('areas')->extends('modules');
-        app(ScaffoldRegistry::class)->register('crud', fn (Scaffold $s) => $s->makes('model'), 'acme/kit');
-        Mod::scaffold('crud', fn (Scaffold $s) => $s->makes('model', options: ['--factory']));
+        app(ScaffoldRegistry::class)->register('crud', fn (Scaffold $s) => $s->makes('model'), 'acme/kit', vendor: 'acme');
+        Mod::scaffold('acme/crud', fn (Scaffold $s) => $s->makes('model', options: ['--factory']));
         $data = json_decode($w->artisan('mod:list', ['--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
         $schema = json_decode(file_get_contents(__DIR__.'/../Fixtures/list-schema.json'), true, flags: JSON_THROW_ON_ERROR);
         foreach ($schema as $section => $keys) {

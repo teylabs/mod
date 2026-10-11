@@ -373,13 +373,13 @@ class ModServiceProvider extends ServiceProvider
         $overrides = is_string($layoutName) && $this->app->make(LayoutRegistry::class)->has($layoutName)
             ? $this->app->make(LayoutRegistry::class)->layout($layoutName)->scaffoldRecipes() : [];
         foreach ($registry->resolve($preset, is_string($layoutName) ? $layoutName : 'layout', $overrides, [...array_keys($artisan->all()), 'mod:cache', 'mod:clear', 'mod:list', 'mod:rename']) as $name => $recipe) {
-            $artisan->resolve(new ScaffoldCommand($name, $recipe, $preset));
+            $artisan->resolve(new ScaffoldCommand($name, $recipe, $preset, $registry->command($name)));
         }
         $artisan->resolve(new RenameCommand($registry, $preset));
         foreach ($registry->problems() as $name => $warning) {
             $this->app->make('log')->warning($warning);
-            if (! $artisan->has('mod:'.$name)) {
-                $artisan->resolve(new DisabledScaffoldCommand($name, $warning));
+            if (! $artisan->has($registry->command($name))) {
+                $artisan->resolve(new DisabledScaffoldCommand($name, $warning, $registry->command($name)));
             }
         }
 

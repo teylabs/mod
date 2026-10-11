@@ -13,6 +13,7 @@ const MOD_PUBLIC_API = [
     'Scaffolds/Scaffold.php',
     'Scaffolds/Part.php',
     'Scaffolds/ScaffoldRegistry.php',
+    'Scaffolds/VendorScaffolds.php',
     'ModServiceProvider.php',
     'Layout/Layout.php',
     'Layout/Root.php',

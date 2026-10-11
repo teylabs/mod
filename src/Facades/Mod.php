@@ -12,7 +12,8 @@ use Tey\Mod\ModManager;
 /**
  * @method static string pageEntry(string $page, string $extension) the project-relative Vite entry for an Inertia page
  * @method static void routes(?list<string> $only = null, list<string> $except = []) load module routes inside the current route group
- * @method static ModManager scaffold(string $name, \Closure $recipe) declare a scaffold recipe
+ * @method static \Tey\Mod\Scaffolds\VendorScaffolds vendor(string $id) scope package scaffolds to a vendor
+ * @method static ModManager scaffold(string $name, \Closure $recipe, ?string $command = null) declare a scaffold recipe
  * @method static ModManager scaffolds(array<array-key, \Closure|class-string> $recipes) declare keyed recipes or invokable classes
  * @method static Layout layout(string $name) define a layout, or extend a built-in or defined one
  * @method static CompiledLayout current() the active layout, compiled
