@@ -209,3 +209,25 @@ it('names the non-interactive flag when there is no terminal and no answer', fun
         expect($w->read('resources/js/app.ts'))->toEqualText(Kit::files('vue-laravel12', 'before')['resources/js/app.ts']);
     });
 });
+
+it('prints exact insertion points and snippets for a customized bootstrap', function () {
+    Workspace::run(null, function (Workspace $w) {
+        Kit::setup($w, 'vue-current');
+        $custom = "import { createInertiaApp } from 'custom-modal-adapter';\ncreateInertiaApp({\n    resolve: async (name) => {\n        const page = await customLookup(name);\n        page.default.layout ??= DefaultLayout;\n        return page;\n    },\n});\n";
+        $w->write('resources/js/app.ts', $custom);
+        $w->remove(['resources/css/app.css']);
+        $result = $w->artisan('mod:install', ['stack' => 'inertia']);
+        $result->assertSuccessful()->expectsOutputToContain('with the other imports at the top')
+            ->expectsOutputToContain('inside your existing resolve callback')
+            ->expectsOutputToContain("import { resolveModulePage } from '../../vendor/tey/mod/resources/js/inertia';")
+            ->expectsOutputToContain("import.meta.glob<import('vue').DefineComponent>('../../app/Modules/*/resources/js/pages/**/*.vue')")
+            ->expectsOutputToContain('[resources/css/app.css]')->expectsOutputToContain('after the Tailwind import');
+        expect($w->read('resources/js/app.ts'))->toBe($custom);
+        $plan = json_decode($w->artisan('mod:install', ['stack' => 'inertia', '--dry-run' => true, '--json' => true])->output, true, flags: JSON_THROW_ON_ERROR);
+        expect($plan['would_write'])->toBeFalse()
+            ->and(implode("\n", array_column($plan['warnings'], 'message')))->toContain('inside your existing resolve callback', "@source '../../app/Modules/**/resources/**/*.{vue,ts,blade.php}';");
+        foreach ($plan['files'] as $file) {
+            expect($file['path'])->not->toBe('resources/js/app.ts');
+        }
+    });
+});
