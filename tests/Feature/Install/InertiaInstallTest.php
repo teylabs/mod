@@ -231,3 +231,40 @@ it('prints exact insertion points and snippets for a customized bootstrap', func
         }
     });
 });
+
+it('recognizes hand-wired resolver, Vite and Tailwind fixtures without editing', function (string $entry, string $alias, string $order, string $newline) {
+    Workspace::run(null, function (Workspace $w) use ($entry, $alias, $order, $newline) {
+        Kit::setup($w);
+        foreach (Kit::files('vue-laravel12', 'after') as $path => $contents) {
+            $w->write($path, $contents);
+        }
+        $root = __DIR__.'/../../Fixtures/install/already-wired/';
+        foreach (['resources/js/app.ts' => $entry.'.ts', 'vite.config.ts' => $alias.'.ts', 'resources/css/app.css' => $order.'.css'] as $path => $fixture) {
+            $w->write($path, str_replace("\n", $newline, str_replace("\r\n", "\n", file_get_contents($root.$fixture))));
+        }
+        $before = $w->files();
+        $w->artisan('mod:install', ['stack' => 'inertia', '--dry-run' => true])->assertSuccessful()->expectsOutputToContain('Already wired.');
+        $plan = json_decode($w->artisan('mod:install', ['stack' => 'inertia', '--dry-run' => true, '--json' => true])->output, true, flags: JSON_THROW_ON_ERROR);
+        expect($plan['files'])->toBe([])->and($plan['warnings'])->toBe([])->and($plan['would_write'])->toBeFalse();
+        expect((new InventorySectionRegistry)->read(app())['wiring'])->toBe(['inertia' => true, 'vite_alias' => true, 'tailwind' => true]);
+        $w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful()->expectsOutputToContain('Already wired.');
+        expect($w->files())->toBe($before);
+        foreach (['resources/js/app.ts' => $entry.'.ts', 'vite.config.ts' => $alias.'.ts', 'resources/css/app.css' => $order.'.css'] as $path => $fixture) {
+            expect($w->read($path))->toBe(str_replace("\n", $newline, str_replace("\r\n", "\n", file_get_contents($root.$fixture))));
+        }
+    });
+})->with(['app', 'adapter'])->with(['path-resolve', 'url'])->with(['before', 'after'])->with(["\n", "\r\n"]);
+
+it('does not confirm a resolver mentioned outside the resolve callback', function (string $entry) {
+    Workspace::run(null, function (Workspace $w) use ($entry) {
+        Kit::setup($w);
+        $w->write('resources/js/app.ts', $entry);
+        expect((new InventorySectionRegistry)->read(app())['wiring']['inertia'])->toBeFalse();
+        $w->artisan('mod:install', ['stack' => 'inertia', '--dry-run' => true])->assertSuccessful()->expectsOutputToContain("couldn't confirm [resources/js/app.ts]");
+        expect($w->read('resources/js/app.ts'))->toBe($entry);
+    });
+})->with([
+    "// import { resolveModulePage } from '../../vendor/tey/mod/resources/js/inertia';\ncreateInertiaApp({ resolve: (name) => resolveModulePage(name, import.meta.glob('../../app/Modules/*/resources/js/pages/**/*.vue')) });",
+    "import { resolveModulePage } from 'another-package';\ncreateInertiaApp({ resolve: (name) => resolveModulePage(name, import.meta.glob('../../app/Modules/*/resources/js/pages/**/*.vue')) });",
+    "import { resolveModulePage } from '../../vendor/tey/mod/resources/js/inertia';\ncreateInertiaApp({ resolve: (name) => customLookup(name), setup: () => resolveModulePage(name, import.meta.glob('../../app/Modules/*/resources/js/pages/**/*.vue')) });",
+]);

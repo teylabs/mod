@@ -2,6 +2,11 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## Unreleased
+
+### Fixed
+- Recognise existing custom Inertia resolver, Vite alias and Tailwind source wiring; report uncertain checks without asking for duplicate lines (#97).
+
 ## [0.5.0] - 2026-10-11
 
 ### Added
