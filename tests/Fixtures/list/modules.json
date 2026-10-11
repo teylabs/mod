@@ -480,6 +480,14 @@
     "translations": [],
     "package_pages": [],
     "frontend_owners": [],
+    "assets": {
+        "owners": [],
+        "wiring": {
+            "static": false,
+            "entries": false,
+            "declarations": false
+        }
+    },
     "frontend": {
         "pages": "app/Modules/{module}/resources/js/pages",
         "components": "app/Modules/{module}/resources/js/components",

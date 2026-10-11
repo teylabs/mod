@@ -64,6 +64,9 @@ final class Layout
     /** @var array<string, array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string, view_namespace: ?string, alias: ?string}> */
     private array $mountedFrontend = [];
 
+    /** @var array<string, array{files: list<string>, entries: list<string>}> */
+    private array $assetOwners = [];
+
     private bool $mirrorPages = false;
 
     private bool $commands = true;
@@ -325,6 +328,32 @@ final class Layout
         $this->mountedFrontend[$root] = [...($this->mountedFrontend[$root] ?? array_fill_keys(array_keys($values), null)), ...array_filter($values, static fn (?string $value): bool => $value !== null)];
     }
 
+    /**
+     * Declare project-relative static globs and optional executable file templates.
+     *
+     * @param  list<string>  $files
+     * @param  list<string>  $entries
+     *
+     * @api
+     */
+    public function assets(array $files = [], array $entries = []): self
+    {
+        $this->assetsAtRoot('@layout', $files, $entries);
+
+        return $this;
+    }
+
+    /** @internal
+     * @param  list<string>  $files
+     * @param  list<string>  $entries
+     */
+    public function assetsAtRoot(string $owner, array $files, array $entries): void
+    {
+        $this->guard();
+        $previous = $this->assetOwners[$owner] ?? ['files' => [], 'entries' => []];
+        $this->assetOwners[$owner] = ['files' => array_values(array_unique([...$previous['files'], ...$files])), 'entries' => array_values(array_unique([...$previous['entries'], ...$entries]))];
+    }
+
     /** built-in page folders follow the application's casing. @internal */
     public function mirrorsPages(): void
     {
@@ -352,6 +381,7 @@ final class Layout
         $source = $registry->layout($parent);
         $this->frontend = $source->frontend;
         $this->mountedFrontend = $source->mountedFrontend;
+        $this->assetOwners = $source->assetOwners;
         $this->mirrorPages = $source->mirrorPages;
         $this->roots = $source->roots;
         $this->kinds = array_map(static fn (FileType $type): FileType => clone $type, $source->kinds);
@@ -505,7 +535,7 @@ final class Layout
     }
 
     /**
-     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, FileType>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, mode: string|RelationMode|null}>, excluded: list<string>, exclusion_mounts: array<string, list<string>>, commands: bool, path: ?string, nesting: list<string>, errors: list<string>, frontend: array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string}, mirror_pages: bool, mounted_frontend: array<string, array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string, view_namespace: ?string, alias: ?string}>}
+     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, FileType>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, mode: string|RelationMode|null}>, excluded: list<string>, exclusion_mounts: array<string, list<string>>, commands: bool, path: ?string, nesting: list<string>, errors: list<string>, frontend: array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string}, asset_owners: array<string, array{files: list<string>, entries: list<string>}>, mirror_pages: bool, mounted_frontend: array<string, array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string, view_namespace: ?string, alias: ?string}>}
      *
      * @internal
      */
@@ -548,6 +578,7 @@ final class Layout
         return [
             'frontend' => $frontend,
             'mounted_frontend' => $this->mountedFrontend,
+            'asset_owners' => $this->assetOwners,
             'mirror_pages' => $this->mirrorPages,
             'roots' => $roots,
             'kinds' => $kinds,

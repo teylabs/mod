@@ -458,6 +458,14 @@
     "translations": [],
     "package_pages": [],
     "frontend_owners": [],
+    "assets": {
+        "owners": [],
+        "wiring": {
+            "static": false,
+            "entries": false,
+            "declarations": false
+        }
+    },
     "frontend": {
         "pages": null,
         "components": null,

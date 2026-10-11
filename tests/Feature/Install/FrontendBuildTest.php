@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Foundation\Vite;
 use Symfony\Component\Process\Process;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Layout\Root;
@@ -45,5 +46,68 @@ JSON);
         expect($manifest)->toHaveKeys(['resources/js/app.ts', 'resources/css/app.css'])
             ->and($w->read('public/build/'.$manifest['resources/css/app.css']['file']))->toContain('.p-7');
         expect(Mod::wiring()->plan()->toArray()['files'])->toBe([]);
+    });
+})->skip(getenv('MOD_FRONTEND_BUILD') !== '1', 'Set MOD_FRONTEND_BUILD=1 after npm ci in tests/Fixtures/frontend-build.');
+
+it('builds static assets and explicit styles with distinct manifest keys and Laravel references', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', 'modules');
+        Mod::layout('modules')->assets(files: ['app/Modules/{module}/images/**', 'app/Modules/{module}/fonts/**'], entries: ['app/Modules/{module}/styles/editor.css']);
+        $fixture = dirname(__DIR__, 2).'/Fixtures/frontend-build';
+        $w->write('package.json', file_get_contents($fixture.'/package.json'));
+        symlink($fixture.'/node_modules', $w->root->path('node_modules'));
+        $w->write('vite.config.ts', <<<'JS'
+import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
+export default defineConfig({
+    plugins: [laravel({ input: ['resources/js/app.js'], buildDirectory: 'custom-build', refresh: true })],
+});
+JS);
+        $w->write('resources/js/app.js', "import logo from '../../app/Modules/Editor/images/logo.svg';\nimport '../../app/Modules/Inventory/styles/imported.css';\nconsole.log(logo);\n");
+        $w->write('app/Modules/Editor/images/logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0h1v1" /></svg>');
+        $w->write('app/Modules/Inventory/images/logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"><path d="M1 1h2v2" /></svg>');
+        $w->write('app/Modules/Editor/fonts/body.woff2', 'fixture-font');
+        $w->write('app/Modules/Editor/styles/editor.css', "@import './nested.css';\n.editor { background: url('../images/logo.svg'); }\n");
+        $w->write('app/Modules/Editor/styles/nested.css', "@font-face { font-family: body; src: url('../fonts/body.woff2'); }\n");
+        $w->write('app/Modules/Inventory/styles/imported.css', '.imported { color: blue; }');
+        $w->artisan('mod:install', ['stack' => 'assets'])->assertSuccessful();
+        $process = new Process(['npm', 'run', 'build'], $w->root->path, timeout: 120);
+        $process->run();
+        expect($process->isSuccessful())->toBeTrue($process->getOutput().$process->getErrorOutput());
+        $manifest = json_decode($w->read('public/custom-build/manifest.json'), true, flags: JSON_THROW_ON_ERROR);
+        $first = 'app/Modules/Editor/images/logo.svg';
+        $second = 'app/Modules/Inventory/images/logo.svg';
+        $style = 'app/Modules/Editor/styles/editor.css';
+        expect($manifest)->toHaveKeys([$first, $second, $style]);
+        expect($manifest[$first]['file'])->not->toBe($manifest[$second]['file']);
+        $css = $w->read('public/custom-build/'.$manifest[$style]['file']);
+        expect($css)->toContain('@font-face', '.editor');
+        expect($css)->not->toContain('@import', '../images/logo.svg', '../fonts/body.woff2');
+        $vite = app(Vite::class)->useBuildDirectory('custom-build')->useHotFile($w->root->path('missing-hot'));
+        expect($vite->asset($first))->toContain('/custom-build/'.$manifest[$first]['file'])
+            ->and((string) $vite($style))->toContain($manifest[$style]['file']);
+        $w->write('hot', 'http://localhost:5173');
+        $vite->useHotFile($w->root->path('hot'));
+        expect($vite->asset($first))->toBe('http://localhost:5173/'.$first);
+        $w->write('serve-check.mjs', <<<'JS'
+import { createServer } from 'vite';
+const server = await createServer({ server: { host: '127.0.0.1', port: 0 } });
+try {
+    await server.listen();
+    const address = server.httpServer.address();
+    const response = await fetch(`http://127.0.0.1:${address.port}/app/Modules/Editor/images/logo.svg`);
+    if (!response.ok || !(await response.text()).includes('<svg')) throw new Error('Missing development asset');
+} finally { await server.close(); }
+JS);
+        // This subprocess deliberately verifies development serving inside CI.
+        $process = new Process(['node', 'serve-check.mjs'], $w->root->path, ['LARAVEL_BYPASS_ENV_CHECK' => '1'], timeout: 120);
+        $process->run();
+        expect($process->isSuccessful())->toBeTrue($process->getOutput().$process->getErrorOutput());
+        $w->write('app/Modules/Inventory/images/new.svg', '<svg xmlns="http://www.w3.org/2000/svg" />');
+        expect($w->artisan('mod:install', ['stack' => 'assets'])->assertSuccessful()->output)->toContain('Already wired.');
+        $process = new Process(['npm', 'run', 'build'], $w->root->path, timeout: 120);
+        $process->run();
+        expect($process->isSuccessful())->toBeTrue($process->getOutput().$process->getErrorOutput())
+            ->and(json_decode($w->read('public/custom-build/manifest.json'), true))->toHaveKey('app/Modules/Inventory/images/new.svg');
     });
 })->skip(getenv('MOD_FRONTEND_BUILD') !== '1', 'Set MOD_FRONTEND_BUILD=1 after npm ci in tests/Fixtures/frontend-build.');

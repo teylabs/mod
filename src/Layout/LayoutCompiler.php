@@ -2,6 +2,7 @@
 
 namespace Tey\Mod\Layout;
 
+use Tey\Mod\Assets\AssetDeclarations;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Placement\Segment;
@@ -147,7 +148,18 @@ final class LayoutCompiler
         }
         $owners = FrontendDeclarations::validate($owners);
 
+        $assets = [];
+        foreach ($chain['asset_owners'] as $name => $declaration) {
+            AssetDeclarations::validate([['owner' => $name, ...$declaration]]);
+            $root = $name === '@layout' ? null : ($roots[$name] ?? null);
+            foreach (['files', 'entries'] as $field) {
+                $declaration[$field] = array_map(fn (string $path): string => $root === null ? $this->filePath($path, $chain['path'], $rename) : Path::join($root['path'], $path), $declaration[$field]);
+            }
+            $assets[] = ['owner' => $name === '@layout' ? 'layout' : $name, ...$declaration];
+        }
+
         $definition = [
+            'assets' => AssetDeclarations::validate($assets),
             'frontend_owners' => $owners,
             'frontend' => $frontend,
             'mirror_pages' => $chain['mirror_pages'],

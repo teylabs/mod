@@ -14166,6 +14166,33 @@
         "return": "Tey\\Mod\\Layout\\Layout",
         "shape": ""
     },
+    "Tey\\Mod\\Layout\\Layout::assets": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "files",
+                "type": "array",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": []
+            },
+            {
+                "name": "entries",
+                "type": "array",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": []
+            }
+        ],
+        "return": "Tey\\Mod\\Layout\\Layout",
+        "shape": "@param list<string> $files @param list<string> $entries"
+    },
     "Tey\\Mod\\Layout\\Layout::compiled": {
         "visibility": "public",
         "static": false,
@@ -14570,6 +14597,33 @@
         "shapes": "",
         "interfaces": [],
         "parent": null
+    },
+    "Tey\\Mod\\Layout\\Root::assets": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "files",
+                "type": "array",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": []
+            },
+            {
+                "name": "entries",
+                "type": "array",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": []
+            }
+        ],
+        "return": "Tey\\Mod\\Layout\\Root",
+        "shape": "@param list<string> $files @param list<string> $entries"
     },
     "Tey\\Mod\\Layout\\Root::frontend": {
         "visibility": "public",

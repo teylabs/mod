@@ -6,6 +6,7 @@ use Closure;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\IdentityShape;
 use Tey\Mod\Artifact\NamePolicy;
+use Tey\Mod\Assets\AssetDeclarations;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Layout\CompiledLayout;
@@ -125,7 +126,7 @@ final class PresetValidator
             $frontend[$key] = is_string($entry) ? $entry : null;
         }
 
-        return new CompiledLayout($roots, array_values($dimensions), $kinds, $rules, $relations, $excluded, $commands, $placementOptions, $stubs, [], $frontend, ($definition['mirror_pages'] ?? false) === true, FrontendDeclarations::validate($definition['frontend_owners'] ?? []));
+        return new CompiledLayout($roots, array_values($dimensions), $kinds, $rules, $relations, $excluded, $commands, $placementOptions, $stubs, [], $frontend, ($definition['mirror_pages'] ?? false) === true, FrontendDeclarations::validate($definition['frontend_owners'] ?? []), AssetDeclarations::validate($definition['assets'] ?? []));
     }
 
     /**

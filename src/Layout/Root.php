@@ -34,6 +34,21 @@ final readonly class Root
     }
 
     /**
+     * Declare static globs and executable entries relative to this mount.
+     *
+     * @param  list<string>  $files
+     * @param  list<string>  $entries
+     *
+     * @api
+     */
+    public function assets(array $files = [], array $entries = []): self
+    {
+        $this->layout->assetsAtRoot($this->name, $files, $entries);
+
+        return $this;
+    }
+
+    /**
      * @param  string|null  $discover  'folder' or 'anywhere'
      * @param  list<string>|null  $discoverExcept
      * @param  (Closure(FileType): mixed)|null  $using
