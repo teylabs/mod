@@ -17,12 +17,11 @@ it('covers every registered command and option with Boost guidance', function (s
             $w->write('stubs/mod/@module/Tools/[source]/probe.stub', "<?php\nnamespace {{ namespace }};\nclass {{ class }} {}\n");
         }
         $skill = file_get_contents(dirname(__DIR__, 2).'/resources/boost/skills/mod-development/SKILL.md');
-        $guideline = file_get_contents(dirname(__DIR__, 2).'/resources/boost/guidelines/core.blade.php');
         $commands = Artisan::all();
         if ($layout === 'modules') {
             expect($commands)->toHaveKeys(['mod:crud', 'mod:resource-tabs', 'mod:resource-tabs.tab', 'mod:tab-page', 'mod:probe']);
         }
-        $missing = BoostCoverage::missing($commands, $skill, $guideline);
+        $missing = BoostCoverage::missing($commands, $skill, '');
         expect($missing)->toBe([], implode("\n", $missing));
     });
 })->with(['laravel', 'modules', 'features', 'slices', 'type-first', 'ddd']);

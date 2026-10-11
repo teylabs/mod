@@ -154,17 +154,18 @@ it('guides agents through inventory, templates and scaffold planning', function 
     $guideline = (string) file_get_contents(boostPath('guidelines/core.blade.php'));
     [, $skill] = boostSkill('mod-development');
 
-    foreach ([$guideline, $skill] as $text) {
+    expect($guideline)->toContain('php artisan mod:list --json', 'mod-inventory', '--dry-run --json', 'mod-development');
+    expect(str_word_count($guideline))->toBeLessThan(150);
+    foreach ([$skill] as $text) {
         expect($text)->toContain('php artisan mod:list --json', 'mod:template', '--no-interaction', 'scaffold', 'ungrouped: true', 'group:', "existing: 'keep'", 'module:Inventory', 'package:vendor/name', '__invoke(Scaffold');
     }
 
     expect($skill)->toContain('Tey\\Mod\\Scaffolds\\Scaffold', '->makes(', '->include(', '.fqcn', '--skip-existing', '->asks(', '->part(', '->inserts(');
 });
 
-it('keeps the host API guidance in both Boost resources', function () {
-    $guideline = (string) file_get_contents(boostPath('guidelines/core.blade.php'));
+it('keeps the host API reference in the on-demand skill', function () {
     [, $skill] = boostSkill('mod-development');
-    foreach ([$guideline, $skill] as $text) {
+    foreach ([$skill] as $text) {
         expect($text)->toContain('Building on mod', 'CompiledFileType', 'fileTypes()', 'fileTypeId()', 'relatedFileType()', 'readCache()', 'cacheInventory()', 'registerGenerationServices', 'MigrationCreator', 'fromFileType/toFileType', 'published API snapshot');
     }
 });

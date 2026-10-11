@@ -8,7 +8,7 @@ metadata:
 
 # Mod development
 
-Work within the application's layout and existing conventions. Mod places files and discovers classes; it does not require any business-logic pattern.
+Work within the application's layout and existing conventions. Mod places files and discovers classes; it does not require any business-logic pattern. This skill holds the detailed reference; the core guideline only directs agents to inventory and preview their work. Before placing a file, check the configured layout, its service-provider customizations and Composer PSR-4 mappings. Prefer the matching `mod:*` generator and explicit placement over `make:*`.
 
 ## Establish the layout
 
