@@ -1,5 +1,6 @@
 <?php
 
+use Tey\Mod\Facades\Mod;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 
 /*
@@ -62,6 +63,22 @@ it('refuses --path on migrations', function () {
             ->expectsOutputToContain('use --in instead of --path/--realpath')
             ->assertFailed();
 
+        expect($workspace->files())->toBe([]);
+    });
+});
+
+it('explains how to put a root-scoped file type in a module', function () {
+    Workspace::run(null, function (Workspace $workspace) {
+        config()->set('mod.layout', 'areas');
+        Mod::layout('areas')->extends('modules')
+            ->path('app/Modules/{area}')
+            ->generates('probe', in: 'Mcp/Tools');
+
+        $message = "To place it in a group, declare it with in: '@area/Mcp/Tools'.";
+        $workspace->artisan('mod:probe', ['name' => 'Talk:Probe'])
+            ->expectsOutputToContain($message)->assertFailed();
+        $result = $workspace->artisan('mod:probe', ['name' => 'Talk:Probe', '--dry-run' => true, '--json' => true]);
+        $result->expectsOutputToContain($message)->assertSuccessful();
         expect($workspace->files())->toBe([]);
     });
 });

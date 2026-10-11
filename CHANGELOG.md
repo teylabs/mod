@@ -2,6 +2,11 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## Unreleased
+
+### Fixed
+- Root-scoped file type warnings explain the `@<token>/...` declaration for placing a file in a module; the layouts guide shows the anchor syntax.
+
 ## [0.4.1] - 2026-10-10
 
 ### Fixed
