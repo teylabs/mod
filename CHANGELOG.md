@@ -5,6 +5,7 @@ All notable changes to `mod` will be documented in this file.
 ## Unreleased
 
 ### Added
+- `Mod::stack()` exposes the declared Inertia adapter, TypeScript, page path and Livewire status, matching the JSON inventory. Svelte apps can generate `.svelte` pages (#94).
 - Package scaffolds use required vendor ids, reconcile overrides and conflicts, expose provider pins and inventory notices, and may opt into their own command name (#100, #95).
 - Plan warnings include stable codes and structured data, including missing placement options and choices (#99).
 - Declare module database connections with `Mod::connection()`, select migrations per connection, generate connection-aware migrations, and opt models/factories and seeders into shared connection defaults (#96).

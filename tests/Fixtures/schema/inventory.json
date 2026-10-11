@@ -704,7 +704,8 @@
       "required": [
         "inertia",
         "typescript",
-        "pages"
+        "pages",
+        "livewire"
       ],
       "properties": {
         "inertia": {
@@ -718,6 +719,9 @@
         },
         "pages": {
           "type": "string"
+        },
+        "livewire": {
+          "type": "boolean"
         }
       }
     },

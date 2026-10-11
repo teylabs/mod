@@ -21,6 +21,7 @@ use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
 use Tey\Mod\Scaffolds\VendorScaffolds;
+use Tey\Mod\Support\Stack;
 
 /**
  * What the Mod facade reaches: layouts, stubs and generators, callable from
@@ -166,6 +167,12 @@ final readonly class ModManager
             }
         }
         ($this->container ?? Container::getInstance())->make(ModRoutes::class)->load($only, $except, $call);
+    }
+
+    /** Read the application's declared frontend stack. @api */
+    public function stack(): Stack
+    {
+        return ($this->container ?? Container::getInstance())->make(Stack::class);
     }
 
     /** Map an Inertia page name to its project-relative Vite entry. @api */

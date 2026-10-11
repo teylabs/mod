@@ -20,7 +20,7 @@ final class PlainFilesSection implements InventorySection
     {
         $stack = $app->make(Stack::class);
 
-        return ['stack' => ['inertia' => $stack->inertia(), 'typescript' => $stack->typescript(), 'pages' => $stack->pagesPath()]];
+        return ['stack' => $stack->toArray()];
     }
 
     /** @return SchemaFragment */

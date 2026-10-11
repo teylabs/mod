@@ -1,14 +1,33 @@
 {
   "type": "object",
-  "required": ["stack"],
+  "required": [
+    "stack"
+  ],
   "properties": {
     "stack": {
       "type": "object",
-      "required": ["inertia", "typescript", "pages"],
+      "required": [
+        "inertia",
+        "typescript",
+        "pages",
+        "livewire"
+      ],
       "properties": {
-        "inertia": {"type": ["string", "null"]},
-        "typescript": {"type": "boolean"},
-        "pages": {"type": "string"}
+        "inertia": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "typescript": {
+          "type": "boolean"
+        },
+        "pages": {
+          "type": "string"
+        },
+        "livewire": {
+          "type": "boolean"
+        }
       }
     }
   }

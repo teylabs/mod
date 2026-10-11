@@ -23,6 +23,7 @@ it('detects the stack without installing anything', function (?string $package, 
     });
 })->with([
     'Vue kit' => ['{"dependencies":{"@inertiajs/vue3":"^2","vue":"^3"}}', true, 'vue', 'pages'],
+    'Svelte kit' => ['{"devDependencies":{"@inertiajs/svelte":"^2"}}', true, 'svelte', 'pages'],
     'React kit' => ['{"dependencies":{"@inertiajs/react":"^2","react":"^19"}}', true, 'react', 'pages'],
     'Blade only' => ['{"devDependencies":{"vite":"^7"}}', false, null, 'pages'],
     'no package' => [null, false, null, 'pages'],
@@ -50,3 +51,35 @@ it('mirrors the pages directory while preserving a trailing group token in a sta
             ->and($layout->isPlainFilePath('app/resources/js/Pages/Inventory/Widget.vue'))->toBeTrue();
     });
 });
+
+it('publishes the same stack value through the facade and inventory', function (?string $composer, bool $livewire) {
+    Workspace::run(null, function (Workspace $w) use ($composer, $livewire) {
+        config()->set('mod.layout', 'modules');
+        if ($composer !== null) {
+            $w->write('composer.json', $composer);
+        }
+        expect(Mod::stack()->livewire())->toBe($livewire);
+        $list = json_decode($w->artisan('mod:list', ['--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
+        expect($list['stack'])->toBe(Mod::stack()->toArray());
+    });
+})->with([
+    [null, false],
+    ['{broken', false],
+    ['{"require":{"livewire/livewire":"^3"}}', true],
+    ['{"require-dev":{"livewire/flux":"^2"}}', true],
+    ['{"require":{"laravel/framework":"^13"}}', false],
+]);
+
+it('generates a Svelte page with the app override taking precedence', function (bool $override) {
+    Workspace::run(null, function (Workspace $w) use ($override) {
+        config()->set('mod.layout', 'modules');
+        $w->write('package.json', '{"dependencies":{"@inertiajs/svelte":"^2"}}');
+        $w->write('app/Modules/Inventory/.gitkeep', '');
+        if ($override) {
+            $w->write('stubs/mod.page.svelte.stub', '<h1>{{ name.studly }}</h1>');
+        }
+        $w->artisan('mod:page', ['name' => 'Inventory:Index'])->assertSuccessful();
+        expect($w->read('app/Modules/Inventory/resources/js/pages/Index.svelte'))
+            ->toContain($override ? '<h1>Index</h1>' : '<svelte:head>');
+    });
+})->with([false, true]);

@@ -451,7 +451,8 @@
     "stack": {
         "inertia": null,
         "typescript": false,
-        "pages": "resources/js/pages"
+        "pages": "resources/js/pages",
+        "livewire": false
     },
     "wiring": {
         "inertia": false,
