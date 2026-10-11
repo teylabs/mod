@@ -170,6 +170,27 @@ final class Symbols
         return $this->types;
     }
 
+    /** @return list<string> Class imports visible at a token, excluding function and constant imports. */
+    public function importedClasses(int $i): array
+    {
+        return array_column($this->imports[$this->scopes[$i] ?? 0] ?? [], 'class');
+    }
+
+    /** A syntactic class reference, excluding declarations, imports, functions and member names. */
+    public function referencedClass(int $i): ?string
+    {
+        if (! $this->name($i) || isset($this->skip[$i])) {
+            return null;
+        }
+        $previous = $this->tokens[$i - 1]->id ?? null;
+        if (in_array($previous, [T_OBJECT_OPERATOR, T_NULLSAFE_OBJECT_OPERATOR, T_DOUBLE_COLON, T_FUNCTION, T_CONST], true)) {
+            return null;
+        }
+
+        return isset($this->contexts[$i]) || ($this->tokens[$i + 1]->id ?? null) === T_DOUBLE_COLON || in_array($previous, [T_NEW, T_INSTANCEOF], true)
+            ? $this->resolve($i) : null;
+    }
+
     public function resolve(int $i): string
     {
         $text = $this->tokens[$i]->text;

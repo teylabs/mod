@@ -70,6 +70,10 @@ function codeTokensMatching(string $pattern, bool $withBuiltInLayouts = false): 
         if ($token['file'] === 'Generation/PlainFile/Identity.php' && $token['text'] === "'@modules/'") {
             continue;
         }
+        // The dependency directory exclusion is independent of layout placement.
+        if ($token['file'] === 'Survey/Scope.php' && $token['text'] === "'node_modules'") {
+            continue;
+        }
         if (preg_match($pattern, $token['text']) === 1) {
             $hits[] = "{$token['file']}:{$token['line']} {$token['text']}";
         }

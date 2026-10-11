@@ -1,0 +1,28 @@
+{
+    "classes": [
+        {"class": "Actual\\Companion", "path": "app/Models/Zebra.php"},
+        {"class": "Actual\\Zebra", "path": "app/Models/Zebra.php"},
+        {"class": "App\\Models\\Ant", "path": "app/Models/Ant.php"}
+    ],
+    "git": {"branch": null, "commit": null, "dirty": null, "remote": null, "root_commit": null},
+    "layout": "fixture",
+    "naming_patterns": [
+        {"files": ["app/Models/Ant.php", "app/Models/Zebra.php"], "pattern": "{name}.php", "type": "model"}
+    ],
+    "recurring_sets": [],
+    "references": [],
+    "sets": [
+        {"basis": "folder", "files": ["app/Models/Ant.php", "app/Models/Zebra.php"], "types": ["model"]}
+    ],
+    "types": [
+        {"groups": [], "id": "task"},
+        {"groups": [
+            {"classes": ["Actual\\Companion", "Actual\\Zebra"], "files": ["app/Models/Zebra.php"], "folder": "app/Models", "namespace": "Actual"},
+            {"classes": ["App\\Models\\Ant"], "files": ["app/Models/Ant.php"], "folder": "app/Models", "namespace": "App\\Models"}
+        ], "id": "model"}
+    ],
+    "unparsed": [],
+    "unplaced": {"count": 3, "paths": [".tey-mod-owned", "composer.json", "notes.txt"]},
+    "unresolved": [],
+    "vendor": []
+}
