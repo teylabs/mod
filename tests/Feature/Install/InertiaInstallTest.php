@@ -240,7 +240,7 @@ it('recognizes hand-wired resolver, Vite and Tailwind fixtures without editing',
         }
         $root = __DIR__.'/../../Fixtures/install/already-wired/';
         foreach (['resources/js/app.ts' => $entry.'.ts', 'vite.config.ts' => $alias.'.ts', 'resources/css/app.css' => $order.'.css'] as $path => $fixture) {
-            $w->write($path, str_replace("\n", $newline, file_get_contents($root.$fixture)));
+            $w->write($path, str_replace("\n", $newline, str_replace("\r\n", "\n", file_get_contents($root.$fixture))));
         }
         $before = $w->files();
         $w->artisan('mod:install', ['stack' => 'inertia', '--dry-run' => true])->assertSuccessful()->expectsOutputToContain('Already wired.');
@@ -250,7 +250,7 @@ it('recognizes hand-wired resolver, Vite and Tailwind fixtures without editing',
         $w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful()->expectsOutputToContain('Already wired.');
         expect($w->files())->toBe($before);
         foreach (['resources/js/app.ts' => $entry.'.ts', 'vite.config.ts' => $alias.'.ts', 'resources/css/app.css' => $order.'.css'] as $path => $fixture) {
-            expect($w->read($path))->toBe(str_replace("\n", $newline, file_get_contents($root.$fixture)));
+            expect($w->read($path))->toBe(str_replace("\n", $newline, str_replace("\r\n", "\n", file_get_contents($root.$fixture))));
         }
     });
 })->with(['app', 'adapter'])->with(['path-resolve', 'url'])->with(['before', 'after'])->with(["\n", "\r\n"]);
