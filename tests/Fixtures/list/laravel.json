@@ -424,6 +424,7 @@
     "views": [],
     "translations": [],
     "package_pages": [],
+    "frontend_owners": [],
     "frontend": {
         "pages": "resources/js/pages",
         "components": "resources/js/components",

@@ -92,3 +92,29 @@ Tailwind classes without loading CSS. `css()` explicitly imports the chosen
 stylesheet into `resources/css/app.css`; style order remains application-owned.
 Alias declarations reject conflicting targets and are ordered most specific
 first. The JSON inventory adds `package_pages` and `frontend_wiring` records.
+
+
+### Frontend files in mounted roots
+
+A root can own a component-only kit without becoming a module:
+
+```php
+Mod::layout('custom')->extends('modules')->path('app/Modules/{module}')
+    ->mounts('ui', 'App\\UI\\', 'app/UI', fn (Root $root) => $root
+        ->frontend(components: 'resources/js', alias: '@/UI'));
+```
+
+All `Root::frontend()` paths are relative to the mount. Pages opt in with both
+`pages: 'screens'` and `pageName: 'UI::{path}'`; views opt in with both
+`views: 'templates'` and `viewNamespace: 'ui'`. Names and aliases are explicit;
+conflicts are rejected before installation. Existing layout-level frontend paths
+retain their project-relative semantics. Omitted arguments preserve declarations,
+and child layouts inherit their parent's owners.
+
+Run the normal installation preview/apply step. The owner adds a specific Vite
+alias before broader aliases, TypeScript paths/includes, Tailwind sources and
+canonical page globs. Component files are dependencies, never executable inputs.
+Views use Laravel's namespace/anonymous-component registration and its reserved
+namespace protection. CSS imports, global component registration, layouts,
+framework plugins and exclusions remain application-owned. `frontend_owners` in
+`mod:list --json` exposes the resolved paths and identities.

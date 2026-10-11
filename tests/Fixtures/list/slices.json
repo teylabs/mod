@@ -462,6 +462,7 @@
     "views": [],
     "translations": [],
     "package_pages": [],
+    "frontend_owners": [],
     "frontend": {
         "pages": "app/{feature}/{slice}/resources/js/pages",
         "components": "app/{feature}/{slice}/resources/js/components",

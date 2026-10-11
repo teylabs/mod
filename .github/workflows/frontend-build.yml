@@ -1,0 +1,26 @@
+name: frontend-build
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: tests/Fixtures/frontend-build/package-lock.json
+      - run: composer install --no-interaction --prefer-dist
+      - run: npm ci --prefix tests/Fixtures/frontend-build --ignore-scripts --no-audit --no-fund
+      - run: vendor/bin/pest tests/Feature/Install/FrontendBuildTest.php
+        env:
+          MOD_FRONTEND_BUILD: '1'

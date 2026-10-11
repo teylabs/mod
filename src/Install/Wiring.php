@@ -48,6 +48,18 @@ final class Wiring
         return $this;
     }
 
+    /** A compiled owner may contain layout dimension globs. @internal */
+    public function sourcePattern(string $pattern): self
+    {
+        if (preg_match('~^/|^[A-Za-z]:|(?:^|/)\.\.(?:/|$)|[\x00-\x1f\x27"`]~', $pattern)) {
+            throw new InvalidArgumentException('Frontend sources must stay inside the application.');
+        }
+        $this->relative(rtrim(explode('*', $pattern, 2)[0], '/'));
+        $this->sources[] = $pattern;
+
+        return $this;
+    }
+
     /** Explicitly import an application-selected stylesheet in its CSS entry. @api */
     public function css(string $file): self
     {
@@ -59,7 +71,7 @@ final class Wiring
     /** Build a read-only plan, also consumed by mod:install. @api */
     public function plan(): WiringPlan
     {
-        return new WiringPlan($this->basePath, (new WiringEdits($this->basePath, app(CompiledLayout::class), new Stack($this->basePath), $this))->plan());
+        return new WiringPlan($this->basePath, (new WiringEdits($this->basePath, app(CompiledLayout::class), new Stack($this->basePath), FrontendWiring::forLayout($this, app(CompiledLayout::class))))->plan());
     }
 
     /**

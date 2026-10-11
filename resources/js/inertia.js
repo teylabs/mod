@@ -2,7 +2,7 @@ export async function resolveModulePage(name, appPages, modulePages) {
     const qualified = name.includes('::');
     const parts = qualified ? name.split('::') : [null, name];
     const [module, path] = parts;
-    if (parts.length !== 2 || !path || (module !== null && !/^[A-Za-z0-9_-]+$/.test(module)) || !path.split('/').every((part) => /^[A-Za-z0-9_-]+$/.test(part))) {
+    if (parts.length !== 2 || !path || (module !== null && !module.split('/').every((part) => /^[A-Za-z0-9_-]+$/.test(part))) || !path.split('/').every((part) => /^[A-Za-z0-9_-]+$/.test(part))) {
         throw new Error(`Invalid Inertia page name: ${name}`);
     }
     const pages = qualified ? modulePages : appPages;

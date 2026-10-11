@@ -2,6 +2,7 @@
   "type": "object",
   "required": [
     "package_pages",
+    "frontend_owners",
     "frontend"
   ],
   "properties": {
@@ -18,6 +19,72 @@
             "type": "string"
           },
           "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "frontend_owners": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "owner",
+          "pages",
+          "components",
+          "css",
+          "views",
+          "page_name",
+          "view_namespace",
+          "alias"
+        ],
+        "properties": {
+          "owner": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pages": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "components": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "css": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "views": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "page_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "view_namespace": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "alias": {
             "type": [
               "string",
               "null"

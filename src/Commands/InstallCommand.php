@@ -4,6 +4,7 @@ namespace Tey\Mod\Commands;
 
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Output\OutputInterface;
+use Tey\Mod\Install\FrontendWiring;
 use Tey\Mod\Install\InertiaEdits;
 use Tey\Mod\Install\Wiring;
 use Tey\Mod\Install\WiringEdits;
@@ -37,9 +38,12 @@ class InstallCommand extends Command
             return self::FAILURE;
         }
         $this->laravel->make(PageDirectories::class)->namespaces();
-        $packages = $this->laravel->make(PageRoots::class);
+        $packages = new PageRoots;
+        foreach ($this->laravel->make(PageDirectories::class)->additional() as $namespace => $directory) {
+            $packages->register($namespace, $directory);
+        }
         $plan = (new InertiaEdits($this->laravel->basePath(), $layout, $stack, packages: $packages))->plan();
-        $plan = (new WiringEdits($this->laravel->basePath(), $layout, $stack, $this->laravel->make(Wiring::class)))->plan($plan);
+        $plan = (new WiringEdits($this->laravel->basePath(), $layout, $stack, FrontendWiring::forLayout($this->laravel->make(Wiring::class), $layout)))->plan($plan);
         if ($this->option('json')) {
             if (! $this->option('dry-run')) {
                 $this->components->error('mod:install --json needs --dry-run. Run mod:install inertia --dry-run --json.');

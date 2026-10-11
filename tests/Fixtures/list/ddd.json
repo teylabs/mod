@@ -457,6 +457,7 @@
     "views": [],
     "translations": [],
     "package_pages": [],
+    "frontend_owners": [],
     "frontend": {
         "pages": null,
         "components": null,

@@ -10,6 +10,7 @@ use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\CompiledRoot;
+use Tey\Mod\Layout\FrontendDeclarations;
 use Tey\Mod\Placement\Dimension;
 use Tey\Mod\Placement\OpaquePlacementRule;
 use Tey\Mod\Placement\PlacementContext;
@@ -124,7 +125,7 @@ final class PresetValidator
             $frontend[$key] = is_string($entry) ? $entry : null;
         }
 
-        return new CompiledLayout($roots, array_values($dimensions), $kinds, $rules, $relations, $excluded, $commands, $placementOptions, $stubs, [], $frontend, ($definition['mirror_pages'] ?? false) === true);
+        return new CompiledLayout($roots, array_values($dimensions), $kinds, $rules, $relations, $excluded, $commands, $placementOptions, $stubs, [], $frontend, ($definition['mirror_pages'] ?? false) === true, FrontendDeclarations::validate($definition['frontend_owners'] ?? []));
     }
 
     /**

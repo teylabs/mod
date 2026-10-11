@@ -61,6 +61,9 @@ final class Layout
     /** @var array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string} */
     private array $frontend = ['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'lang' => null, 'page_name' => null];
 
+    /** @var array<string, array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string, view_namespace: ?string, alias: ?string}> */
+    private array $mountedFrontend = [];
+
     private bool $mirrorPages = false;
 
     private bool $commands = true;
@@ -314,6 +317,14 @@ final class Layout
         return $this;
     }
 
+    /** @internal */
+    public function frontendAtRoot(string $root, ?string $pages, ?string $components, ?string $css, ?string $views, ?string $pageName, ?string $viewNamespace, ?string $alias): void
+    {
+        $this->guard();
+        $values = ['pages' => $pages, 'components' => $components, 'css' => $css, 'views' => $views, 'page_name' => $pageName, 'view_namespace' => $viewNamespace, 'alias' => $alias];
+        $this->mountedFrontend[$root] = [...($this->mountedFrontend[$root] ?? array_fill_keys(array_keys($values), null)), ...array_filter($values, static fn (?string $value): bool => $value !== null)];
+    }
+
     /** built-in page folders follow the application's casing. @internal */
     public function mirrorsPages(): void
     {
@@ -340,6 +351,7 @@ final class Layout
         }
         $source = $registry->layout($parent);
         $this->frontend = $source->frontend;
+        $this->mountedFrontend = $source->mountedFrontend;
         $this->mirrorPages = $source->mirrorPages;
         $this->roots = $source->roots;
         $this->kinds = array_map(static fn (FileType $type): FileType => clone $type, $source->kinds);
@@ -493,7 +505,7 @@ final class Layout
     }
 
     /**
-     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, FileType>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, mode: string|RelationMode|null}>, excluded: list<string>, exclusion_mounts: array<string, list<string>>, commands: bool, path: ?string, nesting: list<string>, errors: list<string>, frontend: array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string}, mirror_pages: bool}
+     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, FileType>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, mode: string|RelationMode|null}>, excluded: list<string>, exclusion_mounts: array<string, list<string>>, commands: bool, path: ?string, nesting: list<string>, errors: list<string>, frontend: array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string}, mirror_pages: bool, mounted_frontend: array<string, array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string, view_namespace: ?string, alias: ?string}>}
      *
      * @internal
      */
@@ -535,6 +547,7 @@ final class Layout
 
         return [
             'frontend' => $frontend,
+            'mounted_frontend' => $this->mountedFrontend,
             'mirror_pages' => $this->mirrorPages,
             'roots' => $roots,
             'kinds' => $kinds,

@@ -436,6 +436,7 @@
     "views": [],
     "translations": [],
     "package_pages": [],
+    "frontend_owners": [],
     "frontend": {
         "pages": "app/Features/{feature}/resources/js/pages",
         "components": "app/Features/{feature}/resources/js/components",
