@@ -2,11 +2,10 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## Unreleased
+## [0.5.0] - 2026-10-11
 
 ### Added
-
-- Module `lang/` folders register automatically under view-compatible translation namespaces, with Laravel overrides and JSON support, configurable `frontend(lang:)` paths, inventory and discovery-cache integration.
+- Module `lang/` folders load automatically under the module's namespace, as views do: `__('inventory::messages.saved')`. JSON files work too, apps can override keys in `lang/vendor/{module}`, and `frontend(lang:)` sets a custom path. `mod:list` and the discovery cache include them (#58).
 - Module pages work with Inertia's page-existence check (`ensure_pages_exist`) and `assertInertia()`: mod registers each module's page folder with Inertia's page finders. A missing module page still fails (#72).
 - `Mod::pageEntry()` gives the root Blade view the real Vite entry for any page, so direct (full-page) loads of module pages work (#73).
 - With laravel/mcp installed, `mod:mcp-tool`, `mod:mcp-server`, `mod:mcp-resource` and `mod:mcp-prompt` write laravel/mcp's own output into a module (`modules`) or a domain's application layer (`ddd`), and app-declared file types with those ids use the same generators (#77).
