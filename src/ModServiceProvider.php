@@ -42,12 +42,14 @@ use Tey\Mod\Generation\ModMigrationCreator;
 use Tey\Mod\Generation\PackageDetector;
 use Tey\Mod\Generation\Starters;
 use Tey\Mod\Generation\StubRegistry;
+use Tey\Mod\Install\Wiring;
 use Tey\Mod\Layout\BuiltIn\BuiltInLayouts;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Pages\PageDirectories;
 use Tey\Mod\Pages\PageEntry;
 use Tey\Mod\Pages\PageNamespaceRegistrar;
+use Tey\Mod\Pages\PageRoots;
 use Tey\Mod\Rename\Contributors;
 use Tey\Mod\Rename\Executor;
 use Tey\Mod\Rename\Git\Transaction;
@@ -113,6 +115,8 @@ class ModServiceProvider extends ServiceProvider
         $this->app->singleton(PackageDetector::class, ComposerPackageDetector::class);
         $this->app->singleton(DiscoveryCandidates::class);
         $this->app->singleton(ModManager::class);
+        $this->app->singleton(PageRoots::class);
+        $this->app->singleton(Wiring::class, fn (Application $app) => new Wiring($app->basePath()));
 
         // The active layout compiles on first use, after every provider has booted
         // (Artisan::starting, the booted callback below), so Mod::layout() calls in
@@ -154,7 +158,7 @@ class ModServiceProvider extends ServiceProvider
         ToolRegistrar::register($this->app);
 
         $this->app->booted(fn (Application $app) => ViewNamespaceRegistrar::register($app));
-        $this->app->scoped(PageDirectories::class, fn (Application $app) => new PageDirectories($app->make(CompiledLayout::class), $app->basePath(), $app->make('files')));
+        $this->app->scoped(PageDirectories::class, fn (Application $app) => new PageDirectories($app->make(CompiledLayout::class), $app->basePath(), $app->make('files'), $app->make(PageRoots::class)));
         PageNamespaceRegistrar::register($this->app);
         $this->app->scoped(TranslationDirectories::class, fn (Application $app) => new TranslationDirectories($app->make(CompiledLayout::class), $app->basePath(), $app->make('files'), new DiscoveryCache(Path::resolve($app->basePath(), DiscoveryOptions::fromConfig((array) $app->make('config')->get('mod.discovery', []))->cachePath))));
         $this->app->booted(fn (Application $app) => TranslationNamespaceRegistrar::register($app));

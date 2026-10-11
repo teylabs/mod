@@ -5,6 +5,7 @@ namespace Tey\Mod\Facades;
 use Illuminate\Support\Facades\Facade;
 use Tey\Mod\Generation\GeneratorRegistry;
 use Tey\Mod\Generation\StubRegistry;
+use Tey\Mod\Install\Wiring;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\Layout;
 use Tey\Mod\ModManager;
@@ -12,6 +13,8 @@ use Tey\Mod\Support\Stack;
 
 /**
  * @method static ModManager connection(string $group, string $connection) declare a group database connection
+ * @method static ModManager pages(string $namespace, string $directory) declare package pages
+ * @method static Wiring wiring() declare frontend wiring
  * @method static Stack stack() read the declared frontend stack
  * @method static string pageEntry(string $page, string $extension) the project-relative Vite entry for an Inertia page
  * @method static ModManager routeFiles(string $group, string $directory) register package route files

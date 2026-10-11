@@ -12910,6 +12910,8 @@
         "parent": "Illuminate\\Support\\Facades\\Facade",
         "facade": [
             "static Tey\\Mod\\ModManager connection(string $group, string $connection)",
+            "static Tey\\Mod\\ModManager pages(string $namespace, string $directory)",
+            "static Tey\\Mod\\Install\\Wiring wiring()",
             "static Tey\\Mod\\Support\\Stack stack()",
             "static string pageEntry(string $page, string $extension)",
             "static Tey\\Mod\\ModManager routeFiles(string $group, string $directory)",
@@ -13376,6 +13378,119 @@
         ],
         "return": "Tey\\Mod\\Generation\\StubRegistry",
         "shape": ""
+    },
+    "Tey\\Mod\\Install\\Wiring": {
+        "type": "class",
+        "final": true,
+        "abstract": false,
+        "readonly": false,
+        "shapes": "",
+        "interfaces": [],
+        "parent": null
+    },
+    "Tey\\Mod\\Install\\Wiring::alias": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "name",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "directory",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "Tey\\Mod\\Install\\Wiring",
+        "shape": ""
+    },
+    "Tey\\Mod\\Install\\Wiring::css": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "file",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "Tey\\Mod\\Install\\Wiring",
+        "shape": ""
+    },
+    "Tey\\Mod\\Install\\Wiring::plan": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [],
+        "return": "Tey\\Mod\\Install\\WiringPlan",
+        "shape": ""
+    },
+    "Tey\\Mod\\Install\\Wiring::source": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "directory",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "Tey\\Mod\\Install\\Wiring",
+        "shape": ""
+    },
+    "Tey\\Mod\\Install\\WiringPlan": {
+        "type": "class",
+        "final": true,
+        "abstract": false,
+        "readonly": true,
+        "shapes": "",
+        "interfaces": [],
+        "parent": null
+    },
+    "Tey\\Mod\\Install\\WiringPlan::apply": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [],
+        "return": "bool",
+        "shape": ""
+    },
+    "Tey\\Mod\\Install\\WiringPlan::toArray": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [],
+        "return": "array",
+        "shape": "@return array<string, mixed>"
     },
     "Tey\\Mod\\Layout\\CompiledLayout": {
         "type": "class",
@@ -14737,6 +14852,33 @@
         "return": "string",
         "shape": ""
     },
+    "Tey\\Mod\\ModManager::pages": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "namespace",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "directory",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "Tey\\Mod\\ModManager",
+        "shape": ""
+    },
     "Tey\\Mod\\ModManager::routeFiles": {
         "visibility": "public",
         "static": false,
@@ -14909,6 +15051,16 @@
             }
         ],
         "return": "Tey\\Mod\\Scaffolds\\VendorScaffolds",
+        "shape": ""
+    },
+    "Tey\\Mod\\ModManager::wiring": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [],
+        "return": "Tey\\Mod\\Install\\Wiring",
         "shape": ""
     },
     "Tey\\Mod\\ModServiceProvider": {

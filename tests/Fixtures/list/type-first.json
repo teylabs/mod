@@ -435,6 +435,7 @@
     },
     "views": [],
     "translations": [],
+    "package_pages": [],
     "frontend": {
         "pages": "resources/js/pages",
         "components": "resources/js/components",
@@ -459,6 +460,7 @@
         "vite_alias": false,
         "tailwind": false
     },
+    "frontend_wiring": [],
     "routes": [],
     "connections": [],
     "rename": {

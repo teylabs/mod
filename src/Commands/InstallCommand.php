@@ -5,7 +5,11 @@ namespace Tey\Mod\Commands;
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Install\InertiaEdits;
+use Tey\Mod\Install\Wiring;
+use Tey\Mod\Install\WiringEdits;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Pages\PageDirectories;
+use Tey\Mod\Pages\PageRoots;
 use Tey\Mod\Plans\PlanWriter;
 use Tey\Mod\Support\Stack;
 
@@ -32,7 +36,10 @@ class InstallCommand extends Command
 
             return self::FAILURE;
         }
-        $plan = (new InertiaEdits($this->laravel->basePath(), $layout, $stack))->plan();
+        $this->laravel->make(PageDirectories::class)->namespaces();
+        $packages = $this->laravel->make(PageRoots::class);
+        $plan = (new InertiaEdits($this->laravel->basePath(), $layout, $stack, packages: $packages))->plan();
+        $plan = (new WiringEdits($this->laravel->basePath(), $layout, $stack, $this->laravel->make(Wiring::class)))->plan($plan);
         if ($this->option('json')) {
             if (! $this->option('dry-run')) {
                 $this->components->error('mod:install --json needs --dry-run. Run mod:install inertia --dry-run --json.');
@@ -43,7 +50,7 @@ class InstallCommand extends Command
 
             return self::SUCCESS;
         }
-        if ($stack->inertia() === null) {
+        if ($stack->inertia() === null && $plan->files === [] && $plan->warnings === []) {
             $this->components->info('Blade apps need no Inertia install.');
 
             return self::SUCCESS;
@@ -54,7 +61,7 @@ class InstallCommand extends Command
             return self::SUCCESS;
         }
         $count = count($plan->files);
-        $this->components->info('mod:install inertia will change '.$count.' files (Inertia with '.ucfirst($stack->inertia()).($stack->typescript() ? ' and TypeScript' : '').' detected).');
+        $this->components->info('mod:install inertia will change '.$count.' files (Inertia with '.ucfirst($stack->inertia() ?? 'frontend').($stack->typescript() ? ' and TypeScript' : '').' detected).');
         foreach ($plan->files as $file) {
             $this->line('  '.$file['path'].' '.str_repeat('.', max(2, 27 - strlen($file['path']))).' '.$file['alias']);
         }

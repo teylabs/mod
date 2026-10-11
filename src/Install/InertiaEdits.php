@@ -3,13 +3,15 @@
 namespace Tey\Mod\Install;
 
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Pages\PageRoots;
 use Tey\Mod\Plans\Plan;
+use Tey\Mod\Support\Path;
 use Tey\Mod\Support\Stack;
 
 /** @internal Reads known installer shapes; planning never changes the application. */
 final readonly class InertiaEdits
 {
-    public function __construct(private string $basePath, private CompiledLayout $layout, private Stack $stack) {}
+    public function __construct(private string $basePath, private CompiledLayout $layout, private Stack $stack, private ?string $alias = null, private ?PageRoots $packages = null) {}
 
     public function plan(): Plan
     {
@@ -20,6 +22,9 @@ final readonly class InertiaEdits
             return $plan;
         }
         $paths = $this->layout->frontend($this->stack);
+        if (($paths['pages'] === null || $paths['views'] === null) && ($this->packages?->all() ?? []) !== []) {
+            return $this->pagesOnlyPlan($plan);
+        }
         if ($paths['pages'] === null || $paths['views'] === null) {
             $plan->warning('mod:install inertia needs frontend paths. Declare ->frontend(pages:, views:) in your layout.');
 
@@ -87,6 +92,25 @@ final readonly class InertiaEdits
             $plan->warning("mod:install inertia couldn't confirm [".$css.']; check that it has this @source before or after the Tailwind import (create the CSS entry if needed):'."\n@source '".$source."';\n".'For Tailwind v3, add '."'./".substr($source, 6)."'".' inside the content array of [tailwind.config.js] or your Tailwind config.', file: $css);
         }
         $plan->wouldWrite = $plan->warnings === [] && $plan->files !== [];
+
+        return $plan;
+    }
+
+    private function pagesOnlyPlan(Plan $plan): Plan
+    {
+        $entry = $this->entry();
+        if ($entry === null) {
+            $plan->warning('Could not find an Inertia entry; add the declared page lookup manually.');
+
+            return $plan;
+        }
+        $before = $this->read($entry);
+        $after = $this->entryEdit($before, '');
+        if ($after === null) {
+            $plan->warning($this->manualInstructions($entry, ''), file: $entry);
+        } else {
+            $this->edit($plan, $entry, $before, $after, $this->text('entry_description'));
+        }
 
         return $plan;
     }
@@ -195,7 +219,7 @@ final readonly class InertiaEdits
     {
         $type = $this->stack->typescript() && $this->stack->inertia() !== 'svelte' ? "<import('".($this->stack->inertia() === 'vue' ? 'vue' : 'react')."').".($this->stack->inertia() === 'vue' ? 'DefineComponent' : 'ComponentType').'>' : '';
         $app = 'import.meta.glob'.$type."('./".basename($this->stack->pagesPath()).'/**/*.'.$this->extension()."')";
-        $groups = $this->groupMap($pageGlob, 'import.meta.glob'.$type."('../../".$pageGlob."')");
+        $groups = $this->groupMap($pageGlob, $pageGlob === '' ? '{}' : 'import.meta.glob'.$type."('../../".$pageGlob."')");
 
         return $this->text('import')."\n".sprintf($this->text('entry_line'), $app, $groups)."\n";
     }
@@ -223,8 +247,14 @@ final readonly class InertiaEdits
         }
         $callback = $this->expression(substr($active, $match[0][1] + strlen($match[0][0])));
 
+        foreach ($this->packages?->all() ?? [] as $directory) {
+            if (! str_contains($callback, '../../'.Path::relative($this->basePath, $directory).'/**/*.'.$this->extension())) {
+                return false;
+            }
+        }
+
         return preg_match('/\b'.preg_quote($this->text('resolver'), '/').'\s*\(/', $callback) === 1
-            && str_contains($callback, '../../'.$pageGlob);
+            && ($pageGlob === '' || str_contains($callback, '../../'.$pageGlob));
     }
 
     /** Read one balanced property value, keeping calls in other options out. */
@@ -259,6 +289,8 @@ final readonly class InertiaEdits
 
     private function groupMap(string $pageGlob, string $expression): string
     {
+        $expression = $this->packageMap($expression);
+
         if (preg_match('~/\*/resources/js/(pages|Pages)/~', $pageGlob) === 1) {
             return $expression;
         }
@@ -272,6 +304,21 @@ final readonly class InertiaEdits
         return 'Object.fromEntries(Object.entries('.$expression.').map(([key, value]) => [key.replace(/^'.$pattern."/, '$1::'), value]))";
     }
 
+    private function packageMap(string $expression): string
+    {
+        $maps = [];
+        foreach ($this->packages?->all() ?? [] as $namespace => $directory) {
+            $relative = Path::relative($this->basePath, $directory);
+            if ($relative === null || preg_match('~[\x00-\x1f\x27"`]|(?:^|/)\.\.(?:/|$)~', $relative)) {
+                throw new \InvalidArgumentException('Package page paths must be inside the application.');
+            }
+            $prefix = '../../'.$relative.'/';
+            $maps[] = sprintf($this->text('page_map'), json_encode($prefix.'**/*.'.$this->extension(), JSON_UNESCAPED_SLASHES), json_encode($namespace.'::'), strlen($prefix));
+        }
+
+        return $maps === [] ? $expression : '{ ...'.$expression.', '.implode(', ', $maps).' }';
+    }
+
     private function entryEdit(string $contents, string $pageGlob): ?string
     {
         $s = str_replace("\r\n", "\n", $contents);
@@ -281,7 +328,7 @@ final readonly class InertiaEdits
         $pattern = '~    resolve:\s*\(name\)\s*=>\s*resolvePageComponent\(\s*`\./(pages|Pages)/\$\{name\}\.(vue|tsx|jsx|svelte)`\s*,\s*(import\.meta\.glob(?:<[^\n]+?>)?\([\'\"]\./\1/\*\*/\*\.\2[\'\"]\))\s*,?\s*\),~';
         if (preg_match($pattern, $s, $match) === 1) {
             $groupGlob = str_replace('./'.$match[1].'/', '../../'.explode('/**/', $pageGlob, 2)[0].'/', $match[3]);
-            $line = sprintf($this->text('entry_line'), $match[3], $this->groupMap($pageGlob, $groupGlob));
+            $line = sprintf($this->text('entry_line'), $match[3], $this->groupMap($pageGlob, $pageGlob === '' ? '{}' : $groupGlob));
             $s = str_replace($match[0], $line, $s);
             $s = str_replace("import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';\n", '', $s);
         } elseif (preg_match('/\bresolve\s*[:(]/', $s) === 1 || substr_count($s, 'createInertiaApp({') !== 1) {
@@ -295,7 +342,7 @@ final readonly class InertiaEdits
         return $this->newlines($s, $contents);
     }
 
-    private function aliasWired(string $contents, string $root): bool
+    public function aliasWired(string $contents, string $root): bool
     {
         $path = preg_quote($root, '~');
         $active = $this->activeContents($contents);
@@ -303,7 +350,7 @@ final readonly class InertiaEdits
         return preg_match(sprintf($this->text('alias_target_pattern'), $path, $path, $path), $active) === 1;
     }
 
-    private function viteEdit(string $contents, string $root, string $views): ?string
+    public function viteEdit(string $contents, string $root, string $views): ?string
     {
         $s = str_replace("\r\n", "\n", $contents);
         if (preg_match($this->text('alias_pattern'), $s) !== 1) {
@@ -321,7 +368,7 @@ final readonly class InertiaEdits
         } elseif (! $this->aliasWired($s, $root)) {
             return null;
         }
-        if (! str_contains($s, $views)) {
+        if ($views !== '' && ! str_contains($s, $views)) {
             if (preg_match('/\brefresh:\s*true\b/', $s) === 1) {
                 $s = (string) preg_replace('/\brefresh:\s*true\b/', "refresh: ['app/Livewire/**', 'app/View/Components/**', 'lang/**', 'resources/lang/**', 'resources/views/**', 'routes/**', '".$views."']", $s, 1);
             } elseif (preg_match('/\brefresh:\s*\[/', $s) === 1) {
@@ -334,7 +381,7 @@ final readonly class InertiaEdits
         return $this->newlines($s, $contents);
     }
 
-    private function typescriptEdit(string $contents, string $root, string $include): ?string
+    public function typescriptEdit(string $contents, string $root, string $include): ?string
     {
         $s = str_replace("\r\n", "\n", $contents);
         if (! str_contains($s, $this->text('typescript_alias'))) {
@@ -364,11 +411,16 @@ final readonly class InertiaEdits
     private function text(string $key): string
     {
         $data = json_decode((string) file_get_contents(__DIR__.'/../../resources/install/inertia.json'), true, flags: JSON_THROW_ON_ERROR);
-        if (! is_array($data) || ! is_string($data[$key] ?? null)) {
+        if (! is_array($data) || ! is_string($data[$key] ?? null) || ! is_string($data['alias'] ?? null)) {
             throw new \LogicException('Missing Inertia installer content ['.$key.'].');
         }
 
-        return $data[$key];
+        if ($this->alias === null) {
+            return $data[$key];
+        }
+        $alias = str_ends_with($key, '_pattern') ? preg_quote($this->alias, $data[$key][0]) : $this->alias;
+
+        return str_replace($data['alias'], $alias, $data[$key]);
     }
 
     private function edit(Plan $plan, string $path, string $before, string $after, string $description): void
