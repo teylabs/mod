@@ -891,7 +891,14 @@ trait InteractsWithLayout
         $dimension = $exception->dimension;
 
         if ($exception instanceof DimensionNotApplicable) {
-            return "{$command} does not use a {$dimension} in this layout. Leave the {$dimension} out.";
+            $message = "{$command} does not use a {$dimension} in this layout. Leave the {$dimension} out.";
+            $rule = $this->layout()->rule($this->kind()->id);
+            if ($rule instanceof TemplateRule && $rule->dimensions() === []) {
+                $folder = implode('/', array_map(static fn ($segment): string => $segment->describe(), $rule->segments()));
+                $message .= " To place it in a group, declare it with in: '@{$dimension}/{$folder}'.";
+            }
+
+            return $message;
         }
 
         // The fix names every value the path needs, in --in order: slices

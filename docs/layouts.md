@@ -232,6 +232,17 @@ The layout is checked the first time it is used. Every problem is reported at on
 
 `generates($id, in: ...)` declares a file type and its folder below the root. A `root:` prefix (`domain:{domain}/...`) places it in another root. Without one, it uses the enclosing `mounts()` closure's root, or else the first declared root.
 
+For a folder inside each module, use `@<token>/...`. The token is the one in `path()`, and the anchor expands to that group folder relative to the file type's root:
+
+```php
+Mod::layout('custom')->extends('modules')
+    ->path('app/Modules/{module}')
+    ->generates('mcp-tool', in: '@module/Mcp/Tools');
+// mod:mcp-tool Talk:Probe -> app/Modules/Talk/Mcp/Tools/Probe.php
+```
+
+`in: 'Mcp/Tools'` instead means `app/Mcp/Tools`, with no module. With `path('app/Areas/{area}')`, use `@area/Mcp/Tools`. An explicit root-relative path containing the placeholder also works, such as `Modules/{module}/Mcp/Tools`.
+
 | Argument | Example | Effect |
 | --- | --- | --- |
 | `suffix:` | `'Controller'` | appended to the class name |
