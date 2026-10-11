@@ -52,7 +52,7 @@ final class LayoutCompiler
             }
         }
         unset($root);
-        foreach (['pages' => 'resources-js', 'components' => 'resources-components', 'css' => 'resources-css', 'views' => 'resources-views'] as $key => $rootName) {
+        foreach (['pages' => 'resources-js', 'components' => 'resources-components', 'css' => 'resources-css', 'views' => 'resources-views', 'lang' => 'resources-lang'] as $key => $rootName) {
             if ($frontend[$key] !== null) {
                 $roots[$rootName] = ['namespace' => null, 'path' => $key === 'pages' ? dirname($frontend[$key]) : $frontend[$key]];
             }

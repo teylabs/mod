@@ -57,6 +57,8 @@ use Tey\Mod\Support\Path;
 use Tey\Mod\Support\Stack;
 use Tey\Mod\Templates\TemplateCatalog;
 use Tey\Mod\Templates\TemplateDiagnostics;
+use Tey\Mod\Translations\TranslationDirectories;
+use Tey\Mod\Translations\TranslationNamespaceRegistrar;
 use Tey\Mod\Views\ViewNamespaceRegistrar;
 use Throwable;
 
@@ -150,6 +152,8 @@ class ModServiceProvider extends ServiceProvider
         $this->app->booted(fn (Application $app) => ViewNamespaceRegistrar::register($app));
         $this->app->scoped(PageDirectories::class, fn (Application $app) => new PageDirectories($app->make(CompiledLayout::class), $app->basePath(), $app->make('files')));
         PageNamespaceRegistrar::register($this->app);
+        $this->app->scoped(TranslationDirectories::class, fn (Application $app) => new TranslationDirectories($app->make(CompiledLayout::class), $app->basePath(), $app->make('files'), new DiscoveryCache(Path::resolve($app->basePath(), DiscoveryOptions::fromConfig((array) $app->make('config')->get('mod.discovery', []))->cachePath))));
+        $this->app->booted(fn (Application $app) => TranslationNamespaceRegistrar::register($app));
         $this->app->bind(PageEntry::class, fn (Application $app) => new PageEntry($app->make(PageDirectories::class), $app->basePath()));
 
         // Model::factory() through the layout's factory relation; a resolver registered

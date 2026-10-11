@@ -30,9 +30,10 @@ final readonly class DiscoveryCache
     }
 
     /** @param array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}> $templates
+     * @param  list<array{group: ?string, namespace: string, path: string}>  $translations
      * @param  array<string, Node>  $scaffolds
      */
-    public function write(Inventory $inventory, string $preset, string $definitions, array $templates = [], array $scaffolds = []): void
+    public function write(Inventory $inventory, string $preset, string $definitions, array $templates = [], array $scaffolds = [], array $translations = []): void
     {
         $directory = dirname($this->path);
 
@@ -47,6 +48,7 @@ final readonly class DiscoveryCache
             'inventory' => $inventory->toArray(),
             'templates' => $templates,
             'scaffolds' => $scaffolds,
+            'translations' => $translations,
         ];
 
         $temporary = $this->path.'.'.bin2hex(random_bytes(6)).'.tmp';
@@ -142,6 +144,35 @@ final readonly class DiscoveryCache
         }
 
         return $templates;
+    }
+
+    /** @return list<array{group: ?string, namespace: string, path: string}>|null */
+    public function translations(string $preset): ?array
+    {
+        if (! $this->exists()) {
+            return null;
+        }
+        try {
+            $payload = (static fn (string $file): mixed => require $file)($this->path);
+        } catch (Throwable) {
+            return null;
+        }
+        if (! is_array($payload) || ($payload['schema'] ?? null) !== self::SCHEMA
+            || ($payload['preset'] ?? null) !== $preset || ! is_array($payload['translations'] ?? null)
+            || ! array_is_list($payload['translations'])) {
+            return null;
+        }
+        $entries = [];
+        foreach ($payload['translations'] as $entry) {
+            if (! is_array($entry) || ! array_key_exists('group', $entry)
+                || ($entry['group'] !== null && ! is_string($entry['group']))
+                || ! is_string($entry['namespace'] ?? null) || ! is_string($entry['path'] ?? null)) {
+                return null;
+            }
+            $entries[] = ['group' => $entry['group'], 'namespace' => $entry['namespace'], 'path' => $entry['path']];
+        }
+
+        return $entries;
     }
 
     /** @return list<string>|null */

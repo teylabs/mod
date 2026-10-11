@@ -17,6 +17,7 @@ it('P1 exposes compiled module frontend paths and pins every frontend key', func
             'components' => 'app/Modules/{module}/resources/js/components',
             'css' => 'app/Modules/{module}/resources/css',
             'views' => 'app/Modules/{module}/resources/views',
+            'lang' => 'app/Modules/{module}/lang',
             'page_name' => '{module}::{path}',
             'view_namespace' => '{module.kebab}',
             'import_alias' => ['alias' => '@modules', 'root' => 'app/Modules'],
@@ -53,6 +54,7 @@ it('P2 exposes null DDD frontend fields', function () {
             'components' => null,
             'css' => null,
             'views' => null,
+            'lang' => null,
             'page_name' => null,
             'view_namespace' => null,
             'import_alias' => null,
@@ -87,7 +89,7 @@ it('exports nullable frontend fields for a layout without frontend declarations'
         config()->set('mod.layout', 'custom');
         Mod::layout('custom')->path('app')->mounts('app', 'App\\', 'app')->generates('model', in: 'Models');
         $data = json_decode($w->artisan('mod:list', ['--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
-        expect($data['frontend'])->toBe(['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'page_name' => null, 'view_namespace' => null, 'import_alias' => null])
+        expect($data['frontend'])->toBe(['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'lang' => null, 'page_name' => null, 'view_namespace' => null, 'import_alias' => null])
             ->and(JsonSchema::errors($data, (new InventorySectionRegistry)->schema()))->toBe([]);
     });
 });

@@ -117,7 +117,7 @@ final class PresetValidator
             }
         }
 
-        $frontend = ['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'page_name' => null];
+        $frontend = ['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'lang' => null, 'page_name' => null];
         $declaredFrontend = $definition['frontend'] ?? [];
         foreach ($frontend as $key => $value) {
             $entry = is_array($declaredFrontend) ? ($declaredFrontend[$key] ?? null) : null;

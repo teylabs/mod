@@ -36,7 +36,7 @@ it('reports every frontend field as null for plain ddd', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'ddd');
         $data = json_decode($w->artisan('mod:list', ['--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
-        expect($data['frontend'])->toBe(['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'page_name' => null, 'view_namespace' => null, 'import_alias' => null])
+        expect($data['frontend'])->toBe(['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'lang' => null, 'page_name' => null, 'view_namespace' => null, 'import_alias' => null])
             ->and(JsonSchema::errors($data, (new InventorySectionRegistry)->schema()))->toBe([]);
     });
 });

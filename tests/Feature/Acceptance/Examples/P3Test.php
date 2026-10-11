@@ -18,6 +18,7 @@ it('P3 overrides mirrored pages and components while preserving the remaining fr
         'components' => 'resources/js/components/{module}',
         'css' => 'app/Modules/{module}/resources/css',
         'views' => 'app/Modules/{module}/resources/views',
+        'lang' => 'app/Modules/{module}/lang',
         'page_name' => '{module}/{path}',
     ]);
 });

@@ -373,7 +373,9 @@ Mod::layout('ddd')->generates('job', in: 'infrastructure:{domain+}/Jobs');
 
 ## Frontend Files and Routes
 
-Configure frontend folders with `->frontend(pages:, components:, css:, views:, pageName:)`. Plain module resources and routes are excluded from class discovery. See [Frontend Files](https://mod.teylabs.com/going-further/frontend) for pages, views and generator templates, and [Module Routes](https://mod.teylabs.com/going-further/routes) for `Mod::routes()` and registrars.
+Configure frontend folders with `->frontend(pages:, components:, css:, views:, pageName:, lang:)`. Plain module resources and routes are excluded from class discovery. See [Frontend Files](https://mod.teylabs.com/going-further/frontend) for pages, views and generator templates, and [Module Routes](https://mod.teylabs.com/going-further/routes) for `Mod::routes()` and registrars.
+
+Module language folders use `frontend(lang:)`; the `modules` default is `@module/lang`, while `ddd` opts in explicitly. See [Module translations](translations.md) for namespaces, application overrides, JSON and caching.
 
 ### Inertia page checks
 

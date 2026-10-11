@@ -58,8 +58,8 @@ final class Layout
     /** @var array<string, Scaffold> */
     private array $scaffoldRecipes = [];
 
-    /** @var array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string} */
-    private array $frontend = ['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'page_name' => null];
+    /** @var array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string} */
+    private array $frontend = ['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'lang' => null, 'page_name' => null];
 
     private bool $mirrorPages = false;
 
@@ -299,10 +299,10 @@ final class Layout
     }
 
     /** Declare project-relative frontend paths; omitted arguments keep their current values. @api */
-    public function frontend(?string $pages = null, ?string $components = null, ?string $css = null, ?string $views = null, ?string $pageName = null): self
+    public function frontend(?string $pages = null, ?string $components = null, ?string $css = null, ?string $views = null, ?string $pageName = null, ?string $lang = null): self
     {
         $this->guard();
-        foreach (['pages' => $pages, 'components' => $components, 'css' => $css, 'views' => $views, 'page_name' => $pageName] as $key => $value) {
+        foreach (['pages' => $pages, 'components' => $components, 'css' => $css, 'views' => $views, 'lang' => $lang, 'page_name' => $pageName] as $key => $value) {
             if ($value !== null) {
                 $this->frontend[$key] = $value;
             }
@@ -493,7 +493,7 @@ final class Layout
     }
 
     /**
-     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, FileType>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, mode: string|RelationMode|null}>, excluded: list<string>, exclusion_mounts: array<string, list<string>>, commands: bool, path: ?string, nesting: list<string>, errors: list<string>, frontend: array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string}, mirror_pages: bool}
+     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, FileType>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, mode: string|RelationMode|null}>, excluded: list<string>, exclusion_mounts: array<string, list<string>>, commands: bool, path: ?string, nesting: list<string>, errors: list<string>, frontend: array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string}, mirror_pages: bool}
      *
      * @internal
      */

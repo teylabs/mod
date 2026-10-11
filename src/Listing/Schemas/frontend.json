@@ -12,6 +12,7 @@
         "components",
         "css",
         "views",
+        "lang",
         "page_name",
         "view_namespace",
         "import_alias"
@@ -70,6 +71,12 @@
               "type": "string"
             }
           }
+        },
+        "lang": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     }

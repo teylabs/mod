@@ -9,7 +9,7 @@ it('P1 declares the Laravel-shaped module tree with plain-file roots', function 
     foreach (['controller' => 'Controllers', 'request' => 'Requests', 'middleware' => 'Middleware', 'resource' => 'Resources'] as $type => $folder) {
         expect(place($layout, $type, 'Widget', 'Inventory')->path())->toStartWith('app/Modules/Inventory/Http/'.$folder.'/');
     }
-    foreach (['resources-js' => 'resources/js', 'resources-css' => 'resources/css', 'resources-views' => 'resources/views', 'routes' => 'routes'] as $root => $folder) {
+    foreach (['resources-js' => 'resources/js', 'resources-css' => 'resources/css', 'resources-views' => 'resources/views', 'resources-lang' => 'lang', 'routes' => 'routes'] as $root => $folder) {
         expect($layout->roots()[$root]->namespace)->toBeNull()
             ->and($layout->roots()[$root]->path)->toBe('app/Modules/{module}/'.$folder);
     }
@@ -18,6 +18,7 @@ it('P1 declares the Laravel-shaped module tree with plain-file roots', function 
         'components' => 'app/Modules/{module}/resources/js/components',
         'css' => 'app/Modules/{module}/resources/css',
         'views' => 'app/Modules/{module}/resources/views',
+        'lang' => 'app/Modules/{module}/lang',
         'page_name' => '{module}::{path}',
     ]);
 });
