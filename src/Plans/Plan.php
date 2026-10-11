@@ -17,7 +17,7 @@ final class Plan
     /** @var list<array{into: string, at: string, stub: string}> */
     public array $inserts = [];
 
-    /** @var list<array{file: ?string, line: ?int, message: string}> */
+    /** @var list<array{code: string, data: object, file: ?string, line: ?int, message: string}> */
     public array $warnings = [];
 
     /** @var list<array{anchor: string, label: string}> Human labels retained by tree planners. */
@@ -59,10 +59,11 @@ final class Plan
         $this->files[] = ['alias' => $alias, 'type' => $type, 'path' => $path, ...($class === null ? ['identity' => $identity] : ['class' => $class]), 'group' => $this->group, 'existing' => $exists, 'exists' => $exists];
     }
 
-    public function warning(string $message, bool $blocking = true, ?string $file = null, ?int $line = null): void
+    /** @param array<string, mixed> $data */
+    public function warning(string $message, bool $blocking = true, ?string $file = null, ?int $line = null, ?string $code = null, array $data = []): void
     {
-        $warning = ['file' => $file, 'line' => $line, 'message' => $message];
-        if (! in_array($warning, $this->warnings, true)) {
+        $warning = ['code' => $code ?? ($blocking ? 'generation_refused' : 'advisory'), 'data' => (object) $data, 'file' => $file, 'line' => $line, 'message' => $message];
+        if (! in_array($warning, $this->warnings)) {
             $this->warnings[] = $warning;
         }
         if ($blocking) {

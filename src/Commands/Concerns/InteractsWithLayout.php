@@ -249,6 +249,21 @@ trait InteractsWithLayout
         return $options;
     }
 
+    /** @internal
+     * @return list<string>
+     */
+    public function placementWarningOptions(string $dimension): array
+    {
+        $options = ['--in'];
+        foreach ($this->placementOptions() as $option => $value) {
+            if ($value === $dimension) {
+                $options[] = '--'.$option;
+            }
+        }
+
+        return $options;
+    }
+
     /**
      * Add the placement options to the definition, replacing the ones added
      * before (the set grows once the command is bound to a kind). A
@@ -862,8 +877,8 @@ trait InteractsWithLayout
      */
     protected function reportRefusal(ModException $exception): int
     {
-        if ($this->input->hasOption('dry-run') && $this->input->getOption('dry-run')) {
-            throw GenerationRefused::because($this->refusalMessage($exception));
+        if ($this->scaffoldExecution()?->planning || ($this->input->hasOption('dry-run') && $this->input->getOption('dry-run'))) {
+            throw $exception instanceof MissingDimension ? $exception->describe($this->refusalMessage($exception)) : GenerationRefused::because($this->refusalMessage($exception));
         }
         foreach (explode(PHP_EOL, $this->refusalMessage($exception)) as $line) {
             $this->components->error($line);

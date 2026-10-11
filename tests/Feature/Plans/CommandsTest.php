@@ -57,7 +57,7 @@ it('reports a missing answer in a successful non-interactive plan', function () 
         config()->set('mod.layout', 'modules');
         Mod::scaffold('needs-answer', fn (Scaffold $s) => $s->asks('label', type: 'text')->makes('model'));
         $data = json_decode($w->artisan('mod:needs-answer', ['name' => 'Inventory:Widget', '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
-        expect($data['warnings'])->toBe([['file' => null, 'line' => null, 'message' => 'mod:needs-answer needs a label. Pass --label=<value>.']])
+        expect($data['warnings'])->toBe([['code' => 'generation_refused', 'data' => [], 'file' => null, 'line' => null, 'message' => 'mod:needs-answer needs a label. Pass --label=<value>.']])
             ->and($data['would_write'])->toBeFalse()->and($w->files())->toBe([]);
     });
 });
