@@ -374,3 +374,7 @@ Mod::layout('ddd')->generates('job', in: 'infrastructure:{domain+}/Jobs');
 ## Frontend Files and Routes
 
 Configure frontend folders with `->frontend(pages:, components:, css:, views:, pageName:)`. Plain module resources and routes are excluded from class discovery. See [Frontend Files](https://mod.teylabs.com/going-further/frontend) for pages, views and generator templates, and [Module Routes](https://mod.teylabs.com/going-further/routes) for `Mod::routes()` and registrars.
+
+### Inertia page checks
+
+When Inertia's Laravel adapter is installed, Mod registers every existing qualified page folder with Inertia's page and testing finders. Names such as `Showroom::Recipe/Edit` work with `inertia.ensure_pages_exist` (Inertia 2), `inertia.pages.ensure_pages_exist` (Inertia 3) and `assertInertia()->component(...)`; a missing page still fails. Registration follows `frontend(pages:, pageName:)`, the app's `pages`/`Pages` casing and nested group names, independently of class discovery. Unqualified mirrored pages continue to use Inertia's app page paths. Existing finder namespaces keep their ownership; a clash warns.
