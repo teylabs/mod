@@ -10,6 +10,7 @@ use Tey\Mod\Layout\Layout;
 use Tey\Mod\ModManager;
 
 /**
+ * @method static ModManager connection(string $group, string $connection) declare a group database connection
  * @method static string pageEntry(string $page, string $extension) the project-relative Vite entry for an Inertia page
  * @method static ModManager routeFiles(string $group, string $directory) register package route files
  * @method static ModManager routeRegistrar(string $group, class-string<\Tey\Mod\Routing\RegistersRoutes> $class) register package route methods

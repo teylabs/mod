@@ -1,0 +1,18 @@
+{
+    "type": "object",
+    "required": ["connections"],
+    "properties": {
+        "connections": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["group", "connection", "declared"],
+                "properties": {
+                    "group": {"type": "string"},
+                    "connection": {"type": "string"},
+                    "declared": {"type": "boolean"}
+                }
+            }
+        }
+    }
+}

@@ -17,6 +17,7 @@
     "stack",
     "wiring",
     "routes",
+    "connections",
     "rename"
   ],
   "properties": {
@@ -782,6 +783,28 @@
               "string",
               "null"
             ]
+          }
+        }
+      }
+    },
+    "connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "group",
+          "connection",
+          "declared"
+        ],
+        "properties": {
+          "group": {
+            "type": "string"
+          },
+          "connection": {
+            "type": "string"
+          },
+          "declared": {
+            "type": "boolean"
           }
         }
       }

@@ -5,6 +5,7 @@ namespace Tey\Mod;
 use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Support\Facades\Facade;
+use Tey\Mod\Database\GroupConnections;
 use Tey\Mod\Discovery\DiscoveryCandidates;
 use Tey\Mod\Discovery\DiscoveryDefinition;
 use Tey\Mod\Generation\GeneratorRegistry;
@@ -118,6 +119,14 @@ final readonly class ModManager
             }
             $this->scaffold($name, $recipe);
         }
+
+        return $this;
+    }
+
+    /** Declare the database connection for a complete layout group. @api */
+    public function connection(string $group, string $connection): self
+    {
+        ($this->container ?? Container::getInstance())->make(GroupConnections::class)->declare($group, $connection);
 
         return $this;
     }

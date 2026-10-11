@@ -447,6 +447,7 @@
         "tailwind": false
     },
     "routes": [],
+    "connections": [],
     "rename": {
         "command": "mod:rename",
         "preview": true,

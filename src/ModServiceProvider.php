@@ -24,6 +24,8 @@ use Tey\Mod\Commands\ListCommand;
 use Tey\Mod\Commands\OtherLayoutCommand;
 use Tey\Mod\Commands\RenameCommand;
 use Tey\Mod\Commands\ScaffoldCommand;
+use Tey\Mod\Database\GroupConnections;
+use Tey\Mod\Database\MigrationConnections;
 use Tey\Mod\Discovery\Console\DiscoveryCacheCommand;
 use Tey\Mod\Discovery\Console\DiscoveryClearCommand;
 use Tey\Mod\Discovery\Discovery;
@@ -83,6 +85,8 @@ class ModServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../config/mod.php', 'mod');
 
         RouteServiceRegistrar::register($this->app);
+        $this->app->singleton(GroupConnections::class);
+        MigrationConnections::register($this->app);
 
         $this->app->singleton(ScaffoldRegistry::class);
         $this->app->singleton(Contributors::class);

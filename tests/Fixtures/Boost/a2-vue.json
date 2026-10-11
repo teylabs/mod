@@ -592,6 +592,13 @@
             "loaded_by": "bootstrap/app.php:18"
         }
     ],
+    "connections": [
+        {
+            "group": "Inventory",
+            "connection": "testing",
+            "declared": false
+        }
+    ],
     "rename": {
         "command": "mod:rename",
         "preview": true,

@@ -92,6 +92,9 @@ final class ListCommand extends Command
                 }
             }
         }
+        foreach ($report['connections'] as $row) {
+            $this->components->twoColumnDetail('Connection '.$row['group'], $row['connection'].($row['declared'] ? '' : ' (default)'));
+        }
         RoutesSection::render($this, $report['routes'], $this->laravel->make(ModRoutes::class));
         if ($detail) {
             foreach ($report['types'] as $type) {
