@@ -2,10 +2,10 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## Unreleased
+## [0.5.1] - 2026-10-11
 
 ### Fixed
-- Recognise existing custom Inertia resolver, Vite alias and Tailwind source wiring; report uncertain checks without asking for duplicate lines (#97).
+- `mod:install inertia` recognizes wiring an app already has (a custom `resolve` that calls mod's resolver, a `path.resolve(...)` or `fileURLToPath(...)` `@modules` alias, and the Tailwind `@source` line before or after the import) and says "Already wired.". A check it can't confirm says so and shows what to look for, instead of asking for the line again (#97).
 
 ## [0.5.0] - 2026-10-11
 
