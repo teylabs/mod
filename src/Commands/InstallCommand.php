@@ -47,7 +47,11 @@ class InstallCommand extends Command
         }
         $mode = $this->argument('stack');
         $plan = $mode === 'assets' ? new Plan('mod:install', name: 'assets') : (new InertiaEdits($this->laravel->basePath(), $layout, $stack, packages: $packages))->plan();
-        $plan = (new WiringEdits($this->laravel->basePath(), $layout, $stack, FrontendWiring::forLayout($this->laravel->make(Wiring::class), $layout)))->plan($plan);
+        $wiring = FrontendWiring::forLayout($this->laravel->make(Wiring::class), $layout);
+        $plan = (new WiringEdits($this->laravel->basePath(), $layout, $stack, $wiring))->plan($plan);
+        foreach ($this->laravel->make(PageDirectories::class)->notices() as $notice) {
+            $plan->warning($notice['message'], blocking: false, code: $notice['code'], data: ['path' => $notice['path']]);
+        }
         $plan = (new AssetEdits($this->laravel->basePath(), $layout))->plan($plan);
         if ($this->option('json')) {
             if (! $this->option('dry-run')) {
@@ -59,7 +63,7 @@ class InstallCommand extends Command
 
             return self::SUCCESS;
         }
-        if ($mode === 'inertia' && $stack->inertia() === null && $plan->files === [] && $plan->warnings === []) {
+        if ($mode === 'inertia' && $stack->inertia() === null && $plan->files === [] && $plan->warnings === [] && $wiring->aliases() === [] && $wiring->sources() === [] && $wiring->styles() === [] && $packages->all() === []) {
             $this->components->info('Blade apps need no Inertia install.');
 
             return self::SUCCESS;

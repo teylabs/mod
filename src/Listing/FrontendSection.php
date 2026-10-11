@@ -34,7 +34,7 @@ final class FrontendSection implements InventorySection
 
         $app->make(PageDirectories::class)->namespaces();
         $packages = [];
-        foreach ($app->make(PageRoots::class)->all() as $name => $directory) {
+        foreach (array_intersect_key($app->make(PageDirectories::class)->additional(), $app->make(PageRoots::class)->all()) as $name => $directory) {
             $packages[] = ['namespace' => $name, 'path' => Path::relative($app->basePath(), $directory)];
         }
 

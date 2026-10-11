@@ -447,3 +447,21 @@ Mod does not automatically wrap arbitrary installed `make:*` commands. Their con
 ### Structured plan warnings
 
 Every `--dry-run --json` warning keeps `file`, `line` and `message`, and adds `code` and an object `data`. `missing_placement` provides `file_type`, `dimension`, accepted `options` and available group `choices`. `generation_refused` reports another blocking refusal; `advisory` is non-blocking; `routes_not_loaded` reminds you to wire routes. Codes and data are additive: consumers should tolerate new codes and fields, and display `message` for people. Missing placement messages name the running command's option, `--in` and the `Group:Name` short form.
+
+### Declaring package frontend paths
+
+Packages can call `Mod::pages()` and `Mod::wiring()` unconditionally from their
+providers; see [package pages and wiring](frontend.md#package-pages-and-wiring).
+Composer path repositories installed as symlinks are supported. Use installed
+`vendor/<vendor>/<package>/...` paths for aliases, sources and styles. Page roots
+may use `__DIR__.'/../resources/js/pages'`: Mod maps the package's real location
+back through its installed symlink and keeps lexical vendor paths in page entries
+and installer edits.
+
+Unusable declarations are skipped without interrupting boot. Inspect
+`frontend_notices` in `mod:list --json`, or the notices printed by `mod:install`.
+Each inventory notice contains a stable `code`, `path` and `message`; installer
+JSON warnings carry the same code with `data.path`. Literal paths outside the
+application and symlink escapes outside `vendor/` remain refused. TypeScript
+aliases map both the bare import and `/*` subpaths, using normal directory index
+resolution for the bare import.
