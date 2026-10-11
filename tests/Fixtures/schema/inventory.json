@@ -13,6 +13,7 @@
     "discovery",
     "package_pages",
     "frontend_owners",
+    "assets",
     "frontend",
     "views",
     "translations",
@@ -637,6 +638,81 @@
               "string",
               "null"
             ]
+          }
+        }
+      }
+    },
+    "assets": {
+      "type": "object",
+      "required": [
+        "owners",
+        "wiring"
+      ],
+      "properties": {
+        "owners": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "owner",
+              "files",
+              "entries"
+            ],
+            "properties": {
+              "owner": {
+                "type": "string"
+              },
+              "files": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "entries": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "declared",
+                    "path",
+                    "exists"
+                  ],
+                  "properties": {
+                    "declared": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "exists": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "wiring": {
+            "type": "object",
+            "required": [
+              "static",
+              "entries",
+              "declarations"
+            ],
+            "properties": {
+              "static": {
+                "type": "boolean"
+              },
+              "entries": {
+                "type": "boolean"
+              },
+              "declarations": {
+                "type": "boolean"
+              }
+            }
           }
         }
       }

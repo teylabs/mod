@@ -4,13 +4,16 @@ namespace Tey\Mod\Commands;
 
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Output\OutputInterface;
+use Tey\Mod\Install\AssetEdits;
 use Tey\Mod\Install\FrontendWiring;
 use Tey\Mod\Install\InertiaEdits;
 use Tey\Mod\Install\Wiring;
 use Tey\Mod\Install\WiringEdits;
+use Tey\Mod\Install\WiringPlan;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Pages\PageDirectories;
 use Tey\Mod\Pages\PageRoots;
+use Tey\Mod\Plans\Plan;
 use Tey\Mod\Plans\PlanWriter;
 use Tey\Mod\Support\Stack;
 
@@ -18,7 +21,7 @@ use function Laravel\Prompts\confirm;
 
 class InstallCommand extends Command
 {
-    protected $signature = 'mod:install {stack : The frontend stack to wire (inertia)}
+    protected $signature = 'mod:install {stack : The frontend stack to wire (inertia or assets)}
         {--dry-run : Preview every edit without writing}
         {--json : Print the dry-run plan as JSON}';
 
@@ -32,8 +35,8 @@ class InstallCommand extends Command
 
     public function handle(CompiledLayout $layout, Stack $stack): int
     {
-        if ($this->argument('stack') !== 'inertia') {
-            $this->components->error('mod:install supports inertia. Run mod:install inertia.');
+        if (! in_array($this->argument('stack'), ['inertia', 'assets'], true)) {
+            $this->components->error('mod:install supports inertia and assets. Run mod:install inertia or mod:install assets.');
 
             return self::FAILURE;
         }
@@ -42,8 +45,10 @@ class InstallCommand extends Command
         foreach ($this->laravel->make(PageDirectories::class)->additional() as $namespace => $directory) {
             $packages->register($namespace, $directory);
         }
-        $plan = (new InertiaEdits($this->laravel->basePath(), $layout, $stack, packages: $packages))->plan();
+        $mode = $this->argument('stack');
+        $plan = $mode === 'assets' ? new Plan('mod:install', name: 'assets') : (new InertiaEdits($this->laravel->basePath(), $layout, $stack, packages: $packages))->plan();
         $plan = (new WiringEdits($this->laravel->basePath(), $layout, $stack, FrontendWiring::forLayout($this->laravel->make(Wiring::class), $layout)))->plan($plan);
+        $plan = (new AssetEdits($this->laravel->basePath(), $layout))->plan($plan);
         if ($this->option('json')) {
             if (! $this->option('dry-run')) {
                 $this->components->error('mod:install --json needs --dry-run. Run mod:install inertia --dry-run --json.');
@@ -54,7 +59,7 @@ class InstallCommand extends Command
 
             return self::SUCCESS;
         }
-        if ($stack->inertia() === null && $plan->files === [] && $plan->warnings === []) {
+        if ($mode === 'inertia' && $stack->inertia() === null && $plan->files === [] && $plan->warnings === []) {
             $this->components->info('Blade apps need no Inertia install.');
 
             return self::SUCCESS;
@@ -65,7 +70,7 @@ class InstallCommand extends Command
             return self::SUCCESS;
         }
         $count = count($plan->files);
-        $this->components->info('mod:install inertia will change '.$count.' files (Inertia with '.ucfirst($stack->inertia() ?? 'frontend').($stack->typescript() ? ' and TypeScript' : '').' detected).');
+        $this->components->info('mod:install '.$mode.' will change '.$count.' files (Inertia with '.ucfirst($stack->inertia() ?? 'frontend').($stack->typescript() ? ' and TypeScript' : '').' detected).');
         foreach ($plan->files as $file) {
             $this->line('  '.$file['path'].' '.str_repeat('.', max(2, 27 - strlen($file['path']))).' '.$file['alias']);
         }
@@ -95,10 +100,8 @@ class InstallCommand extends Command
                 return self::SUCCESS;
             }
         }
-        foreach ($plan->files as $file) {
-            if (is_string($file['identity']['after'] ?? null)) {
-                file_put_contents($this->laravel->basePath($file['path']), $file['identity']['after']);
-            }
+        if (! (new WiringPlan($this->laravel->basePath(), $plan))->apply()) {
+            return self::FAILURE;
         }
 
         return self::SUCCESS;

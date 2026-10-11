@@ -5,6 +5,7 @@ All notable changes to `mod` will be documented in this file.
 ## Unreleased
 
 ### Added
+- Layouts and mounted roots can declare static asset globs and optional executable entries separately. `mod:install assets` synchronises Laravel Vite plugin 3 wiring without Inertia; imports, `Vite::asset()` and `@vite` retain Laravel ownership of references and loading (#59).
 - Mounted roots can declare root-relative frontend paths, explicit page names, view namespaces and aliases. Pages, views, Vite, TypeScript, Tailwind and the inventory share the compiled ownership record (#57).
 - Packages can declare Inertia page namespaces with `Mod::pages()` and preview or apply explicit aliases, TypeScript paths and Tailwind sources with `Mod::wiring()`. Installation includes canonical package globs and preserves custom bootstraps (#93).
 - `Mod::stack()` exposes the declared Inertia adapter, TypeScript, page path and Livewire status, matching the JSON inventory. Svelte apps can generate `.svelte` pages (#94).

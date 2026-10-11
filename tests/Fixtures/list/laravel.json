@@ -425,6 +425,14 @@
     "translations": [],
     "package_pages": [],
     "frontend_owners": [],
+    "assets": {
+        "owners": [],
+        "wiring": {
+            "static": false,
+            "entries": false,
+            "declarations": false
+        }
+    },
     "frontend": {
         "pages": "resources/js/pages",
         "components": "resources/js/components",

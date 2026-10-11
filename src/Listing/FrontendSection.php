@@ -3,9 +3,11 @@
 namespace Tey\Mod\Listing;
 
 use Illuminate\Foundation\Application;
+use Tey\Mod\Assets\AssetInventory;
 use Tey\Mod\Discovery\Discovery;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\Inventory;
+use Tey\Mod\Install\AssetEdits;
 use Tey\Mod\Layout\BuiltIn\ImportContent;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Pages\PageDirectories;
@@ -36,7 +38,7 @@ final class FrontendSection implements InventorySection
             $packages[] = ['namespace' => $name, 'path' => Path::relative($app->basePath(), $directory)];
         }
 
-        return ['package_pages' => $packages, 'frontend_owners' => $layout->frontendOwners(), 'frontend' => [...$frontend, 'view_namespace' => $namespace, 'import_alias' => self::importAlias($layout)]];
+        return ['package_pages' => $packages, 'frontend_owners' => $layout->frontendOwners(), 'assets' => ['owners' => (new AssetInventory($layout, $app->basePath()))->owners(), 'wiring' => (new AssetEdits($app->basePath(), $layout))->status()], 'frontend' => [...$frontend, 'view_namespace' => $namespace, 'import_alias' => self::importAlias($layout)]];
     }
 
     /** @return array{alias: string, root: string}|null */

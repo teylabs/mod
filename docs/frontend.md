@@ -118,3 +118,54 @@ Views use Laravel's namespace/anonymous-component registration and its reserved
 namespace protection. CSS imports, global component registration, layouts,
 framework plugins and exclusions remain application-owned. `frontend_owners` in
 `mod:list --json` exposes the resolved paths and identities.
+
+
+### Static assets and executable entries
+
+Declare narrow static patterns separately from styles or scripts that need
+compilation:
+
+```php
+Mod::layout('modules')->assets(
+    files: ['app/Modules/{module}/images/**', 'app/Modules/{module}/fonts/**'],
+    entries: ['app/Modules/{module}/styles/editor.css'],
+);
+// Inside a mount: $root->assets(files: ['images/**'], entries: ['css/theme.css']);
+```
+
+Layout paths are project-relative; root paths are mount-relative. Static globs
+support `*` and `**` plus declared layout dimensions. Entries are literal CSS/JS/TS
+file templates expanded across existing owners; absent optional files are omitted
+from inputs and reported in the inventory. Traversal, external paths, malformed
+patterns, raw style/script file declarations and escaping symlinks are refused
+before writing. Ordinary imports and CSS `url()`/`@import` dependencies continue
+to use Vite's normal graph.
+
+Preview with `mod:install assets --dry-run --json`, then apply with
+`mod:install assets --no-interaction`. No Inertia stack is required. Automatic
+static wiring requires `laravel-vite-plugin` 3; older versions retain ordinary
+imports and receive manual instructions until an adapter is verified. Custom
+Vite options receive exact instructions. Existing central inputs, static patterns
+and plugin options are retained.
+
+The installer owns `resources/mod-assets.json` and imports it into the Vite
+configuration. Do not edit that generated file; change declarations and sync.
+Adding static files beneath existing globs needs no sync. Adding or removing
+independent entries requires another explicit installation before building.
+Repeated sync is a no-op, and removed owned entries disappear from the generated
+list. Unrelated application inputs remain intact.
+
+Reference images/fonts from JS with imports, or from Blade with
+`Vite::asset('app/Modules/Editor/images/logo.svg')`. Select independent stylesheet
+loading with `@vite('app/Modules/Editor/styles/editor.css')`. Building that entry
+does not load it globally. Use Laravel's usual build-directory/CDN configuration.
+Declaring images/fonts neither imports CSS nor adds Tailwind sources. CSS themes,
+class sources, import order and loading remain application-owned. The additive
+`assets` inventory records declarations, expanded entries, existence and confirmed
+wiring; it makes no claim that a production build exists.
+
+The supported build fixture can be verified with `npm ci --prefix
+ tests/Fixtures/frontend-build --ignore-scripts` and
+`MOD_FRONTEND_BUILD=1 vendor/bin/pest tests/Feature/Install/FrontendBuildTest.php`.
+It checks alias resolution, TypeScript, Tailwind, static manifest keys, nested CSS
+references, development serving and Laravel references with a custom build path.
