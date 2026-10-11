@@ -380,3 +380,7 @@ Configure frontend folders with `->frontend(pages:, components:, css:, views:, p
 When Inertia's Laravel adapter is installed, Mod registers every existing qualified page folder with Inertia's page and testing finders. Names such as `Showroom::Recipe/Edit` work with `inertia.ensure_pages_exist` (Inertia 2), `inertia.pages.ensure_pages_exist` (Inertia 3) and `assertInertia()->component(...)`; a missing page still fails. Registration follows `frontend(pages:, pageName:)`, the app's `pages`/`Pages` casing and nested group names, independently of class discovery. Unqualified mirrored pages continue to use Inertia's app page paths. Existing finder namespaces keep their ownership; a clash warns.
 
 See [Frontend wiring](frontend.md) for the root Blade view and customized bootstraps.
+
+## Moving existing code
+
+Before changing an existing application's layout or model namespaces, follow [Moving an existing app](moving-layouts.md). Record the old and new model identities, review persisted polymorphic values and drain work that serializes classes before deployment.

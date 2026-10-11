@@ -86,6 +86,8 @@ Canonical `@modules/`, app `@/` and relative imports retain their form and origi
 
 Route URIs/names, translation/configuration strings, explicit database names, computed identities, class strings and persisted serialization values remain review items. Checklist entries are advisory and cannot prove that all runtime or external data references were found.
 
+For model namespace changes, also follow [Moving an existing app](moving-layouts.md): polymorphic rows and queued payloads can retain the old class name even when the table stays unchanged. Mod does not rewrite those values.
+
 ## Optional table migration
 
 An inferred Eloquent table can change with the model basename: Widget uses `widgets`, Gadget would use `gadgets`. A literal `$table = 'widgets'` stays unchanged; a group-only move with the same basename offers no table rename. Mod reports foreign-key, binding and serialization risks without querying a database or inserting `$table`.
