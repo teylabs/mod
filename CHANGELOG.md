@@ -2,10 +2,13 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## Unreleased
+## [0.6.0] - 2026-10-11
+
+### Upgrading
+- **Package scaffolds must declare a vendor.** A package that registers scaffolds with `Mod::scaffold()` or `Mod::scaffolds()` is refused with `vendor_required`. Register them through `Mod::vendor('acme')->scaffold(...)` instead; the command becomes `mod:acme/pages`, and `include()`, layout overrides and `mod:rename --scaffold=` take the full id. Add `command: 'acme:pages'` to keep a package-owned command name. An app's own scaffolds are unchanged.
 
 ### Added
-- Layouts and mounted roots can declare static asset globs and optional executable entries separately. `mod:install assets` synchronises Laravel Vite plugin 3 wiring without Inertia; imports, `Vite::asset()` and `@vite` retain Laravel ownership of references and loading (#59).
+- Layouts and mounted roots can declare static asset globs and optional executable entries separately. `mod:install assets` synchronizes Laravel Vite plugin 3 wiring without Inertia; imports, `Vite::asset()` and `@vite` retain Laravel ownership of references and loading (#59).
 - Mounted roots can declare root-relative frontend paths, explicit page names, view namespaces and aliases. Pages, views, Vite, TypeScript, Tailwind and the inventory share the compiled ownership record (#57).
 - Packages can declare Inertia page namespaces with `Mod::pages()` and preview or apply explicit aliases, TypeScript paths and Tailwind sources with `Mod::wiring()`. Installation includes canonical package globs and preserves custom bootstraps (#93).
 - `Mod::stack()` exposes the declared Inertia adapter, TypeScript, page path and Livewire status, matching the JSON inventory. Svelte apps can generate `.svelte` pages (#94).
