@@ -2,6 +2,13 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## Unreleased
+
+### Fixed
+- Package pages and frontend wiring support symlinked Composer path repositories, preserve installed vendor paths, and report unusable declarations without interrupting boot (#116).
+- TypeScript wiring maps both bare aliases and their subpaths, recognizes both on subsequent installs, and includes both in manual instructions (#117).
+- Manual Vite and TypeScript instructions print scoped aliases with unescaped slashes (#118).
+
 ## [0.6.0] - 2026-10-11
 
 ### Upgrading

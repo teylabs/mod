@@ -18,6 +18,7 @@
     "views",
     "translations",
     "stack",
+    "frontend_notices",
     "wiring",
     "frontend_wiring",
     "routes",
@@ -888,6 +889,28 @@
         },
         "livewire": {
           "type": "boolean"
+        }
+      }
+    },
+    "frontend_notices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "path",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
         }
       }
     },

@@ -22,12 +22,13 @@ it('uses package pages in both finders and the Vite entry', function () {
     });
 });
 
-it('rejects duplicate page names and external page directories', function () {
+it('skips duplicate page names and external page directories with notices', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'modules');
         Mod::pages('billing', '/outside/pages');
-        expect(fn () => Mod::pages('billing', $w->root->path('pages')))->toThrow(InvalidArgumentException::class)
-            ->and(fn () => app(PageDirectories::class)->namespaces())->toThrow(InvalidArgumentException::class);
+        Mod::pages('billing', $w->root->path('pages'));
+        expect(app(PageDirectories::class)->namespaces())->toBe([])
+            ->and(array_column(app(PageDirectories::class)->notices(), 'code'))->toBe(['page_namespace_conflict', 'frontend_path_invalid']);
     });
 });
 
@@ -77,3 +78,40 @@ it('includes canonical package globs with or without module frontend paths', fun
             ->and($w->read('resources/js/app.js'))->toBe("createInertiaApp({\n});\n");
     });
 })->with(['modules', 'ddd']);
+
+it('prints pasteable manual instructions for a scoped alias', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', 'laravel');
+        $w->write('resources/js/app.ts', '');
+        $w->write('vite.config.ts', 'export default customConfig();');
+        $w->write('tsconfig.json', '{"extends":"./custom.json"}');
+        $messages = array_column(Mod::wiring()->alias('@tey/concierge', 'vendor/tey/concierge/resources/js')->plan()->toArray()['warnings'], 'message');
+        expect($messages)->toBe([
+            'Could not confirm [vite.config.ts]; add "@tey/concierge": fileURLToPath(new URL(\'./vendor/tey/concierge/resources/js\', import.meta.url)) to resolve.alias; keep the more specific alias first.',
+            'Could not confirm [tsconfig.json]; add "@tey/concierge": ["./vendor/tey/concierge/resources/js"], "@tey/concierge/*": ["./vendor/tey/concierge/resources/js/*"] to compilerOptions.paths and "vendor/tey/concierge/resources/js/**/*" to include.',
+        ]);
+    });
+});
+
+it('adds a missing bare TypeScript alias and preserves conflicting application mappings', function (bool $conflict) {
+    Workspace::run(null, function (Workspace $w) use ($conflict) {
+        config()->set('mod.layout', 'laravel');
+        $w->write('resources/js/app.ts', '');
+        $w->write('vite.config.ts', "import { fileURLToPath } from 'node:url';\nexport default defineConfig({\n    resolve: { alias: { '@acme/kit': fileURLToPath(new URL('./vendor/acme/kit/resources/js', import.meta.url)) } },\n});\n");
+        $bare = $conflict ? '"@acme/kit": ["./custom/index.ts"], ' : '';
+        $w->write('tsconfig.json', "{\n    \"compilerOptions\": {\n        \"paths\": {".$bare."\"@acme/kit/*\": [\"./vendor/acme/kit/resources/js/*\"]}\n    },\n    \"include\": [\"vendor/acme/kit/resources/js/**/*\"]\n}\n");
+        $wiring = Mod::wiring()->alias('@acme/kit', 'vendor/acme/kit/resources/js');
+        $before = $w->read('tsconfig.json');
+        $plan = $wiring->plan();
+        if ($conflict) {
+            expect($plan->apply())->toBeFalse()->and($w->read('tsconfig.json'))->toBe($before)
+                ->and($plan->toArray()['warnings'][0]['message'])->toContain('"@acme/kit":', '"@acme/kit/*":');
+        } else {
+            expect($plan->apply())->toBeTrue();
+            $paths = json_decode($w->read('tsconfig.json'), true, flags: JSON_THROW_ON_ERROR)['compilerOptions']['paths'];
+            expect($paths['@acme/kit'])->toBe(['./vendor/acme/kit/resources/js'])
+                ->and($paths['@acme/kit/*'])->toBe(['./vendor/acme/kit/resources/js/*']);
+            expect($w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful()->output)->toContain('Already wired.');
+        }
+    });
+})->with([false, true]);

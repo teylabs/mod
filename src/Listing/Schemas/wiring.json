@@ -1,10 +1,33 @@
 {
   "type": "object",
   "required": [
+    "frontend_notices",
     "wiring",
     "frontend_wiring"
   ],
   "properties": {
+    "frontend_notices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "path",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "wiring": {
       "type": "object",
       "required": [
