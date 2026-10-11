@@ -215,13 +215,13 @@ final readonly class InertiaEdits
     private function entryWired(string $contents, string $pageGlob): bool
     {
         $active = $this->activeContents($contents);
-        if (preg_match('~\bimport\s*\{\s*resolveModulePage\s*\}\s*from\s*[\'"]\.\./\.\./vendor/tey/mod/resources/js/inertia[\'"]~', $active) !== 1
+        if (preg_match($this->text('import_pattern'), $active) !== 1
             || preg_match('/\bresolve\s*:\s*/', $active, $match, PREG_OFFSET_CAPTURE) !== 1) {
             return false;
         }
         $callback = $this->expression(substr($active, $match[0][1] + strlen($match[0][0])));
 
-        return preg_match('/\bresolveModulePage\s*\(/', $callback) === 1
+        return preg_match('/\b'.preg_quote($this->text('resolver'), '/').'\s*\(/', $callback) === 1
             && str_contains($callback, '../../'.$pageGlob);
     }
 
