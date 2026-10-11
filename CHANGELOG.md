@@ -7,6 +7,7 @@ All notable changes to `mod` will be documented in this file.
 ### Added
 - Package scaffolds use required vendor ids, reconcile overrides and conflicts, expose provider pins and inventory notices, and may opt into their own command name (#100, #95).
 - Plan warnings include stable codes and structured data, including missing placement options and choices (#99).
+- Declare module database connections with `Mod::connection()`, select migrations per connection, generate connection-aware migrations, and opt models/factories and seeders into shared connection defaults (#96).
 - Register package route directories and `RegistersRoutes` classes with `Mod::routeFiles()` and `Mod::routeRegistrar()`; select and order them through `Mod::routes()` and inspect them in `mod:list` (#92).
 
 ### Fixed

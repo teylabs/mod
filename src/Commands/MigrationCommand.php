@@ -12,6 +12,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\NamePolicyKind;
 use Tey\Mod\Commands\Concerns\InteractsWithLayout;
+use Tey\Mod\Database\GroupConnections;
 use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\CollisionPolicy;
@@ -328,6 +329,14 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
         if ($this->plan !== null) {
             $source = $this->modCreator->getFilesystem()->get($this->migrationStubFile($table, (bool) $create));
             $source = $this->scaffoldExecution()?->replace($source, $this->plan->primary) ?? $source;
+            $connection = $this->laravel->make(GroupConnections::class)->forContext($this->plan->primary->context->toArray());
+            if ($connection !== null && ! $this->applicationCreator) {
+                $count = 0;
+                $source = preg_replace('/(extends\\s+Migration\\s*\\{)/', '$1'."\n    protected \$connection = ".var_export($connection, true).";\n", $source, 1, $count);
+                if ($source === null || $count !== 1) {
+                    throw GenerationRefused::because('The migration stub must extend Migration to apply the group connection.');
+                }
+            }
             $this->modCreator->useStub($source);
         }
         $file = $this->creator->create($name, $this->getMigrationPath(), $table, $create);

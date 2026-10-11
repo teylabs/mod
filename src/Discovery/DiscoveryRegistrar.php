@@ -11,6 +11,7 @@ use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider;
 use ReflectionClass;
 use Tey\Mod\Artifact\NamePolicyKind;
+use Tey\Mod\Database\GroupConnections;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Resolution\ModelConventions;
@@ -159,6 +160,8 @@ final class DiscoveryRegistrar
      */
     private static function loadMigrationDirectories(Application $app, CompiledLayout $preset, Inventory $inventory): void
     {
+        $connections = $app->make(GroupConnections::class);
+        $connections->declarations();
         $default = realpath($app->databasePath('migrations'));
         $directories = [];
 
@@ -168,6 +171,13 @@ final class DiscoveryRegistrar
             }
 
             $directory = Path::resolve($app->basePath(), $entry->path);
+            $connection = $connections->forContext($entry->context);
+            if ($connection !== null) {
+                $connections->directory($connection, $directory);
+                if ($connection !== $app->make('db')->getDefaultConnection()) {
+                    continue;
+                }
+            }
 
             if ($default === false || ! Path::same(realpath($directory) ?: $directory, $default)) {
                 $directories[] = $directory;

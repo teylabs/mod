@@ -12327,6 +12327,52 @@
         "return": "?Tey\\Mod\\Generation\\Stub",
         "shape": ""
     },
+    "Tey\\Mod\\Database\\ConnectedModel": {
+        "type": "class",
+        "final": false,
+        "abstract": true,
+        "readonly": false,
+        "shapes": "",
+        "interfaces": [
+            "Illuminate\\Contracts\\Routing\\UrlRoutable",
+            "Stringable",
+            "Illuminate\\Contracts\\Queue\\QueueableEntity",
+            "JsonSerializable",
+            "Illuminate\\Contracts\\Support\\Jsonable",
+            "Illuminate\\Contracts\\Broadcasting\\HasBroadcastChannel",
+            "Illuminate\\Contracts\\Support\\CanBeEscapedWhenCastToString",
+            "ArrayAccess",
+            "Illuminate\\Contracts\\Support\\Arrayable"
+        ],
+        "parent": "Illuminate\\Database\\Eloquent\\Model"
+    },
+    "Tey\\Mod\\Database\\ConnectedSeeder": {
+        "type": "class",
+        "final": false,
+        "abstract": true,
+        "readonly": false,
+        "shapes": "",
+        "interfaces": [],
+        "parent": "Illuminate\\Database\\Seeder"
+    },
+    "Tey\\Mod\\Database\\SeedsGroupConnection": {
+        "type": "trait",
+        "final": false,
+        "abstract": false,
+        "readonly": false,
+        "shapes": "",
+        "interfaces": [],
+        "parent": null
+    },
+    "Tey\\Mod\\Database\\UsesGroupConnection": {
+        "type": "trait",
+        "final": false,
+        "abstract": false,
+        "readonly": false,
+        "shapes": "",
+        "interfaces": [],
+        "parent": null
+    },
     "Tey\\Mod\\Discovery\\DiscoveredArtifact": {
         "type": "class",
         "final": true,
@@ -12863,6 +12909,7 @@
         "interfaces": [],
         "parent": "Illuminate\\Support\\Facades\\Facade",
         "facade": [
+            "static Tey\\Mod\\ModManager connection(string $group, string $connection)",
             "static string pageEntry(string $page, string $extension)",
             "static Tey\\Mod\\ModManager routeFiles(string $group, string $directory)",
             "static Tey\\Mod\\ModManager routeRegistrar(string $group, class-string<\\Tey\\Mod\\Routing\\RegistersRoutes> $class)",
@@ -14547,6 +14594,33 @@
         "shapes": "",
         "interfaces": [],
         "parent": null
+    },
+    "Tey\\Mod\\ModManager::connection": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "group",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "connection",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "Tey\\Mod\\ModManager",
+        "shape": ""
     },
     "Tey\\Mod\\ModManager::current": {
         "visibility": "public",
