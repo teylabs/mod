@@ -1,5 +1,7 @@
 <?php
 
+use Tey\Mod\Layout\BuiltIn\BuiltInLayouts;
+use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Listing\InventorySectionRegistry;
 use Tey\Mod\Support\Path;
 use Tey\Mod\Tests\Feature\Boost\Scenario;
@@ -8,6 +10,10 @@ use Tey\Mod\Tests\Support\JsonSchema;
 
 it('A2 pins the full Vue inventory with every previous section intact', function () {
     Workspace::run(null, function (Workspace $w) {
+        // This snapshot pins the Vue scenario without optional packages.
+        starterPackages();
+        app()->forgetInstance(BuiltInLayouts::class);
+        app()->forgetInstance(LayoutRegistry::class);
         Scenario::inventory($w);
         $before = Scenario::bytes($w);
         $data = json_decode($w->artisan('mod:list', ['--json' => true])->assertSuccessful()->normalisedOutput(), true, flags: JSON_THROW_ON_ERROR);
