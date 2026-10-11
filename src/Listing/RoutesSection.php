@@ -35,7 +35,7 @@ final class RoutesSection implements InventorySection
         $unloaded = [];
         foreach ($routes as $route) {
             $entrypoint = $route['entrypoint'];
-            if ($route['kind'] === 'file') {
+            if (! str_contains($entrypoint, '::')) {
                 $entrypoint = basename(dirname($entrypoint)).'/'.basename($entrypoint);
             } else {
                 $entrypoint = basename(str_replace('\\', '/', $entrypoint));

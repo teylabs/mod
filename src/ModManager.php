@@ -15,6 +15,7 @@ use Tey\Mod\Layout\Layout;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Pages\PageEntry;
 use Tey\Mod\Routing\ModRoutes;
+use Tey\Mod\Routing\RegistersRoutes;
 use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
@@ -117,6 +118,26 @@ final readonly class ModManager
             }
             $this->scaffold($name, $recipe);
         }
+
+        return $this;
+    }
+
+    /** Register a package route directory without loading it. @api */
+    public function routeFiles(string $group, string $directory): self
+    {
+        ($this->container ?? Container::getInstance())->make(ModRoutes::class)->files($group, $directory);
+
+        return $this;
+    }
+
+    /**
+     * @param  class-string<RegistersRoutes>  $class
+     *
+     * @api
+     */
+    public function routeRegistrar(string $group, string $class): self
+    {
+        ($this->container ?? Container::getInstance())->make(ModRoutes::class)->registrar($group, $class);
 
         return $this;
     }
