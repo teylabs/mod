@@ -487,6 +487,7 @@
         "vite_alias": false,
         "tailwind": false
     },
+    "frontend_notices": [],
     "frontend_wiring": [],
     "routes": [],
     "connections": [],

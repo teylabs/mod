@@ -11,6 +11,7 @@ use Tey\Mod\Install\InertiaEdits;
 use Tey\Mod\Install\Wiring;
 use Tey\Mod\Install\WiringEdits;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Pages\PageDirectories;
 use Tey\Mod\Support\Stack;
 
 /** @internal
@@ -22,7 +23,9 @@ final class WiringSection implements InventorySection
     /** @return PartialReport */
     public function read(Application $app, CompiledLayout $layout, DiscoveryOptions $options, Inventory $inventory, ?Discovery $discovery): array
     {
-        return ['wiring' => (new InertiaEdits($app->basePath(), $layout, $app->make(Stack::class)))->wiring(), 'frontend_wiring' => (new WiringEdits($app->basePath(), $layout, $app->make(Stack::class), FrontendWiring::forLayout($app->make(Wiring::class), $layout)))->status()];
+        $wiring = FrontendWiring::forLayout($app->make(Wiring::class), $layout);
+
+        return ['frontend_notices' => [...$app->make(PageDirectories::class)->notices(), ...$wiring->notices()], 'wiring' => (new InertiaEdits($app->basePath(), $layout, $app->make(Stack::class)))->wiring(), 'frontend_wiring' => (new WiringEdits($app->basePath(), $layout, $app->make(Stack::class), $wiring))->status()];
     }
 
     /** @return SchemaFragment */

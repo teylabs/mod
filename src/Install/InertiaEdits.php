@@ -43,7 +43,7 @@ final readonly class InertiaEdits
         $viewsGlob = $this->glob($paths['views'], '**').'/**';
         $resourceGlob = $this->resourcesGlob($paths['pages']);
         $source = '../../'.$resourceGlob.'/**/*.{'.$extension.','.($this->stack->typescript() ? 'ts' : 'js').',blade.php}';
-        if (! $this->mirrored()) {
+        if (! $this->mirrored() || ($this->packages?->all() ?? []) !== []) {
             $before = $this->read($entry);
             $after = $this->entryEdit($before, $pageGlob);
             if ($after === null) {
@@ -364,7 +364,10 @@ final readonly class InertiaEdits
             } else {
                 return null;
             }
-            $s = "import { fileURLToPath as modFileURLToPath } from 'node:url';\n".$s;
+            $import = "import { fileURLToPath as modFileURLToPath } from 'node:url';";
+            if (! str_contains($this->activeContents($s), $import)) {
+                $s = $import."\n".$s;
+            }
         } elseif (! $this->aliasWired($s, $root)) {
             return null;
         }
@@ -384,7 +387,24 @@ final readonly class InertiaEdits
     public function typescriptEdit(string $contents, string $root, string $include): ?string
     {
         $s = str_replace("\r\n", "\n", $contents);
-        if (! str_contains($s, $this->text('typescript_alias'))) {
+        if ($this->alias !== null) {
+            foreach ([$this->alias => './'.$root, $this->alias.'/*' => './'.$root.'/*'] as $alias => $target) {
+                $active = $this->activeContents($s);
+                $key = json_encode($alias, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+                $value = json_encode($target, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+                if (preg_match('~'.preg_quote($key, '~').'\\s*:\\s*(\\[[^\\]]*\\])~', $active, $match) === 1) {
+                    if (json_decode($match[1], true) !== [$target]) {
+                        return null;
+                    }
+
+                    continue;
+                }
+                $s = (string) preg_replace_callback('/(^\s*"paths":\s*\{)(\s*\})?/m', static fn (array $match): string => $match[1]."\n            ".$key.': ['.$value.']'.(isset($match[2]) ? $match[2] : ','), $s, 1, $count);
+                if ($count !== 1) {
+                    return null;
+                }
+            }
+        } elseif (! str_contains($s, $this->text('typescript_alias'))) {
             // Anchor only on active JSONC properties, never commented examples.
             $s = (string) preg_replace('/(^\s*"paths":\s*\{)/m', '$1'.sprintf($this->text('typescript_line'), $root), $s, 1, $count);
             if ($count !== 1) {
@@ -394,7 +414,7 @@ final readonly class InertiaEdits
             return null;
         }
         if (! str_contains($s, $include)) {
-            $s = (string) preg_replace('/(^\s*"include":\s*\[)/m', '$1'.'"'.$include.'", ', $s, 1, $count);
+            $s = (string) preg_replace_callback('/(^\s*"include":\s*\[)(\s*\])?/m', static fn (array $match): string => $match[1].'"'.$include.'"'.(isset($match[2]) ? $match[2] : ', '), $s, 1, $count);
             if ($count !== 1) {
                 return null;
             }

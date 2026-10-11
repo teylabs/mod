@@ -31,7 +31,7 @@ final readonly class WiringEdits
             $after[$vite] ??= $before[$vite];
             $edited = $edits->viteEdit($after[$vite], $directory, '');
             if ($edited === null) {
-                $plan->warning('Could not confirm ['.$vite.']; add '.json_encode($alias).": fileURLToPath(new URL('./".$directory."', import.meta.url)) to resolve.alias; keep the more specific alias first.", file: $vite);
+                $plan->warning('Could not confirm ['.$vite.']; add '.json_encode($alias, JSON_UNESCAPED_SLASHES).": fileURLToPath(new URL('./".$directory."', import.meta.url)) to resolve.alias; keep the more specific alias first.", file: $vite);
             } else {
                 $after[$vite] = $edited;
             }
@@ -40,7 +40,7 @@ final readonly class WiringEdits
                 $after['tsconfig.json'] ??= $before['tsconfig.json'];
                 $edited = $edits->typescriptEdit($after['tsconfig.json'], $directory, $directory.'/**/*');
                 if ($edited === null) {
-                    $plan->warning('Could not confirm [tsconfig.json]; add '.json_encode($alias.'/*').': ["./'.$directory.'/*"] to compilerOptions.paths and "'.$directory.'/**/*" to include.', file: 'tsconfig.json');
+                    $plan->warning('Could not confirm [tsconfig.json]; add '.json_encode($alias, JSON_UNESCAPED_SLASHES).': ["./'.$directory.'"], '.json_encode($alias.'/*', JSON_UNESCAPED_SLASHES).': ["./'.$directory.'/*"] to compilerOptions.paths and "'.$directory.'/**/*" to include.', file: 'tsconfig.json');
                 } else {
                     $after['tsconfig.json'] = $edited;
                 }
@@ -72,6 +72,13 @@ final readonly class WiringEdits
             if ($contents !== $before[$path]) {
                 $plan->file($labels[$path] ?? 'frontend wiring', 'frontend-wiring', $path, ['before' => $before[$path], 'after' => $contents], is_file($this->basePath.'/'.$path));
             }
+        }
+
+        if ($plan->warnings === [] && $plan->files !== []) {
+            $plan->wouldWrite = true;
+        }
+        foreach ($this->wiring->notices() as $notice) {
+            $plan->warning($notice['message'], blocking: false, code: $notice['code'], data: ['path' => $notice['path']]);
         }
 
         return $plan;

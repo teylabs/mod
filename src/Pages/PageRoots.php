@@ -2,8 +2,7 @@
 
 namespace Tey\Mod\Pages;
 
-use InvalidArgumentException;
-use Tey\Mod\Support\Path;
+use Tey\Mod\Support\FrontendPaths;
 
 /** @internal Provider declarations are scoped to one application. */
 final class PageRoots
@@ -11,16 +10,32 @@ final class PageRoots
     /** @var array<string, string> */
     private array $roots = [];
 
+    private FrontendPaths $diagnostics;
+
+    public function __construct()
+    {
+        $this->diagnostics = new FrontendPaths('');
+    }
+
     public function register(string $namespace, string $directory): void
     {
         if (preg_match('~^[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*$~D', $namespace) !== 1) {
-            throw new InvalidArgumentException('Page namespaces must contain letters, numbers, underscores or hyphens.');
+            $this->diagnostics->skip('page_namespace_invalid', $directory, 'Page namespaces must contain letters, numbers, underscores or hyphens.');
+
+            return;
         }
-        $directory = Path::normalize(\Symfony\Component\Filesystem\Path::canonicalize($directory));
         if (isset($this->roots[$namespace]) && $this->roots[$namespace] !== $directory) {
-            throw new InvalidArgumentException('Conflicting page namespace ['.$namespace.'].');
+            $this->diagnostics->skip('page_namespace_conflict', $directory, 'Conflicting page namespace ['.$namespace.'].');
+
+            return;
         }
         $this->roots[$namespace] = $directory;
+    }
+
+    /** @return list<array{code: string, path: string, message: string}> */
+    public function notices(): array
+    {
+        return $this->diagnostics->notices();
     }
 
     /** @return array<string, string> */
