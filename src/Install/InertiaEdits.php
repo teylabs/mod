@@ -42,8 +42,7 @@ final readonly class InertiaEdits
             $before = $this->read($entry);
             $after = $this->entryEdit($before, $pageGlob);
             if ($after === null) {
-                $plan->warning('mod:install inertia found a custom resolve or entry it does not recognize in ['.$entry.']. Keep it and add the manual lines below.', file: $entry);
-                $this->edit($plan, $entry, $before, $this->manualEntry($pageGlob), $this->text('entry_description'));
+                $plan->warning($this->manualInstructions($entry, $pageGlob), file: $entry);
             } else {
                 $this->edit($plan, $entry, $before, $after, $this->text('entry_description'));
             }
@@ -85,7 +84,7 @@ final readonly class InertiaEdits
                 $this->edit($plan, $tailwind, $before, $after, $this->text('content_description'));
             }
         } else {
-            $plan->warning(sprintf($this->text('tailwind_missing'), $source));
+            $plan->warning('mod:install inertia needs Tailwind wiring. In ['.$css.'], add this after the Tailwind import (create the CSS entry if needed):'."\n@source '".$source."';\n".'For Tailwind v3, add '."'./".substr($source, 6)."'".' inside the content array of [tailwind.config.js] or your Tailwind config.', file: $css);
         }
         $plan->wouldWrite = $plan->warnings === [] && $plan->files !== [];
 
@@ -195,6 +194,20 @@ final readonly class InertiaEdits
         $groups = $this->groupMap($pageGlob, 'import.meta.glob'.$type."('../../".$pageGlob."')");
 
         return $this->text('import')."\n".sprintf($this->text('entry_line'), $app, $groups)."\n";
+    }
+
+    private function manualInstructions(string $entry, string $pageGlob): string
+    {
+        [$import, $resolve] = explode("\n", trim($this->manualEntry($pageGlob)), 2);
+        $lookup = preg_replace('/^\s*resolve: \(name\) => (.*),$/D', '$1', trim($resolve));
+
+        return 'mod:install inertia found a custom resolve or entry in ['.$entry.']. Keep your adapter, plugins and default layout.'
+            ."\n".'In ['.$entry.'], add this with the other imports at the top (once):'
+            ."\n".$import
+            ."\n".'Use this page lookup inside your existing resolve callback, in place of the current lookup; keep any layout assignment and return value:'
+            ."\n".$lookup
+            ."\n".'For an entry without a resolve callback, add this inside the createInertiaApp options:'
+            ."\n".$resolve;
     }
 
     private function entryWired(string $contents, string $pageGlob): bool

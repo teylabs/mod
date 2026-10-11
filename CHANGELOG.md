@@ -5,6 +5,7 @@ All notable changes to `mod` will be documented in this file.
 ## Unreleased
 
 ### Fixed
+- Customized Inertia bootstraps receive exact resolver and Tailwind snippets with file and insertion-point instructions, preserving existing adapters and layouts.
 - `Mod::pageEntry()` maps qualified Inertia pages to their Vite entries for direct full-page loads from a starter-kit Blade shell.
 - Qualified frontend page folders register with Inertia's page finder, so page-existence checks and `assertInertia()` work for module pages.
 - The Boost core guideline is a short inventory-and-preview instruction; generator and package API reference lives in the on-demand `mod-development` skill.
