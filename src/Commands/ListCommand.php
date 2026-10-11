@@ -19,7 +19,7 @@ use Throwable;
  */
 final class ListCommand extends Command
 {
-    protected $signature = 'mod:list {--json : Print the inventory as JSON} {--type= : Show every detail for one file type}';
+    protected $signature = 'mod:list {--json : Print the inventory as JSON} {--type= : Show every detail for one file type} {--vendor= : Show scaffolds from one vendor}';
 
     protected $description = 'Show what this layout generates, where it goes, and what is discovered';
 
@@ -38,6 +38,11 @@ final class ListCommand extends Command
             }
 
             return self::FAILURE;
+        }
+        $vendor = $this->option('vendor');
+        if (is_string($vendor)) {
+            $report['scaffolds']['items'] = array_values(array_filter($report['scaffolds']['items'], static fn (array $row): bool => $row['vendor'] === $vendor || str_starts_with($row['id'], $vendor.'/')));
+            $report['scaffolds']['problems'] = array_values(array_filter($report['scaffolds']['problems'], static fn (array $row): bool => str_starts_with($row['name'], $vendor.'/')));
         }
         $filter = $this->option('type');
         if (is_string($filter)) {
@@ -157,20 +162,25 @@ final class ListCommand extends Command
             return;
         }
         $this->line('  Scaffolds');
+        foreach ($scaffolds as $scaffold) {
+            foreach ($scaffold['notices'] as $notice) {
+                $this->line('  ['.$notice['code'].'] '.$notice['message']);
+            }
+        }
         $tree = array_filter($scaffolds, static fn (array $row): bool => isset($row['children'])) !== [];
         if ($tree) {
             $this->table(['Scaffold', 'Uses', 'From'], $this->scaffoldTreeRows($scaffolds), 'compact');
         } else {
             $rows = [];
             foreach ($scaffolds as $scaffold) {
-                $rows[] = [$scaffold['name'], $scaffold['command'], ($scaffold['from'] ?? $scaffold['source']).(isset($scaffold['origin']) ? ' ('.$scaffold['origin'].')' : ''), implode(', ', array_column($scaffold['members'], 'type'))];
+                $rows[] = [$scaffold['id'], $scaffold['command'], ($scaffold['from'] ?? $scaffold['source']).(isset($scaffold['origin']) ? ' ('.$scaffold['origin'].')' : ''), implode(', ', array_column($scaffold['members'], 'type'))];
             }
             $this->table(['Scaffold', 'Command', 'From', 'Members'], $rows, 'compact');
         }
         if ($detail) {
             foreach ($scaffolds as $scaffold) {
                 foreach ($scaffold['members'] as $member) {
-                    $this->line('  '.$scaffold['name'].'.'.$member['alias'].': '.$member['type'].' → '.$member['folder'].' (name: '.($member['name'] ?? '{name}').', stub: '.($member['stub'] ?? 'default').', options: '.json_encode($member['options'], JSON_THROW_ON_ERROR).')');
+                    $this->line('  '.$scaffold['id'].'.'.$member['alias'].': '.$member['type'].' → '.$member['folder'].' (name: '.($member['name'] ?? '{name}').', stub: '.($member['stub'] ?? 'default').', options: '.json_encode($member['options'], JSON_THROW_ON_ERROR).')');
                 }
             }
         }
@@ -183,7 +193,7 @@ final class ListCommand extends Command
     {
         $nodes = [];
         foreach ($scaffolds as $scaffold) {
-            $nodes[$scaffold['name']] = $scaffold;
+            $nodes[$scaffold['id']] = $scaffold;
         }
         $rows = [];
         $visit = function (string $name, string $prefix, string $branch) use (&$visit, &$rows, $nodes): void {
@@ -199,8 +209,8 @@ final class ListCommand extends Command
             }
         };
         foreach ($scaffolds as $scaffold) {
-            if (! str_contains($scaffold['name'], '.')) {
-                $visit($scaffold['name'], '', '');
+            if (! str_contains($scaffold['id'], '.')) {
+                $visit($scaffold['id'], '', '');
             }
         }
 

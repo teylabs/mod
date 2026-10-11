@@ -12865,7 +12865,8 @@
         "facade": [
             "static string pageEntry(string $page, string $extension)",
             "static void routes(?list<string> $only = null, list<string> $except = [])",
-            "static Tey\\Mod\\ModManager scaffold(string $name, \\Closure $recipe)",
+            "static \\Tey\\Mod\\Scaffolds\\VendorScaffolds vendor(string $id)",
+            "static Tey\\Mod\\ModManager scaffold(string $name, \\Closure $recipe, ?string $command = null)",
             "static Tey\\Mod\\ModManager scaffolds(array<array-key, \\Closure|class-string> $recipes)",
             "static Tey\\Mod\\Layout\\Layout layout(string $name)",
             "static Tey\\Mod\\Layout\\CompiledLayout current()",
@@ -14708,6 +14709,14 @@
                 "variadic": false,
                 "reference": false,
                 "default": null
+            },
+            {
+                "name": "command",
+                "type": "?string",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
             }
         ],
         "return": "Tey\\Mod\\ModManager",
@@ -14740,6 +14749,25 @@
         "reference": false,
         "parameters": [],
         "return": "Tey\\Mod\\Generation\\StubRegistry",
+        "shape": ""
+    },
+    "Tey\\Mod\\ModManager::vendor": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "id",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "Tey\\Mod\\Scaffolds\\VendorScaffolds",
         "shape": ""
     },
     "Tey\\Mod\\ModServiceProvider": {
@@ -15771,9 +15799,88 @@
                 "variadic": false,
                 "reference": false,
                 "default": null
+            },
+            {
+                "name": "vendor",
+                "type": "?string",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "command",
+                "type": "?string",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
             }
         ],
         "return": "Tey\\Mod\\Scaffolds\\ScaffoldRegistry",
         "shape": "@param (Closure(Scaffold): mixed)|(Closure(Part): mixed) $recipe @param ?string $source"
+    },
+    "Tey\\Mod\\Scaffolds\\VendorScaffolds": {
+        "type": "class",
+        "final": true,
+        "abstract": false,
+        "readonly": true,
+        "shapes": "",
+        "interfaces": [],
+        "parent": null
+    },
+    "Tey\\Mod\\Scaffolds\\VendorScaffolds::scaffold": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "name",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "recipe",
+                "type": "Closure",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "command",
+                "type": "?string",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "Tey\\Mod\\Scaffolds\\VendorScaffolds",
+        "shape": "@param (Closure(Scaffold): mixed)|(Closure(Part): mixed) $recipe"
+    },
+    "Tey\\Mod\\Scaffolds\\VendorScaffolds::scaffolds": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "recipes",
+                "type": "array",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "Tey\\Mod\\Scaffolds\\VendorScaffolds",
+        "shape": "@param array<array-key, Closure|class-string> $recipes"
     }
 }

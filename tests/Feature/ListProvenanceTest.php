@@ -70,12 +70,12 @@ it('lists scaffold problems separately and keeps usable recipes', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'modules');
         Mod::scaffold('good', fn (Scaffold $s) => $s->makes('model'));
-        app(ScaffoldRegistry::class)->register('crud', fn (Scaffold $s) => $s->makes('model'), 'acme/kit');
-        app(ScaffoldRegistry::class)->register('crud', fn (Scaffold $s) => $s->makes('model'), 'beta/kit');
+        app(ScaffoldRegistry::class)->register('crud', fn (Scaffold $s) => $s->makes('model'), 'acme/kit', vendor: 'acme');
+        app(ScaffoldRegistry::class)->register('crud', fn (Scaffold $s) => $s->makes('model'), 'beta/kit', vendor: 'acme');
         $data = json_decode($w->artisan('mod:list', ['--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
-        expect(array_column($data['scaffolds']['items'], 'name'))->toBe(['good'])
-            ->and($data['scaffolds']['problems'][0]['reason'])->toContain('acme/kit', 'beta/kit');
-        $w->artisan('mod:list')->assertSuccessful()->expectsOutputToContain('Scaffolds with problems');
+        expect(array_column($data['scaffolds']['items'], 'id'))->toBe(['acme/crud', 'good'])
+            ->and($data['scaffolds']['items'][0]['notices'][0]['code'])->toBe('vendor_scaffold_conflict');
+        $w->artisan('mod:list')->assertSuccessful()->expectsOutputToContain('[vendor_scaffold_conflict]');
     });
 });
 

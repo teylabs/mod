@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Blade;
 use Pest\TestSuite;
 use Symfony\Component\Yaml\Yaml;
+use Tey\Mod\Facades\Mod;
+use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Templates\TemplateCatalog;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Feature\Scaffolds\Support\Examples;
@@ -53,7 +55,13 @@ function boostCommands(): array
         $text .= file_get_contents($skill);
     }
 
-    preg_match_all('/\bmod:[a-z][a-z0-9.-]*[a-z]\b/', $text, $matches);
+    return boostCommandNames($text);
+}
+
+/** @return list<string> */
+function boostCommandNames(string $text): array
+{
+    preg_match_all('/\bmod:[a-z0-9](?:[a-z0-9.\/-]*[a-z0-9])?\b/', $text, $matches);
 
     $commands = array_values(array_unique($matches[0]));
     sort($commands);
@@ -121,6 +129,7 @@ it('names only mod:* commands registered by a built-in layout or a documented ex
     $registered = [...$registered, ...Workspace::run(null, function (Workspace $w): array {
         Examples::setup($w);
         TreeExamples::setup($w);
+        Mod::vendor('acme')->scaffold('pages', fn (Scaffold $s) => $s->makes('job'));
         $w->write('stubs/mod/@module/Tools/[source]/probe.stub', "<?php\nnamespace {{ namespace }};\nclass {{ class }} {}\n");
 
         app()->forgetInstance(TemplateCatalog::class);
@@ -168,4 +177,9 @@ it('keeps the host API reference in the on-demand skill', function () {
     foreach ([$skill] as $text) {
         expect($text)->toContain('Building on mod', 'CompiledFileType', 'fileTypes()', 'fileTypeId()', 'relatedFileType()', 'readCache()', 'cacheInventory()', 'registerGenerationServices', 'MigrationCreator', 'fromFileType/toFileType', 'published API snapshot');
     }
+});
+
+it('reads full vendor command ids from guidance rather than their prefixes', function () {
+    expect(boostCommandNames('Run mod:acme/index-filter.toolbar or mod:crud.'))
+        ->toBe(['mod:acme/index-filter.toolbar', 'mod:crud']);
 });

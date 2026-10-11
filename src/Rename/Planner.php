@@ -69,6 +69,12 @@ final readonly class Planner
             $overrides = $layouts->has($layoutName) ? $layouts->layout($layoutName)->scaffoldRecipes() : [];
             $registry = $this->app->make(ScaffoldRegistry::class)->forGroup($oldGroup ?? '');
             $recipes = $registry->resolve($active, $layoutName, $overrides);
+            foreach ($registry->details($request->scaffold)['notices'] as $notice) {
+                $plan->warning($notice['message'], blocking: $notice['code'] === 'vendor_scaffold_conflict' && $registry->conflicts($request->scaffold) !== [], code: $notice['code'], data: $notice['data']);
+            }
+            if ($registry->conflicts($request->scaffold) !== []) {
+                return new Result($plan);
+            }
             $recipe = $recipes[$request->scaffold] ?? null;
             if ($recipe === null) {
                 $plan->warning($registry->problems()[$request->scaffold] ?? "mod:rename scaffold {$request->scaffold} is unavailable. Choose an effective source recipe from mod:list --json. Nothing was written.");

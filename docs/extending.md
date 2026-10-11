@@ -292,29 +292,31 @@ The application's template takes precedence. Two packages claiming the same comm
 
 ## Shipping scaffolds
 
-A package provider registers recipes with the same API as an application. If mod is optional, list `tey/mod` in Composer's `suggest` and guard registration:
+Packages declare their vendor once on a scoped registrar. It accepts lowercase letters, digits and hyphens, starting with a letter or digit. Multiple packages may share a vendor.
 
 ```php
-// src/ToolsServiceProvider.php: imports at file scope, registration in boot().
-use Tey\Mod\Facades\Mod;
-use Tey\Mod\Scaffolds\Scaffold;
-
-if (class_exists(Mod::class)) {
-    Mod::scaffold('document', fn (Scaffold $s) => $s
-        ->makes('model', as: 'model')
-        ->makes('controller', name: '{name}Controller', options: ['--resource']));
-}
+Mod::vendor('acme')->scaffold('pages', fn (Scaffold $s) => $s
+    ->makes('page', name: '{name}/Index', stub: 'list'));
+Mod::vendor('acme')->scaffolds([Pages::class, Filters::class]);
+Mod::vendor('acme')->scaffold('pages', fn (Scaffold $s) => $s->makes('page'), command: 'kit:pages');
 ```
 
-With the `modules` layout:
+The default command is `mod:acme/pages`; parts use `mod:acme/pages.form`. Dots mean declared parts. `command:` opts into one canonical Artisan name, with the same options, questions and messages; it adds no alias. An existing command is never replaced. Invokable classes declare `$name`, and may declare a string `$command`.
 
-```bash
-php artisan mod:document Knowledge:Document --no-interaction
-# -> app/Modules/Knowledge/Models/Document.php
-# -> app/Modules/Knowledge/Controllers/DocumentController.php
+Use full ids in `include('acme/pages')`, layout scaffold overrides and `mod:rename --scaffold=acme/pages`. App scaffolds may contain slashes. An app definition with the same id wins and emits `vendor_scaffold_overridden`. An app name under a registered vendor prefix that the vendor does not supply emits `vendor_prefix_shadowed`, suggests a hyphenated name and asks to continue (default Yes). Non-interactive runs emit the notice on stderr and continue. Ordinary unprefixed app names and prefixes without registered vendors have no notice.
+
+Two packages supplying the same id emit `vendor_scaffold_conflict`. An interactive invocation chooses a provider for that run; non-interactive invocation refuses (exit 1, including JSON previews) unless you pin the provider or define the scaffold in your app:
+
+```php
+// config/mod.php
+'scaffolds' => ['prefer' => ['acme/pages' => AcmeServiceProvider::class]],
 ```
 
-The application can `include('document')` in another recipe or replace it. Application registration wins; two packages using one name disable that scaffold with a warning naming both. Placement follows the application's layout. `mod:list --json` reports the effective source, including part overrides.
+A pin selects only a registered provider; the app still wins. Includes and rename require a deterministic definition (a pin or app override) when packages conflict. `mod:list --json` supplies `vendor`, `name` (after the vendor slash), `id`, `command`, provider `source`, Composer `package` when known, `overrides` and structured `notices`. `mod:list --vendor=acme` filters scaffolds in both formats, including notices. Unknown command names use Artisan's suggestions; an undeclared dot part is disabled with a diagnostic.
+
+### Upgrading package scaffolds from 0.5
+
+Unprefixed package registration is refused with `vendor_required`. Replace `Mod::scaffold('pages', $recipe)` with `Mod::vendor('acme')->scaffold('pages', $recipe)`, and `Mod::scaffolds($recipes)` with `Mod::vendor('acme')->scaffolds($recipes)`. Update command calls from `mod:pages` to `mod:acme/pages`, and include, override and rename references from `pages` to `acme/pages`. App registrations keep their existing names.
 
 ## Building on mod
 

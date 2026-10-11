@@ -501,9 +501,14 @@
     "scaffolds": {
         "items": [
             {
+                "vendor": null,
                 "name": "stock-report",
+                "id": "stock-report",
                 "command": "mod:stock-report",
                 "source": "module:Inventory",
+                "package": null,
+                "overrides": [],
+                "notices": [],
                 "members": [
                     {
                         "alias": "card",

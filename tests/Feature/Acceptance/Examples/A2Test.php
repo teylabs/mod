@@ -62,7 +62,9 @@ it('A2 composes module-owned template and scaffold sources after L6', function (
             ]);
         $scaffolds = array_column($data['scaffolds']['items'], null, 'name');
         expect($scaffolds['stock-report'])->toBe([
-            'name' => 'stock-report', 'command' => 'mod:stock-report', 'source' => 'module:Inventory',
+            'vendor' => null, 'name' => 'stock-report', 'id' => 'stock-report',
+            'command' => 'mod:stock-report', 'source' => 'module:Inventory',
+            'package' => null, 'overrides' => [], 'notices' => [],
             'members' => [[
                 'alias' => 'card', 'type' => 'card', 'name' => '{name}', 'stub' => null,
                 'options' => [], 'folder' => 'app/Modules/{module}/resources/views',

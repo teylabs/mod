@@ -18,6 +18,7 @@ use Tey\Mod\Routing\ModRoutes;
 use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
+use Tey\Mod\Scaffolds\VendorScaffolds;
 
 /**
  * What the Mod facade reaches: layouts, stubs and generators, callable from
@@ -77,14 +78,20 @@ final readonly class ModManager
         return $this->layouts->layout($name);
     }
 
+    /** @api */
+    public function vendor(string $id): VendorScaffolds
+    {
+        return new VendorScaffolds($id, $this->scaffoldRegistry);
+    }
+
     /**
      * @param  (Closure(Scaffold): mixed)|(Closure(Part): mixed)  $recipe
      *
      * @api
      */
-    public function scaffold(string $name, Closure $recipe): self
+    public function scaffold(string $name, Closure $recipe, ?string $command = null): self
     {
-        $this->scaffoldRegistry->register($name, $recipe);
+        $this->scaffoldRegistry->register($name, $recipe, command: $command);
 
         return $this;
     }

@@ -85,14 +85,14 @@ it('publishes finite registry metadata in mod:cache', function () {
 
 it('gives L6 package provenance and the overridden child members', function () {
     $registry = new ScaffoldRegistry;
-    $registry->register('leaf', fn (Scaffold $s) => $s->makes('model'), 'acme/tabs-kit');
-    $registry->register('root', fn (Scaffold $s) => $s->makes('controller')->part('tab', uses: 'leaf'), 'acme/tabs-kit');
-    $registry->register('root.tab', fn (Part $p) => $p->uses('leaf'));
+    $registry->register('leaf', fn (Scaffold $s) => $s->makes('model'), 'acme/tabs-kit', vendor: 'acme');
+    $registry->register('root', fn (Scaffold $s) => $s->makes('controller')->part('tab', uses: 'acme/leaf'), 'acme/tabs-kit', vendor: 'acme');
+    $registry->register('acme/root.tab', fn (Part $p) => $p->uses('acme/leaf'));
     $nodes = $registry->nodes();
-    expect($nodes['root']['source'])->toBe('acme/tabs-kit')->and($nodes['root.tab']['source'])->toBe('app')
-        ->and($nodes['root.tab']['from'])->toBe('app (overrides acme/tabs-kit)')->and($nodes['root.tab']['members']['model']['fileType'])->toBe('model');
-    $nodes['root']['children'] = [];
-    expect($registry->nodes()['root']['children'])->toBe(['root.tab']);
+    expect($nodes['acme/root']['source'])->toBe('acme/tabs-kit')->and($nodes['acme/root.tab']['source'])->toBe('app')
+        ->and($nodes['acme/root.tab']['from'])->toBe('app (overrides acme/tabs-kit)')->and($nodes['acme/root.tab']['members']['model']['fileType'])->toBe('model');
+    $nodes['acme/root']['children'] = [];
+    expect($registry->nodes()['acme/root']['children'])->toBe(['acme/root.tab']);
 });
 
 it('plans inline template members and forwards their slot options', function () {

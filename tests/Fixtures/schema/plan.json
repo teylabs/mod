@@ -137,7 +137,7 @@
           },
           "code": {
             "type": "string",
-            "description": "Stable codes: missing_placement, generation_refused, advisory, routes_not_loaded. Additional codes may be added."
+            "description": "Stable codes: missing_placement, generation_refused, advisory, routes_not_loaded. Additional codes may be added. Vendor codes: vendor_scaffold_overridden, vendor_prefix_shadowed, vendor_scaffold_conflict, vendor_required."
           },
           "data": {
             "type": "object",

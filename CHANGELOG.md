@@ -5,6 +5,7 @@ All notable changes to `mod` will be documented in this file.
 ## Unreleased
 
 ### Added
+- Package scaffolds use required vendor ids, reconcile overrides and conflicts, expose provider pins and inventory notices, and may opt into their own command name (#100, #95).
 - Plan warnings include stable codes and structured data, including missing placement options and choices (#99).
 
 ### Fixed

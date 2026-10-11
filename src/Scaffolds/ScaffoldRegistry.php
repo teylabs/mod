@@ -31,6 +31,12 @@ final class ScaffoldRegistry
     /** @var array<string, array<string, Scaffold>> name => source => recipe */
     private array $recipes = [];
 
+    /** @var array<string, array<string, array{vendor: ?string, package: ?string, command: ?string}>> */
+    private array $metadata = [];
+
+    /** @var array<string, string> */
+    private array $selected = [];
+
     private ?string $targetGroup = null;
 
     /** @var array<string, array<string, string>> */
@@ -53,10 +59,31 @@ final class ScaffoldRegistry
      *
      * @api
      */
-    public function register(string $name, Closure $recipe, ?string $source = null, ?string $from = null): self
+    public function register(string $name, Closure $recipe, ?string $source = null, ?string $from = null, ?string $vendor = null, ?string $command = null): self
     {
         $this->resolvedNodes = [];
-        $source ??= $this->caller();
+        $package = $source ?? $this->caller();
+        $origin = $from ?? $this->callerOrigin();
+        $isPackage = $package !== 'app' && ! str_starts_with($package, GeneratorSources::PREFIX);
+        if ($isPackage && $vendor === null) {
+            $this->recipes[$name][$origin ?? $package] = new Scaffold;
+            $this->origins[$name][$origin ?? $package] = $origin ?? $package;
+            $this->metadata[$name][$origin ?? $package] = ['vendor' => null, 'package' => $package, 'command' => $command];
+            $this->definitionProblems[$name][$origin ?? $package] = "[vendor_required] Package scaffold [{$name}] needs a vendor id. Replace Mod::scaffold('{$name}', ...) with Mod::vendor('vendor-id')->scaffold('{$name}', ...).";
+
+            return $this;
+        }
+        if ($vendor !== null) {
+            if (preg_match('/^[a-z0-9][a-z0-9-]*$/D', $vendor) !== 1) {
+                throw new ModException('Invalid scaffold vendor id; use lowercase letters, digits and hyphens.');
+            }
+            $name = $vendor.'/'.$name;
+        }
+        if ($command !== null && (preg_match('/^[a-zA-Z0-9][a-zA-Z0-9_:\/.-]*$/D', $command) !== 1 || ! str_contains($command, ':'))) {
+            throw new ModException('A scaffold command must be a namespaced Artisan command, such as kit:pages.');
+        }
+        $source = $vendor !== null ? ($origin ?? ($package === 'app' ? 'vendor:'.$vendor : $package)) : $package;
+        $this->metadata[$name][$source] = ['vendor' => $vendor, 'package' => $isPackage ? $package : null, 'command' => $command];
         $this->origins[$name][$source] = $from ?? $this->callerOrigin() ?? $source;
         $previous = $this->targetGroup;
         $this->targetGroup = str_starts_with($source, GeneratorSources::PREFIX) ? substr($source, strlen(GeneratorSources::PREFIX)) : null;
@@ -89,6 +116,9 @@ final class ScaffoldRegistry
     /** @api */
     public function get(string $name): ?Scaffold
     {
+        if ($this->conflicts($name) !== []) {
+            return null;
+        }
         if (isset($this->resolvedNodes[$name])) {
             return $this->resolvedNodes[$name];
         }
@@ -114,6 +144,11 @@ final class ScaffoldRegistry
         }
         if (isset($recipes['app'])) {
             return 'app';
+        }
+        $pins = Container::getInstance()->bound('config') ? Container::getInstance()->make('config')->get('mod.scaffolds.prefer', []) : [];
+        $pin = $this->selected[$name] ?? (is_array($pins) ? ($pins[$name] ?? null) : null);
+        if (is_string($pin) && isset($recipes[$pin])) {
+            return $pin;
         }
         $fallback = array_filter($recipes, static fn (string $source): bool => ! str_starts_with($source, GeneratorSources::PREFIX), ARRAY_FILTER_USE_KEY);
         if (count($fallback) === 1) {
@@ -162,8 +197,15 @@ final class ScaffoldRegistry
     {
         $nodes = [];
         foreach (array_keys($this->recipes) as $name) {
-            if (! str_contains($name, '.') && ($recipe = $this->registered($name)) !== null) {
+            if (! str_contains($name, '.') && ($recipe = $this->registered($name) ?? (count($this->packages($name)) > 1 ? (array_values($this->recipes[$name])[0] ?? null) : null)) !== null) {
                 $this->flatten($name, $recipe, $nodes, [$name]);
+                if ($this->conflicts($name) !== []) {
+                    foreach ($this->recipes[$name] as $candidate) {
+                        $alternatives = [];
+                        $this->flatten($name, $candidate, $alternatives, [$name]);
+                        $nodes += $alternatives;
+                    }
+                }
             }
         }
         foreach (array_keys($this->recipes) as $name) {
@@ -185,9 +227,6 @@ final class ScaffoldRegistry
         $nodes = [];
         $recipes = $this->resolvedNodes === [] ? $this->all() : $this->resolvedNodes;
         foreach ($recipes as $key => $recipe) {
-            if (isset($this->problems[$key])) {
-                continue;
-            }
             $source = $this->nodeSource($key);
             $members = [];
             $effective = $recipe;
@@ -318,7 +357,7 @@ final class ScaffoldRegistry
                     $childParts = [...($this->registered($parentRecipe->scaffold())?->parts() ?? []), ...$childParts];
                 }
                 if (! isset($nodes[$root]) || ! isset($childParts[$partName])) {
-                    $this->problems[$name] = "Scaffold names can't contain dots; a dot means a part. There is no {$root} scaffold part for {$name} to belong to. Name it ".str_replace('.', '-', $name).", or declare the part on {$root}.";
+                    $this->problems[$name] = "Scaffold names can't contain dots; a dot means a part. There is no {$root} scaffold part for {$name} to belong to. Name it ".str_replace('.', '-', $name).", or declare the part on {$root}. Declared parts: ".(implode(', ', array_keys($childParts)) ?: '(none)').'.';
 
                     continue;
                 }
@@ -332,9 +371,8 @@ final class ScaffoldRegistry
             $packages = array_values(array_filter(array_keys($sources), static fn (string $source): bool => $source !== 'app' && ! str_starts_with($source, GeneratorSources::PREFIX)));
             $override = $overrides[$name] ?? null;
             if ($override === null && $this->registeredSource($name) === null && ! isset($sources['app']) && count($packages) > 1) {
-                $this->problems[$name] = "Scaffold [{$name}] is registered by ".implode(' and by ', $packages).", so mod:{$name} is disabled. Define {$name} in your app to use your own.";
-
-                continue;
+                // Keep a discoverable command; invocation must choose a provider.
+                $nodes[$name] ??= array_values($sources)[0] ?? new Scaffold;
             }
             $recipe = $override ?? $nodes[$name] ?? $this->registered($name);
             if ($recipe === null) {
@@ -353,8 +391,8 @@ final class ScaffoldRegistry
 
                 continue;
             }
-            if (in_array('mod:'.$name, $commands, true)) {
-                $this->problems[$name] = "Scaffold [{$name}] has the name of the mod:{$name} command, so it is disabled. Give the scaffold another name.";
+            if (in_array($this->command($name), $commands, true) || in_array($this->command($name), array_map($this->command(...), array_keys($resolved)), true)) {
+                $this->problems[$name] = "Scaffold [{$name}] has the name of the {$this->command($name)} command, so it is disabled. Give the scaffold another name.";
 
                 continue;
             }
@@ -422,6 +460,109 @@ final class ScaffoldRegistry
         $path = is_string($name) && $registry->has($name) ? $registry->layout($name)->toArray()['path'] : null;
 
         return (new GroupDirectories($app->basePath(), $path))->all();
+    }
+
+    /** @internal */
+    public function command(string $id): string
+    {
+        $root = $id;
+        while (! isset($this->metadata[$root]) && str_contains($root, '.')) {
+            $root = substr($root, 0, (int) strrpos($root, '.'));
+        }
+        $source = $this->nodeSource($root);
+        $command = $this->metadata[$root][$source]['command'] ?? null;
+
+        return $command === null ? 'mod:'.$id : $command.substr($id, strlen($root));
+    }
+
+    /** @internal
+     * @return list<string> */
+    public function conflicts(string $id): array
+    {
+        $root = explode('.', $id)[0];
+        if ($id !== $root && isset($this->recipes[$id]['app'])) {
+            return [];
+        }
+
+        return ($this->sources[$root] ?? null) !== 'layout' && $this->registeredSource($root) === null && count($this->packages($root)) > 1 ? $this->packages($root) : [];
+    }
+
+    /** @internal
+     * @return list<Scaffold> */
+    public function candidates(string $id): array
+    {
+        $root = explode('.', $id)[0];
+        $recipes = [];
+        foreach (array_keys($this->recipes[$root] ?? []) as $source) {
+            $candidate = $this->choosing($root, $source)->all()[$id] ?? null;
+            if ($candidate !== null) {
+                $recipes[] = $candidate;
+            }
+        }
+
+        return $recipes;
+    }
+
+    /** @internal */
+    public function refreshing(): self
+    {
+        $copy = clone $this;
+        $copy->resolvedNodes = [];
+
+        return $copy;
+    }
+
+    /** @internal */
+    public function choosing(string $id, string $provider): self
+    {
+        $copy = clone $this;
+        $copy->selected[explode('.', $id)[0]] = $provider;
+        $copy->resolvedNodes = [];
+
+        return $copy;
+    }
+
+    /** @internal
+     * @return array{vendor: ?string, name: string, id: string, command: string, source: string, package: ?string, overrides: list<string>, notices: list<array{code: string, data: array<string, mixed>, message: string}>} */
+    public function details(string $id): array
+    {
+        $root = explode('.', $id)[0];
+        $source = ($this->sources[$id] ?? null) === 'layout' ? 'layout' : $this->nodeSource($id);
+        $meta = $this->metadata[$id][$source] ?? $this->metadata[$root][$source] ?? ['vendor' => null, 'package' => null, 'command' => null];
+        $packages = $this->packages($id);
+        $overrides = in_array($source, ['app', 'layout'], true) || str_starts_with($source, GeneratorSources::PREFIX) ? $packages : [];
+        $notices = [];
+        $problem = $this->definitionProblems[$id][$source] ?? null;
+        if ($problem !== null && str_contains($problem, '[vendor_required]')) {
+            $notices[] = ['code' => 'vendor_required', 'data' => ['id' => $id, 'provider' => $source, 'package' => $meta['package']], 'message' => $problem];
+        }
+        if ($overrides !== []) {
+            $notices[] = ['code' => 'vendor_scaffold_overridden', 'data' => ['id' => $id, 'providers' => $overrides], 'message' => "Using your app's {$id} in place of ".implode(', ', $overrides).'.'];
+        }
+        if (count($packages) > 1 && $overrides === []) {
+            $providers = $packages;
+            $message = $this->registeredSource($root) === null
+                ? "Scaffold [{$id}] is registered by ".implode(' and ', $providers).". Pin a provider in config/mod.php: 'scaffolds' => ['prefer' => ['{$root}' => ".$providers[0]."::class]], or define {$root} in your app."
+                : 'Using '.$this->registeredSource($root)." for [{$id}] from the configured provider selection.";
+            $notices[] = ['code' => 'vendor_scaffold_conflict', 'data' => ['id' => $id, 'providers' => $providers, 'selected' => $this->registeredSource($root), 'prefer' => "scaffolds.prefer.{$root}"], 'message' => $message];
+        }
+        if ($source === 'app' && $meta['vendor'] === null && str_contains($id, '/') && $overrides === []) {
+            $prefix = explode('/', $id, 2)[0];
+            $owners = [];
+            foreach ($this->metadata as $sources) {
+                foreach ($sources as $provider => $record) {
+                    if ($record['vendor'] === $prefix) {
+                        $owners[] = $record['package'] ?? $provider;
+                    }
+                }
+            }
+            if ($owners !== []) {
+                $suggestion = str_replace('/', '-', $id);
+                $notices[] = ['code' => 'vendor_prefix_shadowed', 'data' => ['id' => $id, 'vendor' => $prefix, 'packages' => array_values(array_unique($owners)), 'suggestion' => $suggestion], 'message' => "App scaffold [{$id}] uses the vendor prefix of ".implode(', ', array_unique($owners)).". Consider naming it {$suggestion}."];
+            }
+        }
+
+        return ['vendor' => $meta['vendor'], 'name' => $meta['vendor'] === null ? $id : substr($id, strlen($meta['vendor']) + 1), 'id' => $id, 'command' => $this->command($id), 'source' => $source, 'package' => $meta['package'], 'overrides' => $overrides, 'notices' => $notices];
     }
 
     private function callerOrigin(): ?string

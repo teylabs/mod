@@ -24,7 +24,7 @@ final class ScaffoldsSection implements InventorySection
         foreach ([$scaffolds, ...array_map($scaffolds->forGroup(...), $scaffolds->groups())] as $registry) {
             $origins = $registry->origins();
             foreach ($registry->nodes() as $key => $node) {
-                $nodes[$key.'|'.$node['source']] = [...$node, 'origin' => $origins[$key]];
+                $nodes[$key.'|'.$node['source']] = [...$node, 'origin' => $origins[$key], 'details' => $registry->details($key)];
             }
         }
         $items = [];
@@ -36,7 +36,7 @@ final class ScaffoldsSection implements InventorySection
             }
             $source = $node['source'];
             $label = in_array($source, ['app', 'layout'], true) || str_starts_with($source, GeneratorSources::PREFIX) ? $source : 'package:'.$source;
-            $row = ['name' => $scaffoldName, 'command' => 'mod:'.$scaffoldName, 'source' => $label, 'members' => $members];
+            $row = [...$node['details'], 'members' => $members];
             if ($node['from'] !== $label || str_starts_with($source, GeneratorSources::PREFIX)) {
                 $row['from'] = $node['from'];
             }

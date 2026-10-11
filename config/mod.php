@@ -30,6 +30,9 @@ return [
      */
     'generators' => [],
 
+    // Resolve a shared vendor/id with the registering service provider class.
+    'scaffolds' => ['prefer' => []],
+
     /*
      * The class a kind's generated classes extend, by kind id. Null (the
      * default) lets mod decide: a supported package when it is installed

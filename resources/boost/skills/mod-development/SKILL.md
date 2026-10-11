@@ -32,7 +32,7 @@ Use ->frontend(pages: ..., components: ..., css: ..., views: ..., pageName: ...)
 
 Before generating files, run the same command with `--dry-run --json`. It emits only the plan: `command`, `group`, `name`, `files`, `inserts`, `warnings`, and `would_write`. Each file has its alias, file type, path, class or identity, group, and `existing`/`exists` flags. Inserts name their destination, anchor, and rendered stub. Warnings carry a file, line, and message; a missing answer makes `would_write` false and the preview still exits 0. Supply that answer through its flag, then preview again. A plan writes no files and runs no Composer subprocess. Recheck it when the application changes.
 
-Use `--dry-run` alone for the same plan as a text table. A refused collision makes `would_write` false; a scaffold's `--skip-existing` keeps existing files, while `--force` permits overwriting files the command supports. Generated bases are always kept. Read `warnings` and `would_write` before running the command for real.
+Use `--dry-run` alone for the same plan as a text table. A refused collision makes `would_write` false; a scaffold's `--skip-existing` keeps existing files, while `--force` permits overwriting files the command supports. Generated bases are always kept. Read `warnings` and `would_write` before running the command for real. Warnings retain `message` and add stable `code` plus object `data`; `missing_placement` supplies the dimension, accepted options and available choices. Tolerate additional codes and fields.
 
 ### Shared options
 
@@ -161,6 +161,8 @@ Scaffold inserts use `into: 'routes'` for the module's web file or `into: 'route
 
 ## Scaffolds
 
+Package scaffolds require `Mod::vendor('acme')->scaffold('pages', $recipe)` or `Mod::vendor('acme')->scaffolds([...])`. Commands use `mod:acme/pages`, with dot parts beneath that id. `command: 'kit:pages'` selects one canonical command. Use full vendor ids in includes, layout overrides and `mod:rename --scaffold=acme/pages`. App definitions win; a conflicting vendor prefix asks to continue interactively and warns on stderr without interaction. Two package providers require a run selection or a provider-class pin in `config/mod.php` under `scaffolds.prefer['acme/pages']`; non-interactive unresolved conflicts refuse with `vendor_scaffold_conflict`, including exit 1 JSON previews.
+
 Use a scaffold when several file types form a reusable recipe. Register it in a provider with `Mod::scaffold()` and include `use Tey\Mod\Scaffolds\Scaffold;` in every scaffold example. Include `use Tey\Mod\Scaffolds\Part;` when typing a part closure. Chain `->makes('model', as: 'model')` and other members; their paths follow the active layout. `Mod::scaffolds()` also accepts invokable recipe classes, and a layout's `->scaffolds()` overrides a global recipe.
 
 - `as:` names sibling aliases: `{{ model }}` is the short class name, `{{ model.fqcn }}` is the full name. Name forms chain left to right (`{{ name.plural.kebab }}`).
@@ -181,7 +183,7 @@ A member with `existing: 'keep'` is written once, then retained without a collis
 
 A module can carry generator templates in its own `stubs/mod/`; every template there must use an `@module` path. Commands against that module choose its template or recipe before the app's, then the package's. Invokable classes in the module's `Scaffolds/` folder declare a public `$name` and `__invoke(Scaffold $scaffold)`; include `use Tey\Mod\Scaffolds\Scaffold;`. Alternatively register them with `Mod::scaffolds([...])` in a provider whose namespace is inside the module's namespace. Copying the module folder carries both kinds of generators. Use `mod:class Inventory:Scaffolds/StockReport` to start an invokable class.
 
-Read `php artisan mod:list --json` for template and scaffold sources: `module:Inventory`, `app`, or `package:vendor/name`. `mod:list -v` shows the template file, scaffold file or provider. Review the selected source before extending a copied module.
+Read `php artisan mod:list --json` for template and scaffold sources. Template sources include `module:Inventory`, `app` and `package:vendor/name`. Scaffold rows provide `vendor`, `name`, full `id`, `command`, provider `source`, Composer `package`, `overrides` and coded `notices`. `mod:list --vendor=acme` filters scaffold rows in human and JSON output. `mod:list -v` shows the template file, scaffold file or provider. Review the selected source before extending a copied module.
 
 ## Self-contained modules
 
