@@ -19,6 +19,11 @@ final readonly class GitIdentity
     public function read(array $files): array
     {
         $empty = ['branch' => null, 'commit' => null, 'dirty' => null, 'remote' => null, 'root_commit' => null];
+        foreach ($this->scope->skipped as $skipped) {
+            if (basename($skipped['path']) === '.gitignore') {
+                return $empty;
+            }
+        }
         // Linked worktrees and separate git dirs would cross the app's boundary.
         if (is_link($this->scope->root.'/.git') || ! is_dir($this->scope->root.'/.git')) {
             return $empty;

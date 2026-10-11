@@ -7,7 +7,10 @@ use Laravel\Mcp\Request;
 use PHPUnit\Framework\Assert;
 use Symfony\Component\Process\Process;
 use Tey\Mod\Boost\SurveyTool;
+use Tey\Mod\Exceptions\ModException;
+use Tey\Mod\Survey\Scope;
 use Tey\Mod\Tests\Feature\Boost\Scenario;
+use Tey\Mod\Tests\Feature\Boost\SurveyFixture;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
 
@@ -128,12 +131,12 @@ it('does not execute opaque placement callbacks when inferring policy links', fu
 it('never includes protected paths or their contents in the survey', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'laravel');
-        foreach (['.env', '.env.local.php', 'storage/app/Hidden.php', 'app/.env.production', 'keys/private.pem', 'keys/private.key', 'logs/debug.php', 'database/database.sqlite', 'backup.sql', 'debug.log.1'] as $path) {
+        foreach (['.env', '.env.local.php', 'storage/app/Hidden.php', 'app/.env.production', 'keys/private.pem', 'keys/private.key', 'logs/debug.php', 'database/database.sqlite', 'backup.sql', 'debug.log.1', 'bootstrap/cache/config.php', 'public/build/Generated.php', 'public/hot', 'public/storage/Hidden.php'] as $path) {
             $w->write($path, '<?php namespace Secrets; class NeverRead {} // SECRET_CANARY');
         }
         $tool = app(SurveyTool::class);
         $data = Scenario::data($tool->handle(new Request), $tool);
-        expect(json_encode($data))->not->toContain('SECRET_CANARY', 'NeverRead', '.env', 'storage/', '.pem', '.key', '.sqlite', '.log', 'backup.sql');
+        expect(json_encode($data))->not->toContain('SECRET_CANARY', 'NeverRead', '.env', 'storage/', '.pem', '.key', '.sqlite', '.log', 'backup.sql', 'bootstrap/cache', 'public/build', 'public/hot', 'public/storage');
     });
 });
 
@@ -146,7 +149,7 @@ it('refuses caller paths including absolute traversal and symlink arguments', fu
     });
 })->with(['absolute', '../sibling', 'app/../../sibling', 'linked-app']);
 
-it('refuses discovered symlinks outside the app and skips protected in-tree aliases', function () {
+it('skips discovered symlinks outside the app and protected in-tree aliases', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'laravel');
         OwnedAppRoot::using(function (OwnedAppRoot $outside) use ($w) {
@@ -157,8 +160,8 @@ it('refuses discovered symlinks outside the app and skips protected in-tree alia
             $tool = app(SurveyTool::class);
             try {
                 $response = $tool->handle(new Request);
-                expect($response->isError())->toBeTrue()
-                    ->and((string) $response->content())->toContain('outside target')
+                expect($response->isError())->toBeFalse()
+                    ->and(Scenario::data($response, $tool)['skipped'])->toBe([['path' => 'app/linked', 'reason' => 'symlink']])
                     ->and((string) $response->content())->not->toContain($outside->path, 'OutsideSecret');
             } finally {
                 // Remove the directory link before its target is destroyed; Windows requires rmdir.
@@ -171,7 +174,8 @@ it('refuses discovered symlinks outside the app and skips protected in-tree alia
             $w->write('storage/Hidden.php', '<?php class HiddenSecret {}');
             symlink($w->root->path('storage/Hidden.php'), $w->root->path('app/Hidden.php'));
             $data = Scenario::data($tool->handle(new Request), $tool);
-            expect(json_encode($data))->not->toContain('HiddenSecret', 'app/Hidden.php');
+            expect(json_encode($data))->not->toContain('HiddenSecret')
+                ->and($data['skipped'])->toBe([['path' => 'app/Hidden.php', 'reason' => 'symlink']]);
         });
     });
 });
@@ -266,5 +270,63 @@ it('retains model-centred sets when shared controllers and routes connect the wh
             ]);
         }
         expect(array_column($data['recurring_sets'], 'basis'))->toContain('model');
+    });
+});
+
+it('skips oversized files and admits files at the size cap', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', 'laravel');
+        $w->write('app/Oversized.php', '<?php class TooLarge {} //'.str_repeat('x', Scope::MAX_SOURCE_BYTES));
+        $source = '<?php class AtLimit {} //';
+        $w->write('app/AtLimit.php', $source.str_repeat('x', Scope::MAX_SOURCE_BYTES - strlen($source)));
+        $tool = app(SurveyTool::class);
+        $data = Scenario::data($tool->handle(new Request), $tool);
+        expect($data['skipped'])->toBe([['path' => 'app/Oversized.php', 'reason' => 'size-limit']])
+            ->and(array_column($data['classes'], 'class'))->toContain('AtLimit')
+            ->and(array_column($data['classes'], 'class'))->not->toContain('TooLarge');
+    });
+});
+
+it('returns deterministic exact JSON for a realistic Laravel app', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', null);
+        SurveyFixture::using($w, function () use ($w) {
+            $before = Scenario::bytes($w);
+            $tool = app(SurveyTool::class);
+            $response = $tool->handle(new Request);
+            $data = Scenario::data($response, $tool);
+            $fixture = __DIR__.'/../../Fixtures/Boost/survey-laravel.json';
+            if (getenv('REGENERATE_SURVEY_FIXTURE') === '1') {
+                file_put_contents($fixture, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)."\n");
+            }
+            expect($data)->toBe(json_decode(file_get_contents($fixture), true, flags: JSON_THROW_ON_ERROR))
+                ->and((string) $tool->handle(new Request)->content())->toBe((string) $response->content())
+                ->and(Scenario::bytes($w))->toBe($before)
+                ->and(json_encode($data))->not->toContain($w->root->path, ...SurveyFixture::SECRETS);
+        });
+    });
+});
+
+it('still refuses explicit outside scope reads', function () {
+    Workspace::run(null, function (Workspace $w) {
+        $scope = new Scope($w->root->path);
+        expect(fn () => $scope->read('../Outside.php'))->toThrow(ModException::class, 'base_path()');
+    });
+});
+
+it('does not let Git read a skipped linked ignore file', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', 'laravel');
+        $process = new Process(['git', 'init'], $w->root->path);
+        $process->mustRun();
+        $w->write('storage/ignore.txt', 'SECRET_IGNORE');
+        if (! @symlink($w->root->path('storage/ignore.txt'), $w->root->path('.gitignore'))) {
+            Assert::markTestSkipped('This filesystem cannot create symlinks.');
+        }
+        $tool = app(SurveyTool::class);
+        $data = Scenario::data($tool->handle(new Request), $tool);
+        expect($data['skipped'])->toBe([['path' => '.gitignore', 'reason' => 'symlink']])
+            ->and($data['git'])->toBe(['branch' => null, 'commit' => null, 'dirty' => null, 'remote' => null, 'root_commit' => null])
+            ->and(json_encode($data))->not->toContain('SECRET_IGNORE');
     });
 });

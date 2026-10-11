@@ -8,9 +8,14 @@ use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Support\Path;
 
 /** @internal The survey's read boundary; excluded paths are never opened. */
-final readonly class Scope
+final class Scope
 {
-    public string $root;
+    public const MAX_SOURCE_BYTES = 1048576;
+
+    public readonly string $root;
+
+    /** @var list<array{path: string, reason: string}> */
+    public array $skipped = [];
 
     public function __construct(string $root)
     {
@@ -19,7 +24,13 @@ final readonly class Scope
 
     public function excluded(string $path): bool
     {
-        foreach (explode('/', strtolower(Path::normalize($path))) as $part) {
+        $normalized = strtolower(Path::normalize($path));
+        foreach (['bootstrap/cache', 'public/build', 'public/hot', 'public/storage'] as $excluded) {
+            if (Path::relative($excluded, $normalized) !== null) {
+                return true;
+            }
+        }
+        foreach (explode('/', $normalized) as $part) {
             if (str_starts_with($part, '.env') || in_array($part, ['storage', 'logs', 'node_modules', '.git'], true)
                 || preg_match('/\.(?:key|pem|log|sqlite\d*|db|sql)(?:[.-].*)?$/D', $part) === 1) {
                 return true;
@@ -51,7 +62,11 @@ final readonly class Scope
             throw new ModException('Survey refuses protected files.');
         }
 
-        return (string) file_get_contents($absolute);
+        if (filesize($absolute) > self::MAX_SOURCE_BYTES) {
+            throw new ModException('Survey refuses files larger than 1 MiB.');
+        }
+
+        return (string) file_get_contents($absolute, false, null, 0, self::MAX_SOURCE_BYTES);
     }
 
     /** @return list<string> */
@@ -64,21 +79,23 @@ final readonly class Scope
             if ($this->excluded($path) || $path === 'vendor') {
                 continue;
             }
-            $this->resolve($path);
             // Even in-tree links are not traversed: no cycles or aliases into protected data.
             if ($entry->isLink()) {
-                if ($entry->getFilename() === '.gitignore') {
-                    throw new ModException('Survey refuses linked git ignore files.');
-                }
+                $this->skipped[] = ['path' => $path, 'reason' => 'symlink'];
 
                 continue;
             }
+            $this->resolve($path);
             if ($entry->isDir()) {
                 if (! file_exists($entry->getPathname().'/.git')) {
                     array_push($files, ...$this->files($path));
                 }
             } elseif ($entry->isFile()) {
-                $files[] = $path;
+                if ($entry->getSize() > self::MAX_SOURCE_BYTES) {
+                    $this->skipped[] = ['path' => $path, 'reason' => 'size-limit'];
+                } else {
+                    $files[] = $path;
+                }
             }
         }
         sort($files, SORT_STRING);

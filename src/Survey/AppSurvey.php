@@ -134,7 +134,7 @@ final readonly class AppSurvey
             'layout' => is_string($name) && $name !== '' ? $name : 'laravel',
             'git' => (new GitIdentity($scope))->read($files),
             'types' => array_values($types), 'unplaced' => ['count' => count($unplaced), 'paths' => $unplaced],
-            'unresolved' => $unresolved, 'unparsed' => $unparsed,
+            'unresolved' => $unresolved, 'unparsed' => $unparsed, 'skipped' => $scope->skipped,
             'classes' => array_map(static fn (string $class): array => ['class' => $class, 'path' => $nodes[$class]], array_values($classes)),
             'references' => array_values($references), 'vendor' => array_values($vendor),
             ...(new FileSets)->read($nodes, array_values($references), $artifacts), 'naming_patterns' => $naming,

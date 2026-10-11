@@ -92,7 +92,7 @@ For example, part of a survey can look like:
 }
 ```
 
-The survey reads only `base_path()` and its local Git metadata. It rejects path arguments and out-of-tree symlinks, skips `.env*`, `storage/`, keys, logs and databases, and uses `vendor/` only to classify referenced classes. It returns structure, never file contents; it writes nothing and makes no network calls. See the [survey contract and limits](resources/boost/skills/mod-development/SKILL.md#read-only-boost-tools-and-import-metadata).
+The survey reads only `base_path()` and its local Git metadata. It rejects path arguments and skips discovered symlinks, `.env*`, `storage/`, keys, logs and databases, and uses `vendor/` only to classify referenced classes. It returns structure, never file contents; it writes nothing and makes no network calls. See the [survey contract and limits](resources/boost/skills/mod-development/SKILL.md#read-only-boost-tools-and-import-metadata). Files larger than 1 MiB (1,048,576 bytes) are skipped before reading; `skipped` lists their relative paths with `size-limit`, and links with `symlink`. `bootstrap/cache`, `public/build`, `public/hot` and `public/storage` are excluded.
 
 See [Agents](https://mod.teylabs.com/going-further/agents).
 
