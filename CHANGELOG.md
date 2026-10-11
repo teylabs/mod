@@ -9,6 +9,7 @@ All notable changes to `mod` will be documented in this file.
 - Plan warnings include stable codes and structured data, including missing placement options and choices (#99).
 - Declare module database connections with `Mod::connection()`, select migrations per connection, generate connection-aware migrations, and opt models/factories and seeders into shared connection defaults (#96).
 - Register package route directories and `RegistersRoutes` classes with `Mod::routeFiles()` and `Mod::routeRegistrar()`; select and order them through `Mod::routes()` and inspect them in `mod:list` (#92).
+- A read-only Boost tool, `mod-survey`, reports how an app is actually organized, with or without a layout: the folders, namespaces and classes of every file type, files no type places, a reference graph (imports, Inertia pages, routes, policies), recurring file sets and names, vendor classes the app uses, and the git ref and identity scanned. It reads only the app's own folder and repository, refuses paths outside it, and never reads `.env*`, `storage/`, keys, logs or databases (#62).
 
 ### Fixed
 - Scaffold member stubs prefer a registered extension-specific key, then a stack-agnostic key; the app’s stub wins in flat recipes and parts (#90).

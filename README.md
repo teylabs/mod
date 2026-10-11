@@ -80,6 +80,7 @@ Conventions written in a prompt drift as an app grows. Mod keeps your structure 
 - `php artisan mod:list --json` tells an agent where every kind of file goes.
 - Every command that writes files previews its plan with `--dry-run --json`.
 - Mod ships a [Laravel Boost](https://laravel.com/docs/boost) guideline, skill and read-only MCP tools. Run `php artisan boost:install` and choose `tey/mod`.
+- The Boost `mod-survey` tool reports how an existing app is actually organized: where each file type's classes live, files no type places, how classes reference each other, recurring file sets and the git ref scanned. It reads only the app's own folder, never `.env`, `storage/`, keys, logs or databases.
 
 See [Agents](https://mod.teylabs.com/going-further/agents).
 

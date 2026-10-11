@@ -209,7 +209,7 @@ In `modules`, everything a module needs (models, migrations, factories, policies
 
 ## Read-only Boost tools and import metadata
 
-When connected to Laravel Boost, read `mod-inventory` before generating files. It returns `php artisan mod:list --json` with the complete inventory. Boost is optional; Mod appends `mod-inventory` and `mod-plan` through `boost.mcp.tools.include` while preserving other includes.
+When connected to Laravel Boost, read `mod-inventory` before generating files. It returns `php artisan mod:list --json` with the complete inventory. Boost is optional; Mod appends `mod-inventory`, `mod-plan` and `mod-survey` through `boost.mcp.tools.include` while preserving other includes.
 
 Request a plan with an exact registered command and positional arguments/option tokens:
 
@@ -217,7 +217,31 @@ Request a plan with an exact registered command and positional arguments/option 
 {"command":"mod:resource-tabs.tab","arguments":["Inventory:Widget","History"]}
 ```
 
-`mod-plan` enforces `--dry-run --json` and non-interactivity; it never applies the command. Check files, inserts, warnings and `would_write`. Missing answers remain warnings, and commands without preview support are refused. Neither tool writes files. Apply reviewed plans with `php artisan mod:*`.
+`mod-plan` enforces `--dry-run --json` and non-interactivity; it never applies the command. Check files, inserts, warnings and `would_write`. Missing answers remain warnings, and commands without preview support are refused. None of the tools writes files. Apply reviewed plans with `php artisan mod:*`.
+
+`mod-survey` reports how the application is actually organized, with or without a layout configured (without one it uses `laravel`). Read it before suggesting a layout or a new file type, or when existing files don't match the layout. It returns JSON with sorted keys and lists, so two runs on the same tree are byte-identical:
+
+- `types`: every file type of the layout, with its declared folder, file count and the folders, namespaces, group values and classes where its files actually live.
+- `unplaced`: the count and paths of files no file type places, the evidence for a missing type or a misfit layout. `ambiguous` lists files more than one type places.
+- `graph.edges`: links between app classes and files. `import` is a `use` statement, `inertia` a literal page name passed to `Inertia::render()` or `inertia()` (resolved to the page file when it exists), `route` a registered route's controller, `policy` a model's policy, and `relation` another layout relation such as a model's factory.
+- `sets` and `patterns`: the files clustered around each model, through the graph or by sharing its folder, and the set shapes and names (`Store{Name}Request`) that recur.
+- `vendor`: classes the app references that a Composer package owns, so package features aren't mistaken for app code.
+- `scan`: the layout, the folder surveyed, the excluded patterns, the git `branch`, `commit` and `dirty` state, and the app's identity: the `remote` URL (without credentials) and `root_commit`. They are null when the application is not the root of a git repository.
+
+```json
+{"graph":{"edges":[{"from":"App\\Http\\Controllers\\PostController","kind":"inertia","to":"resources/js/pages/Posts/Index.vue"},{"from":"App\\Models\\Post","kind":"policy","to":"App\\Policies\\PostPolicy"},{"from":"route:GET|HEAD posts","kind":"route","to":"App\\Http\\Controllers\\PostController"}]},
+ "patterns":{"names":[{"count":2,"pattern":"Store{Name}Request","type":"request"}],"sets":[{"anchors":["App\\Models\\Comment","App\\Models\\Post"],"count":2,"types":["controller","factory","model","page","policy","request","route"]}]},
+ "scan":{"files":20,"git":{"branch":"main","commit":"3f2c…","dirty":false,"remote":"https://github.com/acme/shop.git","root_commit":"9a1e…"},"layout":"laravel","path":"."},
+ "types":[{"count":2,"declared":"app/Policies","groups":[{"context":null,"files":[{"class":"App\\Policies\\CommentPolicy","path":"app/Policies/CommentPolicy.php"},{"class":"App\\Policies\\PostPolicy","path":"app/Policies/PostPolicy.php"}],"folder":"app/Policies","namespace":"App\\Policies"}],"id":"policy"}],
+ "unplaced":{"count":2,"paths":["app/Services/Markdown.php","routes/web.php"]},
+ "vendor":[{"class":"Acme\\Text\\Parser","package":"acme/text","used_by":["App\\Services\\Markdown"]}]}
+```
+
+Pass an optional `path` such as `{"path":"app"}` to survey one folder. Scope and privacy are enforced by the tool, whatever the request:
+
+- It reads only this application's folder and its own git repository. `vendor/` is consulted only to tell which package owns a referenced class. A path outside the application, through `..`, an absolute path or a symbolic link, is refused with an error; links are never followed. It never reads parent or sibling folders, other repositories or the home directory.
+- It never reads `.env*`, `storage/`, `bootstrap/cache`, hidden files, keys and certificates (`*.key`, `*.pem`), logs or databases, and it reports structure and class names, never file contents.
+- It makes no network calls and writes nothing. To compare several apps, run the survey in each and compare the outputs.
 
 The additive `frontend.import_alias` is an object such as `{"alias":"@modules","root":"app/Modules"}`, or null without frontend declarations; ddd retains every frontend key with a null value. `frontend.view_namespace` remains unchanged. Use `@/` for files under `resources/js/`; use `@modules/` relative to the reported root for module files. Never traverse an alias with `../`. This metadata describes the intended mapping; check `wiring.vite_alias` to know whether it is installed.
 
