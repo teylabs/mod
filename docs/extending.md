@@ -505,6 +505,12 @@ The host supplies its own compiled layout through `resolveLayout()` or `layout()
 
 Register a package stub using `Mod::stubs()->forFileType(string $fileType, Stub $stub)` and a generator replacement using `Mod::generators()->useFileType(string $fileType, string $command)`. Old registration methods with internal vocabulary remain callable for compatibility but are not published API.
 
+### Rendering into another root
+
+Hosts render scaffolds through their commands. To write a comparison copy, give the scaffold and every member command a Laravel application whose `basePath()` is the destination, for example a separate copy of the host application passed through `setLaravel()` and a shared console application. Keep the running application's root unchanged. The destination needs the Composer manifest and any app-owned stubs used by the recipe.
+
+When that destination differs from the running application's `basePath()`, an autoloadable class declared outside it is not a collision. A class declared elsewhere inside the destination still collides. Existing destination files still require `--skip-existing` or `--force`; force overwrites paths, never class-name collisions. Paths are compared with resolved filesystem roots, so another spelling or symlink to the application root does not bypass its protection. Normal in-app generation still refuses classes declared elsewhere, and test members remain path-only checks without autoloading test files.
+
 ### Supported planning and dispatch hooks
 
 These are protected hooks on the public command subclasses. Concern traits are internal implementation locations, not host mixins.

@@ -15,7 +15,8 @@ use Tey\Mod\Support\Path;
  * class the autoloader already knows. Tests are checked by path only. A known
  * class is only reported when it lives somewhere other than the target file,
  * so a path collision is never counted twice and --force can still overwrite
- * the file itself.
+ * the file itself. When the destination is not the running application's
+ * root, only classes declared inside the destination can collide.
  *
  * @internal
  */
@@ -47,8 +48,16 @@ final readonly class ExistingArtifacts
         if ($fqcn !== null && $this->declared($fqcn)) {
             /** @var class-string $fqcn */
             $file = (new ReflectionClass($fqcn))->getFileName();
+            $file = $file === false ? false : (realpath($file) ?: $file);
+            $root = realpath($this->basePath) ?: $this->basePath;
+            $appRoot = app()->basePath();
 
-            if ($file === false || ! Path::same(realpath($file) ?: $file, realpath($target) ?: $target)) {
+            if (! Path::same($root, realpath($appRoot) ?: $appRoot)
+                && ($file === false || Path::relative($root, $file) === null)) {
+                return $existing;
+            }
+
+            if ($file === false || ! Path::same($file, realpath($target) ?: $target)) {
                 $existing[] = $fqcn;
             }
         }

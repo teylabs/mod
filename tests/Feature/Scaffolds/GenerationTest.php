@@ -1,5 +1,10 @@
 <?php
 
+use Composer\Autoload\ClassLoader;
+use Illuminate\Console\Application as ConsoleApplication;
+use Illuminate\Support\Facades\Artisan;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Process\Process;
 use Tey\Mod\Commands\JobCommand;
 use Tey\Mod\Facades\Mod;
@@ -42,6 +47,83 @@ it('refuses a later member collision before writing the earlier model or its com
         $before = $w->files();
         $w->artisan('mod:crud', ['name' => 'Knowledge:Document'])->assertFailed();
         expect($w->files())->toBe($before)->and($w->read(Examples::paths()[7]))->toBe('existing controller');
+    });
+});
+
+it('renders the same scaffold bytes into another root despite classes in the app', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', 'modules');
+        Mod::scaffold('copy', fn (Scaffold $s) => $s->makes('job')->makes('request', name: '{name}Request'));
+        $name = 'Copy'.bin2hex(random_bytes(4));
+        $w->artisan('mod:copy', ['name' => 'Knowledge:'.$name])->assertSuccessful();
+        $expected = [];
+        $classes = [];
+        foreach ($w->files() as $path) {
+            $expected[$path] = $w->read($path);
+            $fqcn = 'App\\'.str_replace('/', '\\', substr($path, 4, -4));
+            $classes[$fqcn] = $w->root->path($path);
+            expect(class_exists($fqcn, false))->toBeFalse();
+        }
+        $loader = new ClassLoader;
+        $loader->addClassMap($classes);
+        $loader->register();
+        $w->write('render/composer.json', $w->read('composer.json'));
+        $renderApp = clone app();
+        $renderApp->setBasePath($w->root->path('render'));
+        $console = new ConsoleApplication($renderApp, app('events'), 'test');
+        $commands = Artisan::all();
+        foreach (['mod:copy', 'mod:job', 'mod:request'] as $command) {
+            $console->add(clone $commands[$command]);
+        }
+        $output = new BufferedOutput;
+        try {
+            $exit = $console->run(new ArrayInput(['command' => 'mod:copy', 'name' => 'Knowledge:'.$name, '--no-interaction' => true]), $output);
+            expect($exit)->toBe(0, $output->fetch());
+            foreach ($expected as $path => $bytes) {
+                expect($w->read('render/'.$path))->toBe($bytes)
+                    ->and($w->read($path))->toBe($bytes);
+            }
+            foreach (array_keys($classes) as $fqcn) {
+                expect(class_exists($fqcn, false))->toBeTrue();
+            }
+
+            $path = array_key_first($expected);
+            $w->write('render/'.$path, '<?php // edited');
+            $input = ['command' => 'mod:copy', 'name' => 'Knowledge:'.$name, '--no-interaction' => true];
+            expect($console->run(new ArrayInput($input), $output))->toBe(1)
+                ->and($output->fetch())->toContain($path.' already exists', 'Nothing was written')
+                ->and($w->read('render/'.$path))->toBe('<?php // edited');
+            expect($console->run(new ArrayInput([...$input, '--force' => true]), $output))->toBe(0, $output->fetch());
+            foreach ($expected as $path => $bytes) {
+                expect($w->read('render/'.$path))->toBe($bytes);
+            }
+        } finally {
+            $loader->unregister();
+        }
+    });
+});
+
+it('refuses a class declared elsewhere inside an alternate render root even with force', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', 'modules');
+        Mod::scaffold('copy', fn (Scaffold $s) => $s->makes('job'));
+        $name = 'Inside'.bin2hex(random_bytes(4));
+        $fqcn = 'App\\Modules\\Knowledge\\Jobs\\'.$name;
+        $path = 'render/legacy/'.$name.'.php';
+        $w->write($path, '<?php namespace App\\Modules\\Knowledge\\Jobs; class '.$name.' {}');
+        require $w->root->path($path);
+        $renderApp = clone app();
+        $renderApp->setBasePath($w->root->path('render'));
+        $console = new ConsoleApplication($renderApp, app('events'), 'test');
+        $commands = Artisan::all();
+        foreach (['mod:copy', 'mod:job'] as $command) {
+            $console->add(clone $commands[$command]);
+        }
+        $output = new BufferedOutput;
+        $exit = $console->run(new ArrayInput(['command' => 'mod:copy', 'name' => 'Knowledge:'.$name, '--no-interaction' => true, '--force' => true]), $output);
+        expect($exit)->toBe(1)
+            ->and($output->fetch())->toContain('The class '.$fqcn.' already exists', 'Nothing was written')
+            ->and($w->files())->toBe([$path]);
     });
 });
 
