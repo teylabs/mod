@@ -20,6 +20,9 @@ final class Plan
     /** @var list<array{code: string, data: object, file: ?string, line: ?int, message: string}> */
     public array $warnings = [];
 
+    /** @var list<array{alias: string, type: string, reason: string}>|null Members and inserts a scaffold left out; null when the recipe has no `when:` */
+    public ?array $skipped = null;
+
     /** @var list<array{anchor: string, label: string}> Human labels retained by tree planners. */
     public array $insertDetails = [];
 
@@ -92,6 +95,6 @@ final class Plan
     /** @return array<string, mixed> */
     public function toArray(): array
     {
-        return ['command' => $this->command, 'group' => $this->group, 'name' => $this->name, 'files' => $this->files, 'inserts' => $this->inserts, 'warnings' => $this->warnings, 'would_write' => $this->wouldWrite, ...($this->command === 'mod:rename' ? $this->renameFields() : []), ...($this->recovery === null ? [] : ['recovery' => $this->recovery]), ...($this->mentions === [] ? [] : ['mentions' => $this->mentions])];
+        return ['command' => $this->command, 'group' => $this->group, 'name' => $this->name, 'files' => $this->files, 'inserts' => $this->inserts, 'warnings' => $this->warnings, 'would_write' => $this->wouldWrite, ...($this->skipped === null ? [] : ['skipped' => $this->skipped]), ...($this->command === 'mod:rename' ? $this->renameFields() : []), ...($this->recovery === null ? [] : ['recovery' => $this->recovery]), ...($this->mentions === [] ? [] : ['mentions' => $this->mentions])];
     }
 }

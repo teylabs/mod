@@ -14,6 +14,7 @@ use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Routing\ModRoutes;
 use Tey\Mod\Routing\RoutePaths;
 use Tey\Mod\Scaffolds\AnchorWriter;
+use Tey\Mod\Scaffolds\Member;
 use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Placeholders;
 use Tey\Mod\Scaffolds\QuestionAnswers;
@@ -21,6 +22,7 @@ use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Scaffolds\ScaffoldExecution;
 use Tey\Mod\Scaffolds\ScaffoldPlan;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
+use Tey\Mod\Scaffolds\SkippedMember;
 use Tey\Mod\Support\Path;
 use Throwable;
 
@@ -48,6 +50,11 @@ trait RunsScaffoldTree
     private array $treeAliases = [];
 
     private bool $treeCancelled = false;
+
+    /** @var list<array{alias: string, type: string, reason: string}> */
+    private array $scaffoldSkipped = [];
+
+    private bool $scaffoldHasWhen = false;
 
     private function treeOptions(): void
     {
@@ -110,6 +117,38 @@ trait RunsScaffoldTree
         }
     }
 
+    private function resetSkipped(): void
+    {
+        $this->scaffoldSkipped = [];
+        $this->scaffoldHasWhen = false;
+    }
+
+    /**
+     * Decide a member's `when:` against the answers and the aliases planned so far.
+     *
+     * @param  array<string, mixed>  $values
+     */
+    private function memberSkip(string $alias, Member $member, array $values, string $prefix = ''): ?SkippedMember
+    {
+        if ($member->when === null) {
+            return null;
+        }
+        $this->scaffoldHasWhen = true;
+        $reason = $member->skipReason($values);
+        if ($reason === null) {
+            return null;
+        }
+        $this->scaffoldSkipped[] = ['alias' => $prefix.$alias, 'type' => $member->fileType, 'reason' => $reason];
+
+        return new SkippedMember($prefix.$alias, $reason);
+    }
+
+    /** @return list<array{alias: string, type: string, reason: string}>|null null when no member declared `when:` */
+    private function skippedPlan(): ?array
+    {
+        return $this->scaffoldHasWhen || $this->scaffoldSkipped !== [] ? $this->scaffoldSkipped : null;
+    }
+
     private function laravelRegistry(): ScaffoldRegistry
     {
         return $this->recipeRegistry ?? Container::getInstance()->make(ScaffoldRegistry::class);
@@ -120,6 +159,7 @@ trait RunsScaffoldTree
         $this->treeCalls = $this->treeInserts = $this->treeStarts = $this->treeAliases = $this->treeRouteGroups = [];
         $this->treeVariants = [];
         $this->treeCancelled = false;
+        $this->resetSkipped();
         $scope = new ScaffoldExecution;
         $scope->nestedNames = true;
         $previous = $this->scaffoldExecution();
@@ -139,6 +179,7 @@ trait RunsScaffoldTree
             }
             $this->describePlan($plan);
             if ($this->dryPlan !== null) {
+                $this->dryPlan->skipped = $this->skippedPlan();
                 foreach ($this->treeInserts as $insert) {
                     $this->dryPlan->inserts[] = ['into' => $insert['path'], 'at' => $insert['at'], 'stub' => $insert['stub']];
                 }
@@ -199,6 +240,9 @@ trait RunsScaffoldTree
             $this->components->info("{$this->getName()} will write {$count} ".($count === 1 ? 'file' : 'files').$suffix.' for '.$this->rawNameInput().'.');
             foreach ($plan->files() as $file) {
                 $this->treeLine($file['artifact']->path(), ScaffoldPlan::label($file, is_file($this->laravel->basePath($file['artifact']->path()))));
+            }
+            foreach ($this->skippedPlan() ?? [] as $row) {
+                $this->treeLine($row['alias'], 'skipped: '.$row['reason']);
             }
             foreach ($this->treeInserts as $insert) {
                 $anchor = $writer->anchor($sources[$insert['path']], $insert['at'], $insert['path']);
@@ -346,7 +390,16 @@ trait RunsScaffoldTree
         $firstFile = count($plan->files());
         $values = $this->treeAnswers($recipe, $name, $given);
         $own = [];
+        $skipped = [];
         foreach ($recipe->members() as $alias => $member) {
+            if (($marker = $this->memberSkip($alias, $member, $values, $prefix)) !== null) {
+                $skipped[$alias] = $marker;
+                if (! array_key_exists($alias, $values)) {
+                    $values[$alias] = $marker;
+                }
+
+                continue;
+            }
             $command = $this->preset->kind($member->fileType)->command ?? throw GenerationRefused::because("File type [{$member->fileType}] has no command.");
             $stem = $member->name === null ? $name : (new Placeholders($values))->name($member->name);
             $arguments = ['name' => $folder.$stem, '--no-interaction' => true];
@@ -418,7 +471,7 @@ trait RunsScaffoldTree
                 if (! is_string($item)) {
                     throw GenerationRefused::because("{$question} needs text items.");
                 }
-                $outputs = $this->planTreePart($part, $partName, $item, $name, $context, $values, $prefix.$partName.'.'.$item.'.', $folder, $plan, $scope, $depth + 1, $nodeKey.'.'.$partName, array_keys($own));
+                $outputs = $this->planTreePart($part, $partName, $item, $name, $context, $values, $prefix.$partName.'.'.$item.'.', $folder, $plan, $scope, $depth + 1, $nodeKey.'.'.$partName, array_keys($own), array_keys($skipped));
                 foreach ($outputs as $key => $output) {
                     $values[$partName.'.'.$item.'.'.$key] = $output;
                 }
@@ -473,9 +526,10 @@ trait RunsScaffoldTree
 
     /** @param array<string, mixed> $parent
      * @param  list<string>  $owned
+     * @param  list<string>  $skipped  aliases of the parent's members that `when:` left out
      * @return array<string, ResolvedArtifact>
      */
-    private function planTreePart(Part $part, string $partName, string $item, string $name, PlacementContext $context, array $parent, string $prefix, string $folder, ScaffoldPlan $plan, ScaffoldExecution $scope, int $depth, ?string $nodeKey = null, array $owned = []): array
+    private function planTreePart(Part $part, string $partName, string $item, string $name, PlacementContext $context, array $parent, string $prefix, string $folder, ScaffoldPlan $plan, ScaffoldExecution $scope, int $depth, ?string $nodeKey = null, array $owned = [], array $skipped = []): array
     {
         $values = $parent;
         foreach ($part->values() as $key => $value) {
@@ -495,6 +549,11 @@ trait RunsScaffoldTree
             $values[$partName.'.'.$alias] = $artifact;
         }
         foreach ($part->insertions() as $insert) {
+            if (in_array($insert->into, $skipped, true)) {
+                $this->scaffoldSkipped[] = ['alias' => $insert->into.' @ '.$insert->at, 'type' => 'insert', 'reason' => $insert->into.' is skipped'];
+
+                continue;
+            }
             $target = $parent[$insert->into] ?? null;
             if ($target instanceof ResolvedArtifact && in_array($insert->into, $owned, true)) {
                 $path = $target->path();
@@ -625,7 +684,14 @@ trait RunsScaffoldTree
             }
         }
         $values['name'] = $parentName;
+        $skipped = [];
         foreach ($root->members() as $alias => $member) {
+            if (($marker = $this->memberSkip($alias, $member, $values)) !== null) {
+                $skipped[] = $alias;
+                $values[$alias] = $marker;
+
+                continue;
+            }
             $stem = $member->name === null ? $parentName : (new Placeholders($values))->name($member->name);
             $parentFolder = $recursive && $parentName !== $name ? $name.'/'.($segments === [] ? '' : implode('/', $segments).'/') : '';
             $artifact = $this->resolveArtifact($member->fileType, $parentFolder.$stem, $context);
@@ -654,6 +720,6 @@ trait RunsScaffoldTree
             $values[$alias] = $artifact;
         }
         $values['name'] = $name;
-        $this->planTreePart($part, $partName, $recursive ? $childName : $value, $childName, $context, $values, '', $folder, $plan, $scope, count(explode('/', $value)), $this->recipeName, array_keys($root->members()));
+        $this->planTreePart($part, $partName, $recursive ? $childName : $value, $childName, $context, $values, '', $folder, $plan, $scope, count(explode('/', $value)), $this->recipeName, array_values(array_diff(array_keys($root->members()), $skipped)), $skipped);
     }
 }

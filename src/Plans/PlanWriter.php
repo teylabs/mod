@@ -104,6 +104,9 @@ final class PlanWriter
             $detail = $plan->insertDetails[$index] ?? ['anchor' => '// mod:'.$insert['at'], 'label' => $insert['at']];
             $this->line($command, '+ at '.$detail['anchor'].' in '.basename($insert['into']), $detail['label']);
         }
+        foreach ($plan->skipped ?? [] as $skipped) {
+            $this->line($command, $skipped['alias'], 'skipped: '.$skipped['reason']);
+        }
         $command->newLine();
         foreach ($plan->warnings as $warning) {
             $command->outputComponents()->warn($warning['message']);

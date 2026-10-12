@@ -15836,10 +15836,18 @@
                 "variadic": false,
                 "reference": false,
                 "default": null
+            },
+            {
+                "name": "when",
+                "type": "Closure|string|null",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
             }
         ],
         "return": "Tey\\Mod\\Scaffolds\\Scaffold",
-        "shape": "@param array<array-key, mixed> $options"
+        "shape": "@param array<array-key, mixed> $options @param string|(Closure(array<string, mixed>): bool)|null $when"
     },
     "Tey\\Mod\\Scaffolds\\Part::named": {
         "visibility": "public",
@@ -16114,10 +16122,18 @@
                 "variadic": false,
                 "reference": false,
                 "default": null
+            },
+            {
+                "name": "when",
+                "type": "Closure|string|null",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
             }
         ],
         "return": "Tey\\Mod\\Scaffolds\\Scaffold",
-        "shape": "@param array<array-key, mixed> $options"
+        "shape": "@param array<array-key, mixed> $options @param string|(Closure(array<string, mixed>): bool)|null $when"
     },
     "Tey\\Mod\\Scaffolds\\Scaffold::named": {
         "visibility": "public",

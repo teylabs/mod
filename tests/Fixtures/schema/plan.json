@@ -110,6 +110,30 @@
         }
       }
     },
+    "skipped": {
+      "type": "array",
+      "description": "Scaffold members and inserts left out by a when: condition. Present when the recipe has one; an empty list means every conditional member was generated.",
+      "items": {
+        "type": "object",
+        "required": [
+          "alias",
+          "type",
+          "reason"
+        ],
+        "properties": {
+          "alias": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "The member's file type, or insert."
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "warnings": {
       "type": "array",
       "items": {

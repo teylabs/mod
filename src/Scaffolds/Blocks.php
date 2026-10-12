@@ -156,8 +156,8 @@ final class Blocks
             throw GenerationRefused::because("Template block {{ #{$name} }} names no question, member or record field. Check the spelling. Nothing was written.");
         }
         $value = $values[$name];
-        if (is_bool($value) || $value instanceof ResolvedArtifact) {
-            $on = is_bool($value) ? $value : true;
+        if (is_bool($value) || $value instanceof ResolvedArtifact || $value instanceof SkippedMember) {
+            $on = is_bool($value) ? $value : ! $value instanceof SkippedMember;
 
             return $on === $inverted ? [] : [$values];
         }

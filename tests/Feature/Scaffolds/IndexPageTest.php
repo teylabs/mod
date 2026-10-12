@@ -153,3 +153,30 @@ it('passes Prettier with and without the status filter', function (bool $filter)
         IndexPage::prettier($w, ['singleQuote' => true, 'tabWidth' => 4, 'printWidth' => 100], IndexPage::PAGE);
     });
 })->with([true, false])->skip(getenv('MOD_FRONTEND_BUILD') !== '1', 'Set MOD_FRONTEND_BUILD=1 after npm ci in tests/Fixtures/frontend-build.');
+
+it('passes Pint and keeps the optional parts apart', function (bool $filter, bool $modal, bool $authorize) {
+    Workspace::run(null, function (Workspace $w) use ($filter, $modal, $authorize) {
+        generateIndex($w, [
+            $filter ? '--status_filter' : '--no-status_filter' => true,
+            $modal ? '--modal' : '--no-modal' => true,
+            $authorize ? '--authorize' : '--no-authorize' => true,
+        ]);
+        $files = [IndexPage::REQUEST, ...($authorize ? [IndexPage::POLICY] : [])];
+        IndexPage::pint($w, ...$files);
+
+        expect($w->exists(IndexPage::MODAL))->toBe($modal)
+            ->and($w->exists(IndexPage::POLICY))->toBe($authorize)
+            ->and(str_contains($w->read(IndexPage::PAGE), "import Modal from './Modal.vue';"))->toBe($modal)
+            ->and(str_contains($w->read(IndexPage::REQUEST), "'status'"))->toBe($filter);
+    });
+})->with([true, false])->with([true, false])->with([true, false]);
+
+it('passes Prettier for every page with and without its optional parts', function (bool $filter, bool $modal) {
+    Workspace::run(null, function (Workspace $w) use ($filter, $modal) {
+        generateIndex($w, [
+            $filter ? '--status_filter' : '--no-status_filter' => true,
+            $modal ? '--modal' : '--no-modal' => true,
+        ]);
+        IndexPage::prettier($w, ['singleQuote' => true, 'tabWidth' => 4, 'printWidth' => 100], IndexPage::PAGE, ...($modal ? [IndexPage::MODAL] : []));
+    });
+})->with([true, false])->with([true, false])->skip(getenv('MOD_FRONTEND_BUILD') !== '1', 'Set MOD_FRONTEND_BUILD=1 after npm ci in tests/Fixtures/frontend-build.');

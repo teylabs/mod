@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+{{ #modal }}
+import Modal from './Modal.vue';
+{{ /modal }}
 
 defineProps<{
     rows: Array<Record<string, string>>;
@@ -44,4 +47,7 @@ function sort(key: string) {
             </tr>
         </tbody>
     </table>
+    {{ #modal }}
+    <Modal :open="false" />
+    {{ /modal }}
 </template>

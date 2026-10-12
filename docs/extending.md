@@ -360,6 +360,24 @@ $s->asks('columns', type: 'records', label: 'Column', shape: [
 
 `mod:rename --scaffold=` takes the same JSON flag, or `--answer=columns=<JSON>`.
 
+### Optional members
+
+`when:` on `makes()` leaves a member out of the plan. It takes the name of a `confirm` question, or a closure that receives the answers and returns a boolean:
+
+```php
+$s->asks('modal', type: 'confirm', default: false)
+    ->makes('page', name: '{name}/Modal', as: 'modal', when: 'modal')
+    ->makes('policy', when: fn (array $answers) => $answers['authorize'] ?? true);
+```
+
+- A skipped member is not planned or written. `--dry-run --json` lists it under `skipped` as `{alias, type, reason}`, for example `{"alias":"modal","type":"page","reason":"modal is false"}`. A closure's reason is `when() returned false`. `skipped` appears for any recipe with a `when:`, as an empty list when nothing was left out. The text plan shows `skipped: <reason>` lines.
+- Inserts into a skipped member are skipped too, and listed with type `insert`.
+- A placeholder naming a skipped member, such as `{{ modal }}` or `{{ modal.fqcn }}`, renders as nothing. `{{ #modal }}…{{ /modal }}` renders only when the member is generated (see "Template blocks"). A `with:` value built from it is empty.
+- `when:` can also name an earlier member's alias, so one optional member can depend on another. A name that is neither a confirm question nor an earlier member disables a root recipe with a message; in a part it refuses when the part runs.
+- A confirm question gives `--modal` and `--no-modal`. Without a terminal and without a default, the command refuses and names both flags. The answers a closure receives are the recipe's question answers, plus the parent's answers inside a part. Aliases are not included.
+- A question and a member may share a name, as `modal` does above. `{{ #modal }}` then follows the boolean, which agrees with whether the member is generated. Give the member a different `as:` to use `{{ modal.fqcn }}`, because a question's answer wins over a member of the same name in placeholders.
+- `mod:rename --scaffold=` evaluates the same condition against the answers you pass, so a skipped member is absent from the cluster, not missing. Pass `--modal` or `--no-modal` like any other historical answer.
+
 ### Template blocks
 
 Stubs and insert stubs can repeat lines for each record, or keep a section only when a boolean is true. A tag is `{{ #name }}` to open, `{{ ^name }}` to open an inverted block, and `{{ /name }}` to close.

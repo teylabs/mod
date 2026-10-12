@@ -15,6 +15,10 @@ final class IndexPage
 
     public const PAGE = 'resources/js/pages/Invoice/Index.vue';
 
+    public const MODAL = 'resources/js/pages/Invoice/Modal.vue';
+
+    public const POLICY = 'app/Policies/InvoicePolicy.php';
+
     public const COLUMNS = '[{"key":"number","label":"Number","sortable":true},{"key":"customer_name","label":"Customer","sortable":true},{"key":"notes","label":"Notes","sortable":false}]';
 
     public static function recipe(Scaffold $s): void
@@ -23,8 +27,12 @@ final class IndexPage
             ['key' => 'number', 'label' => 'Number', 'sortable' => true],
         ])
             ->asks('status_filter', type: 'confirm', default: false)
+            ->asks('modal', type: 'confirm', default: false)
+            ->asks('authorize', type: 'confirm', default: false)
             ->makes('request', name: '{name}IndexRequest', stub: 'index')
-            ->makes('page', name: '{name}/Index', stub: 'index');
+            ->makes('page', name: '{name}/Index', stub: 'index')
+            ->makes('page', name: '{name}/Modal', as: 'modal', stub: 'modal', when: 'modal')
+            ->makes('policy', name: '{name}Policy', stub: 'index', when: 'authorize');
     }
 
     public static function setup(Workspace $w, ?callable $recipe = null): void
@@ -32,6 +40,8 @@ final class IndexPage
         $w->write('package.json', json_encode(['dependencies' => ['@inertiajs/vue3' => '^2']]));
         $w->write('stubs/mod.request.index.stub', (string) file_get_contents(__DIR__.'/index/request.stub'));
         $w->write('stubs/mod.page.index.vue.stub', (string) file_get_contents(__DIR__.'/index/page.vue.stub'));
+        $w->write('stubs/mod.policy.index.stub', (string) file_get_contents(__DIR__.'/index/policy.stub'));
+        $w->write('stubs/mod.page.modal.vue.stub', (string) file_get_contents(__DIR__.'/index/modal.vue.stub'));
         Mod::vendor('acme')->scaffold('index', $recipe ?? self::recipe(...));
     }
 

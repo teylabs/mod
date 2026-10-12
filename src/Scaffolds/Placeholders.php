@@ -36,6 +36,9 @@ final readonly class Placeholders
                 return $match[0];
             }
             $value = $this->values[$key];
+            if ($value instanceof SkippedMember) {
+                return '';
+            }
             if (is_array($value)) {
                 return match ($forms) {
                     ['array'] => var_export(array_values($value), true),

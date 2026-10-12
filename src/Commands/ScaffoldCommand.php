@@ -277,6 +277,8 @@ final class ScaffoldCommand extends Command
             $plan = new ScaffoldPlan;
             $publish = [];
             $calls = [];
+            $this->resetSkipped();
+            $skipped = [];
             $inputName = $this->rawNameInput();
             $name = $this->shorthand()[1];
             $context = $this->placementContext();
@@ -296,6 +298,11 @@ final class ScaffoldCommand extends Command
                 return self::SUCCESS;
             }
             foreach ($this->recipe->members() as $alias => $member) {
+                if (($marker = $this->memberSkip($alias, $member, [...$values, ...$scope->aliases, ...$skipped])) !== null) {
+                    $skipped[$alias] = $marker;
+
+                    continue;
+                }
                 $kind = $this->preset->kind($member->fileType);
                 $command = $kind->command ?? throw GenerationRefused::because("File type [{$member->fileType}] has no command. Enable its command to use {$this->getName()}.");
                 $arguments = ['name' => $member->name === null ? $name : (new Placeholders($values))->name($member->name)];
@@ -340,10 +347,10 @@ final class ScaffoldCommand extends Command
             }
 
             foreach ($plan->files() as ['artifact' => $artifact, 'member' => $member]) {
-                $scope->values[$artifact->path()] = [...$scope->aliases, ...$values, ...($member?->ungrouped ? ['name' => $artifact->name] : [])];
+                $scope->values[$artifact->path()] = [...$skipped, ...$scope->aliases, ...$values, ...($member?->ungrouped ? ['name' => $artifact->name] : [])];
             }
             foreach ($this->recipe->members() as $alias => $member) {
-                if ($member->stub === null) {
+                if ($member->stub === null || isset($skipped[$alias])) {
                     continue;
                 }
                 $primary = $scope->aliases[$alias];
@@ -380,6 +387,8 @@ final class ScaffoldCommand extends Command
             $this->describePlan($plan);
             $existing = $plan->existing($this->existingArtifacts());
             if ($this->dryPlan !== null) {
+                $this->dryPlan->skipped = $this->skippedPlan();
+
                 return self::SUCCESS;
             }
             $scope->keep = $scope->silentKeep = $plan->kept($this->laravel->basePath());
@@ -391,6 +400,9 @@ final class ScaffoldCommand extends Command
                 $path = $artifact->path();
                 $label = ScaffoldPlan::label($file, is_file($this->laravel->basePath($path)));
                 $this->line('  '.$path.' '.str_repeat('.', max(2, 72 - strlen($path) - strlen($label) - 4)).' '.$label);
+            }
+            foreach ($this->skippedPlan() ?? [] as $row) {
+                $this->treeLine($row['alias'], 'skipped: '.$row['reason']);
             }
             $this->newLine();
             $scope->force = (bool) $this->option('force');
