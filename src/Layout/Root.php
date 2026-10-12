@@ -25,10 +25,14 @@ final readonly class Root
         private Layout $layout,
     ) {}
 
-    /** Declare paths relative to this mount; page and view names are explicit. @api */
-    public function frontend(?string $pages = null, ?string $components = null, ?string $css = null, ?string $views = null, ?string $pageName = null, ?string $viewNamespace = null, ?string $alias = null): self
+    /** Declare paths relative to this mount; page and view names are explicit.
+     * @param  list<string>|null  $pageEntries
+     *
+     * @api
+     */
+    public function frontend(?string $pages = null, ?string $components = null, ?string $css = null, ?string $views = null, ?string $pageName = null, ?string $viewNamespace = null, ?string $alias = null, ?array $pageEntries = null): self
     {
-        $this->layout->frontendAtRoot($this->name, $pages, $components, $css, $views, $pageName, $viewNamespace, $alias);
+        $this->layout->frontendAtRoot($this->name, $pages, $components, $css, $views, $pageName, $viewNamespace, $alias, $pageEntries);
 
         return $this;
     }

@@ -13,7 +13,7 @@ use Tey\Mod\Support\Stack;
 
 /**
  * @method static ModManager connection(string $group, string $connection) declare a group database connection
- * @method static ModManager pages(string $namespace, string $directory) declare package pages
+ * @method static ModManager pages(string $namespace, string $directory, ?list<string> $entries = null) declare package pages
  * @method static Wiring wiring() declare frontend wiring
  * @method static Stack stack() read the declared frontend stack
  * @method static string pageEntry(string $page, string $extension) the project-relative Vite entry for an Inertia page

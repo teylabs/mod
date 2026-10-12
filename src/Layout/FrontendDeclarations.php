@@ -3,11 +3,12 @@
 namespace Tey\Mod\Layout;
 
 use InvalidArgumentException;
+use Tey\Mod\Pages\PageEntries;
 
 /**
  * @internal Validate the additive compiled frontend owner collection.
  *
- * @phpstan-type Owner array{owner: string, pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string, view_namespace: ?string, alias: ?string}
+ * @phpstan-type Owner array{owner: string, pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string, view_namespace: ?string, alias: ?string, page_entries?: list<string>}
  */
 final class FrontendDeclarations
 {
@@ -33,6 +34,9 @@ final class FrontendDeclarations
                     throw new InvalidArgumentException('Frontend owner ['.$record['owner'].'] has an invalid '.$field.'.');
                 }
                 $record[$field] = $value;
+            }
+            if (($entries = PageEntries::validate($declaration['page_entries'] ?? null, $record['owner'])) !== null) {
+                $record['page_entries'] = $entries;
             }
             foreach (['pages', 'components', 'css', 'views'] as $field) {
                 self::path($record[$field], $record['owner']);

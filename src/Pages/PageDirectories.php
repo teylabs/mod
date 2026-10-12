@@ -51,6 +51,26 @@ final class PageDirectories
         return $namespaces;
     }
 
+    /** @return list<string>|null */
+    public function entries(?string $namespace = null): ?array
+    {
+        if ($namespace === null) {
+            return $this->layout->frontend()['page_entries'] ?? null;
+        }
+        $directory = $this->namespaces()[$namespace] ?? null;
+        $package = $this->packages->all()[$namespace] ?? null;
+        if ($package !== null && ($relative = $this->paths->relative($package, directory: true)) !== null && $directory === $this->basePath.'/'.$relative) {
+            return $this->packages->entries($namespace);
+        }
+        foreach ($this->layout->frontendOwners() as $owner) {
+            if ($directory !== null && ($this->discover($owner)[$namespace] ?? null) === $directory) {
+                return $owner['page_entries'] ?? null;
+            }
+        }
+
+        return $this->layout->frontend()['page_entries'] ?? null;
+    }
+
     /** @return list<array{code: string, path: string, message: string}> */
     public function notices(): array
     {

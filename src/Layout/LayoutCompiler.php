@@ -45,7 +45,7 @@ final class LayoutCompiler
 
         $frontend = [];
         foreach ($chain['frontend'] as $key => $value) {
-            $frontend[$key] = $value === null ? null : $this->filePath($value, $chain['path'], $rename);
+            $frontend[$key] = is_string($value) ? $this->filePath($value, $chain['path'], $rename) : $value;
         }
         foreach ($roots as &$root) {
             if ($root['namespace'] === null) {

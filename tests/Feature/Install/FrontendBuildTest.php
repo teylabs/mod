@@ -13,6 +13,59 @@ it('runs the client page resolver contracts against the pinned 0.6 behaviour', f
     expect($process->isSuccessful())->toBeTrue($process->getOutput().$process->getErrorOutput());
 })->skip(getenv('MOD_FRONTEND_BUILD') !== '1', 'Set MOD_FRONTEND_BUILD=1 to run the Node resolver contracts.');
 
+it('builds only declared Inertia entries across app module mounted and package page trees', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', 'entry-build');
+        Mod::layout('entry-build')->extends('modules')->path('src/Areas/{area}')
+            ->frontend(pageEntries: ['Page', 'Modal'])
+            ->mounts('ui', null, 'app/UI', fn (Root $root) => $root->frontend(pages: 'screens', pageName: 'UI::{path}', pageEntries: ['Page', 'Modal']));
+        $fixture = dirname(__DIR__, 2).'/Fixtures/frontend-build';
+        $package = json_decode(file_get_contents($fixture.'/package.json'), true, flags: JSON_THROW_ON_ERROR);
+        $package['dependencies']['@inertiajs/vue3'] = '^2';
+        $w->write('package.json', json_encode($package, JSON_THROW_ON_ERROR));
+        symlink($fixture.'/node_modules', $w->root->path('node_modules'));
+        $w->write('vendor/tey/mod/resources/js/inertia.js', file_get_contents(dirname(__DIR__, 3).'/resources/js/inertia.js'));
+        $w->write('vite.config.js', <<<'JS'
+import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
+import vue from '@vitejs/plugin-vue';
+export default defineConfig({
+    plugins: [laravel({ input: ['resources/js/app.js'], refresh: true }), vue()],
+});
+JS);
+        $w->write('resources/js/app.js', "function createInertiaApp(options) { console.log(options); }\ncreateInertiaApp({\n});\n");
+        $w->write('resources/css/app.css', '@import "tailwindcss";');
+        $directories = ['resources/js/pages', 'src/Areas/Inventory/resources/js/pages', 'app/UI/screens', 'vendor/acme/billing/pages'];
+        foreach ($directories as $directory) {
+            $w->write($directory.'/Widget/Edit/Page.vue', '<script setup>import Layout from "./Layout.vue"; import Card from "./Partials/Card.vue";</script><template><Layout><Card /></Layout></template>');
+            $w->write($directory.'/Widget/Edit/Modal.vue', '<template><h1>Modal</h1></template>');
+            $w->write($directory.'/Widget/Edit/Layout.vue', '<template><main><slot /></main></template>');
+            $w->write($directory.'/Widget/Edit/Partials/Card.vue', '<template><p>Imported helper</p></template>');
+            $w->write($directory.'/Widget/Edit/Partials/Unused.vue', '<template><p>UNUSED_HELPER_SENTINEL</p></template>');
+        }
+        Mod::pages('billing', $w->root->path('vendor/acme/billing/pages'), entries: ['Page', 'Modal']);
+        $w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful();
+        $process = new Process(['npm', 'run', 'build'], $w->root->path, timeout: 120);
+        $process->run();
+        expect($process->isSuccessful())->toBeTrue($process->getOutput().$process->getErrorOutput());
+        $manifest = json_decode($w->read('public/build/manifest.json'), true, flags: JSON_THROW_ON_ERROR);
+        foreach ($directories as $directory) {
+            foreach (['Page', 'Modal'] as $stem) {
+                $path = $directory.'/Widget/Edit/'.$stem.'.vue';
+                expect($manifest[$path]['isDynamicEntry'])->toBeTrue();
+            }
+            expect($manifest)->not->toHaveKeys([$directory.'/Widget/Edit/Layout.vue', $directory.'/Widget/Edit/Partials/Card.vue', $directory.'/Widget/Edit/Partials/Unused.vue']);
+        }
+        $chunks = '';
+        foreach (glob($w->root->path('public/build/assets/*.js')) ?: [] as $chunk) {
+            $chunks .= file_get_contents($chunk);
+        }
+        expect($chunks)->toContain('Imported helper');
+        expect($chunks)->not->toContain('UNUSED_HELPER_SENTINEL');
+        $w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful()->expectsOutputToContain('Already wired.');
+    });
+})->skip(getenv('MOD_FRONTEND_BUILD') !== '1', 'Set MOD_FRONTEND_BUILD=1 after npm ci in tests/Fixtures/frontend-build.');
+
 it('builds a mounted alias and Tailwind source with Vite and checks TypeScript', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'frontend-build');

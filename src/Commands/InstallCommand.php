@@ -43,7 +43,7 @@ class InstallCommand extends Command
         $this->laravel->make(PageDirectories::class)->namespaces();
         $packages = new PageRoots;
         foreach ($this->laravel->make(PageDirectories::class)->additional() as $namespace => $directory) {
-            $packages->register($namespace, $directory);
+            $packages->register($namespace, $directory, $this->laravel->make(PageDirectories::class)->entries($namespace));
         }
         $mode = $this->argument('stack');
         $plan = $mode === 'assets' ? new Plan('mod:install', name: 'assets') : (new InertiaEdits($this->laravel->basePath(), $layout, $stack, packages: $packages))->plan();

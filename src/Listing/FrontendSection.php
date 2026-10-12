@@ -35,7 +35,11 @@ final class FrontendSection implements InventorySection
         $app->make(PageDirectories::class)->namespaces();
         $packages = [];
         foreach (array_intersect_key($app->make(PageDirectories::class)->additional(), $app->make(PageRoots::class)->all()) as $name => $directory) {
-            $packages[] = ['namespace' => $name, 'path' => Path::relative($app->basePath(), $directory)];
+            $row = ['namespace' => $name, 'path' => Path::relative($app->basePath(), $directory)];
+            if (($entries = $app->make(PageDirectories::class)->entries($name)) !== null) {
+                $row['page_entries'] = $entries;
+            }
+            $packages[] = $row;
         }
 
         return ['package_pages' => $packages, 'frontend_owners' => $layout->frontendOwners(), 'assets' => ['owners' => (new AssetInventory($layout, $app->basePath()))->owners(), 'wiring' => (new AssetEdits($app->basePath(), $layout))->status()], 'frontend' => [...$frontend, 'view_namespace' => $namespace, 'import_alias' => self::importAlias($layout)]];

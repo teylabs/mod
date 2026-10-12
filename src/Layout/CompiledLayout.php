@@ -32,7 +32,7 @@ use Tey\Mod\Support\Stack;
  *
  * @api
  *
- * @phpstan-type Owner array{owner: string, pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string, view_namespace: ?string, alias: ?string}
+ * @phpstan-type Owner array{owner: string, pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string, view_namespace: ?string, alias: ?string, page_entries?: list<string>}
  */
 final readonly class CompiledLayout
 {
@@ -45,7 +45,7 @@ final readonly class CompiledLayout
      * @param  list<CompiledRoot>  $excludedRoots  never owned by any rule
      * @param  array<string, string>  $placementOptions  dimension name → command option name
      * @param  array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}>  $templates
-     * @param  array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string}  $frontendPaths
+     * @param  array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string, page_entries?: list<string>}  $frontendPaths
      * @param  list<array{owner: string, files: list<string>, entries: list<string>}>  $assetOwners
      * @param  list<Owner>  $frontendOwners
      * @param  array<string, Stub>  $stubs  kind id → the stub the layout declares for it
@@ -109,7 +109,7 @@ final readonly class CompiledLayout
     /**
      * Resolved project-relative path templates and the declared page-name pattern.
      *
-     * @return array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string}
+     * @return array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string, page_entries?: list<string>}
      *
      * @internal
      */

@@ -8,6 +8,7 @@ use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Generation\Stub;
 use Tey\Mod\Generation\StubRegistry;
+use Tey\Mod\Pages\PageEntries;
 use Tey\Mod\Relation\RelationMode;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
@@ -58,10 +59,10 @@ final class Layout
     /** @var array<string, Scaffold> */
     private array $scaffoldRecipes = [];
 
-    /** @var array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string} */
+    /** @var array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string, page_entries?: list<string>} */
     private array $frontend = ['pages' => null, 'components' => null, 'css' => null, 'views' => null, 'lang' => null, 'page_name' => null];
 
-    /** @var array<string, array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string, view_namespace: ?string, alias: ?string}> */
+    /** @var array<string, array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string, view_namespace: ?string, alias: ?string, page_entries?: list<string>}> */
     private array $mountedFrontend = [];
 
     /** @var array<string, array{files: list<string>, entries: list<string>}> */
@@ -304,10 +305,17 @@ final class Layout
         return $this;
     }
 
-    /** Declare project-relative frontend paths; omitted arguments keep their current values. @api */
-    public function frontend(?string $pages = null, ?string $components = null, ?string $css = null, ?string $views = null, ?string $pageName = null, ?string $lang = null): self
+    /** Declare project-relative frontend paths; omitted arguments keep their current values.
+     * @param  list<string>|null  $pageEntries
+     *
+     * @api
+     */
+    public function frontend(?string $pages = null, ?string $components = null, ?string $css = null, ?string $views = null, ?string $pageName = null, ?string $lang = null, ?array $pageEntries = null): self
     {
         $this->guard();
+        if ($pageEntries !== null) {
+            $this->frontend['page_entries'] = PageEntries::validate($pageEntries, $this->name);
+        }
         foreach (['pages' => $pages, 'components' => $components, 'css' => $css, 'views' => $views, 'lang' => $lang, 'page_name' => $pageName] as $key => $value) {
             if ($value !== null) {
                 $this->frontend[$key] = $value;
@@ -320,12 +328,17 @@ final class Layout
         return $this;
     }
 
-    /** @internal */
-    public function frontendAtRoot(string $root, ?string $pages, ?string $components, ?string $css, ?string $views, ?string $pageName, ?string $viewNamespace, ?string $alias): void
+    /** @internal
+     * @param  list<string>|null  $pageEntries
+     */
+    public function frontendAtRoot(string $root, ?string $pages, ?string $components, ?string $css, ?string $views, ?string $pageName, ?string $viewNamespace, ?string $alias, ?array $pageEntries = null): void
     {
         $this->guard();
         $values = ['pages' => $pages, 'components' => $components, 'css' => $css, 'views' => $views, 'page_name' => $pageName, 'view_namespace' => $viewNamespace, 'alias' => $alias];
         $this->mountedFrontend[$root] = [...($this->mountedFrontend[$root] ?? array_fill_keys(array_keys($values), null)), ...array_filter($values, static fn (?string $value): bool => $value !== null)];
+        if ($pageEntries !== null) {
+            $this->mountedFrontend[$root]['page_entries'] = PageEntries::validate($pageEntries, $root);
+        }
     }
 
     /**
@@ -535,7 +548,7 @@ final class Layout
     }
 
     /**
-     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, FileType>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, mode: string|RelationMode|null}>, excluded: list<string>, exclusion_mounts: array<string, list<string>>, commands: bool, path: ?string, nesting: list<string>, errors: list<string>, frontend: array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string}, asset_owners: array<string, array{files: list<string>, entries: list<string>}>, mirror_pages: bool, mounted_frontend: array<string, array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string, view_namespace: ?string, alias: ?string}>}
+     * @return array{roots: array<string, array{namespace: ?string, path: string}>, kinds: array<string, FileType>, relations: array<string, array{from: ?string, to: ?string, scope: string|list<string>|array{keep?: list<string>, nested?: 'keep'|'drop', name?: string}|null, name: string|array<string, string>|null, mode: string|RelationMode|null}>, excluded: list<string>, exclusion_mounts: array<string, list<string>>, commands: bool, path: ?string, nesting: list<string>, errors: list<string>, frontend: array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string, page_entries?: list<string>}, asset_owners: array<string, array{files: list<string>, entries: list<string>}>, mirror_pages: bool, mounted_frontend: array<string, array{pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string, view_namespace: ?string, alias: ?string, page_entries?: list<string>}>}
      *
      * @internal
      */
@@ -556,7 +569,7 @@ final class Layout
             if ($token !== null) {
                 $rewrite = fn (string $value): string => (string) preg_replace_callback('/\{'.preg_quote($this->inheritedToken, '/').'([+?]*)\}|@'.preg_quote($this->inheritedToken, '/').'(?![A-Za-z0-9_])/', static fn (array $match): string => str_starts_with($match[0], '@') ? '@'.$token : '{'.$token.($match[1] ?? '').'}', $value);
                 foreach ($frontend as $key => $value) {
-                    if ($value !== null) {
+                    if (is_string($value)) {
                         $frontend[$key] = $rewrite($value);
                     }
                 }

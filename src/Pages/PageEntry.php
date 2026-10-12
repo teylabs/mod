@@ -22,13 +22,18 @@ final readonly class PageEntry
             throw new InvalidArgumentException('Use a page name without traversal or an extension.');
         }
         if ($parts === []) {
-            return (new Stack($this->basePath))->pagesPath().'/'.$name.'.'.$extension;
+            $path = (new Stack($this->basePath))->pagesPath().'/'.$name.'.'.$extension;
+        } else {
+            $directory = $this->directories->namespaces()[$parts[0]] ?? null;
+            if ($directory === null || ($relative = Path::relative($this->basePath, $directory)) === null) {
+                throw new InvalidArgumentException('Unknown page namespace ['.$parts[0].']. Check the layout frontend paths.');
+            }
+            $path = $relative.'/'.$name.'.'.$extension;
         }
-        $directory = $this->directories->namespaces()[$parts[0]] ?? null;
-        if ($directory === null || ($relative = Path::relative($this->basePath, $directory)) === null) {
-            throw new InvalidArgumentException('Unknown page namespace ['.$parts[0].']. Check the layout frontend paths.');
+        if (! PageEntries::matches($path, $this->directories->entries($parts[0] ?? null))) {
+            throw new InvalidArgumentException('Not an Inertia page entry ['.$path.']. Check the declared page entries.');
         }
 
-        return $relative.'/'.$name.'.'.$extension;
+        return $path;
     }
 }
