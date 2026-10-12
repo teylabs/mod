@@ -65,7 +65,6 @@ In `AppServiceProvider::boot()`, declare a layout and recipe. Put the imports at
 file scope, and set `'layout' => 'modules'` in `config/mod.php`:
 
 ```php
-use Tey\Mod\Commands\PlainFileCommand;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Layout\FileType;
 use Tey\Mod\Scaffolds\Part;
@@ -74,11 +73,7 @@ use Tey\Mod\Scaffolds\Scaffold;
 Mod::layout('modules')
     ->frontend(pageEntries: ['Page', 'Modal'])
     ->generates('page', in: '@module/resources/js/pages', nested: true, case: 'studly',
-        using: fn (FileType $type) => $type->extension('.vue'))
-    ->generates('page-layout', in: '@module/resources/js/pages', fixed: 'Layout', nested: true, case: 'studly',
-        using: fn (FileType $type) => $type->extension(Mod::stack()->inertia() === 'react' ? '.tsx' : '.vue'));
-
-Mod::generators()->useFileType('page-layout', PlainFileCommand::class);
+        using: fn (FileType $type) => $type->extension('.vue'));
 
 Mod::scaffold('resource-pages', fn (Scaffold $s) => $s
     ->asks('modal', type: 'confirm', default: false)
@@ -87,7 +82,7 @@ Mod::scaffold('resource-pages', fn (Scaffold $s) => $s
     ->makes('page', name: '{name}/Index/Page', as: 'indexPage', stub: 'shape-page')
     ->makes('page', name: '{name}/Create/Page', as: 'createPage', stub: 'shape-page')
     ->makes('page', name: '{name}/Create/Modal', as: 'createModal', stub: 'shape-page', when: 'modal')
-    ->makes('page-layout', name: '{name}/Edit/Layout', as: 'editLayout', stub: 'shape-layout')
+    ->makes('page', name: '{name}/Edit/Layout', as: 'editLayout', stub: 'shape-layout')
     ->makes('controller', name: '{name}Controller', as: 'controller', stub: 'shape')
     ->part('tab', configure: fn (Part $p) => $p
         ->asks('tab', type: 'text')
@@ -106,9 +101,7 @@ entry lists (`pageEntries:` and `Mod::pages(..., entries: [...])`).
 
 The folder member owns the subtree for rename; it does not generate a directory
 or change the placement of the file members. `Layout` keeps its component import
-and path but has no render name. The app's `page-layout` file type generates the
-helper separately from renderable `page` members; its fixed basename distinguishes
-it from the general page type, and `PlainFileCommand` supplies its generator.
+and path but has no render name.
 The optional member and controller block use the same `modal` answer.
 
 ### Supply the controller templates
@@ -171,7 +164,7 @@ Save these three variants:
 ```
 
 ```vue
-<!-- stubs/mod.page-layout.shape-layout.vue.stub -->
+<!-- stubs/mod.page.shape-layout.vue.stub -->
 <template>
     <section>
         <h1>Edit {{ name.studly }}</h1>
@@ -319,7 +312,7 @@ export default function Page() { return <p>{{ tab }}</p>; }
 ```
 
 ```tsx
-// stubs/mod.page-layout.shape-layout.tsx.stub
+// stubs/mod.page.shape-layout.tsx.stub
 import type { PropsWithChildren } from 'react';
 
 export default function Layout({ children }: PropsWithChildren) {
