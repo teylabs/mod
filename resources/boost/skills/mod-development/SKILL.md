@@ -215,6 +215,7 @@ In `modules`, everything a module needs (models, migrations, factories, policies
 - Migration folders the layout places, such as `app/Modules/<Module>/Database/Migrations`, are added to the migrator. A model's factory and policy are found through the layout.
 - Check registration with `php artisan event:list`, `php artisan list` and `php artisan migrate:status`.
 - `php artisan optimize` writes the discovery cache (`mod:cache`), and `optimize:clear` removes it (`mod:clear`). The cache doesn't pick up new classes: after adding a provider, command or listener while it exists, run `php artisan mod:clear`.
+- Without a cache file, unchanged discovery inventories are reused across application boots in one PHP process; registration still runs per application. Directory mtimes detect additions, removals and renames. Call `Mod::flushDiscovery()` before the next boot for same-second changes or edits to existing files, or set `discovery.reuse_in_process` to `false` for per-boot scans. Custom `Mod::discoverUsing()` sources keep per-boot scans. Run `php artisan mod:cache` before CI suites with fixed discovered files; clear it for tests that generate discovered classes.
 - `mod:cache` reports files it found but didn't register as "rejected", with a reason; `mod:cache -v` lists them. Files "placed by no file type" need nothing.
 - `config/mod.php` `discovery.enabled`, `discovery.file_types`, `discovery.factories` and `discovery.policies` control what is discovered.
 

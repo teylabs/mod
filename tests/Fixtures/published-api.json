@@ -12929,6 +12929,16 @@
             "static Tey\\Mod\\Generation\\GeneratorRegistry generators()"
         ]
     },
+    "Tey\\Mod\\Facades\\Mod::flushDiscovery": {
+        "visibility": "public",
+        "static": true,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [],
+        "return": "void",
+        "shape": ""
+    },
     "Tey\\Mod\\Generation\\CollisionPolicy": {
         "type": "enum",
         "final": true,

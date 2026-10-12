@@ -3,6 +3,7 @@
 namespace Tey\Mod\Facades;
 
 use Illuminate\Support\Facades\Facade;
+use Tey\Mod\Discovery\InProcessInventory;
 use Tey\Mod\Generation\GeneratorRegistry;
 use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Install\Wiring;
@@ -37,6 +38,17 @@ use Tey\Mod\Support\Stack;
  */
 final class Mod extends Facade
 {
+    /**
+     * Forget discovery inventories reused across boots in this process.
+     * Existing applications and cache files are left alone.
+     *
+     * @api
+     */
+    public static function flushDiscovery(): void
+    {
+        InProcessInventory::instance()->flush();
+    }
+
     /** @internal */
     protected static function getFacadeAccessor(): string
     {

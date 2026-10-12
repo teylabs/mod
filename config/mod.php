@@ -63,6 +63,8 @@ return [
      */
     'discovery' => [
         'enabled' => true,
+        // Reuse unchanged inventories across application boots in one PHP process, without a cache file.
+        'reuse_in_process' => true,
         'file_types' => [],
         'cache' => 'bootstrap/cache/mod-discovery.php',
         // 'scan' ignores a stale or foreign cache file, scans instead (never rewriting the file) and

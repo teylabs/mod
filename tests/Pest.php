@@ -2,6 +2,7 @@
 
 use Tey\Mod\Artifact\ArtifactRequest;
 use Tey\Mod\Artifact\ResolvedArtifact;
+use Tey\Mod\Discovery\InProcessInventory;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Generation\PackageDetector;
 use Tey\Mod\Layout\CompiledLayout;
@@ -19,6 +20,8 @@ require_once __DIR__.'/Expectations.php';
 
 uses(TestCase::class)
     ->afterEach(function () {
+        Mod::flushDiscovery();
+        InProcessInventory::instance()->onScan = null;
         $leaked = OwnedAppRoot::destroyAll();
 
         expect($leaked)->toBe([], 'Owned app roots were not destroyed by their test.');

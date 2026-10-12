@@ -17,6 +17,7 @@ All notable changes to `mod` will be documented in this file.
 
 ### Changed
 - Calling `named()` on a scaffold part is refused with guidance to declare the default name on the root scaffold (#126)
+- Discovery reuses unchanged inventories across application boots in one PHP process without a cache file, with directory-mtime invalidation, `Mod::flushDiscovery()` and a `discovery.reuse_in_process` opt-out (#148).
 
 ### Fixed
 - `mod-survey` and `mod-fit` classify classes from symlinked Composer path-repository packages as vendor-owned by their lexical `vendor/` path, without following the link or reading the file, and report unusable vendor paths as skipped instead of failing (#131).

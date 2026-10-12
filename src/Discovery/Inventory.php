@@ -6,8 +6,8 @@ use UnexpectedValueException;
 
 /**
  * The result of discovery: what registers (with provenance) and what was
- * deliberately left out. Immutable; owned by the Discovery instance of one
- * application, never shared through static state.
+ * deliberately left out. Immutable; reusable across applications without
+ * sharing their registration state.
  *
  *
  * @api

@@ -14,8 +14,8 @@ use WeakMap;
  * dispatchers its listeners were registered on.
  *
  * Bound as an instance in that application's container by DiscoveryRegistrar.
- * Nothing here is static, so two applications in one process never share an
- * inventory or a registration record.
+ * Registration records stay application-local. Without a cache file, an
+ * unchanged inventory can be reused by later applications in this process.
  *
  *
  *
@@ -66,7 +66,7 @@ final class Discovery
     }
 
     /**
-     * The inventory: replayed from the cache file when one exists, otherwise a cold scan.
+     * The inventory: replayed from a cache file, reused in this process, or scanned cold.
      *
      * @throws InvalidDiscoveryCache when the cache cannot be trusted and the policy is Fail
      *
@@ -95,6 +95,26 @@ final class Discovery
         }
 
         $this->source = 'scan';
+
+        if ($this->staleCache === null && $this->options->reuseInProcess && $this->options->candidates === null) {
+            $roots = [];
+            foreach ($this->definitions as $definition) {
+                if (! $definition->enabled) {
+                    continue;
+                }
+                $roots[] = Path::resolve($this->basePath, $this->preset->rule($definition->kindId)->root()->path);
+                if ($definition->type->isRelationType()) {
+                    $roots[] = Path::resolve($this->basePath, $this->preset->rule($definition->type->value)->root()->path);
+                }
+            }
+
+            return $this->inventory = InProcessInventory::instance()->remember(
+                $this->basePath,
+                $this->presetFingerprint().':'.$this->definitionsFingerprint(),
+                array_values(array_unique($roots)),
+                fn (): Inventory => $this->scan(),
+            );
+        }
 
         return $this->inventory = $this->scan();
     }
@@ -127,6 +147,11 @@ final class Discovery
      */
     public function scan(): Inventory
     {
+        $observer = InProcessInventory::instance()->onScan;
+        if ($observer !== null) {
+            $observer();
+        }
+
         return (new DiscoveryScanner($this->preset, $this->basePath, new Eligibility, $this->options->candidates))->scan($this->definitions);
     }
 
