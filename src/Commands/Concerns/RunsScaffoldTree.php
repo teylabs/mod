@@ -14,6 +14,7 @@ use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Routing\ModRoutes;
 use Tey\Mod\Routing\RoutePaths;
 use Tey\Mod\Scaffolds\AnchorWriter;
+use Tey\Mod\Scaffolds\Folder;
 use Tey\Mod\Scaffolds\Member;
 use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Placeholders;
@@ -98,7 +99,7 @@ trait RunsScaffoldTree
         }
         foreach ($recipes as $recipe) {
             foreach ($recipe->members() as $member) {
-                if (! $this->preset->hasKind($member->fileType)) {
+                if ($member->folder || ! $this->preset->hasKind($member->fileType)) {
                     continue;
                 }
                 $this->memberSlots[$member->fileType] = $this->scaffoldSlots($member->fileType);
@@ -238,6 +239,9 @@ trait RunsScaffoldTree
             $inserts = count($this->treeInserts);
             $suffix = $inserts === 0 ? '' : " and {$inserts} inserts";
             $this->components->info("{$this->getName()} will write {$count} ".($count === 1 ? 'file' : 'files').$suffix.' for '.$this->rawNameInput().'.');
+            foreach ($plan->folders as $folder) {
+                $this->treeLine($folder['path'], $folder['alias'].' (folder, writes nothing)');
+            }
             foreach ($plan->files() as $file) {
                 $this->treeLine($file['artifact']->path(), ScaffoldPlan::label($file, is_file($this->laravel->basePath($file['artifact']->path()))));
             }
@@ -388,6 +392,7 @@ trait RunsScaffoldTree
         }
         $nodeKey ??= $this->recipeName;
         $firstFile = count($plan->files());
+        $firstFolder = count($plan->folders);
         $values = $this->treeAnswers($recipe, $name, $given);
         $own = [];
         $skipped = [];
@@ -397,6 +402,14 @@ trait RunsScaffoldTree
                 if (! array_key_exists($alias, $values)) {
                     $values[$alias] = $marker;
                 }
+
+                continue;
+            }
+            if ($member->folder) {
+                $artifact = Folder::place($this->preset, $member->fileType, $folder.(new Placeholders($values))->name($member->name ?? $name), $context);
+                $own[$alias] = $values[$alias] = $artifact;
+                $this->treeAliases[$prefix.$alias] = $artifact;
+                $plan->folders[] = ['alias' => $prefix.$alias, 'type' => $member->fileType, 'path' => $artifact->path()];
 
                 continue;
             }
@@ -460,6 +473,15 @@ trait RunsScaffoldTree
                 }
             }
             $this->treeAliases[$prefix.$alias] = $artifact;
+        }
+        foreach ($plan->folders as $index => $declaration) {
+            if ($index < $firstFolder) {
+                continue;
+            }
+            $alias = substr($declaration['alias'], strlen($prefix));
+            $artifact = Folder::place($this->preset, $declaration['type'], $own[$alias]->name, $context);
+            $own[$alias] = $values[$alias] = $this->treeAliases[$declaration['alias']] = $artifact;
+            $plan->folders[$index]['path'] = $artifact->path();
         }
         $lastFile = count($plan->files());
         foreach ($recipe->repetitions() as $question => $partName) {
@@ -696,6 +718,11 @@ trait RunsScaffoldTree
             }
             $stem = $member->name === null ? $parentName : (new Placeholders($values))->name($member->name);
             $parentFolder = $recursive && $parentName !== $name ? $name.'/'.($segments === [] ? '' : implode('/', $segments).'/') : '';
+            if ($member->folder) {
+                $values[$alias] = Folder::place($this->preset, $member->fileType, $parentFolder.$stem, $context);
+
+                continue;
+            }
             $artifact = $this->resolveArtifact($member->fileType, $parentFolder.$stem, $context);
             if (! is_file($this->laravel->basePath($artifact->path()))) {
                 $short = class_basename($artifact->fqcn() ?? $artifact->name);

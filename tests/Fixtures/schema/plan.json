@@ -26,6 +26,18 @@
         "null"
       ]
     },
+    "folders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["alias", "type", "path"],
+        "properties": {
+          "alias": {"type": "string"},
+          "type": {"enum": ["pages", "components", "views"]},
+          "path": {"type": "string"}
+        }
+      }
+    },
     "files": {
       "type": "array",
       "items": {

@@ -51,6 +51,24 @@ The request variants above need the `model` alias. The controller's resource/mod
 
 The same effective source recipe resolves both identities. Destination-specific template/type/extension drift blocks. Missing members, unmatched candidates, declaration drift, malformed PHP, collisions, duplicate destinations, escaping or symlink paths and unsafe case-only moves block before writing. Resolve ownership in the recipe; there is no `--force`, skip, exclusion or overwrite bypass.
 
+## Owned frontend folders
+
+Declare folder ownership when a page tree is one unit, even as the app adds pages and partials:
+
+```php
+Mod::scaffold('resource-pages', fn (Scaffold $s) => $s
+    ->folder('pages', '{name}', as: 'pageFolder')
+    ->makes('page', name: '{name}/Index/Page', as: 'indexPage'));
+```
+
+For `Inventory:Widget` → `Catalog:Gadget`, the `modules` layout moves `app/Modules/Inventory/resources/js/pages/Widget/` to `app/Modules/Catalog/resources/js/pages/Gadget/` in one operation. Declared members inside are checked but not moved again. Undeclared pages, `Layout.vue`, `Partials/*`, other regular files and empty directories move with the subtree. Supported imports into and out of every moved file use the same frontend reference editor as individual members.
+
+The additive JSON plan lists declarations under `folders` (`alias`, `type`, source `path`), one directory operation under `moves` with `type: "folder"`, and every moved file under `folder_contents` (`alias`, `type`, `from`, `to`, `old_class`, `new_class`). Text plans list each content path too. Plans without folder members retain their previous shape.
+
+Every page entry inside receives an old-to-new render-name mapping, including pages added by hand. The layout's `pageEntries` stems decide which files are entries: with `['Page', 'Modal']`, `Inertia::render()` and `inertia()` literals for those stems change, but literals naming `Layout.vue` or `Partials/Card.vue` do not. Without a filter, the existing all-page-files policy remains; an empty entry list maps none.
+
+Folder ownership is limited to configured `pages`, `components` and `views` paths in plain-file roots. Missing folders, overlapping ownership/destinations, existing destinations (even empty ones), case-only moves, symlinks or junctions, ignored/excluded contents and dirty trees block before application files change. Track all folder contents first. A declared file must agree with its folder's move; a kept member inside a moved folder blocks. Journal recovery restores original files, permissions, empty directories and index entries after comparison. There is no overwrite or safety bypass.
+
 ## Grown parts, shared files and manual edits
 
 Pass every original answer, including defaults and parts added later:

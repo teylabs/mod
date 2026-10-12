@@ -17,8 +17,11 @@ final readonly class PathGuard
         }
         $parent = $this->basePath;
         foreach (explode('/', $normal) as $part) {
+            if (file_exists($parent) && ! is_dir($parent)) {
+                return "mod:rename path {$path} has a non-directory parent. Choose another target. Nothing was written.";
+            }
             $next = Path::join($parent, $part);
-            if (is_link($next)) {
+            if (Path::isLink($next)) {
                 return "mod:rename path {$path} traverses a symlink. Use project-owned paths without symlinks. Nothing was written.";
             }
             if (is_dir($parent)) {

@@ -308,6 +308,13 @@
                     "folder": {
                       "type": "string"
                     },
+                    "path_key": {
+                      "enum": [
+                        "pages",
+                        "components",
+                        "views"
+                      ]
+                    },
                     "ungrouped": {
                       "type": "boolean"
                     },

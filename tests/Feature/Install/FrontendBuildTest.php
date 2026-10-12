@@ -4,6 +4,8 @@ use Illuminate\Foundation\Vite;
 use Symfony\Component\Process\Process;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Layout\Root;
+use Tey\Mod\Scaffolds\Scaffold;
+use Tey\Mod\Tests\Feature\Acceptance\Examples\Rename\Support\RenameScenario as S;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
 
@@ -243,5 +245,45 @@ JSON);
             }
             expect($w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful()->output)->toContain('Already wired.');
         });
+    });
+})->skip(getenv('MOD_FRONTEND_BUILD') !== '1', 'Set MOD_FRONTEND_BUILD=1 after npm ci in tests/Fixtures/frontend-build.');
+
+it('keeps relative and module imports into and out of renamed folder contents buildable', function () {
+    Workspace::run(null, function (Workspace $w) {
+        S::setup($w);
+        Mod::layout('modules')->frontend(pageEntries: ['Page']);
+        Mod::scaffold('folder-pages', fn (Scaffold $s) => $s->folder('pages', '{name}', as: 'pageFolder')->makes('page', name: '{name}/Index/Page', as: 'indexPage'));
+        $fixture = dirname(__DIR__, 2).'/Fixtures/frontend-build';
+        $w->write('package.json', file_get_contents($fixture.'/package.json'));
+        symlink($fixture.'/node_modules', $w->root->path('node_modules'));
+        $from = 'app/Modules/Inventory/resources/js/pages/Widget';
+        $to = 'app/Modules/Catalog/resources/js/pages/Gadget';
+        $w->write($from.'/Index/Page.vue', '<script setup>import Card from "../Partials/Card.vue"; import Layout from "../Layout.vue";</script><template><Layout><Card /></Layout></template>');
+        $w->write($from.'/Layout.vue', '<script setup>import Frame from "../../components/Frame.vue";</script><template><Frame><slot /></Frame></template>');
+        $w->write($from.'/Partials/Card.vue', '<script setup>import helper from "@modules/Inventory/resources/js/helper.js";</script><template><p>{{ helper }}</p></template>');
+        $w->write('app/Modules/Inventory/resources/js/helper.js', 'export default "Card helper";');
+        $w->write('app/Modules/Inventory/resources/js/components/Frame.vue', '<template><main><slot /></main></template>');
+        $w->write('resources/js/app.js', 'import Page from "@modules/Inventory/resources/js/pages/Widget/Index/Page.vue"; import Card from "../../app/Modules/Inventory/resources/js/pages/Widget/Partials/Card.vue"; console.log(Page, Card);');
+        $w->write('vite.config.js', <<<'JS'
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
+import { fileURLToPath } from 'node:url';
+export default defineConfig({
+    resolve: { alias: { '@modules': fileURLToPath(new URL('./app/Modules', import.meta.url)) } },
+    plugins: [vue()],
+    build: { rollupOptions: { input: 'resources/js/app.js' } },
+});
+JS);
+        S::commit($w);
+        $data = S::preview($w, ['--scaffold' => 'folder-pages', 'new' => 'Catalog:Gadget']);
+        expect($data['warnings'])->toBe([])->and($data['checklist'])->toBe([]);
+        S::apply($w, ['--scaffold' => 'folder-pages', 'new' => 'Catalog:Gadget']);
+        expect($w->read($to.'/Index/Page.vue'))->toContain('"../Partials/Card.vue"', '"../Layout.vue"')
+            ->and($w->read($to.'/Layout.vue'))->toContain('"../../../../../Inventory/resources/js/components/Frame.vue"')
+            ->and($w->read($to.'/Partials/Card.vue'))->toContain('"@modules/Inventory/resources/js/helper.js"')
+            ->and($w->read('resources/js/app.js'))->toContain('@modules/Catalog/resources/js/pages/Gadget/Index/Page.vue', '../../app/Modules/Catalog/resources/js/pages/Gadget/Partials/Card.vue');
+        $process = new Process(['npm', 'run', 'build'], $w->root->path, timeout: 120);
+        $process->run();
+        expect($process->isSuccessful())->toBeTrue($process->getOutput().$process->getErrorOutput());
     });
 })->skip(getenv('MOD_FRONTEND_BUILD') !== '1', 'Set MOD_FRONTEND_BUILD=1 after npm ci in tests/Fixtures/frontend-build.');

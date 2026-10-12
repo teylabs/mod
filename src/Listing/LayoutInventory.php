@@ -15,7 +15,7 @@ use Tey\Mod\Support\Path;
  * @phpstan-type Entry array{kind: string, type: string, class: string, path: string, context: array<string, string>, events: list<array{event: string, method: string}>, target?: string}
  * @phpstan-type Rejected array{path: string, reason: string, detail: string, kind: ?string, class: ?string, candidates: list<string>}
  * @phpstan-type TypeRow array{id: string, command: ?string, aliases: list<string>, folder: string, source: string, stub: ?string, base: ?string, discovery: list<string>, classes: list<Entry>, relations: list<string>, plain?: bool, extension?: string, case?: string}
- * @phpstan-type MemberRow array{alias: string, type: string, name: ?string, stub: ?string, options: array<array-key, mixed>, folder: string, ungrouped: bool, group: ?string, existing: ?string}
+ * @phpstan-type MemberRow array{alias: string, type: string, name: ?string, stub: ?string, options: array<array-key, mixed>, folder: string, ungrouped: bool, group: ?string, existing: ?string, path_key?: string}
  * @phpstan-type ScaffoldRow array{vendor: ?string, id: string, package: ?string, overrides: list<string>, notices: list<array{code: string, data: array<string, mixed>, message: string}>, name: string, command: string, source: string, members: list<MemberRow>, uses?: ?string, children?: list<string>, from?: string, origin?: string}
  * @phpstan-type Problem array{path: string, reason: string}
  * @phpstan-type FrontendRow array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string, view_namespace: ?string, import_alias: array{alias: string, root: string}|null, page_entries?: list<string>}

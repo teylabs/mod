@@ -326,6 +326,25 @@ Two packages supplying the same id emit `vendor_scaffold_conflict`. An interacti
 
 A pin selects only a registered provider; the app still wins. Includes and rename require a deterministic definition (a pin or app override) when packages conflict. `mod:list --json` supplies `vendor`, `name` (after the vendor slash), `id`, `command`, provider `source`, Composer `package` when known, `overrides` and structured `notices`. `mod:list --vendor=acme` filters scaffolds in both formats, including notices. Unknown command names use Artisan's suggestions; an undeclared dot part is disabled with a diagnostic.
 
+### Owning a frontend folder
+
+A recipe can own a subtree, including files added by hand after generation:
+
+```php
+use Tey\Mod\Facades\Mod;
+use Tey\Mod\Scaffolds\Scaffold;
+
+Mod::vendor('acme')->scaffold('resource-pages', fn (Scaffold $s) => $s
+    ->folder('pages', '{name}', as: 'pageFolder')
+    ->makes('page', name: '{name}/Index/Page', as: 'indexPage'));
+```
+
+The first argument is a configured frontend path key: `pages`, `components` or `views`. The name is a non-empty relative subtree below that path, resolved with the recipe's name and answers in its group. Only plain-file roots are supported; folders cannot own PHP class roots or paths outside the project. Includes and parts retain folder members and their aliases.
+
+Generation writes no directory for a folder member and does not change the placement of file members inside it. `--dry-run --json` lists folder declarations under optional `folders`, with `alias`, `type` (the path key) and resolved `path`; they are not generated `files`. `mod:list` shows them in recipe trees and JSON as `type: "folder"`, with `path_key` and the folder pattern.
+
+[`mod:rename`](renaming.md#owned-frontend-folders) moves the whole subtree once, including layouts, partials and undeclared pages. A recipe without `folder()` keeps its existing member-only behaviour. Declare page-entry stems on the layout when only files such as `Page.vue` and `Modal.vue` are render targets; folder ownership does not make helpers into page entries.
+
 ### Supplying member stub variants
 
 A member's `stub: 'list'` uses a key such as `page.list`. Register extension-specific variants for each supported frontend stack:

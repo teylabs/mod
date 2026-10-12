@@ -1,9 +1,11 @@
 <?php
 
+use Tey\Mod\Facades\Mod;
 use Tey\Mod\Rename\GitProbe;
 use Tey\Mod\Rename\Planner;
 use Tey\Mod\Rename\Request;
 use Tey\Mod\Rename\Snapshot;
+use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Tests\Feature\Acceptance\Examples\Rename\Support\RenameScenario as S;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 
@@ -102,3 +104,46 @@ it('reads linked worktree metadata without consulting another worktree dirt', fu
         }
     });
 });
+
+it('blocks unsafe folder moves before changing any files or index entries', function (string $case) {
+    Workspace::run(null, function (Workspace $w) use ($case) {
+        S::setup($w);
+        Mod::scaffold('folder-pages', fn (Scaffold $s) => $s->folder('pages', '{name}', as: 'pageFolder')->makes('page', name: '{name}/Index/Page', as: 'indexPage'));
+        $from = 'app/Modules/Inventory/resources/js/pages/Widget';
+        $w->write($from.'/Index/Page.vue', '<template>Original</template>');
+        $options = ['--scaffold' => 'folder-pages'];
+        if ($case === 'collision') {
+            $w->write('app/Modules/Inventory/resources/js/pages/Gadget/.keep', 'Existing destination');
+        } elseif ($case === 'case-only') {
+            $options['new'] = 'Inventory:widget';
+        } elseif ($case === 'symlink') {
+            symlink($w->root->path('app/Modules/Catalog'), $w->root->path($from.'/Partials'));
+        } elseif ($case === 'overlap') {
+            Mod::scaffold('folder-pages', fn (Scaffold $s) => $s->folder('pages', '{name}', as: 'pageFolder')->folder('pages', '{name}/Index', as: 'nested'));
+        } elseif ($case === 'kept') {
+            Mod::scaffold('folder-pages', fn (Scaffold $s) => $s->folder('pages', '{name}', as: 'pageFolder')->makes('page', name: '{name}/Index/Page', existing: 'keep'));
+        } elseif ($case === 'outside-destination') {
+            $options['old'] = 'Inventory:Widgets';
+            Mod::scaffold('folder-pages', fn (Scaffold $s) => $s->folder('pages', '{name.singular}', as: 'pageFolder')
+                ->makes('page', name: '{name.singular}/Index/Page', as: 'indexPage')->makes('page', name: '{name}/Extra', as: 'outsidePage'));
+            $w->write('app/Modules/Inventory/resources/js/pages/Widgets/Extra.vue', '<template>Outside</template>');
+        } elseif ($case === 'parent-file') {
+            $options['new'] = 'Inventory:Blocked/Gadget';
+            $w->write('app/Modules/Inventory/resources/js/pages/Blocked', 'Not a directory');
+        } elseif ($case === 'excluded-directory') {
+            mkdir($w->root->path($from.'/node_modules'));
+        }
+        S::commit($w);
+        if ($case === 'dirty') {
+            $w->write($from.'/Index/Page.vue', '<template>Outside edit</template>');
+        } elseif ($case === 'ignored') {
+            $w->write('.gitignore', $w->read('.gitignore')."\n/{$from}/ignored.txt\n");
+            S::commit($w);
+            $w->write($from.'/ignored.txt', 'Ignored content');
+        }
+        expect(S::preview($w, $options)['would_write'])->toBeFalse();
+        $original = $w->read($from.'/Index/Page.vue');
+        S::apply($w, $options, success: false);
+        expect($w->read($from.'/Index/Page.vue'))->toBe($original)->and($w->exists('.git/mod-rename/journal.json'))->toBeFalse();
+    });
+})->with(['collision', 'case-only', 'symlink', 'dirty', 'ignored', 'overlap', 'kept', 'outside-destination', 'parent-file', 'excluded-directory']);

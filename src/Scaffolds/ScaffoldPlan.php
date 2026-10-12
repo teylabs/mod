@@ -16,6 +16,9 @@ final class ScaffoldPlan
     /** @var list<array{artifact: ResolvedArtifact, alias: string, member: ?Member}> */
     private array $files = [];
 
+    /** @var list<array{alias: string, type: string, path: string}> */
+    public array $folders = [];
+
     public function add(string $alias, GenerationPlan $plan, ScaffoldExecution $scope, ?Member $member = null): void
     {
         $this->files[] = ['artifact' => $plan->primary, 'alias' => $alias, 'member' => $member];

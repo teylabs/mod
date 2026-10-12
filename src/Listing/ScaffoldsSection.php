@@ -8,6 +8,7 @@ use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\Inventory;
 use Tey\Mod\Layout\BuiltIn\GeneratorSources;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Scaffolds\Folder;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
 
 /** @internal A topic in the additive inventory.
@@ -32,7 +33,8 @@ final class ScaffoldsSection implements InventorySection
             $scaffoldName = $node['key'];
             $members = [];
             foreach ($node['members'] as $alias => $member) {
-                $members[] = ['alias' => $alias, 'type' => $member['fileType'], 'name' => $member['name'], 'stub' => $member['stub'], 'options' => $member['options'], 'folder' => LayoutInventory::folder($layout, $member['fileType']), 'ungrouped' => $member['ungrouped'], 'group' => $member['group'], 'existing' => $member['existing']];
+                $isFolder = $member['folder'] ?? false;
+                $members[] = ['alias' => $alias, 'type' => $isFolder ? 'folder' : $member['fileType'], 'name' => $member['name'], 'stub' => $member['stub'], 'options' => $member['options'], 'folder' => $isFolder ? Folder::pattern($layout, $member['fileType']).'/'.$member['name'] : LayoutInventory::folder($layout, $member['fileType']), 'ungrouped' => $member['ungrouped'], 'group' => $member['group'], 'existing' => $member['existing'], ...($isFolder ? ['path_key' => $member['fileType']] : [])];
             }
             $source = $node['source'];
             $label = in_array($source, ['app', 'layout'], true) || str_starts_with($source, GeneratorSources::PREFIX) ? $source : 'package:'.$source;

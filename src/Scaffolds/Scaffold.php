@@ -66,6 +66,22 @@ class Scaffold
         return $this;
     }
 
+    /** Own a subtree below a frontend path without generating a directory. @api */
+    public function folder(string $path, string $name, ?string $as = null): static
+    {
+        if (! in_array($path, ['pages', 'components', 'views'], true)) {
+            throw GenerationRefused::because('A scaffold folder needs a frontend path key: pages, components or views.');
+        }
+        $alias = $as ?? $path;
+        if (isset($this->members[$alias]) && ! isset($this->inherited[$alias])) {
+            $this->duplicates[] = $alias;
+        }
+        unset($this->inherited[$alias]);
+        $this->members[$alias] = new Member($path, $name, folder: true);
+
+        return $this;
+    }
+
     /** Copy the other recipe as it stands now. * @api
      */
     public function include(string $name): static

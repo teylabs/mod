@@ -21,6 +21,7 @@ use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Plans\Plan;
 use Tey\Mod\Plans\PlanWriter;
+use Tey\Mod\Scaffolds\Folder;
 use Tey\Mod\Scaffolds\Member;
 use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Placeholders;
@@ -75,6 +76,9 @@ final class ScaffoldCommand extends Command
         }
         $this->getDefinition()->addOption(new InputOption('in', null, InputOption::VALUE_REQUIRED, 'Placement in the layout’s group order'));
         foreach ($recipe->members() as $member) {
+            if ($member->folder) {
+                continue;
+            }
             $this->memberSlots[$member->fileType] = $this->scaffoldSlots($member->fileType);
             foreach ($this->memberSlots[$member->fileType] as $slot) {
                 if (! $this->getDefinition()->hasOption($slot)) {
@@ -94,7 +98,7 @@ final class ScaffoldCommand extends Command
             $this->getDefinition()->addOption(new InputOption($question->name, null, $mode, $question->label ?? $question->name));
         }
         foreach ($recipe->members() as $member) {
-            if (! $this->preset->hasKind($member->fileType)) {
+            if ($member->folder || ! $this->preset->hasKind($member->fileType)) {
                 continue;
             }
             $this->memberSlots[$member->fileType] = $this->scaffoldSlots($member->fileType);
@@ -247,6 +251,7 @@ final class ScaffoldCommand extends Command
         if ($this->dryPlan === null) {
             return;
         }
+        $this->dryPlan->folders = $plan->folders;
         $scope = $this->scaffoldExecution();
         foreach ($plan->files() as $file) {
             if ($scope !== null && $file['artifact']->kind->extension !== null) {
@@ -303,6 +308,13 @@ final class ScaffoldCommand extends Command
 
                     continue;
                 }
+                if ($member->folder) {
+                    $artifact = Folder::place($this->preset, $member->fileType, (new Placeholders($values))->name($member->name ?? $name), $context);
+                    $scope->aliases[$alias] = $artifact;
+                    $plan->folders[] = ['alias' => $alias, 'type' => $member->fileType, 'path' => $artifact->path()];
+
+                    continue;
+                }
                 $kind = $this->preset->kind($member->fileType);
                 $command = $kind->command ?? throw GenerationRefused::because("File type [{$member->fileType}] has no command. Enable its command to use {$this->getName()}.");
                 $arguments = ['name' => $member->name === null ? $name : (new Placeholders($values))->name($member->name)];
@@ -346,6 +358,11 @@ final class ScaffoldCommand extends Command
                 }
             }
 
+            foreach ($plan->folders as $index => $folder) {
+                $artifact = Folder::place($this->preset, $folder['type'], $scope->aliases[$folder['alias']]->name, $context);
+                $scope->aliases[$folder['alias']] = $artifact;
+                $plan->folders[$index]['path'] = $artifact->path();
+            }
             foreach ($plan->files() as ['artifact' => $artifact, 'member' => $member]) {
                 $scope->values[$artifact->path()] = [...Placeholders::groupValues($artifact->context, $this->preset), ...$skipped, ...$scope->aliases, ...$values, ...($member?->ungrouped ? ['name' => $artifact->name] : [])];
             }
@@ -395,6 +412,9 @@ final class ScaffoldCommand extends Command
             $count = count($plan->files()) - count($scope->keep);
             $noun = $count === 1 && $scope->keep !== [] ? 'file' : 'files';
             $this->components->info("{$this->getName()} will write {$count} {$noun} for {$inputName}.");
+            foreach ($plan->folders as $folder) {
+                $this->treeLine($folder['path'], $folder['alias'].' (folder, writes nothing)');
+            }
             foreach ($plan->files() as $file) {
                 $artifact = $file['artifact'];
                 $path = $artifact->path();
