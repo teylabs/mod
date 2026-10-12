@@ -11,13 +11,14 @@ use Tey\Mod\Exceptions\GenerationRefused;
  * when a boolean is true; {{ ^name }}…{{ /name }} renders when it is false or empty.
  *
  * A tag alone on its line leaves nothing behind, and the block's lines take the
- * opening tag's indentation. Tags that share a line with other text render inline.
+ * opening tag's indentation. Tags that share a line with other text render inline, and an
+ * inline repeat takes sep="…" to put text between its items: {{ #sorts sep=", " }}.
  *
  * @internal
  */
 final class Blocks
 {
-    private const TAG = '/\{\{\s*([#^\/])\s*([\w.-]+)\s*\}\}/';
+    private const TAG = '/\{\{\s*([#^\/])\s*([\w.-]+)(?:\s+([^}]*?))?\s*\}\}/';
 
     public static function present(string $stub): bool
     {
@@ -48,9 +49,11 @@ final class Blocks
             $output .= $substitute(substr($text, $position, $section['from'] - $position), $values);
             $position = $section['to'];
             $body = $section['line'] ? $this->rebase($section['body'], $section['indent']) : $section['body'];
-            foreach ($this->scopes($section['name'], $section['inverted'], $values) as $scope) {
-                $output .= $this->expand($body, $scope, $substitute);
+            $items = [];
+            foreach ($this->scopes($section['name'], $section['inverted'], $values, $section['sep']) as $scope) {
+                $items[] = $this->expand($body, $scope, $substitute);
             }
+            $output .= implode($section['sep'] ?? '', $items);
         }
 
         return $output.$substitute(substr($text, $position), $values);
@@ -59,7 +62,7 @@ final class Blocks
     /**
      * The top-level sections of the text, with the span each one removes.
      *
-     * @return list<array{name: string, inverted: bool, line: bool, indent: string, body: string, from: int, to: int}>
+     * @return list<array{name: string, inverted: bool, line: bool, indent: string, sep: ?string, body: string, from: int, to: int}>
      */
     private function sections(string $text): array
     {
@@ -73,7 +76,7 @@ final class Blocks
             $before = substr($text, $lineStart, $start - $lineStart);
             $alone = trim($before, " \t") === '' && trim(substr($text, $end, $lineEnd - $end), " \t") === '';
             $tags[] = [
-                'type' => $match[1][0], 'name' => $match[2][0], 'start' => $start, 'end' => $end,
+                'type' => $match[1][0], 'name' => $match[2][0], 'options' => $match[3][0] ?? '', 'start' => $start, 'end' => $end,
                 'alone' => $alone, 'indent' => $before,
                 'from' => $alone ? $lineStart : $start,
                 'to' => $alone ? min($lineEnd + 1, strlen($text)) : $end,
@@ -86,6 +89,9 @@ final class Blocks
                 $open[] = $tag;
 
                 continue;
+            }
+            if ($tag['options'] !== '') {
+                throw GenerationRefused::because("Template block tag {{ /{$tag['name']} }} takes no options. Nothing was written.");
             }
             $opening = array_pop($open);
             if ($opening === null) {
@@ -101,8 +107,9 @@ final class Blocks
                 throw GenerationRefused::because("Template block {{ {$opening['type']}{$tag['name']} }} has one tag alone on its line and one beside other text. Put both tags on their own lines, or keep both inline. Nothing was written.");
             }
             $line = $opening['alone'];
+            $sep = $this->separator($opening, $line);
             $sections[] = [
-                'name' => $tag['name'], 'inverted' => $opening['type'] === '^', 'line' => $line, 'indent' => $opening['indent'],
+                'name' => $tag['name'], 'inverted' => $opening['type'] === '^', 'line' => $line, 'indent' => $opening['indent'], 'sep' => $sep,
                 'body' => substr($text, $opening['to'], $tag['from'] - $opening['to']),
                 'from' => $opening['from'], 'to' => $tag['to'],
             ];
@@ -113,6 +120,34 @@ final class Blocks
         }
 
         return $sections;
+    }
+
+    /**
+     * The sep="…" of an opening tag, or null. Anything else in the tag is refused.
+     *
+     * @param  array{type: string, name: string, options: string}  $opening
+     */
+    private function separator(array $opening, bool $line): ?string
+    {
+        $options = $opening['options'];
+        if ($options === '') {
+            return null;
+        }
+        $tag = "{{ {$opening['type']}{$opening['name']} }}";
+        if ($opening['type'] !== '#') {
+            throw GenerationRefused::because("Template block {$tag} takes no options. Only {{ #name sep=\"…\" }} does. Nothing was written.");
+        }
+        if (preg_match('/^([\w-]+)="([^"]*)"$/', $options, $found) !== 1) {
+            throw GenerationRefused::because("Template block {$tag} has malformed options ({$options}). Write sep=\"…\" with a closed double quote. Nothing was written.");
+        }
+        if ($found[1] !== 'sep') {
+            throw GenerationRefused::because("Template block {$tag} has an unknown option '{$found[1]}'. Only sep is supported. Nothing was written.");
+        }
+        if ($line) {
+            throw GenerationRefused::because("Template block {$tag} puts sep on a block whose tags are alone on their lines. Separators are for inline blocks; keep both tags beside other text. Nothing was written.");
+        }
+
+        return $found[2];
     }
 
     /**
@@ -150,13 +185,16 @@ final class Blocks
      * @param  array<string, mixed>  $values
      * @return list<array<string, mixed>>
      */
-    private function scopes(string $name, bool $inverted, array $values): array
+    private function scopes(string $name, bool $inverted, array $values, ?string $sep = null): array
     {
         if (! array_key_exists($name, $values)) {
             throw GenerationRefused::because("Template block {{ #{$name} }} names no question, member or record field. Check the spelling. Nothing was written.");
         }
         $value = $values[$name];
         if (is_bool($value) || $value instanceof ResolvedArtifact || $value instanceof SkippedMember) {
+            if ($sep !== null) {
+                throw GenerationRefused::because("Template block {{ #{$name} }} has sep, but {$name} is a boolean or member, so nothing repeats. Nothing was written.");
+            }
             $on = is_bool($value) ? $value : ! $value instanceof SkippedMember;
 
             return $on === $inverted ? [] : [$values];
