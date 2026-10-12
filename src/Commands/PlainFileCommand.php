@@ -164,7 +164,9 @@ class PlainFileCommand extends Command implements GeneratorAdapter
             $label = $this->kind()->label ?? Str::headline($this->kind()->id);
             $suffix = isset($forms['tag']) ? ' Use it as <'.$forms['tag'].' />.' : '';
             if ($this->kind()->id === 'page') {
-                $suffix = " Render it with Inertia::render('".$forms['name']."').";
+                $suffix = isset($forms['name'])
+                    ? " Render it with Inertia::render('".$forms['name']."')."
+                    : ' Not a page entry; import it from a page.';
             }
             $this->components->info($label.' ['.$artifact->path().'] created successfully.'.$suffix);
             if (isset($scope->groupNotices[$artifact->path()])) {

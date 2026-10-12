@@ -47,6 +47,11 @@ their project-relative path. Inertia's backend page-existence and testing
 finders remain unfiltered. `mod:list --json` reports declared `page_entries`
 in `frontend`, `frontend_owners` and `package_pages`; it omits that key for `null`.
 
+`mod:page` and scaffold `page` members can generate non-entries such as
+`Widget/Edit/Layout`. Their success notice says "Not a page entry; import it
+from a page." Entry pages keep the `Inertia::render()` hint. Dry-run plans keep
+non-entries' import and path identities without a render name.
+
 ## Defining your own page shape
 
 This example gives the Inventory module a Widget page tree. It uses only public
