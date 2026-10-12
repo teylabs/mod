@@ -116,16 +116,21 @@ it('moves an owned page subtree once and maps render literals only for declared 
 it('moves separate owned page and component folders alongside regular members', function () {
     Workspace::run(null, function (Workspace $w) {
         S::setup($w);
-        Mod::scaffold('frontend-folders', fn (Scaffold $s) => $s->folder('pages', '{name}', as: 'pages')->folder('components', '{name}', as: 'components')->makes('model'));
+        Mod::scaffold('frontend-folders', fn (Scaffold $s) => $s->folder('pages', '{name}', as: 'pages')->folder('components', '{name}', as: 'components')->makes('model')
+            ->folder('pages', 'Shared', as: 'sharedPages')->makes('page', name: 'Shared/Index', existing: 'keep')->folder('views', 'Shared', as: 'sharedViews'));
         $root = 'app/Modules/Inventory/resources/js';
         $w->write($root.'/pages/Widget/Index.vue', '<template>Page</template>');
         $w->write($root.'/components/Widget/Card.vue', '<template>Card</template>');
+        $w->write($root.'/pages/Shared/Index.vue', '<template>Shared page</template>');
+        $w->write('app/Modules/Inventory/resources/views/Shared/card.blade.php', '<p>Shared</p>');
         S::commit($w);
         $data = S::preview($w, ['--scaffold' => 'frontend-folders']);
-        expect($data['warnings'])->toBe([])->and($data['folders'])->toHaveCount(2)->and($data['moves'])->toHaveCount(3);
+        expect($data['warnings'])->toBe([])->and($data['folders'])->toHaveCount(4)->and($data['moves'])->toHaveCount(3);
         S::apply($w, ['--scaffold' => 'frontend-folders']);
         expect($w->read($root.'/pages/Gadget/Index.vue'))->toBe('<template>Page</template>')
             ->and($w->read($root.'/components/Gadget/Card.vue'))->toBe('<template>Card</template>')
+            ->and($w->read($root.'/pages/Shared/Index.vue'))->toBe('<template>Shared page</template>')
+            ->and($w->read('app/Modules/Inventory/resources/views/Shared/card.blade.php'))->toBe('<p>Shared</p>')
             ->and($w->read('app/Modules/Inventory/Models/Gadget.php'))->toContain('class Gadget');
     });
 });

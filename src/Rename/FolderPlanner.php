@@ -76,7 +76,7 @@ final readonly class FolderPlanner
                 }
                 if ($declared !== []) {
                     $key = $declared[0];
-                    if ($new[$key]['artifact']->path() !== $destination || $old[$key]['member']->existing === 'keep') {
+                    if ($new[$key]['artifact']->path() !== $destination || ($from !== $to && $old[$key]['member']->existing === 'keep')) {
                         throw GenerationRefused::because("mod:rename member {$key} conflicts with its owning folder. Nothing was written.");
                     }
                 } else {
