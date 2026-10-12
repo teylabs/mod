@@ -5,6 +5,7 @@ namespace Tey\Mod\Tests;
 use Closure;
 use Illuminate\Contracts\Foundation\Application;
 use Orchestra\Testbench\TestCase as Orchestra;
+use Tey\Mod\Facades\Mod;
 use Tey\Mod\ModServiceProvider;
 use Tey\Mod\Tests\Support\AppServiceProvider;
 
@@ -23,11 +24,15 @@ abstract class TestCase extends Orchestra
 
     /**
      * Boot a fresh application, configured by the callback before any provider registers.
+     * Fixture generators write within one second: flush discovery unless the test exercises reuse.
      *
      * @param  Closure(Application): void  $callback
      */
-    public function bootApplicationUsing(Closure $callback): Application
+    public function bootApplicationUsing(Closure $callback, bool $reuseDiscovery = false): Application
     {
+        if (! $reuseDiscovery) {
+            Mod::flushDiscovery();
+        }
         $this->bootUsing = $callback;
 
         try {

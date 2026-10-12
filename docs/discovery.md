@@ -89,7 +89,7 @@ Gate::getPolicyFor(Document::class); // App\Modules\Knowledge\Policies\DocumentP
 
 Discovery doesn't need a `newFactory()` method on the model or a `Gate::policy()` call. `mod:model -f` still writes `newFactory()`, so the model keeps working without mod. Both lookups read the discovered classes, so `'discovery.enabled' => false` turns them off too. A policy your application registers for a model with `Gate::policy()` is kept. A factory resolver your application sets after mod (`Factory::guessFactoryNamesUsing()`) replaces mod's, as it would replace any earlier one. Turn either off with `'discovery.factories' => false` or `'discovery.policies' => false`.
 
-## Caching
+## Caching discovery
 
 ```bash
 php artisan mod:cache   # also run by php artisan optimize
@@ -115,6 +115,24 @@ Rejected files were found but not registered: 6 placed by no file type (helpers 
 With a cache present, mod registers from the cache without scanning. When the layout or the discovery settings change after the cache was written, the cache is ignored: mod scans instead and logs a warning naming both commands. Set `'discovery.on_stale_cache' => 'fail'` to stop the app booting instead.
 
 Like Laravel's own caches, the discovery cache doesn't pick up new classes. After adding a provider, command or listener while the cache exists, run `php artisan optimize:clear`.
+
+### Reuse across application boots
+
+Without a cache file, mod reuses an unchanged discovery inventory across application boots in the same PHP process. This helps test suites that rebuild the application for each test. Providers, commands, listeners, migrations and model conventions still register on every application; no registration state is shared and nothing is written to disk.
+
+Reuse is keyed by the application base path, the cache file's existing layout and discovery-settings fingerprints (including templates), and a tree signature of directory modification times under the discovered roots. Later boots stat those directories without walking or reading files. Adding, removing or renaming a file changes its parent directory's modification time and triggers a new scan. New roots and nested directories are picked up too. A custom `Mod::discoverUsing()` candidate source keeps scanning on every boot because its output may change independently of the tree.
+
+Directory timestamps have limited resolution. For same-second changes, edits to existing files, or changes to opaque placement callbacks, flush before booting the next application:
+
+```php
+use Tey\Mod\Facades\Mod;
+
+Mod::flushDiscovery();
+```
+
+The flush clears process-wide inventories, not the inventory or registrations of an already booted application, and leaves cache files alone. A test suite that needs isolation can call it in a global Pest `afterEach()` hook or PHPUnit teardown. To restore a scan on every uncached boot, set `'discovery.reuse_in_process' => false` in `config/mod.php` (the default is `true`).
+
+A cache file always takes precedence. A stale cache still follows `discovery.on_stale_cache`: scan and warn on every boot, or fail. Run `php artisan mod:cache` before a CI suite when its discovered files stay fixed; it avoids even the directory-stat checks and remains a valid speed-up. Clear it before tests that need newly generated classes to be discovered.
 
 ## Supplying your own candidate files
 

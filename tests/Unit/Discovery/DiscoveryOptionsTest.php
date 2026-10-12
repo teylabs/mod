@@ -57,6 +57,8 @@ it('reads the defaults from an empty config', function () {
         ->and($options->kinds)->toBe([])
         ->and($options->cachePath)->toBe('bootstrap/cache/mod-discovery.php')
         ->and($options->onStaleCache)->toBe(CacheMismatchPolicy::Scan)
+        ->and($options->reuseInProcess)->toBeTrue()
+        ->and(DiscoveryOptions::fromConfig(['reuse_in_process' => false])->withCandidates(fn () => [])->reuseInProcess)->toBeFalse()
         ->and(DiscoveryOptions::fromConfig(['on_stale_cache' => 'fail'])->onStaleCache)->toBe(CacheMismatchPolicy::Fail)
         ->and(DiscoveryOptions::fromConfig(['on_stale_cache' => 'scan'])->onStaleCache)->toBe(CacheMismatchPolicy::Scan)
         ->and(DiscoveryOptions::fromConfig(['file_types' => ['x' => DiscoveryType::Command]])->kinds)->toBe(['x' => DiscoveryType::Command]);
@@ -73,6 +75,7 @@ it('rejects invalid config with the offending key', function (array $config, str
     [['on_stale_cache' => 'rebuild'], '[mod.discovery.on_stale_cache]'],
     [['factories' => 'yes'], '[mod.discovery.factories]: expected a boolean'],
     [['policies' => 1], '[mod.discovery.policies]: expected a boolean'],
+    [['reuse_in_process' => 'yes'], '[mod.discovery.reuse_in_process]: expected a boolean'],
     // Factory and policy pairs come from the switches, not from a kind mapping.
     [['file_types' => ['model' => 'factory']], '[mod.discovery.file_types.model]: expected provider, command, listener, subscriber, directory or false'],
 ]);

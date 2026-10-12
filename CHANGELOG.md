@@ -19,6 +19,7 @@ All notable changes to `mod` will be documented in this file.
 
 ### Changed
 - Calling `named()` on a scaffold part is refused with guidance to declare the default name on the root scaffold (#126)
+- Discovery reuses unchanged inventories across application boots in one PHP process without a cache file, with directory-mtime invalidation, `Mod::flushDiscovery()` and a `discovery.reuse_in_process` opt-out (#148).
 
 ### Fixed
 - Rerunning a scaffold with Pest or PHPUnit test members checks existing paths without loading test files, preserving collision refusal, `--skip-existing`, `--force` and interactive choices. Non-test artifacts still autoload class identities to detect classes declared elsewhere (#141).

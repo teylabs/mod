@@ -14,6 +14,7 @@ use Tey\Mod\Resolution\ModelRelations;
  *
  *     'discovery' => [
  *         'enabled' => true,                                   // false: discover nothing
+ *         'reuse_in_process' => true,                          // false: scan on every uncached boot
  *         'file_types' => ['provider' => false, 'subscriber' => 'listener'],  // merged over the defaults
  *         'cache' => 'bootstrap/cache/mod-discovery.php',      // relative to the base path, or absolute
  *         'on_stale_cache' => 'scan',                          // or 'fail'
@@ -56,6 +57,7 @@ final readonly class DiscoveryOptions
         public ?Closure $candidates = null,
         public bool $factories = true,
         public bool $policies = true,
+        public bool $reuseInProcess = true,
     ) {}
 
     /**
@@ -120,7 +122,7 @@ final readonly class DiscoveryOptions
 
         $switches = [];
 
-        foreach (['factories', 'policies'] as $key) {
+        foreach (['factories', 'policies', 'reuse_in_process'] as $key) {
             $switches[$key] = $config[$key] ?? true;
 
             if (! is_bool($switches[$key])) {
@@ -128,7 +130,7 @@ final readonly class DiscoveryOptions
             }
         }
 
-        return new self($enabled, $kinds, $cache, $policy, null, $switches['factories'], $switches['policies']);
+        return new self($enabled, $kinds, $cache, $policy, null, $switches['factories'], $switches['policies'], $switches['reuse_in_process']);
     }
 
     /**
@@ -140,7 +142,7 @@ final readonly class DiscoveryOptions
      */
     public function withCandidates(Closure $candidates): self
     {
-        return new self($this->enabled, $this->kinds, $this->cachePath, $this->onStaleCache, $candidates, $this->factories, $this->policies);
+        return new self($this->enabled, $this->kinds, $this->cachePath, $this->onStaleCache, $candidates, $this->factories, $this->policies, $this->reuseInProcess);
     }
 
     /**
