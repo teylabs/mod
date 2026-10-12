@@ -25,6 +25,9 @@ $recipe = $argv[4] ?? 'model-only';
 if ($recipe === 'pages') {
     Mod::scaffold('pages', fn (Scaffold $s) => $s->makes('page', name: '{name}/Show'));
 }
+if ($recipe === 'folder-pages') {
+    Mod::scaffold('folder-pages', fn (Scaffold $s) => $s->folder('pages', '{name}', as: 'pageFolder')->makes('page', name: '{name}/Index/Page', as: 'indexPage'));
+}
 $phase = $argv[3] ?? '';
 $transaction = new Transaction($argv[1], static function (string $current) use ($phase): void {
     if ($current === $phase) {

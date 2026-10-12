@@ -87,6 +87,8 @@ it('refuses foreign malformed unsafe and corrupt journals without any restoratio
             $journal['paths']['.git/config'] = $journal['paths']['app/Modules/Inventory/Models/Widget.php'];
         } elseif ($kind === 'index') {
             $journal['index'] = base64_encode('corrupt');
+        } elseif ($kind === 'source-directory') {
+            $journal['original_directories'] = ['app/Modules/Inventory/Foreign' => 0755];
         }
         $w->write($path, $kind === 'malformed' ? '{broken' : json_encode($journal, JSON_THROW_ON_ERROR));
         $before = $w->read('app/Modules/Inventory/Models/Gadget.php');
@@ -94,7 +96,7 @@ it('refuses foreign malformed unsafe and corrupt journals without any restoratio
         $w->artisan('mod:rename', ['--recover' => true, '--yes' => true])->assertFailed();
         expect($w->read('app/Modules/Inventory/Models/Gadget.php'))->toBe($before)->and(file_get_contents($w->root->path('.git/index')))->toBe($index)->and($w->exists($path))->toBeTrue();
     });
-})->with(['foreign', 'unsafe', 'metadata', 'index', 'malformed']);
+})->with(['foreign', 'unsafe', 'metadata', 'index', 'malformed', 'source-directory']);
 
 it('preserves an outside index conflict and requires explicit repair before recovery', function () {
     Workspace::run(null, function (Workspace $w) {
@@ -260,3 +262,30 @@ it('preserves outside reversions and deletions after a completed checkpoint', fu
         expect($w->exists($source))->toBeFalse()->and($w->exists($destination) ? $w->read($destination) : null)->toBe($bytes)->and(S::git($w, ['ls-files', '--stage', '-z']))->toBe($index)->and($w->exists('.git/mod-rename/journal.json'))->toBeTrue();
     });
 })->with(['bytes', 'delete', 'index']);
+
+it('recovers an interrupted whole-folder move including undeclared files and empty directories', function () {
+    Workspace::run(null, function (Workspace $w) {
+        S::setup($w);
+        $from = 'app/Modules/Inventory/resources/js/pages/Widget';
+        $to = 'app/Modules/Inventory/resources/js/pages/Gadget';
+        $sources = ['Index/Page.vue' => '<template>Index</template>', 'Notes/Page.vue' => '<template>Grown page</template>', 'Layout.vue' => '<template>Layout</template>', 'Partials/Card.vue' => '<template>Card</template>'];
+        foreach ($sources as $path => $bytes) {
+            $w->write($from.'/'.$path, $bytes);
+        }
+        mkdir($w->root->path($from.'/Empty'), 0755);
+        mkdir($w->root->path($from.'/Empty/Nested'), 0755);
+        chmod($w->root->path($from.'/Empty'), 0770);
+        $mode = fileperms($w->root->path($from.'/Empty')) & 0777;
+        S::commit($w);
+        $index = file_get_contents($w->root->path('.git/index'));
+        killAtBarrier(new Process([PHP_BINARY, dirname(__DIR__, 3).'/Fixtures/rename/transaction-worker.php', $w->root->path, 'execute', 'applied:1', 'folder-pages'], timeout: 60));
+        expect(is_dir($w->root->path($from)))->toBeFalse()->and(is_dir($w->root->path($to.'/Empty')))->toBeTrue();
+        $w->artisan('mod:rename', ['--recover' => true, '--yes' => true])->assertSuccessful();
+        foreach ($sources as $path => $bytes) {
+            expect($w->read($from.'/'.$path))->toBe($bytes);
+        }
+        expect(is_dir($w->root->path($from.'/Empty/Nested')))->toBeTrue()->and(is_dir($w->root->path($to)))->toBeFalse()
+            ->and(fileperms($w->root->path($from.'/Empty')) & 0777)->toBe($mode)
+            ->and(file_get_contents($w->root->path('.git/index')))->toBe($index)->and(S::git($w, ['status', '--porcelain']))->toBe('');
+    });
+});

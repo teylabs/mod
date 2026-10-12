@@ -215,6 +215,11 @@ final class ListCommand extends Command
                 return;
             }
             $rows[] = [$prefix.$branch.$name, $node['uses'] ?? '', ($node['from'] ?? $node['source'])];
+            foreach ($node['members'] as $member) {
+                if ($member['type'] === 'folder') {
+                    $rows[] = [$prefix.'  '.$member['alias'], $member['folder'].'/**', 'folder'];
+                }
+            }
             $children = $node['children'] ?? [];
             foreach ($children as $index => $child) {
                 $next = $prefix.($branch === '' ? '' : ($branch === '└ ' ? '  ' : '│ '));

@@ -33,6 +33,33 @@
         "null"
       ]
     },
+    "folders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["alias", "type", "path"],
+        "properties": {
+          "alias": {"type": "string"},
+          "type": {"enum": ["pages", "components", "views"]},
+          "path": {"type": "string"}
+        }
+      }
+    },
+    "folder_contents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["alias", "type", "from", "to", "old_class", "new_class"],
+        "properties": {
+          "alias": {"type": "string"},
+          "type": {"type": "string"},
+          "from": {"type": "string"},
+          "to": {"type": "string"},
+          "old_class": {"type": ["string", "null"]},
+          "new_class": {"type": ["string", "null"]}
+        }
+      }
+    },
     "files": {
       "type": "array",
       "items": {

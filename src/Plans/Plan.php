@@ -14,6 +14,12 @@ final class Plan
     /** @var list<array{alias: string, type: string, path: string, class?: string, identity?: array<string, mixed>, group: ?string, existing: bool|string, exists: bool}> */
     public array $files = [];
 
+    /** @var list<array{alias: string, type: string, path: string}> */
+    public array $folders = [];
+
+    /** @var list<array{alias: string, type: string, from: string, to: string, old_class: ?string, new_class: ?string}> */
+    public array $folderContents = [];
+
     /** @var list<array{into: string, at: string, stub: string}> */
     public array $inserts = [];
 
@@ -42,6 +48,12 @@ final class Plan
     public ?array $recovery = null;
 
     public function __construct(public readonly string $command, public ?string $group = null, public ?string $name = null) {}
+
+    /** @return list<array{alias: string, type: string, from: string, to: string, old_class: ?string, new_class: ?string}> */
+    public function fileMoves(): array
+    {
+        return [...array_values(array_filter($this->rename['moves'], static fn (array $move): bool => $move['type'] !== 'folder')), ...$this->folderContents];
+    }
 
     public function artifact(string $alias, ResolvedArtifact $artifact, string $basePath, ?string $existing = null): void
     {
@@ -95,6 +107,6 @@ final class Plan
     /** @return array<string, mixed> */
     public function toArray(): array
     {
-        return ['command' => $this->command, 'group' => $this->group, 'name' => $this->name, 'files' => $this->files, 'inserts' => $this->inserts, 'warnings' => $this->warnings, 'would_write' => $this->wouldWrite, ...($this->skipped === null ? [] : ['skipped' => $this->skipped]), ...($this->command === 'mod:rename' ? $this->renameFields() : []), ...($this->recovery === null ? [] : ['recovery' => $this->recovery]), ...($this->mentions === [] ? [] : ['mentions' => $this->mentions])];
+        return ['command' => $this->command, 'group' => $this->group, 'name' => $this->name, 'files' => $this->files, 'inserts' => $this->inserts, 'warnings' => $this->warnings, 'would_write' => $this->wouldWrite, ...($this->folders === [] ? [] : ['folders' => $this->folders]), ...($this->folderContents === [] ? [] : ['folder_contents' => $this->folderContents]), ...($this->skipped === null ? [] : ['skipped' => $this->skipped]), ...($this->command === 'mod:rename' ? $this->renameFields() : []), ...($this->recovery === null ? [] : ['recovery' => $this->recovery]), ...($this->mentions === [] ? [] : ['mentions' => $this->mentions])];
     }
 }

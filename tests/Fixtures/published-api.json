@@ -15746,6 +15746,41 @@
         "return": "Tey\\Mod\\Scaffolds\\Scaffold",
         "shape": ""
     },
+    "Tey\\Mod\\Scaffolds\\Part::folder": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "path",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "name",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "as",
+                "type": "?string",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "Tey\\Mod\\Scaffolds\\Scaffold",
+        "shape": ""
+    },
     "Tey\\Mod\\Scaffolds\\Part::include": {
         "visibility": "public",
         "static": false,
@@ -16067,6 +16102,41 @@
         "return": "Tey\\Mod\\Scaffolds\\Scaffold",
         "shape": ""
     },
+    "Tey\\Mod\\Scaffolds\\Scaffold::folder": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "path",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "name",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "as",
+                "type": "?string",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "Tey\\Mod\\Scaffolds\\Scaffold",
+        "shape": ""
+    },
     "Tey\\Mod\\Scaffolds\\Scaffold::include": {
         "visibility": "public",
         "static": false,
@@ -16236,7 +16306,7 @@
         "final": true,
         "abstract": false,
         "readonly": false,
-        "shapes": "@phpstan-type Node array{key: string, source: string, from: string, members: array<string, array{fileType: string, name: ?string, stub: ?string, options: array<array-key, mixed>, ungrouped: bool, group: ?string, existing: ?string}>, children: list<string>, uses: ?string}",
+        "shapes": "@phpstan-type Node array{key: string, source: string, from: string, members: array<string, array{fileType: string, name: ?string, stub: ?string, options: array<array-key, mixed>, ungrouped: bool, group: ?string, existing: ?string, folder?: true}>, children: list<string>, uses: ?string}",
         "interfaces": [],
         "parent": null
     },

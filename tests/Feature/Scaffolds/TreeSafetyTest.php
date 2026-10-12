@@ -182,3 +182,35 @@ it('restores existing bytes and removes generated files if applying an insert fa
             ->and($w->files())->toBe($files);
     });
 });
+
+it('plans folder members without writing them in flat recipes includes and parts', function (bool $tree, string $group) {
+    Workspace::run(null, function (Workspace $w) use ($tree, $group) {
+        config()->set('mod.layout', 'modules');
+        $w->write('package.json', '{"dependencies":{"@inertiajs/vue3":"*"}}');
+        $w->write('app/Modules/Inventory/Models/.keep', '');
+        Mod::scaffold('owned-folder', fn (Scaffold $s) => $s->folder('pages', '{name}', as: 'pageFolder'));
+        Mod::scaffold('folder-pages', function (Scaffold $s) use ($tree) {
+            $s->include('owned-folder')->makes('model')->makes('page', name: '{name}/Index/Page', as: 'indexPage');
+            if ($tree) {
+                $s->part('details', configure: fn (Part $p) => $p->folder('components', '{name}', as: 'helpers'));
+            }
+        });
+        $before = $w->files();
+        $preview = $w->artisan('mod:folder-pages', ['name' => $group.':Widget', '--dry-run' => true, '--json' => true])->assertSuccessful();
+        $data = json_decode($preview->output, true, flags: JSON_THROW_ON_ERROR);
+        expect($data['warnings'])->toBe([])->and($data['folders'])->toBe([['alias' => 'pageFolder', 'type' => 'pages', 'path' => 'app/Modules/Inventory/resources/js/pages/Widget']])
+            ->and(array_column($data['files'], 'path'))->toBe(['app/Modules/Inventory/Models/Widget.php', 'app/Modules/Inventory/resources/js/pages/Widget/Index/Page.vue'])->and($w->files())->toBe($before);
+        $w->artisan('mod:owned-folder', ['name' => 'Inventory:Widget'])->assertSuccessful();
+        expect($w->files())->toBe($before);
+        $listing = json_decode($w->artisan('mod:list', ['--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
+        $recipe = array_values(array_filter($listing['scaffolds']['items'], static fn (array $row): bool => $row['id'] === 'folder-pages'))[0];
+        expect($recipe['members'][0]['type'])->toBe('folder')->and($recipe['members'][0]['path_key'])->toBe('pages');
+        $w->artisan('mod:list', ['-v' => true])->assertSuccessful()->expectsOutputToContain('pageFolder')->expectsOutputToContain('resources/js/pages/{name}');
+        $w->artisan('mod:folder-pages', ['name' => 'Inventory:Widget'])->assertSuccessful();
+        expect($w->exists('app/Modules/Inventory/resources/js/pages/Widget/Index/Page.vue'))->toBeTrue();
+        if ($tree) {
+            $part = $w->artisan('mod:folder-pages.details', ['name' => 'Inventory:Widget', 'value' => 'Extra', '--dry-run' => true, '--json' => true])->assertSuccessful();
+            expect(json_decode($part->output, true, flags: JSON_THROW_ON_ERROR)['folders'][0]['type'])->toBe('components');
+        }
+    });
+})->with([[false, 'Inventory'], [true, 'Inventory'], [false, 'inventory'], [true, 'inventory']]);

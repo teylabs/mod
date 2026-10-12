@@ -2,10 +2,12 @@
 
 namespace Tey\Mod\Rename;
 
+use DirectoryIterator;
 use FilesystemIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
+use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Support\Path;
 
@@ -52,6 +54,44 @@ final class Snapshot
     public static function migration(string $path): bool
     {
         return preg_match('~(?:^|/)(?:migrations)(?:/|$)~i', $path) === 1 || preg_match('/^\d{4}_\d{2}_\d{2}_\d{6}_/', basename($path)) === 1;
+    }
+
+    /** @return array{files: list<string>, directories: array<string, int>} */
+    public static function tree(string $basePath, string $path): array
+    {
+        if ((new self)->excluded($path)) {
+            throw GenerationRefused::because("mod:rename folder content {$path} is excluded from project-owned paths. Nothing was written.");
+        }
+        if (($problem = (new PathGuard($basePath))->problem($path)) !== null) {
+            throw GenerationRefused::because($problem);
+        }
+        $absolute = Path::resolve($basePath, $path);
+        if (! is_dir($absolute)) {
+            throw GenerationRefused::because("mod:rename source folder {$path} is missing. Nothing was written.");
+        }
+        $tree = ['files' => [], 'directories' => [$path => (int) fileperms($absolute) & 0777]];
+        foreach (new DirectoryIterator($absolute) as $file) {
+            if ($file->isDot()) {
+                continue;
+            }
+            $child = Path::join($path, $file->getFilename());
+            if (($problem = (new PathGuard($basePath))->problem($child)) !== null || Path::isLink($file->getPathname())) {
+                throw GenerationRefused::because($problem ?? "mod:rename path {$child} traverses a symlink. Nothing was written.");
+            }
+            if ($file->isDir()) {
+                $subtree = self::tree($basePath, $child);
+                array_push($tree['files'], ...$subtree['files']);
+                $tree['directories'] += $subtree['directories'];
+            } elseif ($file->isFile()) {
+                $tree['files'][] = $child;
+            } else {
+                throw GenerationRefused::because("mod:rename folder content {$child} is not a regular file. Nothing was written.");
+            }
+        }
+        sort($tree['files']);
+        ksort($tree['directories']);
+
+        return $tree;
     }
 
     /** @param list<string> $roots

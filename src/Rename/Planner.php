@@ -98,6 +98,7 @@ final readonly class Planner
             $roots = array_values(array_filter($roots, static fn (string $root): bool => array_filter($roots, static fn (string $parent): bool => $root !== $parent && Path::relative($parent, $root) !== null) === []));
             $membership = $snapshot->membership($basePath, $roots, $git);
             $files = $snapshot->files($basePath, $membership);
+            (new FolderPlanner($basePath))->expand($old, $new, $plan, $files);
             $members = [];
             $destinations = [];
             $sources = [];
@@ -170,7 +171,9 @@ final readonly class Planner
                     $plan->warning("mod:rename duplicate destination {$to}. Correct the recipe. Nothing was written.");
                 }
                 $destinations[strtolower($to)] = true;
-                $plan->rename['moves'][] = ['alias' => $alias, 'type' => $type, 'from' => $from, 'to' => $to, 'old_class' => $before->fqcn(), 'new_class' => $after->fqcn()];
+                if (! in_array($from, array_column($plan->folderContents, 'from'), true)) {
+                    $plan->rename['moves'][] = ['alias' => $alias, 'type' => $type, 'from' => $from, 'to' => $to, 'old_class' => $before->fqcn(), 'new_class' => $after->fqcn()];
+                }
             }
             if ($members !== [] && array_filter($members, static fn (ClusterMember $member): bool => strcasecmp($member->old->path(), $member->new->path()) !== 0 || strcasecmp($member->old->fqcn() ?? '', $member->new->fqcn() ?? '') !== 0) === []) {
                 $plan->warning('mod:rename source and target resolve to the same identity. Choose a different name. Nothing was written.');

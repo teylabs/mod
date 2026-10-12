@@ -10,6 +10,7 @@ use Tey\Mod\Layout\BuiltIn\BuiltInLayouts;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\TemplateRule;
+use Tey\Mod\Scaffolds\Folder;
 use Tey\Mod\Scaffolds\Member;
 use Tey\Mod\Scaffolds\Placeholders;
 use Tey\Mod\Scaffolds\QuestionAnswers;
@@ -80,6 +81,14 @@ final readonly class RecipeEvaluator
             }
             $group = implode('/', $placement->only($layout->dimensionNames())->toArray()) ?: null;
             $memberLayout = ($this->layouts)($group);
+            if ($member->folder) {
+                $artifact = Folder::place($memberLayout, $member->fileType, (new Placeholders($values))->name($member->name ?? $name), $placement);
+                $key = $prefix.$alias;
+                $outputs[$key] = ['artifact' => $artifact, 'member' => $member, 'identity' => ['path' => $artifact->path()], 'layout' => $memberLayout];
+                $values[$alias] = $artifact;
+
+                continue;
+            }
             foreach ($answers as $key => $value) {
                 if (is_string($value) && in_array($key, array_diff($memberLayout->rule($member->fileType)->dimensions(), $layout->dimensionNames()), true)) {
                     $placement = $placement->with($key, $value);

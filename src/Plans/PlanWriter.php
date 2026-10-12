@@ -89,6 +89,9 @@ final class PlanWriter
         $suffix = $inserts === 0 ? '' : " and {$inserts} inserts";
         $name = $plan->group === null ? ($plan->name ?? '') : ($plan->name === null ? $plan->group : $plan->group.':'.$plan->name);
         $command->outputComponents()->info($plan->command.' will write '.$count.' '.($count === 1 ? 'file' : 'files').$suffix.($name === '' ? '' : ' for '.$name).'.');
+        foreach ($plan->folders as $folder) {
+            $this->line($command, $folder['path'], $folder['alias'].' (folder, writes nothing)');
+        }
         foreach ($plan->files as $file) {
             $this->line($command, $file['path'], $file['alias'].($file['exists'] ? ($file['existing'] === 'keep' ? ' (kept, exists)' : ' (exists)') : ''));
             $mappings = $file['identity']['mappings'] ?? [];
@@ -121,6 +124,9 @@ final class PlanWriter
         $command->line('Rename '.$old.' -> '.$new.' ('.($plan->rename['selection']['scaffold'] ?? 'select --scaffold').')');
         foreach ($plan->rename['moves'] as $move) {
             $command->line($move['from'].' -> '.$move['to']);
+        }
+        foreach ($plan->folderContents as $move) {
+            $command->line('  Folder content '.$move['from'].' -> '.$move['to']);
         }
         foreach ($plan->rename['rewrites'] as $edit) {
             $command->line('Rewrite '.$edit['file'].':'.$edit['line'].' ['.$edit['category'].']: '.$edit['before'].' -> '.$edit['after']);

@@ -31,6 +31,9 @@ final class Journal
     /** @var list<string> */
     public array $directories = [];
 
+    /** @var array<string, int> Source subtree directories, including empty ones. */
+    public array $originalDirectories = [];
+
     public string $index = '';
 
     public int $indexMode = 0600;
@@ -53,7 +56,7 @@ final class Journal
 
     public function save(): void
     {
-        $bytes = json_encode(['version' => 1, 'nonce' => $this->nonce, 'root' => realpath($this->repository->basePath), 'index_path' => $this->repository->state->index, 'index' => $this->index, 'index_mode' => $this->indexMode, 'phase' => $this->phase, 'operation' => $this->operation, 'paths' => $this->paths, 'entries' => $this->entries, 'expected_files' => $this->expectedFiles, 'expected_entries' => $this->expectedEntries, 'original_entries' => $this->originalEntries, 'directories' => $this->directories], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+        $bytes = json_encode(['version' => 1, 'nonce' => $this->nonce, 'root' => realpath($this->repository->basePath), 'index_path' => $this->repository->state->index, 'index' => $this->index, 'index_mode' => $this->indexMode, 'phase' => $this->phase, 'operation' => $this->operation, 'paths' => $this->paths, 'entries' => $this->entries, 'expected_files' => $this->expectedFiles, 'expected_entries' => $this->expectedEntries, 'original_entries' => $this->originalEntries, 'directories' => $this->directories, 'original_directories' => $this->originalDirectories], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
         if (strlen($bytes) > 134217728) {
             throw new RuntimeException('mod:rename journal exceeds the supported size. Nothing was written.');
         }
@@ -123,6 +126,15 @@ final class Journal
             }
             $directories[] = $directory;
         }
+        $originalDirectories = $data['original_directories'] ?? [];
+        if (! is_array($originalDirectories)) {
+            throw new RuntimeException('mod:rename recovery journal contains invalid source directories.');
+        }
+        foreach ($originalDirectories as $directory => $mode) {
+            if (! is_string($directory) || $guard->problem($directory) !== null || (new Snapshot)->excluded($directory) || ! is_int($mode) || $mode < 0 || $mode > 0777 || (! isset($originalDirectories[dirname($directory)]) && array_filter($paths, static fn (array $row, string $path): bool => $row['original'] !== null && str_starts_with($path, $directory.'/'), ARRAY_FILTER_USE_BOTH) === [])) {
+                throw new RuntimeException('mod:rename recovery journal contains unsafe source directories.');
+            }
+        }
         if (array_keys($entries) !== array_keys($paths)) {
             throw new RuntimeException('mod:rename recovery journal has incomplete index metadata.');
         }
@@ -137,6 +149,7 @@ final class Journal
         $this->entries = $entries;
         $this->originalEntries = $originalEntries;
         $this->directories = $directories;
+        $this->originalDirectories = $originalDirectories;
         $rawIndex = (string) base64_decode($data['index'], true);
         $digestLength = strlen($rawIndex) >= 32 && hash_equals(substr($rawIndex, -32), hash('sha256', substr($rawIndex, 0, -32), true)) ? 32 : 20;
         if (! str_starts_with($rawIndex, 'DIRC') || ! hash_equals(substr($rawIndex, -$digestLength), hash($digestLength === 32 ? 'sha256' : 'sha1', substr($rawIndex, 0, -$digestLength), true))) {

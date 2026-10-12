@@ -80,7 +80,18 @@ final class Transaction implements Executor, RecoveryInspector
             $journal->originalEntries = $repository->entries();
             $journal->indexMode = (int) fileperms((string) $repository->state->index) & 0777;
             $journal->index = base64_encode((string) file_get_contents((string) $repository->state->index));
+            $folderTrees = [];
             foreach ($result->plan->rename['moves'] as $move) {
+                if ($move['type'] === 'folder') {
+                    $tree = Snapshot::tree($this->basePath, $move['from']);
+                    $folderTrees[$move['from']] = $tree;
+                    $journal->originalDirectories += $tree['directories'];
+                    foreach (array_keys($tree['directories']) as $directory) {
+                        $journal->directories[] = Path::join($move['to'], (string) Path::relative($move['from'], $directory));
+                    }
+                }
+            }
+            foreach ($result->plan->fileMoves() as $move) {
                 $file = $inputs->files[$move['from']];
                 $this->remember($journal, $move['from'], $file->bytes, $file->mode, null);
                 $this->remember($journal, $move['to'], null, $file->mode, $file->bytes);
@@ -133,20 +144,33 @@ final class Transaction implements Executor, RecoveryInspector
                     $operationName = 'moving '.$move['from'];
                     $journal->operation = $operationName;
                     $journal->save();
-                    $this->assertFile($move['from'], $inputs->files[$move['from']]->bytes, $inputs->files[$move['from']]->mode);
                     $this->assertFile($move['to'], null, 0);
                     $this->parents($move['to']);
                     $this->checkpoint('before-move:'.$move['from']);
-                    $this->assertFile($move['from'], $inputs->files[$move['from']]->bytes, $inputs->files[$move['from']]->mode);
                     $this->assertFile($move['to'], null, 0);
-                    $currentEntries = $repository->entries();
-                    foreach ([$move['from'], $move['to']] as $path) {
-                        if (($currentEntries[$path] ?? null) !== ($journal->originalEntries[$path] ?? null)) {
-                            throw new RuntimeException('Outside index entry: '.$path);
-                        }
+                    $moves = $move['type'] === 'folder'
+                        ? array_values(array_filter($result->plan->folderContents, static fn (array $file): bool => Path::relative($move['from'], $file['from']) !== null))
+                        : [$move];
+                    if ($move['type'] === 'folder' && Snapshot::tree($this->basePath, $move['from']) !== $folderTrees[$move['from']]) {
+                        throw new RuntimeException('mod:rename folder contents changed after the preview. Nothing was moved.');
                     }
-                    $moveFiles = [$move['from'] => null, $move['to'] => base64_encode($inputs->files[$move['from']]->bytes)];
-                    $moveEntries = [$move['from'] => null, $move['to'] => $journal->originalEntries[$move['from']] ?? null];
+                    $currentEntries = $repository->entries();
+                    $moveFiles = [];
+                    $moveEntries = [];
+                    foreach ($moves as $fileMove) {
+                        $file = $inputs->files[$fileMove['from']];
+                        $this->assertFile($fileMove['from'], $file->bytes, $file->mode);
+                        $this->assertFile($fileMove['to'], null, 0);
+                        foreach ([$fileMove['from'], $fileMove['to']] as $path) {
+                            if (($currentEntries[$path] ?? null) !== ($journal->originalEntries[$path] ?? null)) {
+                                throw new RuntimeException('Outside index entry: '.$path);
+                            }
+                        }
+                        $moveFiles[$fileMove['from']] = null;
+                        $moveFiles[$fileMove['to']] = base64_encode($file->bytes);
+                        $moveEntries[$fileMove['from']] = null;
+                        $moveEntries[$fileMove['to']] = $journal->originalEntries[$fileMove['from']] ?? null;
+                    }
                     $this->intend($journal, $moveFiles, $moveEntries);
                     $repository->run(['mv', '--', $move['from'], $move['to']]);
                     $this->complete($journal, $moveFiles, $moveEntries);
@@ -324,7 +348,7 @@ final class Transaction implements Executor, RecoveryInspector
             }
         }
         $expected = $inputs->git->paths;
-        foreach ($result->plan->rename['moves'] as $move) {
+        foreach ($result->plan->fileMoves() as $move) {
             $expected = array_values(array_diff($expected, [$move['from']]));
             $expected[] = $move['to'];
         }
@@ -474,6 +498,12 @@ final class Transaction implements Executor, RecoveryInspector
     {
         $conflicts = [];
         $guard = new PathGuard($this->basePath);
+        foreach ($journal->originalDirectories as $directory => $mode) {
+            $absolute = $this->basePath.'/'.$directory;
+            if ($guard->problem($directory) !== null || (file_exists($absolute) && (! is_dir($absolute) || ! FileMode::matches((int) fileperms($absolute) & 0777, $mode)))) {
+                $conflicts[] = 'Outside directory change: '.$directory;
+            }
+        }
         foreach ($journal->paths as $path => $row) {
             $absolute = $this->basePath.'/'.$path;
             if ($guard->problem($path) !== null || (file_exists($absolute) && ! is_file($absolute))) {
@@ -504,6 +534,14 @@ final class Transaction implements Executor, RecoveryInspector
         }
         $journal->phase = 'rolling-back';
         $journal->save();
+        foreach ($journal->originalDirectories as $directory => $mode) {
+            $absolute = $this->basePath.'/'.$directory;
+            if (! is_dir($absolute)) {
+                if (! mkdir($absolute, $mode, true) || ! chmod($absolute, $mode)) {
+                    throw new RuntimeException('Cannot restore directory '.$directory);
+                }
+            }
+        }
         $restorePaths = $journal->paths;
         uksort($restorePaths, static fn (string $a, string $b): int => (int) str_ends_with($b, '.mod-rename-tmp') <=> (int) str_ends_with($a, '.mod-rename-tmp'));
         foreach ($restorePaths as $path => $row) {

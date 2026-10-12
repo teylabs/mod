@@ -22,7 +22,7 @@ use Throwable;
  *
  * Public node metadata is available through nodes(); recipes stay internal.
  *
- * @phpstan-type Node array{key: string, source: string, from: string, members: array<string, array{fileType: string, name: ?string, stub: ?string, options: array<array-key, mixed>, ungrouped: bool, group: ?string, existing: ?string}>, children: list<string>, uses: ?string}
+ * @phpstan-type Node array{key: string, source: string, from: string, members: array<string, array{fileType: string, name: ?string, stub: ?string, options: array<array-key, mixed>, ungrouped: bool, group: ?string, existing: ?string, folder?: true}>, children: list<string>, uses: ?string}
  *
  * @api
  */
@@ -235,7 +235,7 @@ final class ScaffoldRegistry
                 $effective->overlay($recipe);
             }
             foreach ($effective->members() as $alias => $member) {
-                $members[$alias] = ['fileType' => $member->fileType, 'name' => $member->name, 'stub' => $member->stub, 'options' => $member->options, 'ungrouped' => $member->ungrouped, 'group' => $member->group, 'existing' => $member->existing];
+                $members[$alias] = ['fileType' => $member->fileType, 'name' => $member->name, 'stub' => $member->stub, 'options' => $member->options, 'ungrouped' => $member->ungrouped, 'group' => $member->group, 'existing' => $member->existing, ...($member->folder ? ['folder' => true] : [])];
             }
             $children = array_values(array_filter(array_keys($recipes), static fn (string $child): bool => str_starts_with($child, $key.'.') && substr_count($child, '.') === substr_count($key, '.') + 1));
             $nodes[$key] = ['key' => $key, 'source' => $source, 'from' => $this->sources[$key] ?? $this->provenance($key), 'members' => $members, 'children' => $children, 'uses' => $recipe instanceof Part ? $recipe->scaffold() : null];
@@ -415,6 +415,16 @@ final class ScaffoldRegistry
                     break;
                 }
                 $earlier[] = $alias;
+                if ($member->folder) {
+                    try {
+                        Folder::pattern($layout, $member->fileType);
+                    } catch (ModException $exception) {
+                        $this->problems[$name] = "Scaffold [{$name}] is disabled. ".$exception->getMessage();
+                        break;
+                    }
+
+                    continue;
+                }
                 if (! $layout->hasKind($member->fileType)) {
                     $type = $member->fileType;
                     $token = $layout->dimensionNames()[0] ?? 'group';

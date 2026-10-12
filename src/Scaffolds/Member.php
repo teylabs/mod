@@ -22,6 +22,7 @@ final readonly class Member
         public ?string $group = null,
         public ?string $existing = null,
         public string|Closure|null $when = null,
+        public bool $folder = false,
     ) {}
 
     /**
