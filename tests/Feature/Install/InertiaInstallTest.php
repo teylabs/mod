@@ -2,7 +2,9 @@
 
 use Illuminate\Contracts\Console\Kernel;
 use Tey\Mod\Commands\InstallCommand;
+use Tey\Mod\Facades\Mod;
 use Tey\Mod\Layout\LayoutRegistry;
+use Tey\Mod\Layout\Root;
 use Tey\Mod\Listing\InventorySectionRegistry;
 use Tey\Mod\Tests\Feature\Acceptance\Examples\Support\TemplateScenario;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
@@ -231,6 +233,49 @@ it('prints exact insertion points and snippets for a customized bootstrap', func
         }
     });
 });
+
+it('prints literal folder-file globs for every owner without changing the layout callback', function (string $stack, string $entryExtension, string $extension, string $casing) {
+    Workspace::run(null, function (Workspace $w) use ($stack, $entryExtension, $extension, $casing) {
+        Kit::setup($w);
+        $w->write('package.json', json_encode(['dependencies' => ['@inertiajs/'.($stack === 'vue' ? 'vue3' : 'react') => '^2']], JSON_THROW_ON_ERROR));
+        $w->remove(['resources/js/app.ts', 'tsconfig.json', 'resources/js/pages/.gitkeep']);
+        if ($entryExtension === 'ts') {
+            $w->write('tsconfig.json', Kit::files('vue-laravel12', 'before')['tsconfig.json']);
+        }
+        $entry = 'resources/js/app.'.$entryExtension;
+        $w->write($entry, "createInertiaApp({\n    resolve: (name) => customLookup(name),\n    layout: (name) => customLayout(name),\n});\n");
+        $w->write('resources/js/'.$casing.'/.gitkeep', '');
+        Mod::layout('modules')->mounts('ui', 'App\\UI\\', 'app/UI', fn (Root $root) => $root->frontend(pages: 'screens', pageName: 'UI::{path}'));
+        $w->write('app/UI/screens/Client/Page.'.$extension, '');
+        $w->write('vendor/acme/billing/screens/Client/Page.'.$extension, '');
+        Mod::pages('billing', $w->root->path('vendor/acme/billing/screens'));
+        $before = $w->files();
+        $plan = json_decode($w->artisan('mod:install', ['stack' => 'inertia', '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
+        $message = implode("\n", array_column($plan['warnings'], 'message'));
+        expect($plan['would_write'])->toBeFalse()
+            ->and($message)->toContain(
+                'nearestPageFile(name, pageFiles)',
+                "import.meta.glob('./".$casing.'/**/*.'.$extension."', { eager: true, import: 'default' })",
+                "import.meta.glob('../../app/Modules/*/resources/js/".$casing.'/**/*.'.$extension."', { eager: true, import: 'default' })",
+                '"../../app/UI/screens/**/*.'.$extension.'", { eager: true, import: \'default\' }',
+                '"../../vendor/acme/billing/screens/**/*.'.$extension.'", { eager: true, import: \'default\' }',
+                '"UI::" + key.slice(', '"billing::" + key.slice(',
+            );
+        $w->artisan('mod:install', ['stack' => 'inertia', '--no-interaction' => true])->assertSuccessful();
+        expect($w->files())->toBe($before);
+    });
+})->with([['vue', 'ts', 'vue', 'Pages'], ['react', 'jsx', 'jsx', 'pages']]);
+
+it('recognizes a combined nearest-file and page-resolver import as already wired', function (string $imports) {
+    Workspace::run(null, function (Workspace $w) use ($imports) {
+        Kit::setup($w);
+        $w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful();
+        $w->write('resources/js/app.ts', str_replace('{ resolveModulePage }', '{ '.$imports.' }', $w->read('resources/js/app.ts')));
+        $before = $w->files();
+        $w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful()->expectsOutputToContain('Already wired.');
+        expect($w->files())->toBe($before);
+    });
+})->with(['resolveModulePage, nearestPageFile', 'nearestPageFile, resolveModulePage']);
 
 it('recognizes hand-wired resolver, Vite and Tailwind fixtures without editing', function (string $entry, string $alias, string $order, string $newline) {
     Workspace::run(null, function (Workspace $w) use ($entry, $alias, $order, $newline) {

@@ -7,6 +7,12 @@ use Tey\Mod\Layout\Root;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
 
+it('runs the client page resolver contracts against the pinned 0.6 behaviour', function () {
+    $process = new Process(['node', '--test', 'tests/Node/inertia.test.mjs'], dirname(__DIR__, 3), timeout: 120);
+    $process->run();
+    expect($process->isSuccessful())->toBeTrue($process->getOutput().$process->getErrorOutput());
+})->skip(getenv('MOD_FRONTEND_BUILD') !== '1', 'Set MOD_FRONTEND_BUILD=1 to run the Node resolver contracts.');
+
 it('builds a mounted alias and Tailwind source with Vite and checks TypeScript', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'frontend-build');
@@ -34,7 +40,32 @@ JS);
     "exclude": ["node_modules"]
 }
 JSON);
-        $w->write('resources/js/app.ts', "import { card } from '@/UI/Card';\nconsole.log(card);\n");
+        $w->write('resources/js/app.ts', <<<'TS'
+/// <reference types="vite/client" />
+import { card } from '@/UI/Card';
+import { nearestPageFile } from '../../vendor/tey/mod/resources/js/inertia';
+const files = import.meta.glob<number>([
+    './pages/**/Shell.ts',
+    '../../app/Modules/*/resources/js/pages/**/Shell.ts',
+], { eager: true, import: 'default' });
+const mounted = Object.fromEntries(Object.entries(
+    import.meta.glob<number>('../../app/UI/screens/**/Shell.ts', { eager: true, import: 'default' }),
+).map(([key, value]) => ['UI::' + key.slice('../../app/UI/screens/'.length), value]));
+const all = { ...files, ...mounted };
+const chosen: number | undefined = nearestPageFile('Sales::Client/Edit/Page', all);
+if (chosen !== 23 || nearestPageFile('Client/Edit/Page', all) !== 11
+    || nearestPageFile('UI::Client/Edit/Page', all) !== 31
+    || nearestPageFile('Other::Client/Edit/Page', all) !== undefined) {
+    throw new Error('Incorrect built folder-file lookup');
+}
+console.log(card, 'folder-files-ok');
+TS);
+        foreach (['inertia.js', 'inertia.d.ts'] as $file) {
+            $w->write('vendor/tey/mod/resources/js/'.$file, file_get_contents(dirname(__DIR__, 3).'/resources/js/'.$file));
+        }
+        $w->write('resources/js/pages/Client/Shell.ts', 'export default 11;');
+        $w->write('app/Modules/Sales/resources/js/pages/Client/Shell.ts', 'export default 23;');
+        $w->write('app/UI/screens/Client/Shell.ts', 'export default 31;');
         $w->write('app/UI/resources/js/Card.ts', "export const card: string = 'p-7';\n");
         $w->write('resources/css/app.css', '@import "tailwindcss" source(none);');
         expect(Mod::wiring()->plan()->apply())->toBeTrue();
@@ -46,6 +77,10 @@ JSON);
         $manifest = json_decode($w->read('public/build/manifest.json'), true, flags: JSON_THROW_ON_ERROR);
         expect($manifest)->toHaveKeys(['resources/js/app.ts', 'resources/css/app.css'])
             ->and($w->read('public/build/'.$manifest['resources/css/app.css']['file']))->toContain('.p-7');
+        $process = new Process(['node', 'public/build/'.$manifest['resources/js/app.ts']['file']], $w->root->path, timeout: 120);
+        $process->run();
+        expect($process->isSuccessful())->toBeTrue($process->getOutput().$process->getErrorOutput())
+            ->and($process->getOutput())->toContain('folder-files-ok');
         expect(Mod::wiring()->plan()->toArray()['files'])->toBe([]);
     });
 })->skip(getenv('MOD_FRONTEND_BUILD') !== '1', 'Set MOD_FRONTEND_BUILD=1 after npm ci in tests/Fixtures/frontend-build.');

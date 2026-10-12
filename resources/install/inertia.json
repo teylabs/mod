@@ -16,6 +16,6 @@
     "typescript_alias": "\"@modules/*\"",
     "typescript_line": "\n            \"@modules/*\": [\"./%s/*\"],",
     "alias_target_pattern": "~['\"]@modules['\"]\\s*:\\s*(?:\\w+\\(new URL\\(['\"]\\./%s['\"]|(?:\\w+\\.)?\\w+\\((?:__dirname,\\s*)?['\"](?:\\./)?%s['\"]|['\"](?:\\./)?%s['\"])~",
-    "import_pattern": "~\\bimport\\s*\\{\\s*resolveModulePage\\s*\\}\\s*from\\s*['\"]\\.\\./\\.\\./vendor/tey/mod/resources/js/inertia['\"]~",
+    "import_pattern": "~\\bimport\\s*\\{\\s*(?:nearestPageFile\\s*,\\s*)?resolveModulePage\\s*(?:,\\s*nearestPageFile\\s*)?,?\\s*\\}\\s*from\\s*['\"]\\.\\./\\.\\./vendor/tey/mod/resources/js/inertia['\"]~",
     "page_map": "...Object.fromEntries(Object.entries(import.meta.glob(%s)).map(([key, value]) => [%s + key.slice(%d), value]))"
 }
