@@ -3,7 +3,10 @@
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Feature\Scaffolds\Support\IndexPage;
 
-const REQUEST_WITHOUT_FILTER = <<<'PHP'
+/** Heredocs take the checkout's line endings, so compare against LF. */
+function requestWithoutFilter(): string
+{
+    return str_replace("\r\n", "\n", <<<'PHP'
 <?php
 
 namespace App\Http\Requests;
@@ -37,9 +40,12 @@ class InvoiceIndexRequest extends FormRequest
     }
 }
 
-PHP;
+PHP);
+}
 
-const PAGE_WITH_FILTER = <<<'VUE'
+function pageWithFilter(): string
+{
+    return str_replace("\r\n", "\n", <<<'VUE'
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 
@@ -81,7 +87,8 @@ function sort(key: string) {
     </table>
 </template>
 
-VUE;
+VUE);
+}
 
 /** @param array<string, mixed> $flags */
 function generateIndex(Workspace $w, array $flags = []): void
@@ -94,8 +101,8 @@ it('repeats columns and drops the status filter when it is off', function () {
     Workspace::run(null, function (Workspace $w) {
         generateIndex($w, ['--no-status_filter' => true]);
 
-        $page = $w->read(IndexPage::PAGE);
-        expect($w->read(IndexPage::REQUEST))->toBe(REQUEST_WITHOUT_FILTER)
+        $page = IndexPage::read($w, IndexPage::PAGE);
+        expect(IndexPage::read($w, IndexPage::REQUEST))->toBe(requestWithoutFilter())
             ->and($page)->toContain("<th>Notes</th>\n            </tr>")
             ->and(str_contains($page, 'statuses') || str_contains($page, '<select'))->toBeFalse();
     });
@@ -105,8 +112,8 @@ it('keeps the status filter in the request and the page when it is on', function
     Workspace::run(null, function (Workspace $w) {
         generateIndex($w, ['--status_filter' => true]);
 
-        expect($w->read(IndexPage::REQUEST))->toBe(str_replace("            'direction' => ['nullable', 'in:asc,desc'],\n", "            'direction' => ['nullable', 'in:asc,desc'],\n            'status' => ['nullable', 'string'],\n", REQUEST_WITHOUT_FILTER))
-            ->and($w->read(IndexPage::PAGE))->toBe(PAGE_WITH_FILTER);
+        expect(IndexPage::read($w, IndexPage::REQUEST))->toBe(str_replace("            'direction' => ['nullable', 'in:asc,desc'],\n", "            'direction' => ['nullable', 'in:asc,desc'],\n            'status' => ['nullable', 'string'],\n", requestWithoutFilter()))
+            ->and(IndexPage::read($w, IndexPage::PAGE))->toBe(pageWithFilter());
     });
 });
 
@@ -115,7 +122,7 @@ it('uses the recipe default records and boolean without flags', function () {
         IndexPage::setup($w);
         $w->artisan('mod:acme/index', ['name' => 'Invoice'])->assertSuccessful();
 
-        $request = $w->read(IndexPage::REQUEST);
+        $request = IndexPage::read($w, IndexPage::REQUEST);
         expect($request)->toContain("        'number',\n    ];")
             ->and(str_contains($request, 'customer_name') || str_contains($request, "'status'"))->toBeFalse();
     });
@@ -125,8 +132,8 @@ it('renders nothing for an empty list of columns', function () {
     Workspace::run(null, function (Workspace $w) {
         generateIndex($w, ['--columns' => '[]']);
 
-        $page = $w->read(IndexPage::PAGE);
-        expect($w->read(IndexPage::REQUEST))->toContain("SORTS = [\n    ];")
+        $page = IndexPage::read($w, IndexPage::PAGE);
+        expect(IndexPage::read($w, IndexPage::REQUEST))->toContain("SORTS = [\n    ];")
             ->and($page)->toContain("<tr>\n            </tr>")
             ->and(str_contains($page, '<th>'))->toBeFalse();
     });
@@ -193,7 +200,7 @@ it('writes script literals in the quote style of the apps Prettier config, which
         $w->write('.prettierrc.json', json_encode(['singleQuote' => $singleQuote, 'tabWidth' => 4]));
         generateIndex($w, ['--modal' => true]);
 
-        expect($w->read(IndexPage::MODAL))->toContain($singleQuote ? "const sizes: string[] = ['sm', 'md', \"it's\"];" : 'const sizes: string[] = ["sm", "md", "it\'s"];');
+        expect(IndexPage::read($w, IndexPage::MODAL))->toContain($singleQuote ? "const sizes: string[] = ['sm', 'md', \"it's\"];" : 'const sizes: string[] = ["sm", "md", "it\'s"];');
         IndexPage::prettier($w, ['singleQuote' => $singleQuote, 'tabWidth' => 4, 'printWidth' => 100], IndexPage::MODAL);
     });
 })->with([true, false])->skip(getenv('MOD_FRONTEND_BUILD') !== '1', 'Set MOD_FRONTEND_BUILD=1 after npm ci in tests/Fixtures/frontend-build.');

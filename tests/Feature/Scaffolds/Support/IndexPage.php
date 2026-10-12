@@ -49,6 +49,12 @@ final class IndexPage
         Mod::vendor('acme')->scaffold('index', $recipe ?? self::recipe(...));
     }
 
+    /** A generated file with LF line endings, whatever the OS writes. */
+    public static function read(Workspace $w, string $path): string
+    {
+        return str_replace("\r\n", "\n", $w->read($path));
+    }
+
     /** Run Laravel Pint over the files, as the app would. */
     public static function pint(Workspace $w, string ...$paths): void
     {
