@@ -2,6 +2,7 @@
 
 use Composer\Autoload\ClassLoader;
 use Illuminate\Console\Application as ConsoleApplication;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
@@ -72,8 +73,12 @@ it('renders the same scaffold bytes into another root despite classes in the app
         $renderApp->setBasePath($w->root->path('render'));
         $console = new ConsoleApplication($renderApp, app('events'), 'test');
         $commands = Artisan::all();
-        foreach (['mod:copy', 'mod:job', 'mod:request'] as $command) {
-            $console->add(clone $commands[$command]);
+        foreach (['mod:copy', 'mod:job', 'mod:request'] as $id) {
+            $command = clone $commands[$id];
+            if (! $command instanceof Command) {
+                throw new LogicException('Expected a Laravel generator command.');
+            }
+            $console->resolve($command);
         }
         $output = new BufferedOutput;
         try {
@@ -116,8 +121,12 @@ it('refuses a class declared elsewhere inside an alternate render root even with
         $renderApp->setBasePath($w->root->path('render'));
         $console = new ConsoleApplication($renderApp, app('events'), 'test');
         $commands = Artisan::all();
-        foreach (['mod:copy', 'mod:job'] as $command) {
-            $console->add(clone $commands[$command]);
+        foreach (['mod:copy', 'mod:job'] as $id) {
+            $command = clone $commands[$id];
+            if (! $command instanceof Command) {
+                throw new LogicException('Expected a Laravel generator command.');
+            }
+            $console->resolve($command);
         }
         $output = new BufferedOutput;
         $exit = $console->run(new ArrayInput(['command' => 'mod:copy', 'name' => 'Knowledge:'.$name, '--no-interaction' => true, '--force' => true]), $output);
