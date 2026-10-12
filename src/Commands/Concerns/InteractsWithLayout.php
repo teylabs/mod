@@ -822,7 +822,7 @@ trait InteractsWithLayout
     /** @internal */
     protected function existingArtifacts(): ExistingArtifacts
     {
-        return new ExistingArtifacts($this->laravel->basePath());
+        return new ExistingArtifacts($this->laravel->basePath(), $this->layout());
     }
 
     /**

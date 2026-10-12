@@ -303,6 +303,8 @@ Mod::vendor('acme')->scaffold('pages', fn (Scaffold $s) => $s->makes('page'), co
 
 The default command is `mod:acme/pages`; parts use `mod:acme/pages.form`. Dots mean declared parts. `command:` opts into one canonical Artisan name, with the same options, questions and messages; it adds no alias. An existing command is never replaced. Invokable classes declare `$name`, and may declare a string `$command`.
 
+Test members can use Pest or PHPUnit stubs. Collision checks use the file path for the `test` file type and every member under a test root, without loading the test through Composer. Rerunning a scaffold reports existing files as usual: `--skip-existing` keeps them, `--force` overwrites them, and interactive runs offer keep, overwrite or cancel. Other PHP members check their paths and autoload their class identities, so a class declared elsewhere is still a collision even when it has not been loaded yet.
+
 A root scaffold can declare a default name so its command runs bare:
 
 ```php

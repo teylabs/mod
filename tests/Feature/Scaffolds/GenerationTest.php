@@ -1,5 +1,6 @@
 <?php
 
+use Symfony\Component\Process\Process;
 use Tey\Mod\Commands\JobCommand;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Generation\GenerationPlan;
@@ -52,6 +53,60 @@ it('keeps or overwrites related artifacts as well as explicit members', function
         expect($w->read(Examples::paths()[2]))->{$force ? 'toContain' : 'toBe'}($force ? 'class DocumentFactory' : 'existing factory');
     });
 })->with([false, true]);
+
+it('reruns a scaffold with an autoloadable test member without loading the test', function (bool $pest) {
+    Workspace::run(null, function (Workspace $w) use ($pest) {
+        config()->set('mod.layout', 'laravel');
+        $name = 'Collision'.bin2hex(random_bytes(4));
+        $path = "tests/Feature/{$name}Test.php";
+        $job = "app/Jobs/{$name}.php";
+        $stub = $pest
+            ? "<?php\n\nit('works', function () { expect(true)->toBeTrue(); });\n"
+            : "<?php\n\nnamespace {{ namespace }};\n\nclass {{ class }} extends \\PHPUnit\\Framework\\TestCase {}\n";
+        $w->write('stubs/mod.test.collision.stub', $stub);
+        Mod::scaffold('tested', fn (Scaffold $s) => $s->makes('job')->makes('test', name: '{name}Test', stub: 'collision'));
+        $w->artisan('mod:tested', ['name' => $name])->assertSuccessful();
+        $original = $w->read($path);
+        $edited = $original."// edited\n";
+        $w->write($path, $edited);
+        $w->remove([$job]);
+
+        // Run outside Pest: autoloading the class-less test here triggers Pest's guard.
+        $code = <<<'PHP'
+require $argv[1];
+$case = new class('collision') extends \Tey\Mod\Tests\TestCase {
+    public function boot(): void { $this->setUp(); }
+};
+$case->boot();
+app()->setBasePath($argv[2]);
+config()->set('mod.layout', 'laravel');
+$loader = new \Composer\Autoload\ClassLoader;
+$loader->addPsr4('Tests\\', $argv[2].'/tests');
+$loader->register();
+\Tey\Mod\Facades\Mod::scaffold('tested', fn ($s) => $s->makes('job')->makes('test', name: '{name}Test', stub: 'collision'));
+$exit = \Illuminate\Support\Facades\Artisan::call('mod:tested', ['name' => $argv[3], '--no-interaction' => true, ...json_decode($argv[4], true)]);
+echo json_encode(['exit' => $exit, 'output' => \Illuminate\Support\Facades\Artisan::output(), 'loaded' => class_exists('Tests\\Feature\\'.$argv[3].'Test', false)], JSON_THROW_ON_ERROR);
+PHP;
+
+        foreach ([[], ['--skip-existing' => true], ['--force' => true]] as $options) {
+            $process = new Process([PHP_BINARY, '-r', $code, '--', dirname(__DIR__, 3).'/vendor/autoload.php', $w->root->path, $name, json_encode($options, JSON_THROW_ON_ERROR)]);
+            $process->run();
+            expect($process->getExitCode())->toBe(0, $process->getOutput().$process->getErrorOutput());
+            $result = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+            expect($result['loaded'])->toBeFalse()
+                ->and($result['output'])->not->toContain('Please run');
+            if ($options === []) {
+                expect($result['exit'])->toBe(1)
+                    ->and($result['output'])->toContain($path.' already exists', 'Nothing was written')
+                    ->and($w->exists($job))->toBeFalse();
+            } else {
+                expect($result['exit'])->toBe(0, $result['output'])
+                    ->and($w->read($job))->toContain('class '.$name);
+            }
+            expect($w->read($path))->toBe(isset($options['--force']) ? $original : $edited);
+        }
+    });
+})->with(['Pest' => true, 'PHPUnit' => false]);
 
 it('rejects overlapping planned member paths even with force', function () {
     Workspace::run(null, function (Workspace $w) {

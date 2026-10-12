@@ -19,6 +19,7 @@ All notable changes to `mod` will be documented in this file.
 - Calling `named()` on a scaffold part is refused with guidance to declare the default name on the root scaffold (#126)
 
 ### Fixed
+- Rerunning a scaffold with Pest or PHPUnit test members checks existing paths without loading test files, preserving collision refusal, `--skip-existing`, `--force` and interactive choices. Non-test artifacts still autoload class identities to detect classes declared elsewhere (#141).
 - `mod-survey` and `mod-fit` classify classes from symlinked Composer path-repository packages as vendor-owned by their lexical `vendor/` path, without following the link or reading the file, and report unusable vendor paths as skipped instead of failing (#131).
 
 ## [0.6.1] - 2026-10-11
