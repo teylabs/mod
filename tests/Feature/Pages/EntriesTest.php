@@ -5,6 +5,7 @@ use Tey\Mod\Facades\Mod;
 use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Layout\Root;
 use Tey\Mod\Listing\InventorySectionRegistry;
+use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Feature\Install\Kit;
 use Tey\Mod\Tests\Support\JsonSchema;
@@ -17,6 +18,8 @@ it('keeps null entry declarations byte-identical for starter wiring identities a
         $identity = json_decode($w->artisan('mod:page', ['name' => 'Inventory:Widget/Layout', '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR)['files'][0]['identity'];
         expect($inventory['frontend'])->not->toHaveKey('page_entries');
         expect($identity['name'])->toBe(str_starts_with($kit, 'react') ? 'Inventory::widget/layout' : 'Inventory::Widget/Layout');
+        $w->artisan('mod:page', ['name' => 'Inventory:Widget/Layout'])->assertSuccessful()
+            ->expectsOutputToContain('Page ['.$identity['path']."] created successfully. Render it with Inertia::render('".$identity['name']."').");
         $w->artisan('mod:install', ['stack' => 'inertia'])->assertSuccessful();
         foreach (Kit::files($kit, 'after') as $file => $contents) {
             expect($w->read($file))->toBe($contents);
@@ -98,6 +101,15 @@ it('keeps verbatim render names only on included stems and preserves component p
         } else {
             expect($forms)->not->toHaveKey('name');
         }
+        $result = $w->artisan('mod:page', ['name' => 'Inventory:Widget/Edit/'.$name])->assertSuccessful();
+        expect($w->read($forms['path']))->toContain('<template>');
+        if ($included) {
+            $result->expectsOutputToContain('Page ['.$forms['path']."] created successfully. Render it with Inertia::render('Inventory::Widget/Edit/".$name."').");
+            expect($result->output)->not->toContain('Not a page entry');
+        } else {
+            $result->expectsOutputToContain('Page ['.$forms['path'].'] created successfully. Not a page entry; import it from a page.');
+            expect($result->output)->not->toContain('Inertia::render');
+        }
     });
 })->with([
     [['Page', 'Modal'], 'Page', true],
@@ -109,6 +121,40 @@ it('keeps verbatim render names only on included stems and preserves component p
     [['*'], 'Layout', true],
     [[], 'Page', false],
 ]);
+
+it('generates non-entry page scaffold members without rolling back earlier files', function (bool $tree) {
+    Workspace::run(null, function (Workspace $w) use ($tree) {
+        Kit::setup($w);
+        Mod::layout('modules')->frontend(pageEntries: ['Page', 'Modal']);
+        $w->write('stubs/mod.page.vue.stub', '<template><p>{{ name.studly }}</p></template>');
+        Mod::scaffold('pages', function (Scaffold $s) use ($tree): void {
+            $s->makes('page', name: '{name}/Edit/Page', as: 'entry')
+                ->makes('page', name: '{name}/Edit/Layout', as: 'layout')
+                ->makes('page', name: '{name}/Edit/Modal', as: 'modal');
+            if ($tree) {
+                $s->part('tab');
+            }
+        });
+        $before = $w->files();
+        $plan = json_decode($w->artisan('mod:pages', ['name' => 'Inventory:Widget', '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
+        $identities = array_column($plan['files'], 'identity', 'alias');
+        expect($plan['would_write'])->toBeTrue()->and($plan['warnings'])->toBe([])
+            ->and($identities['entry']['name'])->toBe('Inventory::Widget/Edit/Page')
+            ->and($identities['modal']['name'])->toBe('Inventory::Widget/Edit/Modal')
+            ->and($identities['layout'])->not->toHaveKey('name')
+            ->and($identities['layout']['import'])->toBe('@modules/Inventory/resources/js/pages/Widget/Edit/Layout.vue')
+            ->and($w->files())->toBe($before);
+
+        $result = $w->artisan('mod:pages', ['name' => 'Inventory:Widget'])->assertSuccessful();
+        foreach (['Page', 'Layout', 'Modal'] as $stem) {
+            expect($w->read('app/Modules/Inventory/resources/js/pages/Widget/Edit/'.$stem.'.vue'))->toBe('<template><p>Widget</p></template>');
+        }
+        $result->expectsOutputToContain('Not a page entry; import it from a page.')
+            ->expectsOutputToContain("Render it with Inertia::render('Inventory::Widget/Edit/Page').")
+            ->expectsOutputToContain("Render it with Inertia::render('Inventory::Widget/Edit/Modal').");
+        expect($result->output)->not->toContain("Inertia::render('Inventory::Widget/Edit/Layout')");
+    });
+})->with(['flat' => false, 'tree' => true]);
 
 it('uses a mounted page owners entry list for generated identities', function (?array $entries) {
     Workspace::run(null, function (Workspace $w) use ($entries) {

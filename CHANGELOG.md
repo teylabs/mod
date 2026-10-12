@@ -26,6 +26,7 @@ All notable changes to `mod` will be documented in this file.
 - Discovery reuses unchanged inventories across application boots in one PHP process without a cache file, with directory-mtime invalidation, `Mod::flushDiscovery()` and a `discovery.reuse_in_process` opt-out (#148).
 
 ### Fixed
+- Generating a non-entry page directly or in a scaffold succeeds without a render-name crash or rollback. Its notice says to import it from a page; entry pages keep their render hint (#156).
 - Rendering scaffolds into a root other than the running application's ignores classes declared outside the destination. In-app class-collision protection, test path-only checks and `--force` behaviour are unchanged (#149).
 - Rerunning a scaffold with Pest or PHPUnit test members checks existing paths without loading test files, preserving collision refusal, `--skip-existing`, `--force` and interactive choices. Non-test artifacts still autoload class identities to detect classes declared elsewhere (#141).
 - `mod-survey` and `mod-fit` classify classes from symlinked Composer path-repository packages as vendor-owned by their lexical `vendor/` path, without following the link or reading the file, and report unusable vendor paths as skipped instead of failing (#131).
