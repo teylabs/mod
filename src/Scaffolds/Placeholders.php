@@ -15,6 +15,15 @@ final readonly class Placeholders
 
     public function render(string $stub): string
     {
+        if (Blocks::present($stub)) {
+            return (new Blocks)->render($stub, $this->values, static fn (string $text, array $values): string => (new self($values))->substitute($text));
+        }
+
+        return $this->substitute($stub);
+    }
+
+    private function substitute(string $stub): string
+    {
         return (string) preg_replace_callback('/\{\{\s*([\w.-]+)\s*\}\}/', function (array $match): string {
             $key = $match[1];
             $forms = [];

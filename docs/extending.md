@@ -356,9 +356,33 @@ $s->asks('columns', type: 'records', label: 'Column', shape: [
 - Without a terminal, pass JSON: `--columns='[{"key":"name","label":"Name","sortable":true}]'`. Without the flag the recipe default is used; with neither the command refuses and names the flag. `--columns='[]'` is an empty list.
 - Every record must carry exactly the declared fields, with the declared types. Strings cannot be empty, booleans are JSON `true` or `false`, and integers are whole numbers. A bad value refuses before anything is planned (`--dry-run --json` reports it in `warnings`). A bad `default` throws when the recipe is declared.
 - Records are normalized to the shape's field order, so the same answers always produce the same output.
-- `{{ columns.json }}` prints the list as JSON. To repeat template lines for each record, see template blocks.
+- `{{ columns.json }}` prints the list as JSON. To repeat template lines for each record, see "Template blocks" below.
 
 `mod:rename --scaffold=` takes the same JSON flag, or `--answer=columns=<JSON>`.
+
+### Template blocks
+
+Stubs and insert stubs can repeat lines for each record, or keep a section only when a boolean is true. A tag is `{{ #name }}` to open, `{{ ^name }}` to open an inverted block, and `{{ /name }}` to close.
+
+```vue
+<tr>
+    {{ #columns }}
+    <th>{{ label }}</th>
+    {{ /columns }}
+</tr>
+```
+
+- `{{ #name }}` repeats over a `records` answer. Inside, each record's fields are placeholders (`{{ key }}`, `{{ key.studly }}`), and every outer placeholder stays reachable. A field with the same name as an outer value, such as `name`, hides it inside the block.
+- `{{ #name }}` over a boolean renders once when it is true. A `confirm` question is a boolean, and so is a record's `bool` field. Over a member alias it renders when the member is generated.
+- `{{ ^name }}` renders when a boolean is false or a list is empty, so `{{ ^columns }}No columns{{ /columns }}` is the empty state.
+- An empty list renders nothing. Blocks nest, and an inner block sees the outer block's fields.
+- A tag alone on its line leaves nothing behind, not even a blank line.
+- A block's lines take the indentation of the line the opening tag is on, whatever indentation the stub gave them. The body's own common indentation is removed first, so relative indentation is kept. Write the body flush with the tag, or indented inside it, and the output is the same. Blank lines carry no whitespace.
+- Tags that share a line with other text render inline, with no whitespace changes: `<ul>{{ #columns }}<li>{{ key }}</li>{{ /columns }}</ul>`. Both tags of a block must be alone on their lines, or neither.
+- Line endings follow the stub. The same answers always produce the same bytes, so an app can regenerate a file and diff it.
+- A misspelt block name, an unclosed block, or a block over text or a plain `list` refuses before anything is written. Use `@{{ #name }}` to print the tag literally in a `.vue` or Blade file.
+
+Stub text is written to be formatter-clean after substitution. Keep each line of a block valid for Pint or Prettier on its own, and choose a layout where the formatter's wrapping does not depend on the data (for example, one element per line in PHP arrays). A `.vue` or `.php` fixture in mod's own tests runs both formatters over the output.
 
 ### Upgrading package scaffolds from 0.5
 
