@@ -70,7 +70,7 @@ final class Scope
         return (string) file_get_contents($absolute, false, null, 0, self::MAX_SOURCE_BYTES);
     }
 
-    /** Classify from already loaded Composer maps, without invoking an autoloader. */
+    /** Classify from already loaded Composer maps, without invoking an autoloader or following vendor links. */
     public function vendorPath(string $class): ?string
     {
         foreach (spl_autoload_functions() as $autoload) {
@@ -88,18 +88,31 @@ final class Scope
             }
             foreach ($candidates as $candidate) {
                 $relative = Path::relative($this->root, $candidate);
-                if ($relative === null || ! str_starts_with($relative, 'vendor/') || $this->excluded($relative)) {
+                if ($relative === null || ! str_starts_with($relative, 'vendor/')) {
                     continue;
                 }
-                $real = $this->resolve($relative);
-                $relative = Path::relative($this->root, $real);
-                if ($relative !== null && str_starts_with($relative, 'vendor/') && ! $this->excluded($relative) && is_file($real)) {
+                if ($this->excluded($relative)) {
+                    $this->skip($relative, 'protected');
+
+                    continue;
+                }
+                // Lexical ownership only: a Composer path repository links vendor/ to a
+                // package outside the app, and the vendor file is never read.
+                if (is_file($this->root.'/'.$relative)) {
                     return $relative;
                 }
             }
         }
 
         return null;
+    }
+
+    private function skip(string $path, string $reason): void
+    {
+        $entry = ['path' => $path, 'reason' => $reason];
+        if (! in_array($entry, $this->skipped, true)) {
+            $this->skipped[] = $entry;
+        }
     }
 
     /** @return list<string> */

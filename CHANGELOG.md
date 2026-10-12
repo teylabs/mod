@@ -13,6 +13,9 @@ All notable changes to `mod` will be documented in this file.
 ### Changed
 - Calling `named()` on a scaffold part is refused with guidance to declare the default name on the root scaffold (#126)
 
+### Fixed
+- `mod-survey` and `mod-fit` classify classes from symlinked Composer path-repository packages as vendor-owned by their lexical `vendor/` path, without following the link or reading the file, and report unusable vendor paths as skipped instead of failing (#131).
+
 ## [0.6.1] - 2026-10-11
 
 ### Fixed
