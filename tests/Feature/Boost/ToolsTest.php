@@ -5,6 +5,7 @@ use Laravel\Boost\Mcp\Boost;
 use Laravel\Boost\Mcp\ToolRegistry;
 use Laravel\Boost\Mcp\Tools\ApplicationInfo;
 use Laravel\Mcp\Request;
+use Tey\Mod\Boost\FitTool;
 use Tey\Mod\Boost\InventoryTool;
 use Tey\Mod\Boost\PlanTool;
 use Tey\Mod\Boost\SurveyTool;
@@ -15,14 +16,14 @@ use Tey\Mod\Tests\Feature\Boost\Scenario;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Support\JsonSchema;
 
-it('registers exactly three read-only tools alongside existing Boost includes', function () {
+it('registers exactly four read-only tools alongside existing Boost includes', function () {
     $existing = ApplicationInfo::class;
     config()->set('boost.mcp.tools.include', [$existing]);
     ToolRegistrar::register(app());
     ToolRegistrar::register(app());
-    expect(config('boost.mcp.tools.include'))->toBe([$existing, InventoryTool::class, PlanTool::class, SurveyTool::class]);
+    expect(config('boost.mcp.tools.include'))->toBe([$existing, InventoryTool::class, PlanTool::class, SurveyTool::class, FitTool::class]);
     ToolRegistry::clearCache();
-    foreach ([InventoryTool::class => 'mod-inventory', PlanTool::class => 'mod-plan', SurveyTool::class => 'mod-survey'] as $class => $name) {
+    foreach ([InventoryTool::class => 'mod-inventory', PlanTool::class => 'mod-plan', SurveyTool::class => 'mod-survey', FitTool::class => 'mod-fit'] as $class => $name) {
         expect(ToolRegistry::isToolAllowed($class))->toBeTrue();
         $tool = app($class);
         expect($tool->toArray()['name'])->toBe($name)
@@ -30,7 +31,7 @@ it('registers exactly three read-only tools alongside existing Boost includes', 
     }
     $server = (new ReflectionClass(Boost::class))->newInstanceWithoutConstructor();
     $tools = (new ReflectionMethod($server, 'discoverTools'))->invoke($server);
-    expect($tools)->toContain(InventoryTool::class, PlanTool::class, SurveyTool::class);
+    expect($tools)->toContain(InventoryTool::class, PlanTool::class, SurveyTool::class, FitTool::class);
     ToolRegistry::clearCache();
 });
 
