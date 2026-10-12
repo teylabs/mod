@@ -134,7 +134,10 @@ The fit check does not query runtime routes, policies, Git or the database.
 
 `mod-fit` reuses `mod-survey`'s enforced `Scope`: only `base_path()`, with `vendor/`
 used solely to classify referenced classes from already loaded Composer maps.
-It never invokes an autoloader to inspect those classes. There are no network
+It never invokes an autoloader to inspect those classes. A class whose Composer path
+is under `vendor/` counts as vendor-owned by that path alone, so packages linked
+from Composer path repositories work; the link is not followed and the file is
+not read. There are no network
 calls, writes, source execution, alternate roots or parent/sibling/home scans.
 
 The scan skips all discovered symlinks, nested repositories, `node_modules/`,
