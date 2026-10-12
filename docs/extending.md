@@ -345,6 +345,10 @@ Generation writes no directory for a folder member and does not change the place
 
 [`mod:rename`](renaming.md#owned-frontend-folders) moves the whole subtree once, including layouts, partials and undeclared pages. A recipe without `folder()` keeps its existing member-only behaviour. Declare page-entry stems on the layout when only files such as `Page.vue` and `Modal.vue` are render targets; folder ownership does not make helpers into page entries.
 
+See [Defining your own page shape](frontend.md#defining-your-own-page-shape) for
+an app recipe combining folder ownership, optional members, tab parts and the
+app's nearest-folder layout callback, with Vue and React variants.
+
 ### Supplying member stub variants
 
 A member's `stub: 'list'` uses a key such as `page.list`. Register extension-specific variants for each supported frontend stack:

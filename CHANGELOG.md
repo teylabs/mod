@@ -5,6 +5,7 @@ All notable changes to `mod` will be documented in this file.
 ## Unreleased
 
 ### Added
+- A Vue-first walkthrough defines an app's page shape using public page entries, folder ownership, optional modal members, tab parts and nearest-folder layouts, with a React variant and a rename including hand-written partials (#140).
 - Inline template blocks take a separator, `{{ #sorts sep=", " }}{{ value }}{{ /sorts }}`, which goes between items and never after the last. Line blocks keep their behaviour, and a separator on a line block, an unclosed quote or an unknown option refuses before anything is written (#145).
 - A scaffold can own a frontend subtree with `folder('pages', '{name}', as: 'pageFolder')`. Generation lists it without writing a directory; rename moves declared and undeclared contents once, preserves supported imports, maps render literals only for page entries and recovers interrupted subtree moves (#138).
 - `mod-survey` reports page-folder patterns and declared or inferred entry stems; `mod-fit` checks proposed entry stems and data-only frontend folder members, including render literals that target non-entries (#139)

@@ -67,6 +67,9 @@ The additive JSON plan lists declarations under `folders` (`alias`, `type`, sour
 
 Every page entry inside receives an old-to-new render-name mapping, including pages added by hand. The layout's `pageEntries` stems decide which files are entries: with `['Page', 'Modal']`, `Inertia::render()` and `inertia()` literals for those stems change, but literals naming `Layout.vue` or `Partials/Card.vue` do not. Without a filter, the existing all-page-files policy remains; an empty entry list maps none.
 
+For a complete Vue and React walkthrough, including an optional modal, a grown
+tab and a hand-written Partials file, see [Defining your own page shape](frontend.md#defining-your-own-page-shape).
+
 Folder ownership is limited to configured `pages`, `components` and `views` paths in plain-file roots. Missing folders, overlapping ownership/destinations, existing destinations (even empty ones), case-only moves, symlinks or junctions, ignored/excluded contents and dirty trees block before application files change. Track all folder contents first. A declared file must agree with its folder's move; a kept member inside a moved folder blocks. Journal recovery restores original files, permissions, empty directories and index entries after comparison. There is no overwrite or safety bypass.
 
 ## Grown parts, shared files and manual edits
