@@ -21,6 +21,11 @@ class InvoiceIndexRequest extends FormRequest
     ];
 
     /**
+     * @var list<string>
+     */
+    public const SIZES = ['sm', 'md', 'it\'s'];
+
+    /**
      * @return array<string, list<string>>
      */
     public function rules(): array
@@ -149,8 +154,9 @@ it('passes Pint with and without the status filter', function (bool $filter) {
 
 it('passes Prettier with and without the status filter', function (bool $filter) {
     Workspace::run(null, function (Workspace $w) use ($filter) {
+        $w->write('.prettierrc.json', json_encode(IndexPage::PRETTIER));
         generateIndex($w, [$filter ? '--status_filter' : '--no-status_filter' => true]);
-        IndexPage::prettier($w, ['singleQuote' => true, 'tabWidth' => 4, 'printWidth' => 100], IndexPage::PAGE);
+        IndexPage::prettier($w, IndexPage::PRETTIER, IndexPage::PAGE);
     });
 })->with([true, false])->skip(getenv('MOD_FRONTEND_BUILD') !== '1', 'Set MOD_FRONTEND_BUILD=1 after npm ci in tests/Fixtures/frontend-build.');
 
@@ -173,10 +179,21 @@ it('passes Pint and keeps the optional parts apart', function (bool $filter, boo
 
 it('passes Prettier for every page with and without its optional parts', function (bool $filter, bool $modal) {
     Workspace::run(null, function (Workspace $w) use ($filter, $modal) {
+        $w->write('.prettierrc.json', json_encode(IndexPage::PRETTIER));
         generateIndex($w, [
             $filter ? '--status_filter' : '--no-status_filter' => true,
             $modal ? '--modal' : '--no-modal' => true,
         ]);
-        IndexPage::prettier($w, ['singleQuote' => true, 'tabWidth' => 4, 'printWidth' => 100], IndexPage::PAGE, ...($modal ? [IndexPage::MODAL] : []));
+        IndexPage::prettier($w, IndexPage::PRETTIER, IndexPage::PAGE, ...($modal ? [IndexPage::MODAL] : []));
     });
 })->with([true, false])->with([true, false])->skip(getenv('MOD_FRONTEND_BUILD') !== '1', 'Set MOD_FRONTEND_BUILD=1 after npm ci in tests/Fixtures/frontend-build.');
+
+it('writes script literals in the quote style of the apps Prettier config, which Prettier accepts', function (bool $singleQuote) {
+    Workspace::run(null, function (Workspace $w) use ($singleQuote) {
+        $w->write('.prettierrc.json', json_encode(['singleQuote' => $singleQuote, 'tabWidth' => 4]));
+        generateIndex($w, ['--modal' => true]);
+
+        expect($w->read(IndexPage::MODAL))->toContain($singleQuote ? "const sizes: string[] = ['sm', 'md', \"it's\"];" : 'const sizes: string[] = ["sm", "md", "it\'s"];');
+        IndexPage::prettier($w, ['singleQuote' => $singleQuote, 'tabWidth' => 4, 'printWidth' => 100], IndexPage::MODAL);
+    });
+})->with([true, false])->skip(getenv('MOD_FRONTEND_BUILD') !== '1', 'Set MOD_FRONTEND_BUILD=1 after npm ci in tests/Fixtures/frontend-build.');

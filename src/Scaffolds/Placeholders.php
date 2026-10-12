@@ -43,6 +43,8 @@ final readonly class Placeholders
                 return match ($forms) {
                     ['array'] => var_export(array_values($value), true),
                     ['json'] => json_encode(array_values($value), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+                    ['php'] => Literals::php(array_values($value)),
+                    ['ts'], ['js'] => Literals::script(array_values($value), (new PrettierConfig(app()->basePath()))->singleQuote()),
                     default => $match[0],
                 };
             }

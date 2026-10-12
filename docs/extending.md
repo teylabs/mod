@@ -360,6 +360,22 @@ $s->asks('columns', type: 'records', label: 'Column', shape: [
 
 `mod:rename --scaffold=` takes the same JSON flag, or `--answer=columns=<JSON>`.
 
+### Printing a list as a literal
+
+A `list` or `records` answer prints as source code, on one line:
+
+| Placeholder | Output for `['name', 'company']` |
+| --- | --- |
+| `{{ cols.php }}` | `['name', 'company']` |
+| `{{ cols.ts }}` or `{{ cols.js }}` | `['name', 'company']`, or `["name", "company"]` |
+| `{{ cols.json }}` | `["name","company"]` |
+
+Records print as keyed arrays in PHP (`['key' => 'name', 'sortable' => true]`) and as objects in TypeScript and JavaScript (`{ key: 'name', sortable: true }`).
+
+The script forms follow the app's Prettier `singleQuote`. mod reads it as text from `package.json` (`"prettier"`) or the first Prettier config file found, in Prettier's own order: `.prettierrc`, `.prettierrc.json`, `.yaml`, `.yml`, `.json5`, `.js`, `.ts`, `.mjs`, `.cjs`, `prettier.config.*`, then `.prettierrc.toml`. It never runs a config file, so a computed or `overrides` setting is not seen. Without a setting the default is double quotes, as in Prettier. A string takes the other quote when it holds more of the preferred one, as Prettier does.
+
+The literal is always one line, which Prettier keeps only while it fits the print width. For long lists, repeat a template block per item instead.
+
 ### Optional members
 
 `when:` on `makes()` leaves a member out of the plan. It takes the name of a `confirm` question, or a closure that receives the answers and returns a boolean:

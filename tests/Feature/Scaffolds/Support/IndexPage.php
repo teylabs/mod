@@ -19,6 +19,9 @@ final class IndexPage
 
     public const POLICY = 'app/Policies/InvoicePolicy.php';
 
+    /** The app's Prettier options for the generated frontend files. */
+    public const PRETTIER = ['singleQuote' => true, 'tabWidth' => 4, 'printWidth' => 100];
+
     public const COLUMNS = '[{"key":"number","label":"Number","sortable":true},{"key":"customer_name","label":"Customer","sortable":true},{"key":"notes","label":"Notes","sortable":false}]';
 
     public static function recipe(Scaffold $s): void
@@ -26,6 +29,7 @@ final class IndexPage
         $s->asks('columns', type: 'records', shape: ['key' => 'string', 'label' => 'string', 'sortable' => 'bool'], default: [
             ['key' => 'number', 'label' => 'Number', 'sortable' => true],
         ])
+            ->asks('sizes', type: 'list', default: ['sm', 'md', "it's"])
             ->asks('status_filter', type: 'confirm', default: false)
             ->asks('modal', type: 'confirm', default: false)
             ->asks('authorize', type: 'confirm', default: false)

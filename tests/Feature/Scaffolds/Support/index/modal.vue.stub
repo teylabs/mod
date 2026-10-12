@@ -5,6 +5,8 @@ defineProps<{
     status?: string;
     {{ /status_filter }}
 }>();
+
+const sizes: string[] = {{ sizes.ts }};
 </script>
 
 <template>
