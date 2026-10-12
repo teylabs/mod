@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Artisan;
 use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Facades\Mod;
+use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 
@@ -39,3 +40,8 @@ it('still requires the name without a default', function () {
 it('refuses an empty default name', function () {
     expect(fn () => (new Scaffold)->named('  '))->toThrow(GenerationRefused::class);
 });
+
+it('refuses a default name on a part', function (string $name) {
+    expect(fn () => (new Scaffold)->part('form', fn (Part $part) => $part->named($name)))
+        ->toThrow(GenerationRefused::class, "A part takes its root scaffold's name. Call named() on the root scaffold.");
+})->with(['Acme', '  ']);
