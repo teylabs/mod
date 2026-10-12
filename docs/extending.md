@@ -341,6 +341,26 @@ Mod::stubs()->forFileType('page.list.jsx', Stub::file(__DIR__.'/../stubs/list.js
 
 For a planned `.tsx` page, lookup is the app's `stubs/mod.page.list.tsx.stub`, then the registered `page.list.tsx`, then the registered `page.list` fallback. The app's stub wins. Use the extension-free key only for content that works across stacks. Another stack's key is never used: without a matching variant or fallback the plan names the stub to supply and writes nothing. The same precedence applies to flat recipes, tree members and parts, and to any file type with an extension (for example `view.card.blade.php`).
 
+### Scaffold placeholders
+
+Member stubs and insert stubs share these values, including inside template blocks:
+
+| Placeholder | Filled with |
+| --- | --- |
+| `{{ name }}` | the scaffold's name, such as `TypedPage`; an ungrouped member uses its own name |
+| `{{ group }}` | the target group's name as placed, such as `Showroom`, or `Knowledge/Search` for a nested group |
+| `{{ module }}`, `{{ domain }}` | the layout token's value: `module` on `modules`, `domain` on `ddd`, or your custom token on a custom layout |
+| `{{ group.kebab }}`, `{{ group.snake }}` | `show-room`, `show_room` for `ShowRoom` |
+| `{{ group.studly }}`, `{{ group.camel }}`, `{{ group.lower }}` | `ShowRoom`, `showRoom`, `showroom` for `ShowRoom` |
+| `{{ model }}`, `{{ model.fqcn }}` | a member alias's short or fully qualified class name |
+| `{{ answer }}` | a question's answer, using the question's name |
+
+The token alias supports the same transforms as `group`; transforms chain as they do for `name`. For example, `{{ module.kebab }}.{{ name.kebab }}.index` produces `showroom.typed-page.index` for `Showroom:TypedPage`. Nested groups keep their `/` separators. In a layout with several dimensions, each token has its own value and `group` names the innermost dimension.
+
+A member uses its own resolved group, including a `group:` override. An insert into a member uses that target member's group; route and anchored-path inserts use the node's group. `group` and its token alias render empty for `ungrouped: true` members and inserts into them. In a layout without groups, `group` renders empty and there is no token alias.
+
+A question or member named `group` takes precedence over the built-in value, as names do today. The same applies to a name matching a token alias. A record field with the same name hides the outer value inside its template block.
+
 ### Asking for lists of records
 
 A `records` question collects a list of objects with declared fields: a table's columns, a filter's options.

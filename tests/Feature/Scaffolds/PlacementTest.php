@@ -1,6 +1,7 @@
 <?php
 
 use Tey\Mod\Facades\Mod;
+use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Feature\Scaffolds\Support\Examples;
@@ -142,9 +143,120 @@ it('keeps explicit keep members silently after displaying the plan', function ()
 it('uses an ungrouped plain member name inside a tree recipe', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'modules');
-        $w->write('stubs/mod/resources/js/helpers/helper.ts.stub', 'export const {{ name }} = true;');
+        $w->write('stubs/mod/resources/js/helpers/helper.ts.stub', 'export const {{ name }} = "{{ group }}|{{ module.kebab }}";');
         Mod::scaffold('shared-helper', fn (Scaffold $s) => $s->makes('helper', name: 'useShared', ungrouped: true)->part('extra', fn ($p) => $p->makes('job')));
         $w->artisan('mod:shared-helper', ['name' => 'Inventory:Widget'])->assertSuccessful();
-        expect($w->read('resources/js/helpers/useShared.ts'))->toBe('export const useShared = true;');
+        expect($w->read('resources/js/helpers/useShared.ts'))->toBe('export const useShared = "|";');
     });
 });
+
+it('renders the placed group and its forms in flat and tree member stubs', function (bool $tree) {
+    Workspace::run(null, function (Workspace $w) use ($tree) {
+        config()->set('mod.layout', 'modules');
+        $w->write('app/Modules/ShowRoom/Jobs/.keep', '');
+        $w->write('stubs/mod.job.stub', "<?php\nnamespace {{ namespace }};\nclass {{ class }} {\n// {{ group }}|{{ group.kebab }}|{{ group.snake }}|{{ group.studly }}|{{ group.camel }}|{{ group.lower }}|{{ module }}\n}\n");
+        Mod::scaffold('group-forms', function (Scaffold $s) use ($tree) {
+            $s->makes('job');
+            if ($tree) {
+                $s->asks('extras', type: 'list', default: ['Extra'])->each('extras', 'extra')
+                    ->part('extra', fn (Part $p) => $p->makes('job', name: '{extra}{name}'));
+            }
+        });
+        $w->artisan('mod:group-forms', ['name' => 'showroom:TypedPage'])->assertSuccessful();
+        expect($w->read('app/Modules/ShowRoom/Jobs/TypedPage.php'))->toContain('// ShowRoom|show-room|show_room|ShowRoom|showRoom|showroom|ShowRoom');
+        if ($tree) {
+            expect($w->read('app/Modules/ShowRoom/Jobs/ExtraTypedPage.php'))->toContain('// ShowRoom|show-room|show_room|ShowRoom|showRoom|showroom|ShowRoom');
+        }
+    });
+})->with([false, true]);
+
+it('renders nested groups and layout token aliases without dropping parent folders', function (string $layout, string $token, string $path) {
+    Workspace::run(null, function (Workspace $w) use ($layout, $token, $path) {
+        config()->set('mod.layout', $layout);
+        if ($layout === 'areas') {
+            Mod::layout('areas')->extends('modules')->path('app/Areas/{area}')->allowsNesting();
+        } elseif ($layout === 'modules') {
+            Mod::layout('modules')->allowsNesting();
+        }
+        $w->write('stubs/mod.job.stub', "<?php\nnamespace {{ namespace }};\nclass {{ class }} {\n// {{ group }}|{{ {$token} }}|{{ {$token}.lower }}\n}\n");
+        Mod::scaffold('nested-group', fn (Scaffold $s) => $s->makes('job'));
+        $w->artisan('mod:nested-group', ['name' => 'Knowledge.Search:TypedPage'])->assertSuccessful();
+        expect($w->read($path))->toContain('// Knowledge/Search|Knowledge/Search|knowledge/search');
+    });
+})->with([
+    ['modules', 'module', 'app/Modules/Knowledge/Search/Jobs/TypedPage.php'],
+    ['ddd', 'domain', 'src/Domain/Knowledge/Search/Jobs/TypedPage.php'],
+    ['areas', 'area', 'app/Areas/Knowledge/Search/Jobs/TypedPage.php'],
+]);
+
+it('renders an empty group for ungrouped members and uses each other members own group', function (bool $tree) {
+    Workspace::run(null, function (Workspace $w) use ($tree) {
+        config()->set('mod.layout', 'modules');
+        $w->write('stubs/mod.job.stub', "<?php\nnamespace {{ namespace }};\nclass {{ class }} {\n// [{{ group }}|{{ module.kebab }}]\n// mod:entries\n}\n");
+        $w->write('stubs/mod.insert.group.stub', '// insert [{{ group }}|{{ module.kebab }}]');
+        Mod::scaffold('member-groups', function (Scaffold $s) use ($tree) {
+            $s->makes('job', name: 'Shared', as: 'shared', ungrouped: true)
+                ->makes('job', name: 'Other', as: 'other', group: 'Backoffice')->makes('job');
+            if ($tree) {
+                $s->asks('entries', type: 'list', default: ['One'])->each('entries', 'entry')
+                    ->part('entry', fn (Part $p) => $p->inserts(into: 'shared', at: 'entries', stub: 'group')->inserts(into: 'other', at: 'entries', stub: 'group'));
+            }
+        });
+        $w->artisan('mod:member-groups', ['name' => 'Showroom:TypedPage'])->assertSuccessful();
+        expect($w->read('app/Jobs/Shared.php'))->toContain('// [|]')
+            ->and($w->read('app/Modules/Backoffice/Jobs/Other.php'))->toContain('// [Backoffice|backoffice]')
+            ->and($w->read('app/Modules/Showroom/Jobs/TypedPage.php'))->toContain('// [Showroom|showroom]');
+        if ($tree) {
+            expect($w->read('app/Jobs/Shared.php'))->toContain('// insert [|]')
+                ->and($w->read('app/Modules/Backoffice/Jobs/Other.php'))->toContain('// insert [Backoffice|backoffice]');
+        }
+    });
+})->with([false, true]);
+
+it('renders an empty group in layouts without groups', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', 'laravel');
+        $w->write('stubs/mod.job.stub', "<?php\nnamespace {{ namespace }};\nclass {{ class }} {\n// [{{ group }}|{{ group.kebab }}]\n}\n");
+        Mod::scaffold('no-group', fn (Scaffold $s) => $s->makes('job'));
+        $w->artisan('mod:no-group', ['name' => 'TypedPage'])->assertSuccessful();
+        expect($w->read('app/Jobs/TypedPage.php'))->toContain('// [|]');
+    });
+});
+
+it('keeps question and member names ahead of the group placeholder', function (bool $tree, bool $question) {
+    Workspace::run(null, function (Workspace $w) use ($tree, $question) {
+        config()->set('mod.layout', 'modules');
+        $w->write('stubs/mod.job.stub', "<?php\nnamespace {{ namespace }};\nclass {{ class }} {\n// {{ group }}|{{ group.kebab }}|{{ module }}\n}\n");
+        Mod::scaffold('group-precedence', function (Scaffold $s) use ($tree, $question) {
+            if ($question) {
+                $s->asks('group', default: 'AnswerGroup');
+            } else {
+                $s->makes('interface', name: 'MemberGroup', as: 'group');
+            }
+            $s->makes('job');
+            if ($tree) {
+                $s->part('extra', fn (Part $p) => $p->makes('job'));
+            }
+        });
+        $w->artisan('mod:group-precedence', ['name' => 'Showroom:TypedPage'])->assertSuccessful();
+        expect($w->read('app/Modules/Showroom/Jobs/TypedPage.php'))->toContain($question ? '// AnswerGroup|answer-group|Showroom' : '// MemberGroup|member-group|Showroom');
+    });
+})->with([false, true])->with([false, true]);
+
+it('qualifies a route insert with the module inside template blocks', function (bool $grow) {
+    Workspace::run(null, function (Workspace $w) use ($grow) {
+        config()->set('mod.layout', 'modules');
+        $w->write('app/Modules/Showroom/routes/web.php', "<?php\n// mod:routes\n");
+        $w->write('stubs/mod.job.stub', "<?php\nnamespace {{ namespace }};\nclass {{ class }} {\n{{ #enabled }}\n// {{ module.kebab }}.{{ name.kebab }}.index\n{{ /enabled }}\n}\n");
+        $w->write('stubs/mod.insert.route.stub', "{{ #enabled }}\nRoute::get('/typed-page', fn () => 'page')->name('{{ module.kebab }}.{{ name.kebab }}.index');\n{{ /enabled }}\n");
+        Mod::scaffold('typed-page', fn (Scaffold $s) => $s->asks('enabled', type: 'confirm', default: true)
+            ->asks('entries', type: 'list', default: $grow ? [] : ['Index'])->makes('job')->each('entries', 'entry')
+            ->part('entry', fn (Part $p) => $p->inserts(into: 'routes', at: 'routes', stub: 'route')));
+        $w->artisan('mod:typed-page', ['name' => 'Showroom:TypedPage'])->assertSuccessful();
+        if ($grow) {
+            $w->artisan('mod:typed-page.entry', ['name' => 'Showroom:TypedPage', 'value' => 'Index'])->assertSuccessful();
+        }
+        expect($w->read('app/Modules/Showroom/routes/web.php'))->toContain("->name('showroom.typed-page.index');")
+            ->and($w->read('app/Modules/Showroom/Jobs/TypedPage.php'))->toContain('// showroom.typed-page.index');
+    });
+})->with([false, true]);
