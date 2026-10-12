@@ -303,7 +303,7 @@ Mod::vendor('acme')->scaffold('pages', fn (Scaffold $s) => $s->makes('page'), co
 
 The default command is `mod:acme/pages`; parts use `mod:acme/pages.form`. Dots mean declared parts. `command:` opts into one canonical Artisan name, with the same options, questions and messages; it adds no alias. An existing command is never replaced. Invokable classes declare `$name`, and may declare a string `$command`.
 
-A recipe can declare a default name so its command runs bare:
+A root scaffold can declare a default name so its command runs bare:
 
 ```php
 Mod::vendor('acme')->scaffold('pages', fn (Scaffold $s) => $s
@@ -311,7 +311,7 @@ Mod::vendor('acme')->scaffold('pages', fn (Scaffold $s) => $s
     ->makes('page', name: '{name}/Index'), command: 'acme:pages');
 ```
 
-`php artisan acme:pages` uses `Acme`; `acme:pages Billing` uses `Billing`. The `name` argument becomes optional, `--help` shows the default, and `--dry-run --json` reports the resolved name. Recipes without `named()` still require the name. The default applies to the recipe that declares it, not to parts or recipes that `include()` it.
+`php artisan acme:pages` uses `Acme`; `acme:pages Billing` uses `Billing`. The `name` argument becomes optional, `--help` shows the default, and `--dry-run --json` reports the resolved name. Recipes without `named()` still require the name. Default names belong to root scaffolds. A part takes its root scaffold's name; calling `named()` on a part throws `GenerationRefused` and asks you to call it on the root scaffold. The default applies to the root recipe that declares it, not to recipes that `include()` it.
 
 Use full ids in `include('acme/pages')`, layout scaffold overrides and `mod:rename --scaffold=acme/pages`. App scaffolds may contain slashes. An app definition with the same id wins and emits `vendor_scaffold_overridden`. An app name under a registered vendor prefix that the vendor does not supply emits `vendor_prefix_shadowed`, suggests a hyphenated name and asks to continue (default Yes). Non-interactive runs emit the notice on stderr and continue. Ordinary unprefixed app names and prefixes without registered vendors have no notice.
 

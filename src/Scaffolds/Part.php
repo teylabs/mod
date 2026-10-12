@@ -2,6 +2,8 @@
 
 namespace Tey\Mod\Scaffolds;
 
+use Tey\Mod\Exceptions\GenerationRefused;
+
 /** A child recipe and the inserts its parent owns.
  * @api
  */
@@ -14,6 +16,13 @@ final class Part extends Scaffold
 
     /** @var list<Insert> */
     private array $inserts = [];
+
+    /** Default names belong to root scaffolds. * @api
+     */
+    public function named(string $name): never
+    {
+        throw GenerationRefused::because("A part takes its root scaffold's name. Call named() on the root scaffold.");
+    }
 
     /** @param array<string, mixed> $with * @api
      */

@@ -15849,7 +15849,7 @@
                 "default": null
             }
         ],
-        "return": "Tey\\Mod\\Scaffolds\\Scaffold",
+        "return": "never",
         "shape": ""
     },
     "Tey\\Mod\\Scaffolds\\Part::part": {
