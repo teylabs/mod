@@ -81,6 +81,33 @@ it('renders inline blocks verbatim between other text', function () {
         ->and((new Placeholders(['columns' => [], 'on' => false]))->render($stub))->toBe("<ul></ul>\n");
 });
 
+it('puts a separator between the items of an inline block', function (string $stub, string $expected) {
+    $values = ['sorts' => [['value' => 'name'], ['value' => '-name'], ['value' => 'company']]];
+
+    expect((new Placeholders($values))->render($stub))->toBe($expected);
+})->with([
+    'comma' => ["'sort' => ['in:{{ #sorts sep=\",\" }}{{ value }}{{ /sorts }}'],\n", "'sort' => ['in:name,-name,company'],\n"],
+    'comma and space' => ["[{{ #sorts sep=\", \" }}{{ value }}{{ /sorts }}]\n", "[name, -name, company]\n"],
+    'bar' => ["type Sort = {{ #sorts sep=\" | \" }}'{{ value }}'{{ /sorts }};\n", "type Sort = 'name' | '-name' | 'company';\n"],
+    'an empty separator' => ["{{ #sorts sep=\"\" }}{{ value }}{{ /sorts }}\n", "name-namecompany\n"],
+]);
+
+it('renders nothing for an empty list and no separator for one item', function () {
+    $stub = "type Sort = {{ #sorts sep=\" | \" }}'{{ value }}'{{ /sorts }};\n";
+
+    expect((new Placeholders(['sorts' => []]))->render($stub))->toBe("type Sort = ;\n")
+        ->and((new Placeholders(['sorts' => [['value' => 'name']]]))->render($stub))->toBe("type Sort = 'name';\n");
+});
+
+it('nests separators and keeps them byte-identical on regeneration', function () {
+    $stub = "{{ #groups sep=\"; \" }}{{ title }}={{ #items sep=\",\" }}{{ id }}{{ /items }}{{ /groups }}\r\n";
+    $groups = [['title' => 'A', 'items' => [['id' => '1'], ['id' => '2']]], ['title' => 'B', 'items' => [['id' => '3']]]];
+    $placeholders = new Placeholders(['groups' => $groups]);
+
+    expect($placeholders->render($stub))->toBe("A=1,2; B=3\r\n")
+        ->and($placeholders->render($stub))->toBe($placeholders->render($stub));
+});
+
 it('is byte-identical every time, and keeps Windows line endings', function () {
     $stub = "a\r\n    {{ #columns }}\r\n    {{ key }}\r\n    {{ /columns }}\r\nb\r\n";
     $placeholders = new Placeholders(['columns' => columns()]);
@@ -108,5 +135,13 @@ it('refuses malformed or misused blocks with a message', function (string $stub,
     'half on its line' => ["{{ #a }}\nx {{ /a }}\n", ['a' => true], 'one tag alone on its line'],
     'unknown name' => ["{{ #nope }}\nx\n{{ /nope }}\n", [], 'names no question, member or record field'],
     'text' => ["{{ #a }}\nx\n{{ /a }}\n", ['a' => 'yes'], "is text, so it can't be repeated"],
+    'a separator on a line block' => ["{{ #a sep=\",\" }}\nx\n{{ /a }}\n", ['a' => [['k' => 1]]], 'Separators are for inline blocks'],
+    'an unclosed quote' => ["x {{ #a sep=\", }}y{{ /a }}\n", ['a' => [['k' => 1]]], 'malformed options'],
+    'no quotes' => ["x {{ #a sep=, }}y{{ /a }}\n", ['a' => [['k' => 1]]], 'malformed options'],
+    'an unknown option' => ["x {{ #a glue=\",\" }}y{{ /a }}\n", ['a' => [['k' => 1]]], "unknown option 'glue'"],
+    'a separator twice' => ["x {{ #a sep=\",\" sep=\";\" }}y{{ /a }}\n", ['a' => [['k' => 1]]], 'malformed options'],
+    'a separator on an inverted block' => ["x {{ ^a sep=\",\" }}y{{ /a }}\n", ['a' => []], 'takes no options'],
+    'options on a closing tag' => ["x {{ #a }}y{{ /a sep=\",\" }}\n", ['a' => []], 'takes no options'],
+    'a separator on a boolean' => ["x {{ #a sep=\",\" }}y{{ /a }}\n", ['a' => true], 'nothing repeats'],
     'a plain list' => ["{{ #a }}\nx\n{{ /a }}\n", ['a' => ['x', 'y']], 'repeats records'],
 ]);

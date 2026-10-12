@@ -5,6 +5,7 @@ All notable changes to `mod` will be documented in this file.
 ## Unreleased
 
 ### Added
+- Inline template blocks take a separator, `{{ #sorts sep=", " }}{{ value }}{{ /sorts }}`, which goes between items and never after the last. Line blocks keep their behaviour, and a separator on a line block, an unclosed quote or an unknown option refuses before anything is written (#145).
 - Scaffold member and insert stubs expose the placed group as `{{ group }}` and the layout token's alias (`{{ module }}`, `{{ domain }}` or a custom token), with name transforms and access inside template blocks (#142).
 - Layouts, mounted roots and packages can declare Inertia page-entry stems; installation emits literal include globs, helpers keep component identities without render names, and `Mod::pageEntry()` refuses non-entries (#136).
 - A scaffold can ask for a list of records with `asks('columns', type: 'records', shape: [...])`: interactive runs prompt per record, non-interactive runs take JSON or the recipe default, and answers are validated against the shape before anything is planned (#132).
