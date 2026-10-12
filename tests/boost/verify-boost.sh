@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Verify the commands and claims in resources/boost/skills/mod-development/SKILL.md.
+# Verify the shipped Boost skills and mod-development's commands in fresh apps.
 # Usage: tests/boost/verify-boost.sh <disposable-workdir> <12|13> [...]
 set -eu
 if [ "$#" -lt 2 ]; then
@@ -35,6 +35,7 @@ for M in "$@"; do
             cd "$WORK/base-$M"
             "$PHP" "$COMPOSER_BIN" config repositories.mod "{\"type\":\"path\",\"url\":\"$WORK/mod-src\",\"options\":{\"symlink\":false}}"
             "$PHP" "$COMPOSER_BIN" require 'tey/mod:*@dev' -q
+            "$PHP" "$COMPOSER_BIN" require --dev 'laravel/boost:^2.10.3' -q
             git init -q
             git add -A
             git -c user.name='Boost harness' -c user.email='harness@localhost' commit -qm 'Create the disposable app'
@@ -46,6 +47,11 @@ lay(){ git reset -q --hard; git clean -fdq; "$PHP" artisan vendor:publish --tag=
 chk(){ local d=$1; shift; if eval "$@" >/dev/null 2>&1; then pass=$((pass+1)); echo "PASS L$M: $d"; else fail=$((fail+1)); echo "FAIL L$M: $d"; fi; }
 art(){ "$PHP" artisan "$@" --no-ansi 2>&1; }
 for M in "$@"; do cd "$WORK/base-$M" || exit 1
+printf '%s\n' '{"agents":["claude_code"],"packages":["tey/mod"]}' > boost.json
+chk "install Boost skills" 'art boost:install --skills --no-interaction'
+for SKILL in mod-development mod-learning-patterns; do
+    chk "$SKILL installed unchanged" 'cmp "vendor/tey/mod/resources/boost/skills/$SKILL/SKILL.md" ".claude/skills/$SKILL/SKILL.md"'
+done
 lay modules
 chk "Knowledge:Document -mf" 'art mod:model Knowledge:Document -mf | grep -q "Model \[app/Modules/Knowledge/Models/Document.php\]"'
 chk "--in" 'art mod:model Note --in=Knowledge | grep -q "app/Modules/Knowledge/Models/Note.php"'

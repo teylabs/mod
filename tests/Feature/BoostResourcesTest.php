@@ -2,11 +2,15 @@
 
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Blade;
+use Laravel\Mcp\Request;
 use Pest\TestSuite;
 use Symfony\Component\Yaml\Yaml;
+use Tey\Mod\Boost\SurveyTool;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Templates\TemplateCatalog;
+use Tey\Mod\Tests\Feature\Boost\Scenario;
+use Tey\Mod\Tests\Feature\Boost\SurveyFixture;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Feature\Scaffolds\Support\Examples;
 use Tey\Mod\Tests\Feature\Scaffolds\Support\TreeExamples;
@@ -86,7 +90,7 @@ it('ships a guideline that renders as plain text through Blade', function () {
 
     expect($guideline)->toStartWith('## Mod')
         ->and(trim(Blade::render($guideline)))->toBe(trim($guideline))
-        ->and($guideline)->toContain('mod-development');
+        ->and($guideline)->toContain('mod-development', 'mod-learning-patterns');
 });
 
 it('ships skills whose frontmatter names their folder', function () {
@@ -182,4 +186,60 @@ it('keeps the host API reference in the on-demand skill', function () {
 it('reads full vendor command ids from guidance rather than their prefixes', function () {
     expect(boostCommandNames('Run mod:acme/index-filter.toolbar or mod:crud.'))
         ->toBe(['mod:acme/index-filter.toolbar', 'mod:crud']);
+});
+
+it('generates the documented survey-derived recipe without changing the existing app', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', null);
+        SurveyFixture::using($w, function () use ($w) {
+            $tool = app(SurveyTool::class);
+            $survey = Scenario::data($tool->handle(new Request), $tool);
+            expect($survey['layout'])->toBe('laravel')
+                ->and(array_column($survey['recurring_sets'], 'basis'))->toContain('model')
+                ->and($survey['references'])->toContain(
+                    ['from' => 'App\\Http\\Controllers\\PostController', 'kind' => 'import', 'to' => 'App\\Http\\Requests\\StorePostRequest'],
+                    ['from' => 'App\\Http\\Controllers\\CommentController', 'kind' => 'import', 'to' => 'App\\Http\\Requests\\StoreCommentRequest'],
+                );
+
+            // Execute the published example, so documentation cannot drift from its proof.
+            $example = (string) file_get_contents(dirname(__DIR__, 2).'/docs/learning-patterns.md');
+            expect(preg_match('/```php\r?\n(.*?)\r?\n```/s', $example, $matches))->toBe(1);
+            $w->write('proposal.php', "<?php\n".$matches[1]);
+            require $w->root->path('proposal.php');
+            config()->set('mod.layout', 'learned');
+
+            $before = Scenario::bytes($w);
+            $inventory = json_decode($w->artisan('mod:list', ['--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
+            $recipe = array_column($inventory['scaffolds']['items'], null, 'name')['record'];
+            expect($inventory['layout'])->toBe('learned')
+                ->and($inventory['extends'])->toBe('laravel')
+                ->and(array_column($recipe['members'], 'folder', 'alias'))->toBe([
+                    'model' => 'app/Models',
+                    'storeRequest' => 'app/Http/Requests',
+                    'policy' => 'app/Policies',
+                    'controller' => 'app/Http/Controllers',
+                ]);
+
+            $expected = [
+                'app/Models/Article.php' => ['App\\Models', 'Article'],
+                'app/Http/Requests/StoreArticleRequest.php' => ['App\\Http\\Requests', 'StoreArticleRequest'],
+                'app/Policies/ArticlePolicy.php' => ['App\\Policies', 'ArticlePolicy'],
+                'app/Http/Controllers/ArticleController.php' => ['App\\Http\\Controllers', 'ArticleController'],
+            ];
+            $preview = json_decode($w->artisan('mod:record', ['name' => 'Article', '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
+            expect($preview['would_write'])->toBeTrue()
+                ->and($preview['warnings'])->toBe([])
+                ->and(array_column($preview['files'], 'path'))->toBe(array_keys($expected))
+                ->and(Scenario::bytes($w))->toBe($before);
+
+            $w->artisan('mod:record', ['name' => 'Article'])->assertSuccessful();
+            $after = Scenario::bytes($w);
+            expect(array_intersect_key($after, $before))->toBe($before)
+                ->and(array_keys(array_diff_key($after, $before)))->toEqualCanonicalizing(array_keys($expected));
+            foreach ($expected as $path => [$namespace, $class]) {
+                expect($w->read($path))->toContain("namespace {$namespace};", "class {$class}")
+                    ->and($w->read($path))->not->toContain('Post', 'Comment', '{{');
+            }
+        });
+    });
 });

@@ -80,7 +80,9 @@ Conventions written in a prompt drift as an app grows. Mod keeps your structure 
 
 - `php artisan mod:list --json` tells an agent where every kind of file goes.
 - Every command that writes files previews its plan with `--dry-run --json`.
-- Mod ships a [Laravel Boost](https://laravel.com/docs/boost) guideline, skill and read-only MCP tools. Run `php artisan boost:install` and choose `tey/mod`.
+- Mod ships a [Laravel Boost](https://laravel.com/docs/boost) guideline, skills and read-only MCP tools. Run `php artisan boost:install` and choose `tey/mod`.
+
+Load `mod-development` for the generator and layout reference. Load [`mod-learning-patterns`](resources/boost/skills/mod-learning-patterns/SKILL.md) to survey this app, confirm recurring structure in its code and history, propose a layout and scaffold recipes, check with `mod-fit` when available, and iterate. Proposals are code for human review, never adopted automatically. The [worked example](docs/learning-patterns.md) verifies a survey-derived layout and recipe with the inventory and real generators.
 
 The tools are `mod-inventory` for configured placement, `mod-plan` for a command preview, `mod-survey` for the app's actual structure, and `mod-fit` to check an uninstalled layout or recipe. Call `mod-survey` with no arguments. It reports all classes by file type, folder and namespace, unplaced paths, class/page/route/policy references, recurring file sets, naming patterns, vendor-owned references and Git identity. It falls back to the `laravel` layout when none is configured.
 
