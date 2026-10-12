@@ -137,6 +137,7 @@ final readonly class AppSurvey
             'classes' => array_map(static fn (string $class): array => ['class' => $class, 'path' => $nodes[$class]], array_values($classes)),
             'references' => array_values($references), 'vendor' => array_values($vendor),
             ...(new FileSets)->read($nodes, array_values($references), $artifacts), 'naming_patterns' => $naming,
+            ...(new PageStructure)->survey((new PageStructure)->read($files, $layout), $edges),
         ]);
     }
 

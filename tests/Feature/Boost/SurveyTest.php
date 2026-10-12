@@ -8,11 +8,70 @@ use PHPUnit\Framework\Assert;
 use Symfony\Component\Process\Process;
 use Tey\Mod\Boost\SurveyTool;
 use Tey\Mod\Exceptions\ModException;
+use Tey\Mod\Facades\Mod;
+use Tey\Mod\Layout\Root;
 use Tey\Mod\Survey\Scope;
 use Tey\Mod\Tests\Feature\Boost\Scenario;
 use Tey\Mod\Tests\Feature\Boost\SurveyFixture;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
+
+it('reports names carried in page folders and declared or render-inferred entry stems', function (bool $declared) {
+    Workspace::run(null, function (Workspace $w) use ($declared) {
+        config()->set('mod.layout', 'laravel');
+        if ($declared) {
+            Mod::layout('laravel')->frontend(pageEntries: ['Page', 'Modal']);
+        }
+        foreach (['Widget', 'Gadget'] as $name) {
+            foreach (['Edit', 'Show'] as $action) {
+                $w->write("resources/js/pages/{$name}/{$action}/Page.vue", '<template />');
+            }
+            $w->write("resources/js/pages/{$name}/Layout.vue", '<template />');
+            $w->write("resources/js/pages/{$name}/Edit/Partials/Form.vue", '<template />');
+            $w->write("resources/js/pages/{$name}/Partials/Toolbar.ts", 'export {};');
+        }
+        $w->write('routes/web.php', "<?php use Inertia\\Inertia; Inertia::render('Widget/Edit/Page'); Inertia::render('Gadget/Show/Page');");
+        $before = Scenario::bytes($w);
+        $tool = app(SurveyTool::class);
+        $response = $tool->handle(new Request);
+        $data = Scenario::data($response, $tool);
+        expect($data['page_patterns'])->toContain([
+            'files' => [
+                'resources/js/pages/Gadget/Edit/Page.vue', 'resources/js/pages/Gadget/Show/Page.vue',
+                'resources/js/pages/Widget/Edit/Page.vue', 'resources/js/pages/Widget/Show/Page.vue',
+            ], 'pattern' => '{name}/{action}/Page.vue', 'root' => 'resources/js/pages',
+        ], [
+            'files' => ['resources/js/pages/Gadget/Layout.vue', 'resources/js/pages/Widget/Layout.vue'],
+            'pattern' => '{name}/Layout.vue', 'root' => 'resources/js/pages',
+        ], [
+            'files' => [
+                'resources/js/pages/Gadget/Edit/Partials/Form.vue', 'resources/js/pages/Gadget/Partials/Toolbar.ts',
+                'resources/js/pages/Widget/Edit/Partials/Form.vue', 'resources/js/pages/Widget/Partials/Toolbar.ts',
+            ], 'pattern' => '{name}/**/Partials/*', 'root' => 'resources/js/pages',
+        ])->and($data['page_entries'])->toBe([[
+            'root' => 'resources/js/pages', 'source' => $declared ? 'declared' : 'inferred',
+            'stems' => $declared ? ['Modal', 'Page'] : ['Page'],
+        ]])->and((string) $tool->handle(new Request)->content())->toBe((string) $response->content())
+            ->and(Scenario::bytes($w))->toBe($before);
+    });
+})->with([false, true]);
+
+it('keeps grouped and mounted page entry evidence separate', function () {
+    Workspace::run(null, function (Workspace $w) {
+        config()->set('mod.layout', 'modules');
+        Mod::layout('modules')->allowsNesting()->frontend(pageEntries: ['Page'])
+            ->mounts('ui', null, 'app/UI', fn (Root $root) => $root->frontend(pages: 'pages', pageName: 'UI::{path}', pageEntries: ['Modal']));
+        $w->write('app/Modules/Team/Reports/resources/js/pages/Widget/Edit/Page.vue', '<template />');
+        $w->write('app/UI/pages/Widget/Edit/Modal.vue', '<template />');
+        $w->write('routes/web.php', "<?php use Inertia\\Inertia; Inertia::render('UI::Widget/Edit/Modal');");
+        $tool = app(SurveyTool::class);
+        $data = Scenario::data($tool->handle(new Request), $tool);
+        expect($data['page_entries'])->toBe([
+            ['root' => 'app/Modules/Team/Reports/resources/js/pages', 'source' => 'declared', 'stems' => ['Page']],
+            ['root' => 'app/UI/pages', 'source' => 'declared', 'stems' => ['Modal']],
+        ]);
+    });
+});
 
 it('returns the complete expected fixture JSON without executing source or changing files', function () {
     Workspace::run([

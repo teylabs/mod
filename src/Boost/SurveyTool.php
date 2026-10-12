@@ -16,7 +16,7 @@ final class SurveyTool extends Tool
 {
     protected string $name = 'mod-survey';
 
-    protected string $description = 'Survey the actual app structure: all file types and classes, unplaced files, references, recurring sets, naming patterns, vendor ownership and git identity. No arguments. Reads only base_path(), excluding secrets and runtime data; writes nothing and makes no network calls.';
+    protected string $description = 'Survey the actual app structure: all file types and classes, unplaced files, references, recurring sets, naming patterns, page folder patterns and declared/inferred entry stems, vendor ownership and git identity. No arguments. Reads only base_path(), excluding secrets and runtime data; writes nothing and makes no network calls.';
 
     public function __construct(private readonly AppSurvey $survey) {}
 
