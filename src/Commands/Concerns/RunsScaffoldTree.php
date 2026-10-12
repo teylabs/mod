@@ -478,12 +478,12 @@ trait RunsScaffoldTree
             }
         }
         foreach ($own as $artifact) {
-            $scope->values[$artifact->path()] = [...$this->treeAliases, ...$values];
+            $scope->values[$artifact->path()] = [...Placeholders::groupValues($artifact->context, $this->preset), ...$this->treeAliases, ...$values];
         }
         // Related generators and bases need the same node answers.
         foreach ($plan->files() as $index => ['artifact' => $artifact, 'member' => $member]) {
             if ($index >= $firstFile && $index < $lastFile) {
-                $scope->values[$artifact->path()] = [...$this->treeAliases, ...$values, ...($member?->ungrouped ? ['name' => $artifact->name] : [])];
+                $scope->values[$artifact->path()] = [...Placeholders::groupValues($artifact->context, $this->preset), ...$this->treeAliases, ...$values, ...($member?->ungrouped ? ['name' => $artifact->name] : [])];
             }
         }
 
@@ -555,8 +555,10 @@ trait RunsScaffoldTree
                 continue;
             }
             $target = $parent[$insert->into] ?? null;
+            $insertContext = $context;
             if ($target instanceof ResolvedArtifact && in_array($insert->into, $owned, true)) {
                 $path = $target->path();
+                $insertContext = $target->context;
             } elseif (in_array($insert->into, ['routes', 'routes.web', 'routes.api', 'routes.console'], true)) {
                 $routePaths = new RoutePaths($this->preset);
                 $group = $this->inOption($context);
@@ -586,7 +588,7 @@ trait RunsScaffoldTree
             } else {
                 throw GenerationRefused::because("Insert target [{$insert->into}] is not owned by this node. Use one of its member aliases or an anchored path. Nothing was written.");
             }
-            $stub = (new Placeholders($values))->render((string) file_get_contents($this->treeStub('insert.'.$insert->stub)));
+            $stub = (new Placeholders([...Placeholders::groupValues($insertContext, $this->preset), ...$values]))->render((string) file_get_contents($this->treeStub('insert.'.$insert->stub)));
             $label = str_contains($insert->stub, 'action') ? 'action' : (str_contains($insert->stub, 'entry') || str_contains($insert->stub, 'href') ? 'entry' : $insert->stub);
             $this->treeInserts[] = ['path' => $path, 'at' => $insert->at, 'stub' => $stub, 'label' => $label];
         }

@@ -6,12 +6,25 @@ use Illuminate\Support\Str;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Generation\PlainFile\Identity;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Placement\PlacementContext;
 
 /** @internal Literal substitution shared by creation, growing and inserts. */
 final readonly class Placeholders
 {
     /** @param array<string, mixed> $values */
     public function __construct(private array $values) {}
+
+    /** @return array<string, string> */
+    public static function groupValues(PlacementContext $context, CompiledLayout $layout): array
+    {
+        $values = ['group' => ''];
+        foreach ($layout->dimensionNames() as $token) {
+            $values[$token] = $context->get($token) ?? '';
+            $values['group'] = $values[$token];
+        }
+
+        return $values;
+    }
 
     public function render(string $stub): string
     {

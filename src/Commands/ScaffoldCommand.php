@@ -347,7 +347,7 @@ final class ScaffoldCommand extends Command
             }
 
             foreach ($plan->files() as ['artifact' => $artifact, 'member' => $member]) {
-                $scope->values[$artifact->path()] = [...$skipped, ...$scope->aliases, ...$values, ...($member?->ungrouped ? ['name' => $artifact->name] : [])];
+                $scope->values[$artifact->path()] = [...Placeholders::groupValues($artifact->context, $this->preset), ...$skipped, ...$scope->aliases, ...$values, ...($member?->ungrouped ? ['name' => $artifact->name] : [])];
             }
             foreach ($this->recipe->members() as $alias => $member) {
                 if ($member->stub === null || isset($skipped[$alias])) {

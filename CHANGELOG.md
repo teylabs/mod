@@ -5,6 +5,7 @@ All notable changes to `mod` will be documented in this file.
 ## Unreleased
 
 ### Added
+- Scaffold member and insert stubs expose the placed group as `{{ group }}` and the layout token's alias (`{{ module }}`, `{{ domain }}` or a custom token), with name transforms and access inside template blocks (#142).
 - A scaffold can ask for a list of records with `asks('columns', type: 'records', shape: [...])`: interactive runs prompt per record, non-interactive runs take JSON or the recipe default, and answers are validated against the shape before anything is planned (#132).
 - Scaffold stubs support template blocks: `{{ #columns }}…{{ /columns }}` repeats lines for each record, or renders when a boolean is true, and `{{ ^name }}…{{ /name }}` renders when it is false or empty. Tag lines leave nothing behind, block lines take the opening tag's indentation, blocks nest, and regenerating is byte-identical, so output stays Pint- and Prettier-clean (#132).
 - `{{ cols.php }}` and `{{ cols.ts }}` or `{{ cols.js }}` print a scaffold list or records answer as a one-line PHP or script literal. The script forms use the app's Prettier `singleQuote` (#132).
