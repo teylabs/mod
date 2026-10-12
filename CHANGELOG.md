@@ -22,6 +22,7 @@ All notable changes to `mod` will be documented in this file.
 - The read-only `mod-fit` Boost tool checks uninstalled layouts and recipe manifests for ownership, conflicts, path and mechanism variances, outside references and unowned code configuration within the survey's app-only privacy boundary (#63).
 
 ### Changed
+- The page-shape walkthrough generates its non-entry layout as an ordinary `page` member, without a custom file type or generator registration (#156).
 - Calling `named()` on a scaffold part is refused with guidance to declare the default name on the root scaffold (#126)
 - Discovery reuses unchanged inventories across application boots in one PHP process without a cache file, with directory-mtime invalidation, `Mod::flushDiscovery()` and a `discovery.reuse_in_process` opt-out (#148).
 
