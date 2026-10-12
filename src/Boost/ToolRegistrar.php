@@ -17,7 +17,7 @@ final class ToolRegistrar
 
         $config = $app->make('config');
         $includes = (array) $config->get('boost.mcp.tools.include', []);
-        foreach ([InventoryTool::class, PlanTool::class, SurveyTool::class] as $tool) {
+        foreach ([InventoryTool::class, PlanTool::class, SurveyTool::class, FitTool::class] as $tool) {
             if (! in_array($tool, $includes, true)) {
                 $includes[] = $tool;
             }

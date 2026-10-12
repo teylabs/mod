@@ -10,7 +10,9 @@ use Tey\Mod\Rename\Php\Symbols;
  * @internal Parse source without executing it. Bind imports with the existing PHP tokenizer.
  *
  * @phpstan-type Edge array{from: string, kind: string, to: string}
- * @phpstan-type Structure array{classes: list<string>, edges: list<Edge>, parsed: bool}
+ * @phpstan-type Callback array{line: int, target: string, references: list<string>}
+ * @phpstan-type Table array{line: int, name: string, operation: string}
+ * @phpstan-type Structure array{classes: list<string>, edges: list<Edge>, parsed: bool, callbacks: list<Callback>, tables: list<Table>}
  */
 final class PhpStructure
 {
@@ -21,10 +23,12 @@ final class PhpStructure
             $symbols = new Symbols(PhpToken::tokenize($source, TOKEN_PARSE), []);
             $symbols->analyse();
         } catch (ParseError) {
-            return ['classes' => [], 'edges' => [], 'parsed' => false];
+            return ['classes' => [], 'edges' => [], 'parsed' => false, 'callbacks' => [], 'tables' => []];
         }
         $classes = [];
         $edges = [];
+        $callbacks = [];
+        $tables = [];
         $tokens = $symbols->tokens;
         $depth = 0;
         $classDepth = null;
@@ -54,6 +58,37 @@ final class PhpStructure
             if ($reference !== null) {
                 $edges[] = ['from' => $owner, 'kind' => 'class', 'to' => $reference];
             }
+            if ($reference !== null && ($tokens[$i + 1]->id ?? null) === T_DOUBLE_COLON
+                && ($tokens[$i + 2]->id ?? null) === T_STRING && ($tokens[$i + 3]->text ?? '') === '(') {
+                $method = $tokens[$i + 2]->text;
+                $argument = $tokens[$i + 4] ?? null;
+                if (strtolower($reference) === 'illuminate\\support\\facades\\schema'
+                    && in_array(strtolower($method), ['create', 'table', 'drop', 'dropifexists', 'rename'], true)
+                    && $argument?->id === T_CONSTANT_ENCAPSED_STRING
+                    && preg_match('/^[a-zA-Z0-9_]+$/D', substr($argument->text, 1, -1)) === 1
+                    && in_array($tokens[$i + 5]->text ?? '', [',', ')'], true)) {
+                    $tables[] = ['line' => $token->line, 'name' => substr($argument->text, 1, -1), 'operation' => strtolower($method)];
+                }
+                $nesting = 1;
+                $callback = false;
+                $references = [];
+                for ($j = $i + 4; isset($tokens[$j]) && $nesting > 0; $j++) {
+                    if ($tokens[$j]->text === '(') {
+                        $nesting++;
+                    } elseif ($tokens[$j]->text === ')') {
+                        $nesting--;
+                    }
+                    $callback = $callback || $tokens[$j]->id === T_FN
+                        || ($tokens[$j]->id === T_FUNCTION && in_array($tokens[$j + 1]->text ?? '', ['(', '&'], true));
+                    $used = $symbols->referencedClass($j);
+                    if ($used !== null) {
+                        $references[] = $used;
+                    }
+                }
+                if ($callback && strtolower($reference) !== 'illuminate\\support\\facades\\schema') {
+                    $callbacks[] = ['line' => $token->line, 'target' => $reference.'::'.$method, 'references' => array_values(array_unique($references))];
+                }
+            }
             if (($tokens[$i + 1]->id ?? null) === T_DOUBLE_COLON && strtolower($tokens[$i + 2]->text ?? '') === 'render'
                 && ($tokens[$i + 3]->text ?? '') === '(' && strtolower($symbols->resolve($i)) === 'inertia\\inertia') {
                 $argument = $i + 4;
@@ -72,6 +107,6 @@ final class PhpStructure
             }
         }
 
-        return ['classes' => $classes, 'edges' => $edges, 'parsed' => true];
+        return ['classes' => $classes, 'edges' => $edges, 'parsed' => true, 'callbacks' => $callbacks, 'tables' => $tables];
     }
 }

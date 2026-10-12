@@ -2,7 +2,6 @@
 
 namespace Tey\Mod\Survey;
 
-use Composer\Autoload\ClassLoader;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Foundation\Application;
 use Illuminate\Routing\Router;
@@ -105,7 +104,7 @@ final readonly class AppSurvey
             $target = $classes[strtolower($edge['to'])] ?? $edge['to'];
             $edge['to'] = $target;
             if (! isset($nodes[$target]) && ! str_starts_with($target, 'page:')) {
-                $path = $this->vendorPath($target, $scope);
+                $path = $scope->vendorPath($target);
                 if ($path === null) {
                     continue;
                 }
@@ -216,38 +215,6 @@ final readonly class AppSurvey
         }
 
         return $edges;
-    }
-
-    private function vendorPath(string $class, Scope $scope): ?string
-    {
-        // Inspect already loaded Composer maps, never invoke an autoloader or probe an external root.
-        foreach (spl_autoload_functions() as $autoload) {
-            if (! is_array($autoload) || ! $autoload[0] instanceof ClassLoader) {
-                continue;
-            }
-            $loader = $autoload[0];
-            $candidates = isset($loader->getClassMap()[$class]) ? [$loader->getClassMap()[$class]] : [];
-            foreach ($loader->getPrefixesPsr4() as $prefix => $roots) {
-                if (str_starts_with($class, $prefix)) {
-                    foreach ($roots as $root) {
-                        $candidates[] = $root.'/'.str_replace('\\', '/', substr($class, strlen($prefix))).'.php';
-                    }
-                }
-            }
-            foreach ($candidates as $candidate) {
-                $relative = Path::relative($scope->root, $candidate);
-                if ($relative === null || ! str_starts_with($relative, 'vendor/') || $scope->excluded($relative)) {
-                    continue;
-                }
-                $real = $scope->resolve($relative);
-                $relative = Path::relative($scope->root, $real);
-                if ($relative !== null && str_starts_with($relative, 'vendor/') && ! $scope->excluded($relative) && is_file($real)) {
-                    return $relative;
-                }
-            }
-        }
-
-        return null;
     }
 
     /** @param array<array-key, mixed> $data

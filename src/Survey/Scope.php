@@ -2,6 +2,7 @@
 
 namespace Tey\Mod\Survey;
 
+use Composer\Autoload\ClassLoader;
 use FilesystemIterator;
 use SplFileInfo;
 use Tey\Mod\Exceptions\ModException;
@@ -67,6 +68,38 @@ final class Scope
         }
 
         return (string) file_get_contents($absolute, false, null, 0, self::MAX_SOURCE_BYTES);
+    }
+
+    /** Classify from already loaded Composer maps, without invoking an autoloader. */
+    public function vendorPath(string $class): ?string
+    {
+        foreach (spl_autoload_functions() as $autoload) {
+            if (! is_array($autoload) || ! $autoload[0] instanceof ClassLoader) {
+                continue;
+            }
+            $loader = $autoload[0];
+            $candidates = isset($loader->getClassMap()[$class]) ? [$loader->getClassMap()[$class]] : [];
+            foreach ($loader->getPrefixesPsr4() as $prefix => $roots) {
+                if (str_starts_with($class, $prefix)) {
+                    foreach ($roots as $root) {
+                        $candidates[] = $root.'/'.str_replace('\\', '/', substr($class, strlen($prefix))).'.php';
+                    }
+                }
+            }
+            foreach ($candidates as $candidate) {
+                $relative = Path::relative($this->root, $candidate);
+                if ($relative === null || ! str_starts_with($relative, 'vendor/') || $this->excluded($relative)) {
+                    continue;
+                }
+                $real = $this->resolve($relative);
+                $relative = Path::relative($this->root, $real);
+                if ($relative !== null && str_starts_with($relative, 'vendor/') && ! $this->excluded($relative) && is_file($real)) {
+                    return $relative;
+                }
+            }
+        }
+
+        return null;
     }
 
     /** @return list<string> */

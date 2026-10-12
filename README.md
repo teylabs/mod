@@ -82,7 +82,7 @@ Conventions written in a prompt drift as an app grows. Mod keeps your structure 
 - Every command that writes files previews its plan with `--dry-run --json`.
 - Mod ships a [Laravel Boost](https://laravel.com/docs/boost) guideline, skill and read-only MCP tools. Run `php artisan boost:install` and choose `tey/mod`.
 
-The tools are `mod-inventory` for configured placement, `mod-plan` for a command preview, and `mod-survey` for the app's actual structure. Call `mod-survey` with no arguments. It reports all classes by file type, folder and namespace, unplaced paths, class/page/route/policy references, recurring file sets, naming patterns, vendor-owned references and Git identity. It falls back to the `laravel` layout when none is configured.
+The tools are `mod-inventory` for configured placement, `mod-plan` for a command preview, `mod-survey` for the app's actual structure, and `mod-fit` to check an uninstalled layout or recipe. Call `mod-survey` with no arguments. It reports all classes by file type, folder and namespace, unplaced paths, class/page/route/policy references, recurring file sets, naming patterns, vendor-owned references and Git identity. It falls back to the `laravel` layout when none is configured.
 
 For example, part of a survey can look like:
 
@@ -94,6 +94,8 @@ For example, part of a survey can look like:
 ```
 
 The survey reads only `base_path()` and its local Git metadata. It rejects path arguments and skips discovered symlinks, `.env*`, `storage/`, keys, logs and databases, and uses `vendor/` only to classify referenced classes. It returns structure, never file contents; it writes nothing and makes no network calls. See the [survey contract and limits](resources/boost/skills/mod-development/SKILL.md#read-only-boost-tools-and-import-metadata). Files larger than 1 MiB (1,048,576 bytes) are skipped before reading; `skipped` lists their relative paths with `size-limit`, and links with `symlink`. `bootstrap/cache`, `public/build`, `public/hot` and `public/storage` are excluded.
+
+Pass `mod-fit` a structured layout definition, a recipe's expected members, or both. For example, `{"layout":{"base":"modules","path":"app/Areas/{area}"}}` checks a proposed layout without registering it. The sorted JSON reports `owned`, `unowned`, `conflicts`, `variances` with the paths found, `missing`, `outside` files touching the recipe, and unowned callback `configuration`. An agent can supply variance evidence when a role has another name or mechanism. The fit check uses the same privacy boundary as the survey, with no writes, network calls or execution of scanned PHP. See the [input, examples and limits](docs/fit.md).
 
 See [Agents](https://mod.teylabs.com/going-further/agents).
 
