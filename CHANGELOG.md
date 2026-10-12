@@ -5,6 +5,7 @@ All notable changes to `mod` will be documented in this file.
 ## Unreleased
 
 ### Added
+- A `mod-learning-patterns` Boost skill guides agents from an app survey to reviewable layouts and scaffold recipes, with source and history checks, fit-tool guidance and a generator-verified worked example (#61).
 - A scaffold recipe can declare a default name with `$scaffold->named('Acme')`. Its command then runs without a name, shows the default in `--help`, and an explicit name still wins (#119).
 - The read-only `mod-survey` Boost tool reports app structure, references, recurring file sets, vendor ownership and Git identity within an enforced app-only privacy boundary (#62).
 - The read-only `mod-fit` Boost tool checks uninstalled layouts and recipe manifests for ownership, conflicts, path and mechanism variances, outside references and unowned code configuration within the survey's app-only privacy boundary (#63).
