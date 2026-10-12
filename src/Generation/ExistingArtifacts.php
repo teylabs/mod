@@ -4,6 +4,7 @@ namespace Tey\Mod\Generation;
 
 use ReflectionClass;
 use Tey\Mod\Artifact\ResolvedArtifact;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Support\Path;
 
 /**
@@ -11,15 +12,16 @@ use Tey\Mod\Support\Path;
  * the form CollisionDiagnoser expects (relative paths and class names).
  *
  * Mirrors the native generators' alreadyExists(): the file on disk, and a
- * class the autoloader already knows. A known class is only reported when it
- * lives somewhere other than the target file, so a path collision is never
- * counted twice and --force can still overwrite the file itself.
+ * class the autoloader already knows. Tests are checked by path only. A known
+ * class is only reported when it lives somewhere other than the target file,
+ * so a path collision is never counted twice and --force can still overwrite
+ * the file itself.
  *
  * @internal
  */
 final readonly class ExistingArtifacts
 {
-    public function __construct(private string $basePath) {}
+    public function __construct(private string $basePath, private CompiledLayout $layout) {}
 
     /**
      * @return list<string>
@@ -31,6 +33,13 @@ final readonly class ExistingArtifacts
 
         if (file_exists($target)) {
             $existing[] = $artifact->path();
+        }
+
+        $testRoot = $this->layout->hasFileType('test') ? $this->layout->rule('test')->root() : null;
+        if ($artifact->kind->id === 'test'
+            || $testRoot?->pathRemainder($artifact->path()) !== null
+            || ($this->layout->roots()['tests'] ?? null)?->pathRemainder($artifact->path()) !== null) {
+            return $existing;
         }
 
         $fqcn = $artifact->fqcn();
