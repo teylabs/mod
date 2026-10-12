@@ -14,10 +14,10 @@ mod 1.0 lets you decide where every generated file goes (modules, features, slic
 - [x] **[v0.5.1 — Installer recognizes existing wiring](https://github.com/teylabs/mod/milestone/10?closed=1).** `mod:install inertia` says "Already wired." for wiring an app already has, instead of asking for it again.
 - [x] **[v0.6 — Packages build on mod](https://github.com/teylabs/mod/milestone/5?closed=1).** Packages ship vendor-named scaffolds (`mod:acme/pages`) that mod reconciles with an app's own, and register route files, Inertia pages and frontend wiring; they can read the app's stack, including Svelte and Livewire. Apps gain a module's own database connection, frontend files in roots that aren't modules, and per-module assets.
 - [x] **[v0.6.1 — Packages from path repositories](https://github.com/teylabs/mod/milestone/11?closed=1).** Packages installed through symlinked Composer path repositories work, unusable frontend declarations are reported instead of breaking boot, and TypeScript wiring maps bare aliases.
+- [x] **[v0.7 — Learn an app's patterns](https://github.com/teylabs/mod/milestone/6?closed=1).** Agents can survey an app, describe its patterns, and propose them as a layout and recipes, reading only the app they're installed in. Scaffolds ask for lists of records, repeat and toggle sections with template blocks, and make optional members. Apps can define their own page shapes from page entries, folder scaffolds and nearest-folder layouts.
 
 ## The countdown to 1.0
 
-- [ ] **[v0.7 — Learn an app's patterns](https://github.com/teylabs/mod/milestone/6).** Agents can survey an app, describe its patterns, and propose them as a layout and recipes. They read only the app they're installed in. Building blocks for app-defined page shapes, and the Laravel-DDD field trials and guide, finish here.
 - [ ] **[v0.8 — Switch modules on and off](https://github.com/teylabs/mod/milestone/7).** Turn a module off without deleting it.
-- [ ] **[1.0 — A stable promise](https://github.com/teylabs/mod/milestone/8).** A frozen public API, a versioning and support policy, complete docs with an upgrade guide, and a release candidate.
+- [ ] **[1.0 — A stable promise](https://github.com/teylabs/mod/milestone/8).** Laravel-DDD apps moved to mod in field trials, with a guide for moving. A frozen public API, a versioning and support policy, complete docs with an upgrade guide, and a release candidate.
 - [ ] **[1.x — After 1.0](https://github.com/teylabs/mod/milestone/9).** In no particular order.

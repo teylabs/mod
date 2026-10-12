@@ -2,13 +2,12 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## Unreleased
+## [0.7.0] - 2026-10-12
 
 ### Added
-- A Vue-first walkthrough defines an app's page shape using public page entries, folder ownership, optional modal members, tab parts and nearest-folder layouts, with a React variant and a rename including hand-written partials (#140).
 - Inline template blocks take a separator, `{{ #sorts sep=", " }}{{ value }}{{ /sorts }}`, which goes between items and never after the last. Line blocks keep their behaviour, and a separator on a line block, an unclosed quote or an unknown option refuses before anything is written (#145).
 - A scaffold can own a frontend subtree with `folder('pages', '{name}', as: 'pageFolder')`. Generation lists it without writing a directory; rename moves declared and undeclared contents once, preserves supported imports, maps render literals only for page entries and recovers interrupted subtree moves (#138).
-- `mod-survey` reports page-folder patterns and declared or inferred entry stems; `mod-fit` checks proposed entry stems and data-only frontend folder members, including render literals that target non-entries (#139)
+- `mod-survey` reports page-folder patterns and declared or inferred entry stems; `mod-fit` checks proposed entry stems and data-only frontend folder members, including render literals that target non-entries (#139).
 - Scaffold member and insert stubs expose the placed group as `{{ group }}` and the layout token's alias (`{{ module }}`, `{{ domain }}` or a custom token), with name transforms and access inside template blocks (#142).
 - Layouts, mounted roots and packages can declare Inertia page-entry stems; installation emits literal include globs, helpers keep component identities without render names, and `Mod::pageEntry()` refuses non-entries (#136).
 - A scaffold can ask for a list of records with `asks('columns', type: 'records', shape: [...])`: interactive runs prompt per record, non-interactive runs take JSON or the recipe default, and answers are validated against the shape before anything is planned (#132).
@@ -22,8 +21,7 @@ All notable changes to `mod` will be documented in this file.
 - The read-only `mod-fit` Boost tool checks uninstalled layouts and recipe manifests for ownership, conflicts, path and mechanism variances, outside references and unowned code configuration within the survey's app-only privacy boundary (#63).
 
 ### Changed
-- The page-shape walkthrough generates its non-entry layout as an ordinary `page` member, without a custom file type or generator registration (#156).
-- Calling `named()` on a scaffold part is refused with guidance to declare the default name on the root scaffold (#126)
+- Calling `named()` on a scaffold part is refused with guidance to declare the default name on the root scaffold (#126).
 - Discovery reuses unchanged inventories across application boots in one PHP process without a cache file, with directory-mtime invalidation, `Mod::flushDiscovery()` and a `discovery.reuse_in_process` opt-out (#148).
 
 ### Fixed
@@ -31,6 +29,9 @@ All notable changes to `mod` will be documented in this file.
 - Rendering scaffolds into a root other than the running application's ignores classes declared outside the destination. In-app class-collision protection, test path-only checks and `--force` behaviour are unchanged (#149).
 - Rerunning a scaffold with Pest or PHPUnit test members checks existing paths without loading test files, preserving collision refusal, `--skip-existing`, `--force` and interactive choices. Non-test artifacts still autoload class identities to detect classes declared elsewhere (#141).
 - `mod-survey` and `mod-fit` classify classes from symlinked Composer path-repository packages as vendor-owned by their lexical `vendor/` path, without following the link or reading the file, and report unusable vendor paths as skipped instead of failing (#131).
+
+### Docs
+- A Vue-first walkthrough defines an app's page shape using public page entries, folder ownership, optional modal members, tab parts and nearest-folder layouts, with a React variant and a rename including hand-written partials (#140).
 
 ## [0.6.1] - 2026-10-11
 
