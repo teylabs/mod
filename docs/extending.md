@@ -339,6 +339,27 @@ Mod::stubs()->forFileType('page.list.jsx', Stub::file(__DIR__.'/../stubs/list.js
 
 For a planned `.tsx` page, lookup is the app's `stubs/mod.page.list.tsx.stub`, then the registered `page.list.tsx`, then the registered `page.list` fallback. The app's stub wins. Use the extension-free key only for content that works across stacks. Another stack's key is never used: without a matching variant or fallback the plan names the stub to supply and writes nothing. The same precedence applies to flat recipes, tree members and parts, and to any file type with an extension (for example `view.card.blade.php`).
 
+### Asking for lists of records
+
+A `records` question collects a list of objects with declared fields: a table's columns, a filter's options.
+
+```php
+$s->asks('columns', type: 'records', label: 'Column', shape: [
+    'key' => 'string', 'label' => 'string', 'sortable' => 'bool',
+], default: [
+    ['key' => 'name', 'label' => 'Name', 'sortable' => true],
+]);
+```
+
+- `shape` maps each field to `string`, `bool` or `int`. It is required, and field names are letters, digits and underscores.
+- With a terminal, mod asks for each field of each record, then "Add another?". The default's records are offered first. A default of `[]` asks "Add a Column record?" with No.
+- Without a terminal, pass JSON: `--columns='[{"key":"name","label":"Name","sortable":true}]'`. Without the flag the recipe default is used; with neither the command refuses and names the flag. `--columns='[]'` is an empty list.
+- Every record must carry exactly the declared fields, with the declared types. Strings cannot be empty, booleans are JSON `true` or `false`, and integers are whole numbers. A bad value refuses before anything is planned (`--dry-run --json` reports it in `warnings`). A bad `default` throws when the recipe is declared.
+- Records are normalized to the shape's field order, so the same answers always produce the same output.
+- `{{ columns.json }}` prints the list as JSON. To repeat template lines for each record, see template blocks.
+
+`mod:rename --scaffold=` takes the same JSON flag, or `--answer=columns=<JSON>`.
+
 ### Upgrading package scaffolds from 0.5
 
 Unprefixed package registration is refused with `vendor_required`. Replace `Mod::scaffold('pages', $recipe)` with `Mod::vendor('acme')->scaffold('pages', $recipe)`, and `Mod::scaffolds($recipes)` with `Mod::vendor('acme')->scaffolds($recipes)`. Update command calls from `mod:pages` to `mod:acme/pages`, and include, override and rename references from `pages` to `acme/pages`. App registrations keep their existing names.

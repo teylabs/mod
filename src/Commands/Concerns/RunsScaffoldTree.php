@@ -103,11 +103,7 @@ trait RunsScaffoldTree
             }
             foreach ($recipe->questions() as $question) {
                 if (! $this->getDefinition()->hasOption($question->name)) {
-                    $mode = match ($question->type) {
-                        'list' => InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
-                        'confirm' => InputOption::VALUE_NEGATABLE,
-                        default => InputOption::VALUE_REQUIRED,
-                    };
+                    $mode = $question->inputMode();
                     $this->getDefinition()->addOption(new InputOption($question->name, null, $mode, $question->label ?? $question->name));
                 }
             }

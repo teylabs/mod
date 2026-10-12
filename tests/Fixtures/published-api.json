@@ -15672,10 +15672,18 @@
                 "variadic": false,
                 "reference": false,
                 "default": []
+            },
+            {
+                "name": "shape",
+                "type": "array",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": []
             }
         ],
         "return": "Tey\\Mod\\Scaffolds\\Scaffold",
-        "shape": "@param array<array-key, string> $options"
+        "shape": "@param array<array-key, string> $options @param array<string, string> $shape"
     },
     "Tey\\Mod\\Scaffolds\\Part::each": {
         "visibility": "public",
@@ -15977,10 +15985,18 @@
                 "variadic": false,
                 "reference": false,
                 "default": []
+            },
+            {
+                "name": "shape",
+                "type": "array",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": []
             }
         ],
         "return": "Tey\\Mod\\Scaffolds\\Scaffold",
-        "shape": "@param array<array-key, string> $options"
+        "shape": "@param array<array-key, string> $options @param array<string, string> $shape"
     },
     "Tey\\Mod\\Scaffolds\\Scaffold::each": {
         "visibility": "public",

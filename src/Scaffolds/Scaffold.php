@@ -104,11 +104,15 @@ class Scaffold
         return $this->defaultName;
     }
 
-    /** @param array<array-key, string> $options * @api
+    /**
+     * @param  array<array-key, string>  $options
+     * @param  array<string, string>  $shape  fields of a records question: name => string, bool or int
+     *
+     * @api
      */
-    public function asks(string $name, string $type = 'text', mixed $default = null, ?string $label = null, array $options = []): static
+    public function asks(string $name, string $type = 'text', mixed $default = null, ?string $label = null, array $options = [], array $shape = []): static
     {
-        $this->questions[$name] = new Question($name, $type, $default, $label, $options);
+        $this->questions[$name] = new Question($name, $type, $default, $label, $options, $shape);
 
         return $this;
     }

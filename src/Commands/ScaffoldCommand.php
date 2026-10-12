@@ -65,11 +65,7 @@ final class ScaffoldCommand extends Command
             $this->candidateOptions($candidate);
         }
         foreach ($recipe->questions() as $question) {
-            $mode = match ($question->type) {
-                'list' => InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
-                'confirm' => InputOption::VALUE_NEGATABLE,
-                default => InputOption::VALUE_REQUIRED,
-            };
+            $mode = $question->inputMode();
             if (! $this->getDefinition()->hasOption($question->name)) {
                 $this->getDefinition()->addOption(new InputOption($question->name, null, $mode, $question->label ?? $question->name));
             }
@@ -94,11 +90,7 @@ final class ScaffoldCommand extends Command
             if ($this->getDefinition()->hasOption($question->name)) {
                 continue;
             }
-            $mode = match ($question->type) {
-                'list' => InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
-                'confirm' => InputOption::VALUE_NEGATABLE,
-                default => InputOption::VALUE_REQUIRED,
-            };
+            $mode = $question->inputMode();
             $this->getDefinition()->addOption(new InputOption($question->name, null, $mode, $question->label ?? $question->name));
         }
         foreach ($recipe->members() as $member) {
