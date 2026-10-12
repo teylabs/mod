@@ -10,6 +10,43 @@ Use `Mod::pageEntry()` in the root Blade view's Vite entries to map the current 
 
 For React use the app's entry (such as `resources/js/app.tsx`) and `tsx` or `jsx` as its page extension. Ordinary app pages keep the app's `pages`/`Pages` folder; qualified pages follow the layout's frontend paths. The helper returns a project-relative manifest key and refuses unknown namespaces or traversal. Build the frontend after adding pages. The module page glob in the app entry includes these files in Vite's manifest. This supports direct loads as well as client navigation.
 
+## Declare page entries
+
+When helpers live beside pages, declare the file stems that are Inertia entries:
+
+```php
+Mod::layout('app')->extends('modules')->frontend(pageEntries: ['Page', 'Modal']);
+
+// Inside a mounted root:
+$root->frontend(pages: 'pages', pageName: 'UI::{path}', pageEntries: ['Page']);
+
+// From a package provider:
+Mod::pages('billing', __DIR__.'/../resources/js/pages', entries: ['Page']);
+```
+
+Stems are case-sensitive and may contain `*`, such as `Page*`. They match only
+the file stem, not its parent folders. An empty list includes no entries. The
+default `null` keeps every file eligible and leaves existing installer output,
+identities and inventory unchanged. Layout declarations apply to ordinary app
+pages and the layout's page trees. Mounted roots and packages declare their own
+lists; omitted frontend arguments retain inherited declarations.
+
+Run `mod:install inertia --dry-run --json`, then apply and rebuild. With
+`['Page', 'Modal']`, each page tree gets literal includes such as
+`import.meta.glob(['./pages/**/Page.vue', './pages/**/Modal.vue'])`.
+`Layout.vue` and `Partials/Card.vue` are no longer independent page chunks;
+imported helpers still participate in Vite's normal dependency graph. Changing
+the list requires another explicit installation. Existing custom resolvers,
+including hand-written exclusion globs, receive exact manual instructions if
+the installer cannot confirm them, with no edits.
+
+Render names stay verbatim: `Inventory::Widget/Edit/Page`, not
+`Inventory::Widget/Edit`. Non-entries keep component `.import` and `.path`
+identities but have no render `.name`. `Mod::pageEntry()` refuses them with
+their project-relative path. Inertia's backend page-existence and testing
+finders remain unfiltered. `mod:list --json` reports declared `page_entries`
+in `frontend`, `frontend_owners` and `package_pages`; it omits that key for `null`.
+
 ## Customized Inertia bootstraps
 
 Run `php artisan mod:install inertia --dry-run` first. Known starter-kit anchors can be wired automatically. Existing wiring is recognised without edits: a vendor `resolveModulePage` import and call inside `resolve`, including multiline callbacks and array globs with `{ import: 'default' }`; an `@modules` alias using `path.resolve(...)` or `fileURLToPath(new URL(...))` with the module views refresh path; and the exact Tailwind `@source` before or after `@import`. A fully wired app reports `Already wired.`. If a custom shape cannot be confirmed, the installer says so and asks you to check the expected wiring. If the bootstrap has a custom resolver, the installer prints the import and exact page lookup for the configured paths, names the entry file and insertion point, and prints the Tailwind sources. JSON previews include the same instructions in `warnings`. It applies no edits while manual wiring is required.
@@ -158,7 +195,8 @@ The JSON inventory adds `package_pages`, `frontend_wiring` and
 `frontend_notices`. Each notice has `code`, `path` and `message`. Stable codes are
 `frontend_path_invalid`, `frontend_path_escape`, `frontend_path_unavailable`,
 `frontend_alias_invalid`, `frontend_alias_conflict`, `page_namespace_invalid`
-and `page_namespace_conflict`. `mod:install` prints these notices; JSON previews
+and `page_namespace_conflict`, plus `page_entries_invalid` for malformed package
+entry lists. `mod:install` prints these notices; JSON previews
 include them in `warnings` with the same code and `data.path`. Skipped declarations
 do not prevent valid declarations from being installed.
 

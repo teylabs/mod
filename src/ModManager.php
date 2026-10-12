@@ -171,10 +171,14 @@ final readonly class ModManager
         ($this->container ?? Container::getInstance())->make(ModRoutes::class)->load($only, $except, $call);
     }
 
-    /** Declare a package's Inertia page namespace and absolute directory. @api */
-    public function pages(string $namespace, string $directory): self
+    /** Declare a package's Inertia page namespace and absolute directory.
+     * @param  list<string>|null  $entries
+     *
+     * @api
+     */
+    public function pages(string $namespace, string $directory, ?array $entries = null): self
     {
-        ($this->container ?? Container::getInstance())->make(PageRoots::class)->register($namespace, $directory);
+        ($this->container ?? Container::getInstance())->make(PageRoots::class)->register($namespace, $directory, $entries);
 
         return $this;
     }

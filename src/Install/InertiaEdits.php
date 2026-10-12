@@ -3,6 +3,7 @@
 namespace Tey\Mod\Install;
 
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Pages\PageEntries;
 use Tey\Mod\Pages\PageRoots;
 use Tey\Mod\Plans\Plan;
 use Tey\Mod\Support\Path;
@@ -43,7 +44,7 @@ final readonly class InertiaEdits
         $viewsGlob = $this->glob($paths['views'], '**').'/**';
         $resourceGlob = $this->resourcesGlob($paths['pages']);
         $source = '../../'.$resourceGlob.'/**/*.{'.$extension.','.($this->stack->typescript() ? 'ts' : 'js').',blade.php}';
-        if (! $this->mirrored() || ($this->packages?->all() ?? []) !== []) {
+        if (! $this->mirrored() || isset($paths['page_entries']) || ($this->packages?->all() ?? []) !== []) {
             $before = $this->read($entry);
             $after = $this->entryEdit($before, $pageGlob);
             if ($after === null) {
@@ -126,7 +127,7 @@ final readonly class InertiaEdits
         $tailwind = $this->activeContents($this->read('resources/css/app.css')."\n".$this->read($this->first(['tailwind.config.js', 'tailwind.config.ts', 'tailwind.config.cjs']) ?? 'tailwind.config.js'));
 
         return [
-            'inertia' => $this->stack->inertia() !== null && ($this->mirrored() || ($pages !== null && $this->entryWired($entry, $this->glob($pages, '*').'/**/*.'.$this->extension()))),
+            'inertia' => $this->stack->inertia() !== null && (($this->mirrored() && ! isset($paths['page_entries'])) || ($pages !== null && $this->entryWired($entry, $this->glob($pages, '*').'/**/*.'.$this->extension()))),
             'vite_alias' => $this->aliasWired($vite, $this->groupRoot()),
             'tailwind' => $source !== null && (preg_match('~^\s*@source\s+[\'"]'.preg_quote('../../'.$source, '~').'[\'"];~m', $tailwind) === 1 || preg_match('~\bcontent:\s*\[[^\]]*[\'"]'.preg_quote('./'.$source, '~').'[\'"]~s', $tailwind) === 1),
         ];
@@ -218,10 +219,19 @@ final readonly class InertiaEdits
     private function manualEntry(string $pageGlob): string
     {
         $type = $this->stack->typescript() && $this->stack->inertia() !== 'svelte' ? "<import('".($this->stack->inertia() === 'vue' ? 'vue' : 'react')."').".($this->stack->inertia() === 'vue' ? 'DefineComponent' : 'ComponentType').'>' : '';
-        $app = 'import.meta.glob'.$type."('./".basename($this->stack->pagesPath()).'/**/*.'.$this->extension()."')";
-        $groups = $this->groupMap($pageGlob, $pageGlob === '' ? '{}' : 'import.meta.glob'.$type."('../../".$pageGlob."')");
+        $entries = $this->layout->frontend()['page_entries'] ?? null;
+        $app = 'import.meta.glob'.$type.'('.$this->globArgument('./'.basename($this->stack->pagesPath()), $entries).')';
+        $groups = $this->groupMap($pageGlob, $pageGlob === '' || ($entries !== null && $this->mirrored()) ? '{}' : 'import.meta.glob'.$type.'('.$this->globArgument('../../'.explode('/**/', $pageGlob, 2)[0], $entries).')');
 
         return $this->text('import')."\n".sprintf($this->text('entry_line'), $app, $groups)."\n";
+    }
+
+    /** @param list<string>|null $entries */
+    private function globArgument(string $directory, ?array $entries): string
+    {
+        $globs = PageEntries::globs($directory, $this->extension(), $entries);
+
+        return $entries === null ? "'".$globs[0]."'" : json_encode($globs, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 
     private function manualInstructions(string $entry, string $pageGlob): string
@@ -253,14 +263,30 @@ final readonly class InertiaEdits
         }
         $callback = $this->expression(substr($active, $match[0][1] + strlen($match[0][0])));
 
-        foreach ($this->packages?->all() ?? [] as $directory) {
-            if (! str_contains($callback, '../../'.Path::relative($this->basePath, $directory).'/**/*.'.$this->extension())) {
+        $entries = $this->layout->frontend()['page_entries'] ?? null;
+        $lookups = [];
+        if ($entries !== null) {
+            $lookups[] = ['./'.basename($this->stack->pagesPath()), $entries];
+        }
+        if ($pageGlob !== '' && ! $this->mirrored()) {
+            $lookups[] = ['../../'.explode('/**/', $pageGlob, 2)[0], $entries];
+        }
+        foreach ($this->packages?->all() ?? [] as $namespace => $directory) {
+            $lookups[] = ['../../'.Path::relative($this->basePath, $directory), $this->packages?->entries($namespace)];
+        }
+        foreach ($lookups as [$directory, $included]) {
+            foreach (PageEntries::globs($directory, $this->extension(), $included) as $glob) {
+                if (! str_contains($callback, $glob)) {
+                    return false;
+                }
+            }
+            if ($included !== null && ! in_array('*', $included, true) && str_contains($callback, $directory.'/**/*.'.$this->extension())) {
                 return false;
             }
         }
 
         return preg_match('/\b'.preg_quote($this->text('resolver'), '/').'\s*\(/', $callback) === 1
-            && ($pageGlob === '' || str_contains($callback, '../../'.$pageGlob));
+            && ($pageGlob === '' || $this->mirrored() || $lookups !== []);
     }
 
     /** Read one balanced property value, keeping calls in other options out. */
@@ -319,7 +345,9 @@ final readonly class InertiaEdits
                 throw new \InvalidArgumentException('Package page paths must be inside the application.');
             }
             $prefix = '../../'.$relative.'/';
-            $maps[] = sprintf($this->text('page_map'), json_encode($prefix.'**/*.'.$this->extension(), JSON_UNESCAPED_SLASHES).$options, json_encode($namespace.'::'), strlen($prefix));
+            $entries = $options === '' ? $this->packages?->entries($namespace) : null;
+            $glob = $entries === null ? json_encode($prefix.'**/*.'.$this->extension(), JSON_UNESCAPED_SLASHES) : $this->globArgument(rtrim($prefix, '/'), $entries);
+            $maps[] = sprintf($this->text('page_map'), $glob.$options, json_encode($namespace.'::'), strlen($prefix));
         }
 
         return $maps === [] ? $expression : '{ ...'.$expression.', '.implode(', ', $maps).' }';
@@ -334,7 +362,13 @@ final readonly class InertiaEdits
         $pattern = '~    resolve:\s*\(name\)\s*=>\s*resolvePageComponent\(\s*`\./(pages|Pages)/\$\{name\}\.(vue|tsx|jsx|svelte)`\s*,\s*(import\.meta\.glob(?:<[^\n]+?>)?\([\'\"]\./\1/\*\*/\*\.\2[\'\"]\))\s*,?\s*\),~';
         if (preg_match($pattern, $s, $match) === 1) {
             $groupGlob = str_replace('./'.$match[1].'/', '../../'.explode('/**/', $pageGlob, 2)[0].'/', $match[3]);
-            $line = sprintf($this->text('entry_line'), $match[3], $this->groupMap($pageGlob, $pageGlob === '' ? '{}' : $groupGlob));
+            $appGlob = $match[3];
+            if (($entries = $this->layout->frontend()['page_entries'] ?? null) !== null) {
+                $appGlob = str_replace("'./".$match[1].'/**/*.'.$match[2]."'", $this->globArgument('./'.$match[1], $entries), $appGlob);
+                $appGlob = str_replace('"./'.$match[1].'/**/*.'.$match[2].'"', $this->globArgument('./'.$match[1], $entries), $appGlob);
+                $groupGlob = str_replace('./'.$match[1].'/', '../../'.explode('/**/', $pageGlob, 2)[0].'/', $appGlob);
+            }
+            $line = sprintf($this->text('entry_line'), $appGlob, $this->groupMap($pageGlob, $pageGlob === '' || (isset($entries) && $this->mirrored()) ? '{}' : $groupGlob));
             $s = str_replace($match[0], $line, $s);
             $s = str_replace("import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';\n", '', $s);
         } elseif (preg_match('/\bresolve\s*[:(]/', $s) === 1 || substr_count($s, 'createInertiaApp({') !== 1) {

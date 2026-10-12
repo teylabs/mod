@@ -12910,7 +12910,7 @@
         "parent": "Illuminate\\Support\\Facades\\Facade",
         "facade": [
             "static Tey\\Mod\\ModManager connection(string $group, string $connection)",
-            "static Tey\\Mod\\ModManager pages(string $namespace, string $directory)",
+            "static Tey\\Mod\\ModManager pages(string $namespace, string $directory, ?list<string> $entries = null)",
             "static Tey\\Mod\\Install\\Wiring wiring()",
             "static Tey\\Mod\\Support\\Stack stack()",
             "static string pageEntry(string $page, string $extension)",
@@ -13497,7 +13497,7 @@
         "final": true,
         "abstract": false,
         "readonly": true,
-        "shapes": "@phpstan-type Owner array{owner: string, pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string, view_namespace: ?string, alias: ?string}",
+        "shapes": "@phpstan-type Owner array{owner: string, pages: ?string, components: ?string, css: ?string, views: ?string, page_name: ?string, view_namespace: ?string, alias: ?string, page_entries?: list<string>}",
         "interfaces": [],
         "parent": null
     },
@@ -14314,10 +14314,18 @@
                 "variadic": false,
                 "reference": false,
                 "default": null
+            },
+            {
+                "name": "pageEntries",
+                "type": "?array",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
             }
         ],
         "return": "Tey\\Mod\\Layout\\Layout",
-        "shape": ""
+        "shape": "@param list<string>|null $pageEntries"
     },
     "Tey\\Mod\\Layout\\Layout::generates": {
         "visibility": "public",
@@ -14687,10 +14695,18 @@
                 "variadic": false,
                 "reference": false,
                 "default": null
+            },
+            {
+                "name": "pageEntries",
+                "type": "?array",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
             }
         ],
         "return": "Tey\\Mod\\Layout\\Root",
-        "shape": ""
+        "shape": "@param list<string>|null $pageEntries"
     },
     "Tey\\Mod\\Layout\\Root::generates": {
         "visibility": "public",
@@ -14995,10 +15011,18 @@
                 "variadic": false,
                 "reference": false,
                 "default": null
+            },
+            {
+                "name": "entries",
+                "type": "?array",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": null
             }
         ],
         "return": "Tey\\Mod\\ModManager",
-        "shape": ""
+        "shape": "@param list<string>|null $entries"
     },
     "Tey\\Mod\\ModManager::routeFiles": {
         "visibility": "public",

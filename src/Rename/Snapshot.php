@@ -28,7 +28,7 @@ final class Snapshot
             }
         }
         foreach ($layout->frontend() as $key => $path) {
-            if ($key !== 'page_name' && $path !== null) {
+            if ($key !== 'page_name' && is_string($path)) {
                 $roots[] = rtrim(substr($path, 0, strcspn($path, '{')), '/');
             }
         }

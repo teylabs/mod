@@ -9,6 +9,7 @@ use Tey\Mod\Artifact\IdentityShape;
 use Tey\Mod\Artifact\NamePolicy;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Pages\PageEntries;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Support\Path;
 
@@ -71,10 +72,20 @@ final class Identity
         $resolve = static fn (?string $pattern): string => (string) preg_replace_callback('/\{(\w+)[+?]*\}/', static fn (array $m): string => $tokens[$m[1]] ?? ($m[1] === 'path' ? '{path}' : ''), $pattern ?? '');
         $pages = $resolve($frontend['pages']);
         $views = $resolve($frontend['views']);
-        if ($artifact->kind->id === 'page' && $pages !== '') {
+        $pageName = $frontend['page_name'];
+        $entries = $frontend['page_entries'] ?? null;
+        foreach ($layout->frontendOwners() as $owner) {
+            if (($entries !== null || isset($owner['page_entries'])) && $owner['pages'] !== null && Path::relative($resolve($owner['pages']), $path) !== null) {
+                $pages = $resolve($owner['pages']);
+                $pageName = $owner['page_name'];
+                $entries = $owner['page_entries'] ?? null;
+                break;
+            }
+        }
+        if ($artifact->kind->id === 'page' && $pages !== '' && PageEntries::matches($path, $entries)) {
             $below = Path::relative($pages, $path) ?? basename($path);
             $below = substr($below, 0, -strlen($extension));
-            $forms['name'] = str_replace('{path}', $below, $resolve($frontend['page_name']));
+            $forms['name'] = str_replace('{path}', $below, $resolve($pageName));
         } elseif ($extension === '.blade.php' && $views !== '' && ($below = Path::relative($views, $path)) !== null) {
             $name = str_replace('/', '.', substr($below, 0, -strlen($extension)));
             $namespace = $group === '' ? '' : Casing::name(str_replace('/', '-', $group), 'kebab').'::';

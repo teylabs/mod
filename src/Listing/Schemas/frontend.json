@@ -19,6 +19,12 @@
           "namespace": {
             "type": "string"
           },
+          "page_entries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "path": {
             "type": [
               "string",
@@ -78,6 +84,12 @@
               "string",
               "null"
             ]
+          },
+          "page_entries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "view_namespace": {
             "type": [
@@ -212,6 +224,12 @@
             "string",
             "null"
           ]
+        },
+        "page_entries": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "view_namespace": {
           "type": [

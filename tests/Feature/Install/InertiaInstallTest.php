@@ -234,8 +234,8 @@ it('prints exact insertion points and snippets for a customized bootstrap', func
     });
 });
 
-it('prints literal folder-file globs for every owner without changing the layout callback', function (string $stack, string $entryExtension, string $extension, string $casing) {
-    Workspace::run(null, function (Workspace $w) use ($stack, $entryExtension, $extension, $casing) {
+it('prints literal folder-file globs for every owner without changing the layout callback', function (string $stack, string $entryExtension, string $extension, string $casing, ?array $entries) {
+    Workspace::run(null, function (Workspace $w) use ($stack, $entryExtension, $extension, $casing, $entries) {
         Kit::setup($w);
         $w->write('package.json', json_encode(['dependencies' => ['@inertiajs/'.($stack === 'vue' ? 'vue3' : 'react') => '^2']], JSON_THROW_ON_ERROR));
         $w->remove(['resources/js/app.ts', 'tsconfig.json', 'resources/js/pages/.gitkeep']);
@@ -245,10 +245,11 @@ it('prints literal folder-file globs for every owner without changing the layout
         $entry = 'resources/js/app.'.$entryExtension;
         $w->write($entry, "createInertiaApp({\n    resolve: (name) => customLookup(name),\n    layout: (name) => customLayout(name),\n});\n");
         $w->write('resources/js/'.$casing.'/.gitkeep', '');
-        Mod::layout('modules')->mounts('ui', 'App\\UI\\', 'app/UI', fn (Root $root) => $root->frontend(pages: 'screens', pageName: 'UI::{path}'));
+        Mod::layout('modules')->frontend(pageEntries: $entries)
+            ->mounts('ui', 'App\\UI\\', 'app/UI', fn (Root $root) => $root->frontend(pages: 'screens', pageName: 'UI::{path}', pageEntries: $entries));
         $w->write('app/UI/screens/Client/Page.'.$extension, '');
         $w->write('vendor/acme/billing/screens/Client/Page.'.$extension, '');
-        Mod::pages('billing', $w->root->path('vendor/acme/billing/screens'));
+        Mod::pages('billing', $w->root->path('vendor/acme/billing/screens'), entries: $entries);
         $before = $w->files();
         $plan = json_decode($w->artisan('mod:install', ['stack' => 'inertia', '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
         $message = implode("\n", array_column($plan['warnings'], 'message'));
@@ -264,7 +265,10 @@ it('prints literal folder-file globs for every owner without changing the layout
         $w->artisan('mod:install', ['stack' => 'inertia', '--no-interaction' => true])->assertSuccessful();
         expect($w->files())->toBe($before);
     });
-})->with([['vue', 'ts', 'vue', 'Pages'], ['react', 'jsx', 'jsx', 'pages']]);
+})->with([
+    ['vue', 'ts', 'vue', 'Pages', null], ['react', 'jsx', 'jsx', 'pages', null],
+    ['vue', 'ts', 'vue', 'Pages', ['Page', 'Modal']], ['react', 'jsx', 'jsx', 'pages', ['Page']],
+]);
 
 it('recognizes a combined nearest-file and page-resolver import as already wired', function (string $imports) {
     Workspace::run(null, function (Workspace $w) use ($imports) {

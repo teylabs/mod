@@ -12,6 +12,7 @@ use Tey\Mod\Generation\Stub;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\CompiledRoot;
 use Tey\Mod\Layout\FrontendDeclarations;
+use Tey\Mod\Pages\PageEntries;
 use Tey\Mod\Placement\Dimension;
 use Tey\Mod\Placement\OpaquePlacementRule;
 use Tey\Mod\Placement\PlacementContext;
@@ -124,6 +125,9 @@ final class PresetValidator
         foreach ($frontend as $key => $value) {
             $entry = is_array($declaredFrontend) ? ($declaredFrontend[$key] ?? null) : null;
             $frontend[$key] = is_string($entry) ? $entry : null;
+        }
+        if (is_array($declaredFrontend) && ($entries = PageEntries::validate($declaredFrontend['page_entries'] ?? null, 'layout')) !== null) {
+            $frontend['page_entries'] = $entries;
         }
 
         return new CompiledLayout($roots, array_values($dimensions), $kinds, $rules, $relations, $excluded, $commands, $placementOptions, $stubs, [], $frontend, ($definition['mirror_pages'] ?? false) === true, FrontendDeclarations::validate($definition['frontend_owners'] ?? []), AssetDeclarations::validate($definition['assets'] ?? []));

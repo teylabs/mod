@@ -18,7 +18,7 @@ use Tey\Mod\Support\Path;
  * @phpstan-type MemberRow array{alias: string, type: string, name: ?string, stub: ?string, options: array<array-key, mixed>, folder: string, ungrouped: bool, group: ?string, existing: ?string}
  * @phpstan-type ScaffoldRow array{vendor: ?string, id: string, package: ?string, overrides: list<string>, notices: list<array{code: string, data: array<string, mixed>, message: string}>, name: string, command: string, source: string, members: list<MemberRow>, uses?: ?string, children?: list<string>, from?: string, origin?: string}
  * @phpstan-type Problem array{path: string, reason: string}
- * @phpstan-type FrontendRow array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string, view_namespace: ?string, import_alias: array{alias: string, root: string}|null}
+ * @phpstan-type FrontendRow array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string, view_namespace: ?string, import_alias: array{alias: string, root: string}|null, page_entries?: list<string>}
  * @phpstan-type ViewRow array{group: ?string, namespace: ?string, path: string, components: list<array{path: string, tag: string}>}
  * @phpstan-type RouteEntry array{group: string, entrypoint: string, kind: string, middleware_group: string, order: int, loaded_by: ?string}
  *
