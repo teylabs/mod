@@ -8,3 +8,9 @@ export declare function resolveModulePage<T>(
     appPages: Record<string, T>,
     modulePages: Record<string, T>,
 ): Promise<T>;
+
+/** Return the nearest glob value without invoking a loader or component. @api */
+export declare function nearestPageFile<T>(
+    name: string,
+    files: Record<string, T>,
+): T | undefined;

@@ -49,6 +49,56 @@ For Tailwind v4, add the printed `@source` after the Tailwind import in `resourc
 
 For Tailwind v3, add the printed project-relative glob to the `content` array in the app's Tailwind config. Apply the Vite alias and TypeScript additions printed for their own files too. Then build the app and check a direct module page load.
 
+### Find a folder file
+
+`nearestPageFile(name, files)` returns the glob value in the page's own folder,
+then its closest ancestor, stopping at that owner's pages root. It never falls
+back from a module, mounted root or package namespace to another owner or to app
+pages. A render name such as `Sales::Client/Edit/Page` searches `Client/Edit`,
+`Client`, then the `Sales` pages root; it does not search below `Page`.
+
+The app chooses the filenames and keeps its own layout callback. For example:
+
+```ts
+import { resolveModulePage, nearestPageFile } from '../../vendor/tey/mod/resources/js/inertia';
+
+const layouts = import.meta.glob([
+    './pages/**/Layout.vue',
+    '../../app/Modules/*/resources/js/pages/**/Layout.vue',
+], { eager: true, import: 'default' });
+
+// Inside the existing createInertiaApp options, with the app's AppLayout import:
+layout: (name) => [AppLayout, nearestPageFile(name, layouts)].filter(Boolean),
+```
+
+Use `Pages` casing and `.tsx`/`.jsx` or `.svelte` globs for the app's stack.
+Nested module names such as `Sales/Reports::Client/Edit/Page` stop at that
+nested module's root, not its parent module. Mounted roots, packages and custom
+module paths use the same canonical keys as `resolveModulePage`. For example,
+map a mounted `screens` glob to its `UI::` namespace before combining it with
+the app and module maps:
+
+```ts
+const prefix = '../../app/UI/screens/';
+const mountedLayouts = Object.fromEntries(Object.entries(
+    import.meta.glob('../../app/UI/screens/**/Layout.vue', { eager: true, import: 'default' }),
+).map(([key, value]) => ['UI::' + key.slice(prefix.length), value]));
+const folderFiles = { ...layouts, ...mountedLayouts };
+// nearestPageFile('UI::Client/Edit/Page', folderFiles)
+```
+
+Package maps use their declared namespace in place of `UI::` and their literal
+page directory in place of `app/UI/screens`. The installer prints the exact
+literal globs and canonical mapping per owner in manual instructions. Narrow
+those globs to the app's chosen filename; the helper assumes no basename or
+purpose. Installation never adds or rewrites a layout callback.
+
+The helper returns `undefined` when no folder matches. It returns values
+unchanged: eager default imports give components, while lazy globs give loaders
+that the app must load itself. Invalid render names throw, as in
+`resolveModulePage`; multiple files in the nearest matching folder throw an
+ambiguity error. Keep the glob to one candidate per folder.
+
 
 ### Read the frontend stack
 

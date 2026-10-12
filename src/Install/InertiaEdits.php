@@ -228,6 +228,9 @@ final readonly class InertiaEdits
     {
         [$import, $resolve] = explode("\n", trim($this->manualEntry($pageGlob)), 2);
         $lookup = preg_replace('/^\s*resolve: \(name\) => (.*),$/D', '$1', trim($resolve));
+        $options = ", { eager: true, import: 'default' }";
+        $appFiles = "import.meta.glob('./".basename($this->stack->pagesPath()).'/**/*.'.$this->extension()."'".$options.')';
+        $groupFiles = $this->groupMap($pageGlob, $pageGlob === '' ? '{}' : "import.meta.glob('../../".$pageGlob."'".$options.')', $options);
 
         return "mod:install inertia couldn't confirm [".$entry.']; it has a custom resolve or entry. Keep your adapter, plugins and default layout.'
             ."\n".'Check that it has this with the other imports at the top (once):'
@@ -235,7 +238,10 @@ final readonly class InertiaEdits
             ."\n".'Check for this page lookup inside your existing resolve callback; keep any layout assignment and return value:'
             ."\n".$lookup
             ."\n".'For an entry without a resolve callback, use this inside the createInertiaApp options:'
-            ."\n".$resolve;
+            ."\n".$resolve
+            ."\n".'For optional folder files, add nearestPageFile to the same import. These literal globs cover each page owner; narrow **/*.'.$this->extension().' to your chosen filename (for example **/Layout.'.$this->extension().'):'
+            ."\n".'const pageFiles = { ...'.$appFiles.', ...'.$groupFiles.' };'
+            ."\n".'Use nearestPageFile(name, pageFiles) in your own layout callback. Keep that callback unchanged unless you choose to use this helper.';
     }
 
     private function entryWired(string $contents, string $pageGlob): bool
@@ -287,9 +293,9 @@ final readonly class InertiaEdits
         return (string) preg_replace_callback('~[\'"](?:\\\\.|[^\'"\\\\])*[\'"]|`(?:\\\\.|[^`\\\\])*`|//[^\r\n]*|/\*.*?\*/~s', static fn (array $match): string => str_starts_with($match[0], '//') || str_starts_with($match[0], '/*') ? ' ' : $match[0], $contents);
     }
 
-    private function groupMap(string $pageGlob, string $expression): string
+    private function groupMap(string $pageGlob, string $expression, string $options = ''): string
     {
-        $expression = $this->packageMap($expression);
+        $expression = $this->packageMap($expression, $options);
 
         if (preg_match('~/\*/resources/js/(pages|Pages)/~', $pageGlob) === 1) {
             return $expression;
@@ -304,7 +310,7 @@ final readonly class InertiaEdits
         return 'Object.fromEntries(Object.entries('.$expression.').map(([key, value]) => [key.replace(/^'.$pattern."/, '$1::'), value]))";
     }
 
-    private function packageMap(string $expression): string
+    private function packageMap(string $expression, string $options = ''): string
     {
         $maps = [];
         foreach ($this->packages?->all() ?? [] as $namespace => $directory) {
@@ -313,7 +319,7 @@ final readonly class InertiaEdits
                 throw new \InvalidArgumentException('Package page paths must be inside the application.');
             }
             $prefix = '../../'.$relative.'/';
-            $maps[] = sprintf($this->text('page_map'), json_encode($prefix.'**/*.'.$this->extension(), JSON_UNESCAPED_SLASHES), json_encode($namespace.'::'), strlen($prefix));
+            $maps[] = sprintf($this->text('page_map'), json_encode($prefix.'**/*.'.$this->extension(), JSON_UNESCAPED_SLASHES).$options, json_encode($namespace.'::'), strlen($prefix));
         }
 
         return $maps === [] ? $expression : '{ ...'.$expression.', '.implode(', ', $maps).' }';
