@@ -4,17 +4,19 @@ namespace Tey\Mod\Survey;
 
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use InvalidArgumentException;
 use Tey\Mod\Exceptions\ModException;
 use Tey\Mod\Layout\BuiltIn\BuiltInLayouts;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\FileType;
 use Tey\Mod\Layout\Layout;
+use Tey\Mod\Pages\PageEntries;
 use Tey\Mod\Support\Path;
 
 /**
  * @internal A data-only proposal; never register or execute an app recipe.
  *
- * @phpstan-type Member array{id: string, path: string, class?: string, page?: string}
+ * @phpstan-type Member array{id: string, path: string, class?: string, page?: string, pattern?: string}
  * @phpstan-type Variance array{member: string, path: string, mechanism?: string}
  */
 final readonly class FitProposal
@@ -36,9 +38,10 @@ final readonly class FitProposal
     {
         $validator = Validator::make(['proposal' => $input], [
             'proposal' => 'required|array:layout,recipe,variances',
-            'proposal.layout' => 'required_without:proposal.recipe|array:base,path,mounts,types',
+            'proposal.layout' => 'required_without:proposal.recipe|array:base,path,mounts,types,pageEntries',
             'proposal.layout.base' => ['required_with:proposal.layout', 'string', Rule::in((new BuiltInLayouts)->names())],
             'proposal.layout.path' => 'sometimes|required|string',
+            'proposal.layout.pageEntries' => 'sometimes|nullable|array|list',
             'proposal.layout.mounts' => 'sometimes|array|list',
             'proposal.layout.mounts.*' => 'required|array:id,namespace,path',
             'proposal.layout.mounts.*.id' => 'required|string|distinct',
@@ -53,9 +56,10 @@ final readonly class FitProposal
             'proposal.recipe' => 'required_without:proposal.layout|array:name,members,tables',
             'proposal.recipe.name' => 'required_with:proposal.recipe|string',
             'proposal.recipe.members' => 'required_with:proposal.recipe|array|list|min:1',
-            'proposal.recipe.members.*' => 'required|array:id,path,class,page',
+            'proposal.recipe.members.*' => 'required|array:id,path,class,page,pattern',
             'proposal.recipe.members.*.id' => 'required|string|distinct',
             'proposal.recipe.members.*.path' => 'required|string',
+            'proposal.recipe.members.*.pattern' => 'sometimes|required|string|prohibits:proposal.recipe.members.*.class,proposal.recipe.members.*.page',
             'proposal.recipe.members.*.class' => ['sometimes', 'string', 'regex:/^[a-zA-Z_][a-zA-Z0-9_]*(?:\\\\[a-zA-Z_][a-zA-Z0-9_]*)*$/D'],
             'proposal.recipe.members.*.page' => ['sometimes', 'string', 'regex:~^[a-zA-Z0-9_./:\\-]+$~D'],
             'proposal.recipe.tables' => 'sometimes|array|list',
@@ -69,11 +73,18 @@ final readonly class FitProposal
         if ($validator->fails()) {
             throw new ModException('Supply a layout and/or recipe using the mod-fit schema; unknown keys and malformed definitions are refused.');
         }
-        /** @var array{layout?: array{base: string, path?: string, mounts?: list<array{id: string, namespace: ?string, path: string}>, types?: list<array{id: string, in: string, suffix?: string, extension?: string}>}, recipe?: array{name: string, members: list<Member>, tables?: list<string>}, variances?: list<Variance>} $input */
+        /** @var array{layout?: array{base: string, path?: string, pageEntries?: list<string>|null, mounts?: list<array{id: string, namespace: ?string, path: string}>, types?: list<array{id: string, in: string, suffix?: string, extension?: string}>}, recipe?: array{name: string, members: list<Member>, tables?: list<string>}, variances?: list<Variance>} $input */
         $layout = null;
         if (isset($input['layout'])) {
             $definition = $input['layout'];
             $builder = isset($definition['path']) ? Layout::fresh('fit')->extends($definition['base']) : Layout::fresh($definition['base']);
+            if (array_key_exists('pageEntries', $definition)) {
+                try {
+                    $builder->frontend(pageEntries: PageEntries::validate($definition['pageEntries'], 'mod-fit'));
+                } catch (InvalidArgumentException $exception) {
+                    throw new ModException($exception->getMessage());
+                }
+            }
             if (isset($definition['path'])) {
                 $builder->path(self::path($definition['path'], $scope));
             }
@@ -93,7 +104,19 @@ final readonly class FitProposal
         }
         $members = $input['recipe']['members'] ?? [];
         foreach ($members as &$member) {
-            $member['path'] = self::path($member['path'], $scope);
+            if (isset($member['pattern'])) {
+                if ($layout === null || ! in_array($member['path'], ['pages', 'components', 'views'], true)
+                    || $layout->frontend()[$member['path']] === null) {
+                    throw new ModException('Folder members require a proposed layout and a declared frontend path key: pages, components or views.');
+                }
+                $member['pattern'] = self::path($member['pattern'], $scope);
+                if (preg_match('~^(?:[a-zA-Z0-9_*\-]+|\{\w+\})(?:/(?:[a-zA-Z0-9_*\-]+|\{\w+\}))*$~D', $member['pattern']) !== 1) {
+                    throw new ModException('Folder patterns accept literal segments, {name}-style placeholders, * and **.');
+                }
+                self::path($layout->frontend()[$member['path']].'/'.$member['pattern'], $scope);
+            } else {
+                $member['path'] = self::path($member['path'], $scope);
+            }
         }
         unset($member);
         $variances = $input['variances'] ?? [];
@@ -101,6 +124,11 @@ final readonly class FitProposal
             $variance['path'] = self::path($variance['path'], $scope);
             if (! in_array($variance['member'], array_column($members, 'id'), true)) {
                 throw new ModException('A variance must name a proposed recipe member.');
+            }
+            foreach ($members as $member) {
+                if ($member['id'] === $variance['member'] && isset($member['pattern'])) {
+                    throw new ModException('Folder members require a concrete path and pattern, not single-file variance evidence.');
+                }
             }
         }
         unset($variance);

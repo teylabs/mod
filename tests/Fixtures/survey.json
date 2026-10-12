@@ -9,6 +9,8 @@
     "naming_patterns": [
         {"files": ["app/Models/Ant.php", "app/Models/Zebra.php"], "pattern": "{name}.php", "type": "model"}
     ],
+    "page_entries": [],
+    "page_patterns": [],
     "recurring_sets": [],
     "references": [],
     "sets": [

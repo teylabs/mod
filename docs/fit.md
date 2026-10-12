@@ -29,6 +29,10 @@ placement or variance evidence, never another scan root.
 - `base` is required: `laravel`, `modules`, `features`, `slices`, `type-first`
   or `ddd`. It starts from shipped defaults, not the app's customizations.
 - `path` optionally supplies the group path, as in `Layout::path()`.
+- `pageEntries` optionally supplies entry file stems, using the same inclusion
+  policy as `Layout::frontend(pageEntries: ...)`. Omitted or null includes every
+  page file, preserving 0.6 behaviour; `[]` includes none. Stems accept letters,
+  numbers, underscores, hyphens and `*` wildcards, not paths or extensions.
 - `mounts` optionally adds or replaces roots: objects with `id`, `namespace`
   (a PHP namespace or null for plain files), and project-relative `path`.
 - `types` optionally adds or overrides file placement: objects with `id`, `in`,
@@ -69,6 +73,48 @@ paths before calling the tool; it does not interpret PHP scaffold definitions.
 When both inputs are present, layout ownership and recipe member evidence appear
 in the same report; recipe paths remain explicit, not derived from the layout.
 
+### Folder members and page entries
+
+A member with `pattern` describes a folder, not a generated file. Its `path` is
+the proposed layout's frontend path key: `pages`, `components` or `views`.
+Supply a layout with that key declared. This is plain data; fit does not load a
+scaffold or depend on its folder-member classes.
+
+```json
+{
+  "layout": {"base": "laravel", "pageEntries": ["Page", "Modal"]},
+  "recipe": {
+    "name": "widget-pages",
+    "members": [
+      {"id": "pageFolder", "path": "pages", "pattern": "Widget"},
+      {"id": "edit", "path": "resources/js/pages/Widget/Edit/Page.vue", "page": "Widget/Edit/Page"}
+    ]
+  }
+}
+```
+
+This folder accounts for every permitted file under `pages/Widget/`, including
+`Layout.vue`, action pages and undeclared partials. File members inside it are
+allowed; two folders claiming the same file conflict. An explicit file member
+takes precedence in `owned`, while outside references can identify both members.
+`pattern` accepts literal folder segments, whole-segment placeholders such as
+`{name}` (any single segment), `*` (within one segment) and `**` (zero or more
+folders). The selected folders include their whole subtrees. Use a concrete
+pattern for one invocation, or placeholders to check recurring folders across
+the proposed layout's groups. No directory is scanned outside the normal safe
+file inventory. Folder members do not accept `class`, `page` or single-file
+variance evidence; empty matches appear in `missing` with their path key,
+pattern and `can_mark_variance: false`.
+
+With the entry policy above, `Widget/Edit/Page` and `Widget/Edit/Modal` remain
+render names. `Widget/Layout` and `Widget/Edit/Partials/Form` appear in
+`non_entries`: each row has its file `path` and the `name` that would no longer
+resolve. They can still be owned files. A literal `Inertia::render()` targeting
+one produces a `render-non-entry` conflict with the caller `path`, `target` and
+`page_path`; a recipe file claiming its `page` identity produces
+`page-non-entry`. Fit checks literal render references even inside owned files.
+Missing targets and computed references are not evidence of non-entry status.
+
 ### Agent evidence for variances
 
 The tool cannot decide that accepting an invitation through registration is the
@@ -98,9 +144,10 @@ repeating the same request against the same tree returns byte-identical JSON.
 | --- | --- |
 | `owned` | Existing files a proposed layout places or a recipe matches exactly; includes `file_type` and/or `member`. |
 | `unowned` | Permitted app files neither input accounts for. A relocated member is not also unowned. |
-| `conflicts` | Ambiguous placement or member candidates, class identity mismatches, or overlapping member claims. |
+| `conflicts` | Ambiguous placement or member candidates, class identity mismatches, overlapping claims, or non-entry page/render identities. |
+| `non_entries` | Existing page files excluded by the proposed entry stems, with the render names they would lose. Empty with the default policy. |
 | `variances` | Member id, expected path, actual `path`, reason (`different-path` or `different-mechanism`) and evidence (`structure` or `agent`). |
-| `missing` | Members with no match; includes `can_mark_variance: true` for a later agent decision. |
+| `missing` | Members with no match; files include `can_mark_variance: true` for a later agent decision, folders include their pattern and false. |
 | `outside` | Files outside matched recipe members that reference their actual classes/pages or touch a declared table; includes recipe attribution. |
 | `configuration` | Unowned static callback registrations, with file, line, target, referenced members and recipe attribution when supported. |
 | `vendor` | Referenced package-owned classes and their local vendor paths; not recipe-owned app files. |

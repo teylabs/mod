@@ -4,6 +4,7 @@ namespace Tey\Mod\Survey;
 
 use Illuminate\Foundation\Application;
 use Tey\Mod\Exceptions\ModException;
+use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Reverse\ReverseMapper;
 
 /**
@@ -45,6 +46,13 @@ final readonly class AppFit
         }
         $owned = [];
         $conflicts = [];
+        $pages = $proposal->layout !== null ? (new PageStructure)->read($files, $proposal->layout) : [];
+        $nonEntries = [];
+        foreach ($pages as $path => $page) {
+            if ($page['name'] !== null && ! $page['entry']) {
+                $nonEntries[] = ['path' => $path, 'name' => $page['name']];
+            }
+        }
         if ($proposal->layout !== null) {
             $mapper = new ReverseMapper($proposal->layout);
             foreach ($files as $path) {
@@ -64,6 +72,7 @@ final readonly class AppFit
         $missing = [];
         $memberPaths = [];
         $claims = [];
+        $folderClaims = [];
         $annotations = array_column($proposal->variances, null, 'member');
         foreach ($proposal->members as $member) {
             $id = $member['id'];
@@ -72,18 +81,40 @@ final readonly class AppFit
             if ($annotation !== null && ! in_array($annotation['path'], $files, true)) {
                 throw new ModException('Variance evidence must be an existing file in the permitted base_path() scan; symlinks and skipped files are refused.');
             }
-            $candidates = $annotation !== null ? [$annotation['path']] : $this->candidates($member, $files, $structures);
+            $candidates = isset($member['pattern']) && $proposal->layout !== null
+                ? $this->folderCandidates($member, $files, $proposal->layout)
+                : ($annotation !== null ? [$annotation['path']] : $this->candidates($member, $files, $structures));
+            if (isset($member['pattern']) && $candidates !== []) {
+                foreach ($candidates as $found) {
+                    if (isset($folderClaims[$found])) {
+                        $conflicts[] = ['member' => $id, 'path' => $found, 'reason' => 'member-overlap', 'with' => $folderClaims[$found]];
+
+                        continue;
+                    }
+                    $memberPaths[$found][] = $id;
+                    $folderClaims[$found] = $id;
+                    $owned[$found] = [...($owned[$found] ?? ['path' => $found]), 'member' => $claims[$found] ?? $id];
+                }
+
+                continue;
+            }
             if (count($candidates) > 1) {
                 $conflicts[] = ['member' => $id, 'path' => $expected, 'reason' => 'ambiguous-member', 'candidates' => $candidates];
 
                 continue;
             }
             if ($candidates === []) {
-                $missing[] = ['member' => $id, 'path' => $expected, 'can_mark_variance' => true];
+                $missing[] = ['member' => $id, 'path' => $expected, 'can_mark_variance' => ! isset($member['pattern']),
+                    ...(isset($member['pattern']) ? ['pattern' => $member['pattern']] : [])];
 
                 continue;
             }
             $found = $candidates[0];
+            if (isset($member['page'], $pages[$found]['name']) && ! $pages[$found]['entry']) {
+                $conflicts[] = ['member' => $id, 'path' => $found, 'reason' => 'page-non-entry', 'target' => 'page:'.$member['page']];
+
+                continue;
+            }
             if (isset($claims[$found]) && ! isset($annotation['mechanism'])) {
                 $conflicts[] = ['member' => $id, 'path' => $found, 'reason' => 'member-overlap', 'with' => $claims[$found]];
 
@@ -114,15 +145,26 @@ final readonly class AppFit
             foreach ($structures[$path]['classes'] ?? [] as $class) {
                 $targets[strtolower($class)] = $ids;
             }
+            if (isset($folderClaims[$path]) && ($pages[$path]['entry'] ?? false) && $pages[$path]['name'] !== null) {
+                $targets['page:'.$pages[$path]['name']] = [$folderClaims[$path]];
+            }
             foreach ($proposal->members as $member) {
                 if (in_array($member['id'], $ids, true) && isset($member['page'])) {
-                    $targets['page:'.$member['page']] = [$member['id']];
+                    $key = 'page:'.$member['page'];
+                    $targets[$key] = isset($folderClaims[$path]) ? [...($targets[$key] ?? []), $member['id']] : [$member['id']];
                 }
             }
         }
         $outside = [];
         $configuration = [];
+        $nonEntryNames = array_column($nonEntries, 'path', 'name');
         foreach ($structures as $path => $structure) {
+            foreach ($structure['edges'] as $edge) {
+                if ($edge['kind'] === 'page' && isset($nonEntryNames[substr($edge['to'], strlen('page:'))])) {
+                    $conflicts[] = ['path' => $path, 'reason' => 'render-non-entry', 'target' => $edge['to'],
+                        'page_path' => $nonEntryNames[substr($edge['to'], strlen('page:'))]];
+                }
+            }
             if (! isset($memberPaths[$path])) {
                 foreach ($structure['edges'] as $edge) {
                     $ids = $targets[str_starts_with($edge['to'], 'page:') ? $edge['to'] : strtolower($edge['to'])] ?? [];
@@ -154,7 +196,7 @@ final readonly class AppFit
             'recipe' => $proposal->recipe, 'owned' => array_values($owned), 'unowned' => $unowned,
             'conflicts' => $conflicts, 'variances' => $variances, 'missing' => $missing,
             'outside' => $outside, 'configuration' => $configuration, 'vendor' => array_values($vendor),
-            'skipped' => $scope->skipped, 'unparsed' => $unparsed,
+            'skipped' => $scope->skipped, 'unparsed' => $unparsed, 'non_entries' => $nonEntries,
         ]);
     }
 
@@ -197,6 +239,37 @@ final readonly class AppFit
         }
 
         return $ranked === [] ? [] : $ranked[max(array_keys($ranked))];
+    }
+
+    /** @param array{id: string, path: string, pattern: string} $member
+     * @param  list<string>  $files
+     * @return list<string>
+     */
+    private function folderCandidates(array $member, array $files, CompiledLayout $layout): array
+    {
+        $regex = '';
+        $paths = [
+            'pages' => $layout->frontend()['pages'],
+            'components' => $layout->frontend()['components'],
+            'views' => $layout->frontend()['views'],
+        ];
+        $template = $paths[$member['path']].'/'.$member['pattern'];
+        foreach (explode('/', $template) as $segment) {
+            if (preg_match('/^\{(\w+)(\?)?\}$/D', $segment, $token) === 1) {
+                $multi = false;
+                foreach ($layout->dimensions() as $dimension) {
+                    if ($dimension->name === $token[1]) {
+                        $multi = $dimension->multi;
+                    }
+                }
+                $capture = '/'.($multi ? '.+' : '[^/]+');
+                $regex .= isset($token[2]) ? '(?:'.$capture.')?' : $capture;
+            } else {
+                $regex .= $segment === '**' ? '(?:/[^/]+)*' : '/'.str_replace('\\*', '[^/]*', preg_quote($segment, '~'));
+            }
+        }
+
+        return array_values(array_filter($files, static fn (string $path): bool => preg_match('~^'.ltrim($regex, '/').'/.+$~D', $path) === 1));
     }
 
     /** @param array<array-key, mixed> $data

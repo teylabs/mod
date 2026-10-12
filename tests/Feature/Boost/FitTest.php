@@ -13,6 +13,105 @@ use Tey\Mod\Tests\Feature\Boost\SurveyFixture;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
 
+it('checks folder members and reports non-entry render literals without excluding ordinary pages by default', function () {
+    Workspace::run(null, function (Workspace $w) {
+        $w->write('resources/js/pages/Widget/Edit/Page.vue', '<template />');
+        $w->write('resources/js/pages/Widget/Edit/Modal.vue', '<template />');
+        $w->write('resources/js/pages/Widget/Edit/Partials/Form.vue', '<template />');
+        $w->write('resources/js/pages/Widget/Layout.vue', '<template />');
+        $w->write('resources/js/pages/Other/Page.vue', '<template />');
+        $w->write('resources/js/pages/support.ts', 'export {};');
+        $w->write('routes/web.php', "<?php use Inertia\\Inertia; Inertia::render('Widget/Edit/Page'); Inertia::render('Widget/Edit/Partials/Form'); Inertia::render('Widget/Layout'); Inertia::render('Missing/Page');");
+        $before = Scenario::bytes($w);
+        $tool = app(FitTool::class);
+        $input = [
+            'layout' => ['base' => 'laravel', 'pageEntries' => ['Page', 'Modal']],
+            'recipe' => ['name' => 'widget', 'members' => [
+                ['id' => 'screens', 'path' => 'pages', 'pattern' => 'Widget'],
+                ['id' => 'edit', 'path' => 'resources/js/pages/Widget/Edit/Page.vue', 'page' => 'Widget/Edit/Page'],
+                ['id' => 'helper-page', 'path' => 'resources/js/pages/Widget/Layout.vue', 'page' => 'Widget/Layout'],
+                ['id' => 'missing-folder', 'path' => 'pages', 'pattern' => 'Absent'],
+            ]],
+        ];
+        $response = $tool->handle(new Request($input));
+        $data = Scenario::data($response, $tool);
+        expect($data['owned'])->toContain(
+            ['file_type' => 'page', 'member' => 'edit', 'path' => 'resources/js/pages/Widget/Edit/Page.vue'],
+            ['file_type' => 'page', 'member' => 'screens', 'path' => 'resources/js/pages/Widget/Layout.vue'],
+        )->and($data['owned'])->not->toContain(['member' => 'screens', 'path' => 'resources/js/pages/Other/Page.vue'])
+            ->and($data['non_entries'])->toBe([
+                ['name' => 'Widget/Edit/Partials/Form', 'path' => 'resources/js/pages/Widget/Edit/Partials/Form.vue'],
+                ['name' => 'Widget/Layout', 'path' => 'resources/js/pages/Widget/Layout.vue'],
+            ])->and(array_column($data['conflicts'], 'reason'))->toBe(['page-non-entry', 'render-non-entry', 'render-non-entry'])
+            ->and(array_column(array_filter($data['conflicts'], fn (array $conflict): bool => $conflict['reason'] === 'render-non-entry'), 'target'))
+            ->toBe(['page:Widget/Edit/Partials/Form', 'page:Widget/Layout'])
+            ->and($data['missing'])->toBe([['can_mark_variance' => false, 'member' => 'missing-folder', 'path' => 'pages', 'pattern' => 'Absent']])
+            ->and($data['outside'])->toContain(['kind' => 'page', 'member' => 'screens', 'path' => 'routes/web.php', 'recipe' => 'widget', 'target' => 'page:Widget/Edit/Page'])
+            ->and((string) $tool->handle(new Request($input))->content())->toBe((string) $response->content())
+            ->and(Scenario::bytes($w))->toBe($before);
+        unset($input['layout']['pageEntries']);
+        $input['recipe']['members'] = [
+            $input['recipe']['members'][0],
+            ['id' => 'script', 'path' => 'resources/js/pages/support.ts', 'page' => 'support'],
+        ];
+        $default = Scenario::data($tool->handle(new Request($input)), $tool);
+        expect($default['non_entries'])->toBe([])->and($default['conflicts'])->toBe([])
+            ->and(array_column($default['owned'], 'member', 'path')['resources/js/pages/support.ts'])->toBe('script');
+        array_pop($input['recipe']['members']);
+        $input['recipe']['members'][0]['pattern'] = 'Widget/Edit';
+        $narrow = Scenario::data($tool->handle(new Request($input)), $tool);
+        expect(array_column(array_filter($narrow['owned'], fn (array $row): bool => isset($row['member'])), 'path'))
+            ->toBe(['resources/js/pages/Widget/Edit/Modal.vue', 'resources/js/pages/Widget/Edit/Page.vue', 'resources/js/pages/Widget/Edit/Partials/Form.vue']);
+        $input['recipe']['members'][0]['pattern'] = '{name}/**/Partials';
+        $partials = Scenario::data($tool->handle(new Request($input)), $tool);
+        expect(array_column(array_filter($partials['owned'], fn (array $row): bool => isset($row['member'])), 'path'))
+            ->toBe(['resources/js/pages/Widget/Edit/Partials/Form.vue']);
+        $input['layout']['pageEntries'] = [];
+        $none = Scenario::data($tool->handle(new Request($input)), $tool);
+        expect($none['non_entries'])->toHaveCount(5);
+        $input['layout']['pageEntries'] = ['P*', 'Modal'];
+        $wildcard = Scenario::data($tool->handle(new Request($input)), $tool);
+        expect($wildcard['non_entries'])->toBe($data['non_entries']);
+        $input['layout']['pageEntries'] = null;
+        $all = Scenario::data($tool->handle(new Request($input)), $tool);
+        expect($all['non_entries'])->toBe([])->and($all['conflicts'])->toBe([]);
+    });
+});
+
+it('resolves folder path keys through grouped placement and attributes only included render names', function () {
+    Workspace::run(null, function (Workspace $w) {
+        $w->write('app/Areas/Team/resources/js/pages/Widget/Edit/Page.vue', '<template />');
+        $w->write('app/Areas/Team/resources/js/pages/Widget/Layout.vue', '<template />');
+        $w->write('app/Areas/Team/resources/js/pages/Widgetish/Page.vue', '<template />');
+        $w->write('app/Areas/Team/resources/views/Widget/mail.blade.php', '<p />');
+        $w->write('routes/web.php', "<?php use Inertia\\Inertia; Inertia::render('Team::Widget/Edit/Page'); Inertia::render('Team::Widget/Layout');");
+        $tool = app(FitTool::class);
+        $input = [
+            'layout' => ['base' => 'modules', 'path' => 'app/Areas/{area}', 'pageEntries' => ['Page']],
+            'recipe' => ['name' => 'widget', 'members' => [
+                ['id' => 'pages', 'path' => 'pages', 'pattern' => 'Widget'],
+                ['id' => 'mail', 'path' => 'views', 'pattern' => 'Widget'],
+            ]],
+        ];
+        $data = Scenario::data($tool->handle(new Request($input)), $tool);
+        expect(array_column(array_filter($data['owned'], fn (array $row): bool => isset($row['member'])), 'path'))->toEqualCanonicalizing([
+            'app/Areas/Team/resources/views/Widget/mail.blade.php',
+            'app/Areas/Team/resources/js/pages/Widget/Edit/Page.vue',
+            'app/Areas/Team/resources/js/pages/Widget/Layout.vue',
+        ])->and($data['outside'])->toBe([[
+            'kind' => 'page', 'member' => 'pages', 'path' => 'routes/web.php', 'recipe' => 'widget', 'target' => 'page:Team::Widget/Edit/Page',
+        ]])->and($data['conflicts'])->toBe([[
+            'page_path' => 'app/Areas/Team/resources/js/pages/Widget/Layout.vue', 'path' => 'routes/web.php',
+            'reason' => 'render-non-entry', 'target' => 'page:Team::Widget/Layout',
+        ]]);
+        $input['recipe']['members'][] = ['id' => 'overlap', 'path' => 'pages', 'pattern' => 'Widget/Edit'];
+        $overlap = Scenario::data($tool->handle(new Request($input)), $tool);
+        expect($overlap['conflicts'])->toContain([
+            'member' => 'overlap', 'path' => 'app/Areas/Team/resources/js/pages/Widget/Edit/Page.vue', 'reason' => 'member-overlap', 'with' => 'pages',
+        ]);
+    });
+});
+
 it('checks an uninstalled layout without using or changing app registrations', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'missing');
@@ -169,6 +268,14 @@ it('refuses malformed input and caller-controlled scan paths', function (array $
     [['recipe' => ['name' => 'bad', 'members' => [['id' => 'a', 'path' => 'a'], ['id' => 'a', 'path' => 'b']]]]],
     [['recipe' => ['name' => 'bad', 'members' => 'not-an-array']]],
     [['layout' => ['base' => 'laravel'], 'variances' => [['member' => 'absent', 'path' => 'composer.json']]]],
+    [['layout' => ['base' => 'laravel', 'pageEntries' => ['Page.vue']]]],
+    [['layout' => ['base' => 'laravel', 'pageEntries' => ['Page/Helper']]]],
+    [['layout' => ['base' => 'laravel', 'pageEntries' => [42]]]],
+    [['recipe' => ['name' => 'bad', 'members' => [['id' => 'folder', 'path' => 'pages', 'pattern' => 'Widget']]]]],
+    [['layout' => ['base' => 'laravel'], 'recipe' => ['name' => 'bad', 'members' => [['id' => 'folder', 'path' => 'app', 'pattern' => 'Widget']]]]],
+    [['layout' => ['base' => 'ddd'], 'recipe' => ['name' => 'bad', 'members' => [['id' => 'folder', 'path' => 'pages', 'pattern' => 'Widget']]]]],
+    [['layout' => ['base' => 'laravel'], 'recipe' => ['name' => 'bad', 'members' => [['id' => 'folder', 'path' => 'pages', 'pattern' => 'Widget', 'page' => 'Widget']]]]],
+    [['layout' => ['base' => 'laravel'], 'recipe' => ['name' => 'bad', 'members' => [['id' => 'folder', 'path' => 'pages', 'pattern' => 'Widget']]], 'variances' => [['member' => 'folder', 'path' => 'composer.json']]]],
 ]);
 
 it('refuses protected absolute traversal and network paths in proposals', function (string $path) {
@@ -179,6 +286,7 @@ it('refuses protected absolute traversal and network paths in proposals', functi
             ['layout' => ['base' => 'modules', 'path' => $path]],
             ['layout' => ['base' => 'laravel', 'mounts' => [['id' => 'unsafe', 'namespace' => 'Unsafe\\', 'path' => $path]]]],
             ['layout' => ['base' => 'laravel', 'types' => [['id' => 'model', 'in' => $path]]]],
+            ['layout' => ['base' => 'laravel'], 'recipe' => ['name' => 'unsafe', 'members' => [['id' => 'folder', 'path' => 'pages', 'pattern' => $path]]]],
         ] as $input) {
             expect($tool->handle(new Request($input))->isError())->toBeTrue();
         }

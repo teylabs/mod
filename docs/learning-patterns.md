@@ -2,6 +2,29 @@
 
 Install mod's Boost resources with `php artisan boost:install` and select `tey/mod`. Load `mod-learning-patterns` when asking an agent to turn this app's existing conventions into a layout and scaffold recipes. The skill surveys with `mod-survey`, confirms recurring sets by reading source and history, proposes code, checks it with `mod-fit`, and iterates. It never adopts the proposal automatically. If the fit tool is not installed, the proposal must say that fit remains unverified.
 
+## Names carried in page folders
+
+`mod-survey` keeps its basename `naming_patterns` and adds `page_patterns` for
+paths below each concrete pages `root`. Repeated constant basenames across at
+least two first-level folders can reveal `{name}/{action}/Page.vue` and
+`{name}/Layout.vue`. Repeated child-folder names with varying filenames can
+also reveal `{name}/**/Partials/*`. Each row includes the observed `files`.
+The placeholders describe varying segments, not an inferred business purpose:
+confirm the name and action roles in source before proposing a recipe.
+
+`page_entries` lists each observed root's entry `stems` and `source`: `declared`
+for an explicit inclusion policy, or `inferred` from literal `Inertia::render()`
+references to existing files. Inferred stems are evidence, never an automatically
+adopted policy; an empty inferred list means no literal evidence, not that all
+files are non-entries. Mounted owners retain their own declarations. Unreferenced
+entries, computed render names and frontend imports cannot establish stems.
+
+For example, a root can report `{"root":"resources/js/pages","source":"declared","stems":["Modal","Page"]}`
+alongside a pattern `{"root":"resources/js/pages","pattern":"{name}/{action}/Page.vue","files":["resources/js/pages/Gadget/Show/Page.vue","resources/js/pages/Widget/Edit/Page.vue"]}`.
+Pass a proposed `pageEntries` and folder member to [mod-fit](fit.md#folder-members-and-page-entries)
+to review excluded render identities without installing the proposal. Component
+and layout files remain owned files even when they are not entries.
+
 ## Worked example: the survey fixture
 
 `tests/Feature/Boost/SurveyFixture.php` supplies a small Laravel-shaped app. Its survey is pinned in `tests/Fixtures/Boost/survey-laravel.json`. Run the executable acceptance example from the package root:

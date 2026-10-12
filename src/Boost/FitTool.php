@@ -18,7 +18,7 @@ final class FitTool extends Tool
 {
     protected string $name = 'mod-fit';
 
-    protected string $description = 'Check a proposed layout and/or recipe without installing it. Return owned/unowned files, conflicts, path/mechanism variances, missing members, outside references and unowned code configuration. Reads only base_path(), excluding secrets/runtime data; vendor only classifies references. No writes, source execution or network calls.';
+    protected string $description = 'Check a proposed layout and/or recipe without installing it. Return owned/unowned files, non-entry pages and render conflicts, path/mechanism variances, missing members, outside references and unowned code configuration. Reads only base_path(), excluding secrets/runtime data; vendor only classifies references. No writes, source execution or network calls.';
 
     public function __construct(private readonly AppFit $fit) {}
 
@@ -29,6 +29,7 @@ final class FitTool extends Tool
             'layout' => $schema->object([
                 'base' => $schema->string()->enum((new BuiltInLayouts)->names())->required(),
                 'path' => $schema->string()->description('Optional group path, as in Layout::path().'),
+                'pageEntries' => $schema->array()->items($schema->string())->nullable()->description('Entry file stems, including * wildcards. Omitted or null includes every page; [] includes none.'),
                 'mounts' => $schema->array()->items($schema->object([
                     'id' => $schema->string()->required(), 'namespace' => $schema->string()->nullable()->required(), 'path' => $schema->string()->required(),
                 ])->withoutAdditionalProperties()),
@@ -42,6 +43,7 @@ final class FitTool extends Tool
                 'members' => $schema->array()->items($schema->object([
                     'id' => $schema->string()->required(), 'path' => $schema->string()->required(),
                     'class' => $schema->string(), 'page' => $schema->string(),
+                    'pattern' => $schema->string()->description('Folder member: path is a frontend key (pages, components, views), pattern selects folders below it. Literal segments, {name}-style placeholders, * and **; includes each matched subtree. Requires layout; no class/page identity or single-file variance.'),
                 ])->withoutAdditionalProperties())->required(),
                 'tables' => $schema->array()->items($schema->string()),
             ])->withoutAdditionalProperties()->description('Concrete expected member paths for one scaffold invocation; optional class/page identities and table names. Supply layout and/or recipe.'),

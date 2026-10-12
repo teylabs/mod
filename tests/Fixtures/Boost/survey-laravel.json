@@ -114,6 +114,33 @@
             "type": "page"
         }
     ],
+    "page_entries": [
+        {
+            "root": "resources/js/pages",
+            "source": "inferred",
+            "stems": [
+                "Index"
+            ]
+        }
+    ],
+    "page_patterns": [
+        {
+            "files": [
+                "resources/js/pages/Comments/Index.vue",
+                "resources/js/pages/Posts/Index.vue"
+            ],
+            "pattern": "{name}/Index.vue",
+            "root": "resources/js/pages"
+        },
+        {
+            "files": [
+                "resources/js/pages/Comments/Show.vue",
+                "resources/js/pages/Posts/Show.vue"
+            ],
+            "pattern": "{name}/Show.vue",
+            "root": "resources/js/pages"
+        }
+    ],
     "recurring_sets": [
         {
             "basis": "folder",
