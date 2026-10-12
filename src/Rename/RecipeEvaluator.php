@@ -15,6 +15,7 @@ use Tey\Mod\Scaffolds\Placeholders;
 use Tey\Mod\Scaffolds\QuestionAnswers;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
+use Tey\Mod\Scaffolds\SkippedMember;
 
 /** @internal Identity evaluation only: never invokes generators, inserts or prompts. */
 final readonly class RecipeEvaluator
@@ -65,6 +66,12 @@ final readonly class RecipeEvaluator
             $values[$key] = $question->type === 'list' && $option === [] ? [] : $resolver->answer($question, $option, false, 'mod:rename', $name);
         }
         foreach ($recipe->members() as $alias => $member) {
+            // A member the answers leave out was never generated, so it is absent rather than missing.
+            if (($reason = $member->skipReason($values)) !== null) {
+                $values[$alias] = new SkippedMember($prefix.$alias, $reason);
+
+                continue;
+            }
             $placement = $context;
             if ($member->ungrouped) {
                 $placement = PlacementContext::none();

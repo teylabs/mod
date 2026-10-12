@@ -1,0 +1,38 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class {{ class }} extends FormRequest
+{
+    /**
+     * @var list<string>
+     */
+    public const SORTS = [
+        {{ #columns }}
+        {{ #sortable }}
+        '{{ key }}',
+        {{ /sortable }}
+        {{ /columns }}
+    ];
+
+    /**
+     * @var list<string>
+     */
+    public const SIZES = {{ sizes.php }};
+
+    /**
+     * @return array<string, list<string>>
+     */
+    public function rules(): array
+    {
+        return [
+            'sort' => ['nullable', 'in:'.implode(',', self::SORTS)],
+            'direction' => ['nullable', 'in:asc,desc'],
+            {{ #status_filter }}
+            'status' => ['nullable', 'string'],
+            {{ /status_filter }}
+        ];
+    }
+}

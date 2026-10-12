@@ -39,12 +39,19 @@ class Scaffold
     /** @param (Closure(string): ?self)|null $resolve */
     public function __construct(private readonly ?Closure $resolve = null) {}
 
-    /** @param array<array-key, mixed> $options flags passed to this file type's generator * @api
+    /**
+     * @param  array<array-key, mixed>  $options  flags passed to this file type's generator
+     * @param  string|(Closure(array<string, mixed>): bool)|null  $when  a confirm question or earlier member alias, or a closure over the answers; the member is left out when it is false
+     *
+     * @api
      */
-    public function makes(string $fileType, ?string $name = null, ?string $as = null, ?string $stub = null, array $options = [], bool $ungrouped = false, ?string $group = null, ?string $existing = null): static
+    public function makes(string $fileType, ?string $name = null, ?string $as = null, ?string $stub = null, array $options = [], bool $ungrouped = false, ?string $group = null, ?string $existing = null, string|Closure|null $when = null): static
     {
         if ($ungrouped && $group !== null) {
             throw GenerationRefused::because('A scaffold member cannot set both ungrouped: true and group:. Choose one placement.');
+        }
+        if ($when === '') {
+            throw GenerationRefused::because("A scaffold member when: needs a confirm question name or a closure. Pass when: 'modal' or when: fn (array \$answers) => ...");
         }
         if ($existing !== null && $existing !== 'keep') {
             throw GenerationRefused::because("A scaffold member existing: policy must be 'keep'. Remove it to use the scaffold collision choice.");
@@ -54,7 +61,7 @@ class Scaffold
             $this->duplicates[] = $alias;
         }
         unset($this->inherited[$alias]);
-        $this->members[$alias] = new Member($fileType, $name, $stub, $options, $ungrouped, $group, $existing);
+        $this->members[$alias] = new Member($fileType, $name, $stub, $options, $ungrouped, $group, $existing, $when);
 
         return $this;
     }
@@ -104,11 +111,15 @@ class Scaffold
         return $this->defaultName;
     }
 
-    /** @param array<array-key, string> $options * @api
+    /**
+     * @param  array<array-key, string>  $options
+     * @param  array<string, string>  $shape  fields of a records question: name => string, bool or int
+     *
+     * @api
      */
-    public function asks(string $name, string $type = 'text', mixed $default = null, ?string $label = null, array $options = []): static
+    public function asks(string $name, string $type = 'text', mixed $default = null, ?string $label = null, array $options = [], array $shape = []): static
     {
-        $this->questions[$name] = new Question($name, $type, $default, $label, $options);
+        $this->questions[$name] = new Question($name, $type, $default, $label, $options, $shape);
 
         return $this;
     }

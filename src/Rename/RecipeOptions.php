@@ -28,11 +28,7 @@ final class RecipeOptions
             }
             $seen[spl_object_id($recipe)] = true;
             foreach ($recipe->questions() as $question) {
-                $mode = match ($question->type) {
-                    'list' => InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
-                    'confirm' => InputOption::VALUE_NEGATABLE,
-                    default => InputOption::VALUE_REQUIRED,
-                };
+                $mode = $question->inputMode();
                 $this->option($definition, $question->name, $mode);
             }
             foreach ($recipe->parts() as $name => $part) {

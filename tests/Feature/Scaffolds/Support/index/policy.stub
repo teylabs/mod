@@ -1,0 +1,15 @@
+<?php
+
+namespace {{ namespace }};
+
+class {{ class }}
+{
+    {{ #status_filter }}
+    public const FILTERS = ['status'];
+
+    {{ /status_filter }}
+    public function viewAny(): bool
+    {
+        return true;
+    }
+}

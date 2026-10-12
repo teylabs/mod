@@ -5,6 +5,10 @@ All notable changes to `mod` will be documented in this file.
 ## Unreleased
 
 ### Added
+- A scaffold can ask for a list of records with `asks('columns', type: 'records', shape: [...])`: interactive runs prompt per record, non-interactive runs take JSON or the recipe default, and answers are validated against the shape before anything is planned (#132).
+- Scaffold stubs support template blocks: `{{ #columns }}…{{ /columns }}` repeats lines for each record, or renders when a boolean is true, and `{{ ^name }}…{{ /name }}` renders when it is false or empty. Tag lines leave nothing behind, block lines take the opening tag's indentation, blocks nest, and regenerating is byte-identical, so output stays Pint- and Prettier-clean (#132).
+- `{{ cols.php }}` and `{{ cols.ts }}` or `{{ cols.js }}` print a scaffold list or records answer as a one-line PHP or script literal. The script forms use the app's Prettier `singleQuote` (#132).
+- A scaffold member can be optional: `makes('page', when: 'modal')` takes a confirm question, or a closure over the answers. Skipped members are listed under `skipped` with a reason in `--dry-run --json`, inserts and placeholders that name them are skipped, and `mod:rename --scaffold=` treats them as absent. Optional sections inside a file use the same `{{ #name }}…{{ /name }}` blocks over a boolean (#133).
 - A `mod-learning-patterns` Boost skill guides agents from an app survey to reviewable layouts and scaffold recipes, with source and history checks, fit-tool guidance and a generator-verified worked example (#61).
 - A scaffold recipe can declare a default name with `$scaffold->named('Acme')`. Its command then runs without a name, shows the default in `--help`, and an explicit name still wins (#119).
 - The read-only `mod-survey` Boost tool reports app structure, references, recurring file sets, vendor ownership and Git identity within an enforced app-only privacy boundary (#62).

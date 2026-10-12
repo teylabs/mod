@@ -30,14 +30,14 @@ final readonly class QuestionAnswers
             $default = str_replace('{name}', $name, $default);
         }
         $value = $option;
-        if ($value === null || $value === []) {
+        if ($value === null || ($value === [] && $question->type !== 'records')) {
             if (! $interactive) {
                 if ($default === null) {
                     if ($question->type === 'confirm') {
                         throw GenerationRefused::because("{$command} needs a {$question->name}. Pass --{$question->name} or --no-{$question->name}.");
                     }
                     $form = match ($question->type) {
-                        'model', 'class' => $question->type, default => 'value'
+                        'model', 'class' => $question->type, 'records' => 'json', default => 'value'
                     };
                     throw GenerationRefused::because("{$command} needs a {$question->name}. Pass --{$question->name}=<{$form}>.");
                 }
@@ -45,12 +45,16 @@ final readonly class QuestionAnswers
             } else {
                 $label = $question->label ?? Str::headline($question->name);
                 $value = match ($question->type) {
+                    'records' => $this->prompt($question, $label, $default),
                     'choice' => select($label, $question->options, default: is_string($default) ? $default : null),
                     'confirm' => confirm($label, default: (bool) $default),
                     'model', 'class' => search($label, fn (string $query): array => array_filter($this->classes($question->type === 'model'), static fn (string $class): bool => str_contains(strtolower($class), strtolower($query))), placeholder: is_string($default) ? $default : ''),
                     default => text($label, default: is_array($default) ? implode(', ', array_filter($default, 'is_string')) : (is_string($default) ? $default : ''), hint: $question->type === 'list' ? 'Separate with commas' : '', required: $default === null),
                 };
             }
+        }
+        if ($question->type === 'records') {
+            return (new Records($question->shape))->validate($value, "{$command}: --{$question->name}");
         }
         if ($question->type === 'list') {
             $items = [];
@@ -105,6 +109,37 @@ final readonly class QuestionAnswers
         }
 
         return $value;
+    }
+
+    /**
+     * Ask for one record at a time, offering the recipe default's records first.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function prompt(Question $question, string $label, mixed $default): array
+    {
+        $defaults = is_array($default) ? array_values($default) : [];
+        $records = [];
+        if ($default === [] && ! confirm("Add a {$label} record?", default: false)) {
+            return [];
+        }
+        do {
+            $number = count($records) + 1;
+            $suggested = is_array($defaults[$number - 1] ?? null) ? $defaults[$number - 1] : [];
+            $record = [];
+            foreach ($question->shape as $field => $type) {
+                $prompt = $label.' '.$number.': '.Str::headline($field);
+                $fallback = $suggested[$field] ?? null;
+                $record[$field] = match ($type) {
+                    'bool' => confirm($prompt, default: (bool) $fallback),
+                    'int' => (int) text($prompt, default: is_int($fallback) ? (string) $fallback : '', required: true, validate: static fn (string $input): ?string => preg_match('/^-?\d+$/D', $input) === 1 ? null : 'Enter a whole number.'),
+                    default => text($prompt, default: is_string($fallback) ? $fallback : '', required: true),
+                };
+            }
+            $records[] = $record;
+        } while (confirm("Add another {$label} record?", default: count($records) < count($defaults)));
+
+        return $records;
     }
 
     /** @return array<string, string> */

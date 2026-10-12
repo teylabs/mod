@@ -1,0 +1,16 @@
+<script setup lang="ts">
+defineProps<{
+    open: boolean;
+    {{ #status_filter }}
+    status?: string;
+    {{ /status_filter }}
+}>();
+
+const sizes: string[] = {{ sizes.ts }};
+</script>
+
+<template>
+    <dialog :open="open">
+        <slot />
+    </dialog>
+</template>

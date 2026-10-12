@@ -339,6 +339,85 @@ Mod::stubs()->forFileType('page.list.jsx', Stub::file(__DIR__.'/../stubs/list.js
 
 For a planned `.tsx` page, lookup is the app's `stubs/mod.page.list.tsx.stub`, then the registered `page.list.tsx`, then the registered `page.list` fallback. The app's stub wins. Use the extension-free key only for content that works across stacks. Another stack's key is never used: without a matching variant or fallback the plan names the stub to supply and writes nothing. The same precedence applies to flat recipes, tree members and parts, and to any file type with an extension (for example `view.card.blade.php`).
 
+### Asking for lists of records
+
+A `records` question collects a list of objects with declared fields: a table's columns, a filter's options.
+
+```php
+$s->asks('columns', type: 'records', label: 'Column', shape: [
+    'key' => 'string', 'label' => 'string', 'sortable' => 'bool',
+], default: [
+    ['key' => 'name', 'label' => 'Name', 'sortable' => true],
+]);
+```
+
+- `shape` maps each field to `string`, `bool` or `int`. It is required, and field names are letters, digits and underscores.
+- With a terminal, mod asks for each field of each record, then "Add another?". The default's records are offered first. A default of `[]` asks "Add a Column record?" with No.
+- Without a terminal, pass JSON: `--columns='[{"key":"name","label":"Name","sortable":true}]'`. Without the flag the recipe default is used; with neither the command refuses and names the flag. `--columns='[]'` is an empty list.
+- Every record must carry exactly the declared fields, with the declared types. Strings cannot be empty, booleans are JSON `true` or `false`, and integers are whole numbers. A bad value refuses before anything is planned (`--dry-run --json` reports it in `warnings`). A bad `default` throws when the recipe is declared.
+- Records are normalized to the shape's field order, so the same answers always produce the same output.
+- `{{ columns.json }}` prints the list as JSON. To repeat template lines for each record, see "Template blocks" below.
+
+`mod:rename --scaffold=` takes the same JSON flag, or `--answer=columns=<JSON>`.
+
+### Printing a list as a literal
+
+A `list` or `records` answer prints as source code, on one line:
+
+| Placeholder | Output for `['name', 'company']` |
+| --- | --- |
+| `{{ cols.php }}` | `['name', 'company']` |
+| `{{ cols.ts }}` or `{{ cols.js }}` | `['name', 'company']`, or `["name", "company"]` |
+| `{{ cols.json }}` | `["name","company"]` |
+
+Records print as keyed arrays in PHP (`['key' => 'name', 'sortable' => true]`) and as objects in TypeScript and JavaScript (`{ key: 'name', sortable: true }`).
+
+The script forms follow the app's Prettier `singleQuote`. mod reads it as text from `package.json` (`"prettier"`) or the first Prettier config file found, in Prettier's own order: `.prettierrc`, `.prettierrc.json`, `.yaml`, `.yml`, `.json5`, `.js`, `.ts`, `.mjs`, `.cjs`, `prettier.config.*`, then `.prettierrc.toml`. It never runs a config file, so a computed or `overrides` setting is not seen. Without a setting the default is double quotes, as in Prettier. A string takes the other quote when it holds more of the preferred one, as Prettier does.
+
+The literal is always one line, which Prettier keeps only while it fits the print width. For long lists, repeat a template block per item instead.
+
+### Optional members
+
+`when:` on `makes()` leaves a member out of the plan. It takes the name of a `confirm` question, or a closure that receives the answers and returns a boolean:
+
+```php
+$s->asks('modal', type: 'confirm', default: false)
+    ->makes('page', name: '{name}/Modal', as: 'modal', when: 'modal')
+    ->makes('policy', when: fn (array $answers) => $answers['authorize'] ?? true);
+```
+
+- A skipped member is not planned or written. `--dry-run --json` lists it under `skipped` as `{alias, type, reason}`, for example `{"alias":"modal","type":"page","reason":"modal is false"}`. A closure's reason is `when() returned false`. `skipped` appears for any recipe with a `when:`, as an empty list when nothing was left out. The text plan shows `skipped: <reason>` lines.
+- Inserts into a skipped member are skipped too, and listed with type `insert`.
+- A placeholder naming a skipped member, such as `{{ modal }}` or `{{ modal.fqcn }}`, renders as nothing. `{{ #modal }}…{{ /modal }}` renders only when the member is generated (see "Template blocks"). A `with:` value built from it is empty.
+- `when:` can also name an earlier member's alias, so one optional member can depend on another. A name that is neither a confirm question nor an earlier member disables a root recipe with a message; in a part it refuses when the part runs.
+- A confirm question gives `--modal` and `--no-modal`. Without a terminal and without a default, the command refuses and names both flags. The answers a closure receives are the recipe's question answers, plus the parent's answers inside a part. Aliases are not included.
+- A question and a member may share a name, as `modal` does above. `{{ #modal }}` then follows the boolean, which agrees with whether the member is generated. Give the member a different `as:` to use `{{ modal.fqcn }}`, because a question's answer wins over a member of the same name in placeholders.
+- `mod:rename --scaffold=` evaluates the same condition against the answers you pass, so a skipped member is absent from the cluster, not missing. Pass `--modal` or `--no-modal` like any other historical answer.
+
+### Template blocks
+
+Stubs and insert stubs can repeat lines for each record, or keep a section only when a boolean is true. A tag is `{{ #name }}` to open, `{{ ^name }}` to open an inverted block, and `{{ /name }}` to close.
+
+```vue
+<tr>
+    {{ #columns }}
+    <th>{{ label }}</th>
+    {{ /columns }}
+</tr>
+```
+
+- `{{ #name }}` repeats over a `records` answer. Inside, each record's fields are placeholders (`{{ key }}`, `{{ key.studly }}`), and every outer placeholder stays reachable. A field with the same name as an outer value, such as `name`, hides it inside the block.
+- `{{ #name }}` over a boolean renders once when it is true. A `confirm` question is a boolean, and so is a record's `bool` field. Over a member alias it renders when the member is generated.
+- `{{ ^name }}` renders when a boolean is false or a list is empty, so `{{ ^columns }}No columns{{ /columns }}` is the empty state.
+- An empty list renders nothing. Blocks nest, and an inner block sees the outer block's fields.
+- A tag alone on its line leaves nothing behind, not even a blank line.
+- A block's lines take the indentation of the line the opening tag is on, whatever indentation the stub gave them. The body's own common indentation is removed first, so relative indentation is kept. Write the body flush with the tag, or indented inside it, and the output is the same. Blank lines carry no whitespace.
+- Tags that share a line with other text render inline, with no whitespace changes: `<ul>{{ #columns }}<li>{{ key }}</li>{{ /columns }}</ul>`. Both tags of a block must be alone on their lines, or neither.
+- Line endings follow the stub. The same answers always produce the same bytes, so an app can regenerate a file and diff it.
+- A misspelt block name, an unclosed block, or a block over text or a plain `list` refuses before anything is written. Use `@{{ #name }}` to print the tag literally in a `.vue` or Blade file.
+
+Stub text is written to be formatter-clean after substitution. Keep each line of a block valid for Pint or Prettier on its own, and choose a layout where the formatter's wrapping does not depend on the data (for example, one element per line in PHP arrays). A `.vue` or `.php` fixture in mod's own tests runs both formatters over the output.
+
 ### Upgrading package scaffolds from 0.5
 
 Unprefixed package registration is refused with `vendor_required`. Replace `Mod::scaffold('pages', $recipe)` with `Mod::vendor('acme')->scaffold('pages', $recipe)`, and `Mod::scaffolds($recipes)` with `Mod::vendor('acme')->scaffolds($recipes)`. Update command calls from `mod:pages` to `mod:acme/pages`, and include, override and rename references from `pages` to `acme/pages`. App registrations keep their existing names.

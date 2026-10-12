@@ -407,7 +407,14 @@ final class ScaffoldRegistry
 
                 continue;
             }
-            foreach ($recipe->members() as $member) {
+            $earlier = [];
+            foreach ($recipe->members() as $alias => $member) {
+                // A part can receive its parent's answers, so only root recipes are checked here.
+                if (is_string($member->when) && ! $recipe instanceof Part && ! in_array($member->when, $earlier, true) && ($recipe->questions()[$member->when] ?? null)?->type !== 'confirm') {
+                    $this->problems[$name] = "Scaffold [{$name}] member {$alias} has when: '{$member->when}', which is not a confirm question or an earlier member, so mod:{$name} is disabled. Declare ->asks('{$member->when}', type: 'confirm') or pass a closure.";
+                    break;
+                }
+                $earlier[] = $alias;
                 if (! $layout->hasKind($member->fileType)) {
                     $type = $member->fileType;
                     $token = $layout->dimensionNames()[0] ?? 'group';

@@ -24,3 +24,11 @@ it('pins the keep policy while rejecting unsupported strings in plan rows', func
     unset($data['files'][0]['group']);
     expect(JsonSchema::errors($data, $schema))->toContain('$.files[0].group is required');
 });
+
+it('pins the optional skipped list of a scaffold plan', function () {
+    $schema = json_decode(file_get_contents(__DIR__.'/../../Fixtures/schema/plan.json'), true, flags: JSON_THROW_ON_ERROR);
+    $data = ['command' => 'mod:recipe', 'group' => null, 'name' => 'Widget', 'files' => [], 'inserts' => [], 'warnings' => [], 'would_write' => true, 'skipped' => [['alias' => 'modal', 'type' => 'page', 'reason' => 'modal is false']]];
+    expect(JsonSchema::errors($data, $schema))->toBe([]);
+    unset($data['skipped'][0]['reason']);
+    expect(JsonSchema::errors($data, $schema))->toContain('$.skipped[0].reason is required');
+});

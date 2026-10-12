@@ -15,6 +15,15 @@ final readonly class Placeholders
 
     public function render(string $stub): string
     {
+        if (Blocks::present($stub)) {
+            return (new Blocks)->render($stub, $this->values, static fn (string $text, array $values): string => (new self($values))->substitute($text));
+        }
+
+        return $this->substitute($stub);
+    }
+
+    private function substitute(string $stub): string
+    {
         return (string) preg_replace_callback('/\{\{\s*([\w.-]+)\s*\}\}/', function (array $match): string {
             $key = $match[1];
             $forms = [];
@@ -27,10 +36,15 @@ final readonly class Placeholders
                 return $match[0];
             }
             $value = $this->values[$key];
+            if ($value instanceof SkippedMember) {
+                return '';
+            }
             if (is_array($value)) {
                 return match ($forms) {
                     ['array'] => var_export(array_values($value), true),
                     ['json'] => json_encode(array_values($value), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+                    ['php'] => Literals::php(array_values($value)),
+                    ['ts'], ['js'] => Literals::script(array_values($value), (new PrettierConfig(app()->basePath()))->singleQuote()),
                     default => $match[0],
                 };
             }

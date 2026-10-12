@@ -1,0 +1,53 @@
+<script setup lang="ts">
+import { Head, router } from '@inertiajs/vue3';
+{{ #modal }}
+import Modal from './Modal.vue';
+{{ /modal }}
+
+defineProps<{
+    rows: Array<Record<string, string>>;
+    {{ #status_filter }}
+    statuses: string[];
+    {{ /status_filter }}
+}>();
+
+function sort(key: string) {
+    router.get('?sort=' + key);
+}
+</script>
+
+<template>
+    <Head title="{{ name.headline }}" />
+
+    {{ #status_filter }}
+    <select @change="router.reload({ data: { status: $event.target.value } })">
+        <option v-for="status in statuses" :key="status">@{{ status }}</option>
+    </select>
+    {{ /status_filter }}
+    <table>
+        <thead>
+            <tr>
+                {{ #columns }}
+                {{ #sortable }}
+                <th>
+                    <button type="button" @click="sort('{{ key }}')">{{ label }}</button>
+                </th>
+                {{ /sortable }}
+                {{ ^sortable }}
+                <th>{{ label }}</th>
+                {{ /sortable }}
+                {{ /columns }}
+            </tr>
+        </thead>
+        <tbody>
+            <tr v-for="row in rows" :key="row.id">
+                {{ #columns }}
+                <td>{{ row.{{ key }} }}</td>
+                {{ /columns }}
+            </tr>
+        </tbody>
+    </table>
+    {{ #modal }}
+    <Modal :open="false" />
+    {{ /modal }}
+</template>
