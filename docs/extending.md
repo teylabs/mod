@@ -384,6 +384,8 @@ A member uses its own resolved group, including a `group:` override. An insert i
 
 A question or member named `group` takes precedence over the built-in value, as names do today. The same applies to a name matching a token alias. A record field with the same name hides the outer value inside its template block.
 
+Parts and their insert stubs can reference a root migration alias. For `makes('migration', name: 'create_invoices_table', as: 'schema')`, `{{ schema.path }}` is the generated file's path, including its timestamp. Growing a part recovers the existing migration's identity in its placement, even on a later run with `--skip-existing`; it does not create or rewrite the root migration. Name transforms such as `{{ schema.upper }}` still use the migration's name.
+
 ### Asking for lists of records
 
 A `records` question collects a list of objects with declared fields: a table's columns, a filter's options.
