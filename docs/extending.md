@@ -305,6 +305,18 @@ The default command is `mod:acme/pages`; parts use `mod:acme/pages.form`. Dots m
 
 Test members can use Pest or PHPUnit stubs. Collision checks use the file path for the `test` file type and every member under a test root, without loading the test through Composer. Rerunning a scaffold reports existing files as usual: `--skip-existing` keeps them, `--force` overwrites them, and interactive runs offer keep, overwrite or cancel. Other PHP members check their paths and autoload their class identities, so a class declared elsewhere is still a collision even when it has not been loaded yet.
 
+Preview a rerun with the same answers before choosing a collision policy:
+
+```bash
+php artisan mod:acme/pages Inventory:Widget --dry-run --json --no-interaction
+```
+
+Existing whole-file members add optional `state`: `"unchanged"` means the disk bytes match what the recipe would write now; `"edited"` means they differ. Rendering uses the current stubs, variants, defaults, answers and placeholders, including template blocks. A changed stub or answer can therefore report `edited` even if nobody edited the generated file. No original hashes are recorded.
+
+Human dry runs show `(exists, unchanged)` or `(exists, edited)`. A member with `existing: 'keep'` shows `(kept, exists, unchanged)` or `(kept, exists, edited)`; the comparison does not override its keep policy. Missing files and insert-only targets have no `state`. Generators without read-only whole-file rendering also omit it: native companion views and anonymous component views are written outside `buildClass()`, and custom adapters must provide their own rendering. Native generators with random content may differ on every render.
+
+The comparison writes nothing. `state` is informational and additive to the plan schema; it does not change `would_write`, collision refusal, prompts, `--skip-existing` or `--force`. Tree rerun refusal is unchanged.
+
 A root scaffold can declare a default name so its command runs bare:
 
 ```php

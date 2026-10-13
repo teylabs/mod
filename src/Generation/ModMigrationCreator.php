@@ -99,6 +99,12 @@ class ModMigrationCreator extends MigrationCreator
         return new StubSelection($custom ? $published : $this->stubPath().'/'.$name.'.stub', $custom ? 'published stub' : 'Laravel');
     }
 
+    /** The same placeholder population create() uses, without filesystem mutation. */
+    public function render(string $source, ?string $table): string
+    {
+        return $this->populateStub($source, $table);
+    }
+
     protected function getStub($table, $create)
     {
         if ($this->selectedStub !== null) {

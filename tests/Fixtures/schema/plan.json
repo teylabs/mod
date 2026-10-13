@@ -96,6 +96,10 @@
           },
           "exists": {
             "type": "boolean"
+          },
+          "state": {
+            "enum": ["unchanged", "edited"],
+            "description": "Existing scaffold whole-file members only, when their generator can render without writing. Compares disk bytes with what the recipe produces now, not with a recorded original. Insert-only targets and missing files omit state."
           }
         }
       }
