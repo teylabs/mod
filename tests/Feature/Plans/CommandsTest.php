@@ -68,9 +68,23 @@ it('reports existing files and honours the collision flags in a plan', function 
         $w->write(Examples::paths()[0], '<?php // keep');
         $data = json_decode($w->artisan('mod:crud', ['name' => 'Knowledge:Document', '--dry-run' => true, '--json' => true, ...$flags])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
         expect($data['files'][0]['exists'])->toBeTrue()->and($data['files'][0]['existing'])->toBeTrue()
+            ->and($data['files'][0]['state'])->toBe('edited')
             ->and($data['would_write'])->toBe($allowed)->and($w->read(Examples::paths()[0]))->toBe('<?php // keep');
     });
 })->with([[[], false], [['--force' => true], true], [['--skip-existing' => true], true]]);
+
+it('reports unchanged state when a scaffold is rerun without edits', function () {
+    Workspace::run(null, function (Workspace $w) {
+        Examples::setup($w);
+        $w->artisan('mod:crud', ['name' => 'Knowledge:Document'])->assertSuccessful();
+        $data = json_decode($w->artisan('mod:crud', ['name' => 'Knowledge:Document', '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
+        foreach ($data['files'] as $file) {
+            if ($file['exists']) {
+                expect($file['state'])->toBe('unchanged');
+            }
+        }
+    });
+});
 
 it('plans individual generators and their companions', function () {
     Workspace::run(null, function (Workspace $w) {

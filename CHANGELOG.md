@@ -2,6 +2,11 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## [0.7.2] - 2026-10-13
+
+### Added
+- Scaffold dry runs (`--dry-run --json`) now report a `state` field for existing files: `"unchanged"` when the file on disk is byte-identical to what the recipe would write, `"edited"` when it differs. Human output shows `(exists, unchanged)` or `(exists, edited)` in place of `(exists)`; kept members show `(kept, exists, unchanged|edited)` (#162).
+
 ## [0.7.1] - 2026-10-12
 
 ### Added

@@ -3,6 +3,7 @@
 namespace Tey\Mod\Commands\Concerns;
 
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\ClassIdentity;
@@ -131,6 +132,27 @@ trait PlacesGeneratedClass
                 $defaultStub = $this->getStub();
                 $this->generateScaffoldRelations();
                 $scaffold->collect($preview, $defaultStub);
+
+                // Render the stub fully (including generator placeholders) for dry-run comparison
+                if (is_file($defaultStub)) {
+                    $stubContent = (string) file_get_contents($defaultStub);
+                    // Apply generator-specific placeholders (all commands using this trait inherit buildClass from GeneratorCommand)
+                    try {
+                        // Ensure companion options are recognized by the command definition
+                        $definition = $this->getDefinition();
+                        $companionOptions = ['factory', 'seed', 'migration', 'controller', 'resource', 'requests', 'policy', 'all', 'api', 'test', 'pest', 'pivot'];
+                        foreach ($companionOptions as $opt) {
+                            if ($this->input->hasOption($opt) && ! $definition->hasOption($opt)) {
+                                $definition->addOption(new InputOption($opt, null, InputOption::VALUE_NONE));
+                            }
+                        }
+                        $stubContent = $this->buildClass($this->getNameInput());
+                    } catch (\Throwable) {
+                        // Fall back to raw stub content
+                    }
+                    $rendered = $this->sortImports($stubContent);
+                    $scaffold->renderedStubs[$preview->primary->path()] = $rendered;
+                }
 
                 return $exitCode = self::SUCCESS;
             }

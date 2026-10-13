@@ -96,6 +96,11 @@
           },
           "exists": {
             "type": "boolean"
+          },
+          "state": {
+            "type": "string",
+            "enum": ["unchanged", "edited"],
+            "description": "Present only when exists is true. \"unchanged\" means the file on disk is byte-identical to what the recipe would write; \"edited\" means it differs."
           }
         }
       }

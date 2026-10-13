@@ -49,6 +49,9 @@ final class ScaffoldExecution
     /** @var array<string, array<string, mixed>> path => values scoped to that node */
     public array $values = [];
 
+    /** @var array<string, string> primary path => fully rendered stub content */
+    public array $renderedStubs = [];
+
     private ?GenerationPlan $collected = null;
 
     public function reset(): void

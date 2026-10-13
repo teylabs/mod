@@ -11,7 +11,7 @@ use Tey\Mod\Views\ViewIdentity;
 /** @internal The additive, read-only description shared by every writing command. */
 final class Plan
 {
-    /** @var list<array{alias: string, type: string, path: string, class?: string, identity?: array<string, mixed>, group: ?string, existing: bool|string, exists: bool}> */
+    /** @var list<array{alias: string, type: string, path: string, class?: string, identity?: array<string, mixed>, group: ?string, existing: bool|string, exists: bool, state?: 'unchanged'|'edited'}> */
     public array $files = [];
 
     /** @var list<array{alias: string, type: string, path: string}> */
@@ -55,7 +55,7 @@ final class Plan
         return [...array_values(array_filter($this->rename['moves'], static fn (array $move): bool => $move['type'] !== 'folder')), ...$this->folderContents];
     }
 
-    public function artifact(string $alias, ResolvedArtifact $artifact, string $basePath, ?string $existing = null): void
+    public function artifact(string $alias, ResolvedArtifact $artifact, string $basePath, ?string $existing = null, ?string $state = null): void
     {
         $group = implode('/', $artifact->context->only(app(CompiledLayout::class)->dimensionNames())->toArray()) ?: null;
         $exists = is_file(Path::resolve($basePath, $artifact->path()));
@@ -64,14 +64,26 @@ final class Plan
         if ($artifact->identity instanceof ViewIdentity) {
             $identity = ['identity' => ['path' => $artifact->path(), 'name' => $artifact->identity->name(), 'tag' => $artifact->identity->tag()]];
         }
-        $this->files[] = ['alias' => $alias, 'type' => $artifact->kind->id, 'path' => $artifact->path(), ...$identity, 'group' => $group, 'existing' => $existing ?? $exists, 'exists' => $exists];
+        /** @var array{alias: string, type: string, path: string, class?: string, identity?: array<string, mixed>, group: ?string, existing: bool|string, exists: bool, state?: 'unchanged'|'edited'} $file */
+        $file = ['alias' => $alias, 'type' => $artifact->kind->id, 'path' => $artifact->path(), ...$identity, 'group' => $group, 'existing' => $existing ?? $exists, 'exists' => $exists];
+        if ($exists && $state !== null) {
+            /** @var 'unchanged'|'edited' $state */
+            $file['state'] = $state;
+        }
+        $this->files[] = $file;
         $this->group ??= $group;
     }
 
     /** @param array<string, mixed> $identity */
-    public function file(string $alias, string $type, string $path, array $identity, bool $exists = false, ?string $class = null): void
+    public function file(string $alias, string $type, string $path, array $identity, bool $exists = false, ?string $class = null, ?string $state = null): void
     {
-        $this->files[] = ['alias' => $alias, 'type' => $type, 'path' => $path, ...($class === null ? ['identity' => $identity] : ['class' => $class]), 'group' => $this->group, 'existing' => $exists, 'exists' => $exists];
+        /** @var array{alias: string, type: string, path: string, class?: string, identity?: array<string, mixed>, group: ?string, existing: bool|string, exists: bool, state?: 'unchanged'|'edited'} $file */
+        $file = ['alias' => $alias, 'type' => $type, 'path' => $path, ...($class === null ? ['identity' => $identity] : ['class' => $class]), 'group' => $this->group, 'existing' => $exists, 'exists' => $exists];
+        if ($exists && $state !== null) {
+            /** @var 'unchanged'|'edited' $state */
+            $file['state'] = $state;
+        }
+        $this->files[] = $file;
     }
 
     /** @param array<string, mixed> $data */

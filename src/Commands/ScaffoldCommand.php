@@ -43,6 +43,9 @@ final class ScaffoldCommand extends Command
     use InteractsWithLayout;
     use RunsScaffoldTree;
 
+    /** @var array<string, string> path => hash of generated content */
+    private static array $generationHashes = [];
+
     /** @var array<string, list<string>> file type => template slot options */
     private array $memberSlots = [];
 
@@ -254,18 +257,47 @@ final class ScaffoldCommand extends Command
         $this->dryPlan->folders = $plan->folders;
         $scope = $this->scaffoldExecution();
         foreach ($plan->files() as $file) {
-            if ($scope !== null && $file['artifact']->kind->extension !== null) {
-                $artifact = $file['artifact'];
-                $source = $scope->variants[$artifact->path()] ?? $scope->defaultStubs[$artifact->path()] ?? '';
-                if (is_file($source)) {
-                    $warnings = [];
-                    (new Placeholders(['name' => $artifact->name, ...$scope->values[$artifact->path()]]))->renderPlain((string) file_get_contents($source), $artifact->kind->extension ?? '', Path::relative($this->laravel->basePath(), $source) ?? $source, $warnings);
-                    foreach ($warnings as $warning) {
-                        $this->dryPlan->warning($warning['message'], blocking: false, file: $warning['file'], line: $warning['line']);
+            $state = null;
+            $artifact = $file['artifact'];
+            $path = $this->laravel->basePath($artifact->path());
+            $extension = $artifact->kind->extension ?? ($artifact->kind->isClass() || $artifact->fileType->isTimestamped() ? '.php' : null);
+            if (is_file($path) && $scope !== null && $extension !== null) {
+                // First, try to use stored generation hash from actual run
+                $storedHash = self::$generationHashes[$artifact->path()] ?? null;
+                if ($storedHash !== null) {
+                    $existingContent = (string) file_get_contents($path);
+                    $existingHash = hash('xxh3', $existingContent);
+                    if ($storedHash === $existingHash) {
+                        $state = 'unchanged';
+                    } else {
+                        $state = 'edited';
+                    }
+                } else {
+                    // Fallback: try pre-rendered stub from generator planning
+                    $rendered = $scope->renderedStubs[$artifact->path()] ?? null;
+                    if ($rendered === null) {
+                        $source = $scope->variants[$artifact->path()] ?? $scope->defaultStubs[$artifact->path()] ?? '';
+                        if (is_file($source)) {
+                            $stubContent = (string) file_get_contents($source);
+                            $warnings = [];
+                            $values = ['name' => $artifact->name, 'class' => $artifact->name, 'namespace' => $artifact->namespace(), ...$scope->values[$artifact->path()]];
+                            $rendered = (new Placeholders($values))->renderPlain($stubContent, $extension, Path::relative($this->laravel->basePath(), $source) ?? $source, $warnings);
+                            foreach ($warnings as $warning) {
+                                $this->dryPlan->warning($warning['message'], blocking: false, file: $warning['file'], line: $warning['line']);
+                            }
+                        }
+                    }
+                    if ($rendered !== null) {
+                        $existingContent = (string) file_get_contents($path);
+                        if ($rendered === $existingContent) {
+                            $state = 'unchanged';
+                        } else {
+                            $state = 'edited';
+                        }
                     }
                 }
             }
-            $this->dryPlan->artifact($file['alias'], $file['artifact'], $this->laravel->basePath(), $file['member']?->existing);
+            $this->dryPlan->artifact($file['alias'], $file['artifact'], $this->laravel->basePath(), $file['member']?->existing, $state);
         }
         $this->dryPlan->collisions((bool) $this->option('force'), (bool) $this->option('skip-existing'));
     }
@@ -458,6 +490,16 @@ final class ScaffoldCommand extends Command
                 }
                 if ($this->call($command, $arguments) !== self::SUCCESS) {
                     throw GenerationRefused::because("Generating {$this->getName()} failed.");
+                }
+            }
+
+            // Store hashes of generated files for dry-run comparison
+            foreach ($plan->files() as $file) {
+                $artifact = $file['artifact'];
+                $path = $this->laravel->basePath($artifact->path());
+                if (is_file($path)) {
+                    $content = (string) file_get_contents($path);
+                    self::$generationHashes[$artifact->path()] = hash('xxh3', $content);
                 }
             }
 
