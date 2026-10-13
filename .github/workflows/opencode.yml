@@ -1,0 +1,50 @@
+name: OpenCode review
+
+# A maintainer asks for a review by commenting /oc or /opencode on a pull
+# request or one of its lines. Nothing runs automatically, and only owners
+# and members of the organisation can trigger it.
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  opencode:
+    if: |
+      (contains(github.event.comment.body, '/oc') || contains(github.event.comment.body, '/opencode')) &&
+      contains(fromJSON('["OWNER", "MEMBER"]'), github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: read
+    steps:
+      # The agent runs tools over the code it reviews with the API key in its
+      # environment, so it only reviews branches of this repository.
+      - name: Refuse pull requests from forks
+        if: github.event.issue.pull_request || github.event.pull_request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.issue.number || github.event.pull_request.number }}
+        run: |
+          head=$(gh api "repos/${{ github.repository }}/pulls/$PR" -q .head.repo.full_name)
+          if [ "$head" != "${{ github.repository }}" ]; then
+            echo "::error::OpenCode doesn't review pull requests from forks."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Run OpenCode
+        uses: anomalyco/opencode/github@733b2c627e5aec39cb33cc22373bdce33053ef2c # v1.19.0
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        with:
+          model: opencode-go/kimi-k2.7-code
+          share: false
