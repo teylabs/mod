@@ -54,7 +54,8 @@
         "pestphp/pest-plugin-laravel": "^4.0",
         "phpstan/extension-installer": "^1.1",
         "phpstan/phpstan-deprecation-rules": "^2.0",
-        "phpstan/phpstan-phpunit": "^2.0"
+        "phpstan/phpstan-phpunit": "^2.0",
+        "tey/standards": "^0.6"
     },
     "autoload": {
         "psr-4": {
@@ -91,6 +92,15 @@
             ],
             "aliases": {
                 "Mod": "Tey\\Mod\\Facades\\Mod"
+            }
+        },
+        "tey-standards": {
+            "ci": {
+                "default-branches": [
+                    "main",
+                    "*.x"
+                ],
+                "distribution": "package"
             }
         }
     },
