@@ -46,5 +46,5 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: opencode-go/kimi-k2.7-code
+          model: opencode/longcat-2.5-preview-free
           share: false
