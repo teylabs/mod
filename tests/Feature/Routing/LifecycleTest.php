@@ -39,18 +39,18 @@ it('loads console files only while running in the console', function (bool $cons
     });
 })->with([true, false]);
 
-it('caches real module routes and preserves route list after a cached boot', function () {
-    Workspace::run(null, function (Workspace $w) {
+it('caches real module routes and preserves route list after a cached boot', function (string $apiPrefix) {
+    Workspace::run(null, function (Workspace $w) use ($apiPrefix) {
         $w->write('bootstrap/providers.php', '<?php return [\\Tey\\Mod\\ModServiceProvider::class];');
         $w->write('config/mod.php', "<?php return ['layout' => 'modules'];");
         $w->write('app/Modules/Inventory/routes/web.php', "<?php \\Illuminate\\Support\\Facades\\Route::get('widgets', [\\Illuminate\\Routing\\RedirectController::class, '__invoke'])->name('widgets.index');");
         $w->write('app/Modules/Inventory/routes/api.php', "<?php \\Illuminate\\Support\\Facades\\Route::get('widgets', [\\Illuminate\\Routing\\RedirectController::class, '__invoke'])->name('api.widgets');");
-        $w->write('bootstrap/app.php', <<<'APP'
+        $w->write('bootstrap/app.php', str_replace('API_PREFIX', var_export($apiPrefix, true), <<<'APP'
 <?php
 return \Illuminate\Foundation\Application::configure(basePath: dirname(__DIR__))
-    ->withRouting(then: fn () => \Tey\Mod\Facades\Mod::routes())
+    ->withRouting(then: fn () => \Tey\Mod\Facades\Mod::routes(apiPrefix: API_PREFIX))
     ->create();
-APP);
+APP));
         $script = <<<'SCRIPT'
 require $argv[1];
 $app = require $argv[2].'/bootstrap/app.php';
@@ -74,9 +74,9 @@ SCRIPT;
         $after = new Process([...$arguments, 'cached'], $w->root->path);
         $after->mustRun();
         expect(json_decode($after->getOutput(), true, flags: JSON_THROW_ON_ERROR))->toBe(json_decode($before->getOutput(), true, flags: JSON_THROW_ON_ERROR));
-        expect(array_column(json_decode($after->getOutput(), true, flags: JSON_THROW_ON_ERROR), 'uri'))->toContain('widgets', 'api/widgets');
+        expect(array_column(json_decode($after->getOutput(), true, flags: JSON_THROW_ON_ERROR), 'uri'))->toContain('widgets', $apiPrefix.'/widgets');
     });
-});
+})->with(['api', 'v1']);
 
 it('resolves alphabetical and configured order within each filtered call', function (array $order, array $first, array $rest) {
     Workspace::run(null, function (Workspace $w) use ($order, $first, $rest) {
@@ -96,20 +96,22 @@ it('resolves alphabetical and configured order within each filtered call', funct
     [['Knowledge', 'Inventory'], ['Knowledge', 'Billing'], ['Inventory', 'Agents']],
 ]);
 
-it('groups registrar routes with the same Laravel web and API defaults as files', function () {
-    Workspace::run(null, function (Workspace $w) {
+it('groups registrar routes with Laravel middleware and the call API prefix', function (string $apiPrefix, string $uri) {
+    Workspace::run(null, function (Workspace $w) use ($apiPrefix, $uri) {
         config()->set('mod.layout', 'ddd');
         Mod::layout('ddd')->mounts('routes', null, 'app/Modules/{domain}/routes');
         $namespace = 'RegistrarDefaults'.bin2hex(random_bytes(4));
-        $w->write('app/Modules/Inventory/Routing/Unconventional.php', "<?php namespace {$namespace}; class Unconventional implements \\Tey\\Mod\\Routing\\RegistersRoutes { public static function web(): void { \\Illuminate\\Support\\Facades\\Route::get('widgets', fn () => 'web')->name('widgets'); } public static function api(): void { \\Illuminate\\Support\\Facades\\Route::get('widgets', fn () => 'api')->name('api.widgets'); } }");
-        Route::prefix('admin')->name('admin.')->middleware('auth')->group(fn () => Mod::routes());
+        $w->write('app/Modules/Inventory/Routing/Unconventional.php', "<?php namespace {$namespace}; class Unconventional implements \\Tey\\Mod\\Routing\\RegistersRoutes { public static function web(): void { \\Illuminate\\Support\\Facades\\Route::get('widgets', fn () => 'web')->name('widgets'); } public static function api(): void { \\Illuminate\\Support\\Facades\\Route::get('api-widgets', fn () => 'api')->name('api.widgets'); } }");
+        Route::prefix('admin')->name('admin.')->middleware('auth')->group(fn () => Mod::routes(apiPrefix: $apiPrefix));
         $routes = app(Router::class)->getRoutes();
         $routes->refreshNameLookups();
         expect($routes->getByName('admin.widgets')->uri())->toBe('admin/widgets')
             ->and($routes->getByName('admin.widgets')->middleware())->toBe(['auth', 'web'])
-            ->and($routes->getByName('admin.api.widgets')->uri())->toBe('admin/api/widgets')
+            ->and($routes->getByName('admin.api.widgets')->uri())->toBe($uri)
             ->and($routes->getByName('admin.api.widgets')->middleware())->toBe(['auth', 'api']);
-        $data = json_decode($w->artisan('route:list', ['--path' => 'widgets', '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
-        expect(array_column($data, 'uri'))->toBe(['admin/api/widgets', 'admin/widgets']);
     });
-});
+})->with([
+    ['api', 'admin/api/api-widgets'],
+    ['v1', 'admin/v1/api-widgets'],
+    ['', 'admin/api-widgets'],
+]);

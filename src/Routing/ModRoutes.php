@@ -24,27 +24,27 @@ final class ModRoutes
     /** @var array<string, string> */
     private array $loaded = [];
 
-    /** @var list<array{only: ?list<string>, except: list<string>}> */
+    /** @var list<array{only: ?list<string>, except: list<string>, apiPrefix: string}> */
     private array $invocations = [];
 
     /** @var list<string> */
     private array $warnings = [];
 
-    /** @var array<string, array{directory: ?string, class: ?class-string<RegistersRoutes>}> */
+    /** @var array<string, array{directory: ?string, class: ?class-string<RegistersRoutes>, apiPrefix: ?string}> */
     private array $packages = [];
 
-    public function files(string $group, string $directory): void
+    public function files(string $group, string $directory, ?string $apiPrefix = null): void
     {
-        $this->addPackage($group, ['directory' => $directory, 'class' => null]);
+        $this->addPackage($group, ['directory' => $directory, 'class' => null, 'apiPrefix' => $apiPrefix]);
     }
 
     /** @param class-string<RegistersRoutes> $class */
-    public function registrar(string $group, string $class): void
+    public function registrar(string $group, string $class, ?string $apiPrefix = null): void
     {
-        $this->addPackage($group, ['directory' => null, 'class' => $class]);
+        $this->addPackage($group, ['directory' => null, 'class' => $class, 'apiPrefix' => $apiPrefix]);
     }
 
-    /** @param array{directory: ?string, class: ?class-string<RegistersRoutes>} $entry */
+    /** @param array{directory: ?string, class: ?class-string<RegistersRoutes>, apiPrefix: ?string} $entry */
     private function addPackage(string $group, array $entry): void
     {
         if (trim($group) === '' || isset($this->packages[$group]) || $this->calledFor($group)) {
@@ -59,12 +59,12 @@ final class ModRoutes
     /** @param list<string>|null $only
      * @param  list<string>  $except
      */
-    public function load(?array $only, array $except, string $call): void
+    public function load(?array $only, array $except, string $call, string $apiPrefix = 'api'): void
     {
         if ($this->app->routesAreCached()) {
             return;
         }
-        $this->invocations[] = ['only' => $only, 'except' => $except];
+        $this->invocations[] = ['only' => $only, 'except' => $except, 'apiPrefix' => $apiPrefix];
         $entries = $this->entries();
         $groups = array_values(array_unique(array_column($entries, 'group')));
         $groups = array_values(array_filter($groups, static fn (string $group): bool => ($only === null || in_array($group, $only, true)) && ! in_array($group, $except, true)));
@@ -95,7 +95,7 @@ final class ModRoutes
                 }
                 $attributes = ['middleware' => $method];
                 if ($method === 'api') {
-                    $attributes['prefix'] = 'api';
+                    $attributes['prefix'] = $entry['api_prefix'] ?? 'api';
                 }
                 $router->group($attributes, function () use ($entry, $method): void {
                     if (! str_contains($entry['entrypoint'], '::')) {
@@ -138,7 +138,7 @@ final class ModRoutes
         return $this->warnings;
     }
 
-    /** @return list<array{group: string, entrypoint: string, kind: string, middleware_group: string, order: int, loaded_by: ?string}> */
+    /** @return list<array{group: string, entrypoint: string, kind: string, middleware_group: string, order: int, loaded_by: ?string, api_prefix?: string}> */
     public function entries(): array
     {
         $layout = $this->app->make(CompiledLayout::class);
@@ -225,7 +225,27 @@ final class ModRoutes
             }
         }
 
+        foreach ($entries as &$entry) {
+            if ($entry['middleware_group'] === 'api') {
+                $entry['api_prefix'] = $this->apiPrefix($entry['group']);
+            }
+        }
+
         return $entries;
+    }
+
+    private function apiPrefix(string $group): string
+    {
+        if (isset($this->packages[$group]['apiPrefix'])) {
+            return $this->packages[$group]['apiPrefix'];
+        }
+        foreach ($this->invocations as $invocation) {
+            if (($invocation['only'] === null || in_array($group, $invocation['only'], true)) && ! in_array($group, $invocation['except'], true)) {
+                return $invocation['apiPrefix'];
+            }
+        }
+
+        return 'api';
     }
 
     private function provider(string $path): string

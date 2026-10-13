@@ -29,7 +29,7 @@ final class RoutesSection implements InventorySection
         return InventorySectionRegistry::fragment('routes');
     }
 
-    /** @param list<array{group: string, entrypoint: string, kind: string, middleware_group: string, order: int, loaded_by: ?string}> $routes */
+    /** @param list<array{group: string, entrypoint: string, kind: string, middleware_group: string, order: int, loaded_by: ?string, api_prefix?: string}> $routes */
     public static function render(Command $command, array $routes, ModRoutes $loader): void
     {
         $unloaded = [];
@@ -42,6 +42,9 @@ final class RoutesSection implements InventorySection
             }
             $by = $route['loaded_by'];
             $label = $by === null ? '(not loaded)' : (str_starts_with($by, 'provider: ') ? 'its provider (skipped by Mod::routes())' : 'Mod::routes()');
+            if (isset($route['api_prefix'])) {
+                $label .= '  API prefix: '.($route['api_prefix'] === '' ? '(none)' : $route['api_prefix']);
+            }
             $command->outputComponents()->twoColumnDetail('Routes '.$route['order'].' '.$route['group'], $entrypoint.'  '.$label);
             if ($command->getOutput()->isVerbose() && $by !== null) {
                 $command->line('  '.$by);
