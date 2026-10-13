@@ -21,6 +21,13 @@ it('pins the keep policy while rejecting unsupported strings in plan rows', func
     expect(JsonSchema::errors($data, $schema))->toContain('$.files[0].existing matches no identity schema');
     $data['files'][0]['existing'] = false;
     expect(JsonSchema::errors($data, $schema))->toBe([]);
+    foreach (['unchanged', 'edited'] as $state) {
+        $data['files'][0]['state'] = $state;
+        expect(JsonSchema::errors($data, $schema))->toBe([]);
+    }
+    $data['files'][0]['state'] = 'unknown';
+    expect(JsonSchema::errors($data, $schema))->toContain('$.files[0].state has an unsupported value');
+    unset($data['files'][0]['state']);
     unset($data['files'][0]['group']);
     expect(JsonSchema::errors($data, $schema))->toContain('$.files[0].group is required');
 });

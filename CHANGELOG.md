@@ -4,6 +4,9 @@ All notable changes to `mod` will be documented in this file.
 
 ## Unreleased
 
+### Added
+- Scaffold dry runs report existing whole-file members as `unchanged` or `edited` by comparing their bytes with what the current recipe would write; JSON adds optional `state`, and human labels include the state for kept members too (#162)
+
 ### Fixed
 - Parts and insert placeholders reuse a root migration's resolved identity, including its written timestamp, in flat and tree scaffolds and later part runs (#165).
 

@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Artisan;
 use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\Process\Process;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Scaffold;
@@ -44,10 +45,23 @@ it('plans tree files and inserts without changing the parent', function () {
         $before = array_map($w->read(...), array_combine($w->files(), $w->files()));
         $data = json_decode($w->artisan('mod:resource-tabs.tab', ['name' => 'Inventory:Widget', 'value' => 'History', '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
         expect(array_column($data['files'], 'path'))->toBe([TreeExamples::page('History')])
+            ->and($data['files'][0])->not->toHaveKey('state')
             ->and(array_column($data['inserts'], 'into'))->toBe([TreeExamples::base(), 'app/Modules/Inventory/Http/Controllers/WidgetController.php'])
             ->and(array_column($data['inserts'], 'at'))->toBe(['tabs', 'actions'])
             ->and($data['inserts'][0]['stub'])->toContain('History')
             ->and($data['warnings'])->toBe([])->and($data['would_write'])->toBeTrue()
+            ->and(array_map($w->read(...), array_combine($w->files(), $w->files())))->toBe($before);
+    });
+});
+
+it('includes recipe inserts when comparing whole-file tree members', function () {
+    Workspace::run(null, function (Workspace $w) {
+        TreeExamples::setup($w);
+        TreeExamples::create($w);
+        $before = array_map($w->read(...), array_combine($w->files(), $w->files()));
+        $plan = json_decode($w->artisan('mod:resource-tabs', ['name' => 'Inventory:Widget', '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
+        expect(array_column($plan['files'], 'state'))->toBe(array_fill(0, 5, 'unchanged'))
+            ->and($plan['would_write'])->toBeFalse()
             ->and(array_map($w->read(...), array_combine($w->files(), $w->files())))->toBe($before);
     });
 });
@@ -71,6 +85,120 @@ it('reports existing files and honours the collision flags in a plan', function 
             ->and($data['would_write'])->toBe($allowed)->and($w->read(Examples::paths()[0]))->toBe('<?php // keep');
     });
 })->with([[[], false], [['--force' => true], true], [['--skip-existing' => true], true]]);
+
+/** @param array<string, mixed> $arguments */
+function scaffoldProcess(Workspace $w, string $command, array $arguments): string
+{
+    $code = <<<'PHP'
+require $argv[1];
+$case = new class('scaffold') extends \Tey\Mod\Tests\TestCase {
+    public function boot(): void { $this->setUp(); }
+};
+$case->boot();
+app()->setBasePath($argv[2]);
+config()->set('mod.layout', 'modules');
+require $argv[2].'/recipe.php';
+$exit = \Illuminate\Support\Facades\Artisan::call($argv[3], [...json_decode($argv[4], true), '--no-interaction' => true]);
+echo \Illuminate\Support\Facades\Artisan::output();
+exit($exit);
+PHP;
+    $process = new Process([PHP_BINARY, '-r', $code, '--', dirname(__DIR__, 3).'/vendor/autoload.php', $w->root->path, $command, json_encode($arguments, JSON_THROW_ON_ERROR)], $w->root->path);
+    $process->run();
+    expect($process->getExitCode())->toBe(0, $process->getOutput().$process->getErrorOutput());
+
+    return $process->getOutput();
+}
+
+it('compares current scaffold bytes in a fresh process without changing any file', function () {
+    Workspace::run(null, function (Workspace $w) {
+        Examples::setup($w);
+        $w->write('recipe.php', "<?php\n\\Tey\\Mod\\Facades\\Mod::scaffold('crud', \\Tey\\Mod\\Tests\\Feature\\Scaffolds\\Support\\Examples::recipe(...));\n");
+        $w->artisan('mod:crud', ['name' => 'Knowledge:Document'])->assertSuccessful();
+        $arguments = ['name' => 'Knowledge:Document', '--dry-run' => true, '--json' => true];
+        $snapshot = fn (): array => ['composer.json' => $w->read('composer.json'), ...array_map($w->read(...), array_combine($w->files(), $w->files()))];
+        $before = $snapshot();
+        $plan = json_decode(scaffoldProcess($w, 'mod:crud', $arguments), true, flags: JSON_THROW_ON_ERROR);
+        expect(array_column($plan['files'], 'state'))->toBe(array_fill(0, 8, 'unchanged'))
+            ->and($snapshot())->toBe($before);
+
+        $edited = Examples::paths()[7];
+        $w->write($edited, $w->read($edited)."\n// developer edit\n");
+        $before = $snapshot();
+        $plan = json_decode(scaffoldProcess($w, 'mod:crud', $arguments), true, flags: JSON_THROW_ON_ERROR);
+        expect(array_column($plan['files'], 'state'))->toBe([...array_fill(0, 7, 'unchanged'), 'edited'])
+            ->and($snapshot())->toBe($before);
+        $human = scaffoldProcess($w, 'mod:crud', ['name' => 'Knowledge:Document', '--dry-run' => true]);
+        expect($human)->toContain('model (exists, unchanged)', 'controller (exists, edited)');
+
+        $stub = 'stubs/mod.request.crud.stub';
+        $w->write($stub, $w->read($stub)."\n// changed stub\n");
+        $before = $snapshot();
+        $plan = json_decode(scaffoldProcess($w, 'mod:crud', $arguments), true, flags: JSON_THROW_ON_ERROR);
+        expect(array_column($plan['files'], 'state'))->toBe(['unchanged', 'unchanged', 'unchanged', 'edited', 'edited', 'unchanged', 'unchanged', 'edited'])
+            ->and($snapshot())->toBe($before);
+        scaffoldProcess($w, 'mod:crud', ['name' => 'Knowledge:Document', '--skip-existing' => true]);
+        expect($snapshot())->toBe($before);
+        scaffoldProcess($w, 'mod:crud', ['name' => 'Knowledge:Document', '--force' => true]);
+        $before = $snapshot();
+        $plan = json_decode(scaffoldProcess($w, 'mod:crud', $arguments), true, flags: JSON_THROW_ON_ERROR);
+        expect(array_column($plan['files'], 'state'))->toBe(array_fill(0, 8, 'unchanged'))
+            ->and($snapshot())->toBe($before);
+    });
+});
+
+it('compares kept members and question blocks in flat and tree recipes', function (bool $tree) {
+    Workspace::run(null, function (Workspace $w) use ($tree) {
+        $w->write('recipe.php', <<<'PHP'
+<?php
+use Tey\Mod\Facades\Mod;
+use Tey\Mod\Scaffolds\Scaffold;
+Mod::scaffold('answers', function (Scaffold $s) {
+    $s->named('Inventory:Widget')
+        ->asks('columns', type: 'records', shape: ['key' => 'string', 'enabled' => 'bool'], default: [['key' => 'default', 'enabled' => false]])
+        ->makes('job', as: 'job', stub: 'answers')
+        ->makes('page', name: '{name}/Page', stub: 'answers', existing: 'keep')
+        ->makes('page', name: '{name}/Default', as: 'defaultPage');
+    if (is_file(base_path('tree'))) {
+        $s->asks('tabs', type: 'list', default: ['Details', 'Notes'])
+            ->part('tab', configure: fn ($p) => $p->makes('job', name: '{name}{tab}', stub: 'answers'))
+            ->each('tabs', part: 'tab');
+    }
+});
+PHP);
+        if ($tree) {
+            $w->write('tree', '');
+        }
+        $w->write('package.json', '{"dependencies":{"@inertiajs/vue3":"*"}}');
+        $w->write('stubs/mod.job.answers.stub', "<?php\nnamespace {{ namespace }};\nuse Zed\\Last;\nuse Alpha\\First;\nclass {{ class }} {\n{{ #columns }}\n{{ #enabled }}\n    // {{ key }} {{ group }}\n{{ /enabled }}\n{{ /columns }}\n}\n");
+        $w->write('stubs/mod.page.answers.vue.stub', "<template>\n{{ #columns }}\n{{ #enabled }}\n<p>{{ key }} {{ job.fqcn }} {{ group }} @{{ client }}</p>\n{{ /enabled }}\n{{ /columns }}\n</template>\n");
+        $columns = '[{"key":"title","enabled":true},{"key":"hidden","enabled":false}]';
+        scaffoldProcess($w, 'mod:answers', ['--columns' => $columns]);
+        $snapshot = fn (): array => ['composer.json' => $w->read('composer.json'), ...array_map($w->read(...), array_combine($w->files(), $w->files()))];
+        $before = $snapshot();
+        $arguments = ['--columns' => $columns, '--dry-run' => true, '--json' => true];
+        $plan = json_decode(scaffoldProcess($w, 'mod:answers', $arguments), true, flags: JSON_THROW_ON_ERROR);
+        expect(array_column($plan['files'], 'state'))->toBe(array_fill(0, $tree ? 5 : 3, 'unchanged'))
+            ->and($plan['files'][1]['existing'])->toBe('keep')
+            ->and($snapshot())->toBe($before);
+        $human = scaffoldProcess($w, 'mod:answers', ['--columns' => $columns, '--dry-run' => true]);
+        expect($human)->toContain('page (kept, exists, unchanged)');
+        $page = $plan['files'][1]['path'];
+        $w->write($page, $w->read($page)."<!-- edited -->\n");
+        $before = $snapshot();
+        $plan = json_decode(scaffoldProcess($w, 'mod:answers', $arguments), true, flags: JSON_THROW_ON_ERROR);
+        expect($plan['files'][1]['state'])->toBe('edited')
+            ->and(scaffoldProcess($w, 'mod:answers', ['--columns' => $columns, '--dry-run' => true]))->toContain('page (kept, exists, edited)')
+            ->and($snapshot())->toBe($before);
+        $changedAnswers = json_decode(scaffoldProcess($w, 'mod:answers', ['--dry-run' => true, '--json' => true]), true, flags: JSON_THROW_ON_ERROR);
+        expect(array_column($changedAnswers['files'], 'state'))->toBe(['edited', 'edited', 'unchanged', ...($tree ? ['edited', 'edited'] : [])])
+            ->and($snapshot())->toBe($before);
+        $w->remove([$plan['files'][0]['path']]);
+        $before = $snapshot();
+        $plan = json_decode(scaffoldProcess($w, 'mod:answers', $arguments), true, flags: JSON_THROW_ON_ERROR);
+        expect($plan['files'][0])->not->toHaveKey('state')
+            ->and($snapshot())->toBe($before);
+    });
+})->with(['flat' => false, 'tree' => true]);
 
 it('plans individual generators and their companions', function () {
     Workspace::run(null, function (Workspace $w) {

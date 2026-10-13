@@ -93,7 +93,9 @@ final class PlanWriter
             $this->line($command, $folder['path'], $folder['alias'].' (folder, writes nothing)');
         }
         foreach ($plan->files as $file) {
-            $this->line($command, $file['path'], $file['alias'].($file['exists'] ? ($file['existing'] === 'keep' ? ' (kept, exists)' : ' (exists)') : ''));
+            $status = $file['existing'] === 'keep' ? 'kept, exists' : 'exists';
+            $status .= isset($file['state']) ? ', '.$file['state'] : '';
+            $this->line($command, $file['path'], $file['alias'].($file['exists'] ? ' ('.$status.')' : ''));
             $mappings = $file['identity']['mappings'] ?? [];
             if (is_array($mappings)) {
                 foreach ($mappings as $namespace => $path) {

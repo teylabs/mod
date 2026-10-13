@@ -119,22 +119,13 @@ class PlainFileCommand extends Command implements GeneratorAdapter
             $file = $this->templateFile();
             if ($scope?->planning) {
                 $scope->collect(new GenerationPlan($artifact), $file);
+                $renderer = clone $this;
+                $scope->renderers[$artifact->path()] = static fn (): array => $renderer->renderFile($artifact, $file);
 
                 return self::SUCCESS;
             }
             $forms = Identity::forms($artifact, $this->layout());
-            $values = ['name' => $artifact->name, ...$context->toArray()];
-            foreach ($this->layout()->templates()[$this->kind()->id]['body_aliases'] ?? [] as $alias => $token) {
-                $values[$alias] = $context->get($token);
-            }
-            $values = [...$values, ...($scope?->values[$artifact->path()] ?? [])];
-            $file = $scope?->variants[$artifact->path()] ?? $file;
-            $source = (string) file_get_contents($file);
-            if ($this->kind()->id === 'page' && ! $this->laravel->make(Stack::class)->typescript() && $file === __DIR__.'/../Generation/PlainFile/stubs/page.vue.stub') {
-                $source = str_replace(' lang="ts"', '', $source);
-            }
-            $warnings = [];
-            $contents = (new Placeholders($values))->renderPlain($source, $this->kind()->extension ?? '', Path::relative($this->laravel->basePath(), $file) ?? $file, $warnings);
+            ['contents' => $contents, 'warnings' => $warnings] = $this->renderFile($artifact, $file);
             $absolute = $this->laravel->basePath($artifact->path());
             if ($this->preview !== null) {
                 $this->preview->artifact($this->kind()->id, $artifact, $this->laravel->basePath());
@@ -182,6 +173,26 @@ class PlainFileCommand extends Command implements GeneratorAdapter
 
             return $this->reportRefusal($error);
         }
+    }
+
+    /** @return array{contents: string, warnings: list<array{file: string, line: int, message: string}>} */
+    private function renderFile(ResolvedArtifact $artifact, string $file): array
+    {
+        $scope = $this->scaffoldExecution();
+        $values = ['name' => $artifact->name, ...$artifact->context->toArray()];
+        foreach ($this->layout()->templates()[$this->kind()->id]['body_aliases'] ?? [] as $alias => $token) {
+            $values[$alias] = $artifact->context->get($token);
+        }
+        $values = [...$values, ...($scope?->values[$artifact->path()] ?? [])];
+        $file = $scope?->variants[$artifact->path()] ?? $file;
+        $source = $this->laravel->make('files')->get($file);
+        if ($this->kind()->id === 'page' && ! $this->laravel->make(Stack::class)->typescript() && $file === __DIR__.'/../Generation/PlainFile/stubs/page.vue.stub') {
+            $source = str_replace(' lang="ts"', '', $source);
+        }
+        $warnings = [];
+        $contents = (new Placeholders($values))->renderPlain($source, $this->kind()->extension ?? '', Path::relative($this->laravel->basePath(), $file) ?? $file, $warnings);
+
+        return compact('contents', 'warnings');
     }
 
     private function settleMemberGroup(ResolvedArtifact $artifact): ResolvedArtifact

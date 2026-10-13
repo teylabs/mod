@@ -21,6 +21,7 @@ use Tey\Mod\Layout\LayoutRegistry;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Plans\Plan;
 use Tey\Mod\Plans\PlanWriter;
+use Tey\Mod\Scaffolds\AnchorWriter;
 use Tey\Mod\Scaffolds\Folder;
 use Tey\Mod\Scaffolds\Member;
 use Tey\Mod\Scaffolds\Part;
@@ -30,7 +31,6 @@ use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Scaffolds\ScaffoldExecution;
 use Tey\Mod\Scaffolds\ScaffoldPlan;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
-use Tey\Mod\Support\Path;
 use Tey\Mod\Templates\TemplateCatalog;
 use Throwable;
 
@@ -254,18 +254,26 @@ final class ScaffoldCommand extends Command
         $this->dryPlan->folders = $plan->folders;
         $scope = $this->scaffoldExecution();
         foreach ($plan->files() as $file) {
-            if ($scope !== null && $file['artifact']->kind->extension !== null) {
-                $artifact = $file['artifact'];
-                $source = $scope->variants[$artifact->path()] ?? $scope->defaultStubs[$artifact->path()] ?? '';
-                if (is_file($source)) {
-                    $warnings = [];
-                    (new Placeholders(['name' => $artifact->name, ...$scope->values[$artifact->path()]]))->renderPlain((string) file_get_contents($source), $artifact->kind->extension ?? '', Path::relative($this->laravel->basePath(), $source) ?? $source, $warnings);
-                    foreach ($warnings as $warning) {
-                        $this->dryPlan->warning($warning['message'], blocking: false, file: $warning['file'], line: $warning['line']);
+            $artifact = $file['artifact'];
+            $path = $this->laravel->basePath($artifact->path());
+            $state = null;
+            $renderer = $scope?->renderers[$artifact->path()] ?? null;
+            if ($renderer !== null && (is_file($path) || $artifact->kind->extension !== null)) {
+                $rendered = $renderer();
+                foreach ($rendered['warnings'] ?? [] as $warning) {
+                    $this->dryPlan->warning($warning['message'], blocking: false, file: $warning['file'], line: $warning['line']);
+                }
+                if (is_file($path)) {
+                    $contents = $rendered['contents'];
+                    foreach ($this->treeInserts as $insert) {
+                        if ($insert['path'] === $artifact->path()) {
+                            $contents = (new AnchorWriter)->insert($contents, $insert['at'], $insert['stub'], $artifact->path());
+                        }
                     }
+                    $state = $contents === $this->laravel->make('files')->get($path) ? 'unchanged' : 'edited';
                 }
             }
-            $this->dryPlan->artifact($file['alias'], $file['artifact'], $this->laravel->basePath(), $file['member']?->existing);
+            $this->dryPlan->artifact($file['alias'], $artifact, $this->laravel->basePath(), $file['member']?->existing, $state);
         }
         $this->dryPlan->collisions((bool) $this->option('force'), (bool) $this->option('skip-existing'));
     }

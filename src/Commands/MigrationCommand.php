@@ -136,7 +136,16 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
             }
 
             if ($this->scaffoldExecution()?->planning) {
-                $this->scaffoldExecution()->collect($this->resolvePlan(), $this->migrationStubFile());
+                $scope = $this->scaffoldExecution();
+                $plan = $this->resolvePlan();
+                $scope->collect($plan, $this->migrationStubFile());
+                $renderer = clone $this;
+                $renderer->input = clone $this->input;
+                $scope->renderers[$plan->primary->path()] = static function () use ($renderer): array {
+                    [$table, $create] = $renderer->migrationOptions();
+
+                    return ['contents' => $renderer->modCreator->render($renderer->migrationSource($table, $create), $table)];
+                };
 
                 return $exitCode = self::SUCCESS;
             }
@@ -299,21 +308,46 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
             return $variant;
         }
         if ($create === null) {
-            $tableOption = $this->option('table');
-            $table = is_string($tableOption) ? $tableOption : null;
-            $createOption = $this->option('create');
-            $create = (bool) $createOption;
-            if (! $table && is_string($createOption) && $createOption !== '') {
-                $table = $createOption;
-                $create = true;
-            }
-            if (! $table) {
-                [$table, $create] = TableGuesser::guess(Str::snake($this->getNameInput()));
-            }
+            [$table, $create] = $this->migrationOptions();
         }
 
         return $this->stubSelection($table ?: null, (bool) $create)->file
             ?? throw new \LogicException('The migration creator must select a stub file.');
+    }
+
+    /** @return array{?string, bool} */
+    private function migrationOptions(): array
+    {
+        $tableOption = $this->option('table');
+        $table = is_string($tableOption) ? $tableOption : null;
+        $createOption = $this->option('create');
+        $create = (bool) $createOption;
+        if (! $table && is_string($createOption) && $createOption !== '') {
+            $table = $createOption;
+            $create = true;
+        }
+        if (! $table) {
+            [$table, $create] = TableGuesser::guess(Str::snake($this->getNameInput()));
+        }
+
+        return [$table ?: null, (bool) $create];
+    }
+
+    private function migrationSource(?string $table, bool $create): string
+    {
+        $primary = $this->resolvePlan()->primary;
+        $source = $this->modCreator->getFilesystem()->get($this->migrationStubFile($table, $create));
+        $source = $this->scaffoldExecution()?->replace($source, $primary) ?? $source;
+        $connection = $this->laravel->make(GroupConnections::class)->forContext($primary->context->toArray());
+        if ($connection !== null && ! $this->applicationCreator) {
+            $count = 0;
+            $source = preg_replace('/(extends\\s+Migration\\s*\\{)/', '$1'."\n    protected \$connection = ".var_export($connection, true).";\n", $source, 1, $count);
+            if ($source === null || $count !== 1) {
+                throw GenerationRefused::because('The migration stub must extend Migration to apply the group connection.');
+            }
+        }
+
+        return $source;
     }
 
     /**
@@ -327,17 +361,7 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
     protected function writeMigration($name, $table, $create)
     {
         if ($this->plan !== null) {
-            $source = $this->modCreator->getFilesystem()->get($this->migrationStubFile($table, (bool) $create));
-            $source = $this->scaffoldExecution()?->replace($source, $this->plan->primary) ?? $source;
-            $connection = $this->laravel->make(GroupConnections::class)->forContext($this->plan->primary->context->toArray());
-            if ($connection !== null && ! $this->applicationCreator) {
-                $count = 0;
-                $source = preg_replace('/(extends\\s+Migration\\s*\\{)/', '$1'."\n    protected \$connection = ".var_export($connection, true).";\n", $source, 1, $count);
-                if ($source === null || $count !== 1) {
-                    throw GenerationRefused::because('The migration stub must extend Migration to apply the group connection.');
-                }
-            }
-            $this->modCreator->useStub($source);
+            $this->modCreator->useStub($this->migrationSource($table, (bool) $create));
         }
         $file = $this->creator->create($name, $this->getMigrationPath(), $table, $create);
 

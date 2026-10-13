@@ -7,6 +7,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Tey\Mod\Artifact\ArtifactKind;
 use Tey\Mod\Artifact\ClassIdentity;
 use Tey\Mod\Artifact\ResolvedArtifact;
+use Tey\Mod\Commands\ComponentCommand;
 use Tey\Mod\Commands\GenericClassCommand;
 use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Exceptions\ModException;
@@ -131,6 +132,16 @@ trait PlacesGeneratedClass
                 $defaultStub = $this->getStub();
                 $this->generateScaffoldRelations();
                 $scaffold->collect($preview, $defaultStub);
+                // Keep this invocation's plan and input, not a later member's command state.
+                // Rendering waits until the scaffold has its answers, aliases and variants.
+                // Anonymous components write their view directly, not through buildClass().
+                if (! ($this instanceof ComponentCommand && $this->option('view'))) {
+                    $renderer = clone $this;
+                    $renderer->input = clone $this->input;
+                    $scaffold->renderers[$preview->primary->path()] = static fn (): array => [
+                        'contents' => $renderer->sortImports($renderer->buildClass($renderer->qualifyClass($renderer->getNameInput()))),
+                    ];
+                }
 
                 return $exitCode = self::SUCCESS;
             }
@@ -643,6 +654,7 @@ trait PlacesGeneratedClass
                         new ClassIdentity(substr($location['fqcn'], 0, (int) strrpos($location['fqcn'], '\\')), $choice->generatedBase->name, $location['path']),
                     );
                 }
+                $choice = $choice->withBase($location['fqcn']);
             }
 
             return $this->modStub = $choice;

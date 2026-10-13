@@ -49,6 +49,9 @@ final class ScaffoldExecution
     /** @var array<string, array<string, mixed>> path => values scoped to that node */
     public array $values = [];
 
+    /** @var array<string, callable(): array{contents: string, warnings?: list<array{file: string, line: int, message: string}>}> path => deferred native rendering, after answers and variants are known */
+    public array $renderers = [];
+
     private ?GenerationPlan $collected = null;
 
     public function reset(): void
