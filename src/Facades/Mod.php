@@ -18,9 +18,9 @@ use Tey\Mod\Support\Stack;
  * @method static Wiring wiring() declare frontend wiring
  * @method static Stack stack() read the declared frontend stack
  * @method static string pageEntry(string $page, string $extension) the project-relative Vite entry for an Inertia page
- * @method static ModManager routeFiles(string $group, string $directory) register package route files
- * @method static ModManager routeRegistrar(string $group, class-string<\Tey\Mod\Routing\RegistersRoutes> $class) register package route methods
- * @method static void routes(?list<string> $only = null, list<string> $except = []) load module routes inside the current route group
+ * @method static ModManager routeFiles(string $group, string $directory, ?string $apiPrefix = null) register package route files
+ * @method static ModManager routeRegistrar(string $group, class-string<\Tey\Mod\Routing\RegistersRoutes> $class, ?string $apiPrefix = null) register package route methods
+ * @method static void routes(?list<string> $only = null, list<string> $except = [], string $apiPrefix = 'api') load module routes inside the current route group
  * @method static \Tey\Mod\Scaffolds\VendorScaffolds vendor(string $id) scope package scaffolds to a vendor
  * @method static ModManager scaffold(string $name, \Closure $recipe, ?string $command = null) declare a scaffold recipe
  * @method static ModManager scaffolds(array<array-key, \Closure|class-string> $recipes) declare keyed recipes or invokable classes

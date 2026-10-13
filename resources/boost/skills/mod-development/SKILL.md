@@ -165,7 +165,11 @@ Module routes load only through `Mod::routes(only: [...], except: [...])`. Put t
 
 Use `mod:routes Inventory --api --console` for route files: web uses `web`, API uses `api` and `/api`, console loads only in the console. Use `mod:route-registrar Inventory` for a `RegistersRoutes` implementation with static `web()` and `api()` methods. Files load before registrars, and provider-loaded files are skipped. Both commands accept `--force` for replacement and `--dry-run --json` for a plan without writes. Refusals without a terminal name `--force`.
 
+Use `Mod::routes(only: ['Inventory'], apiPrefix: 'v1')` to serve API files and registrar methods under `/v1` instead of the default `/api`. Package registrations can set `apiPrefix:` on `Mod::routeFiles()` or `Mod::routeRegistrar()`; that value wins over the call prefix. An omitted or `null` registration prefix inherits the call; `''` adds no API prefix. Web and console entries are unchanged. Surrounding Laravel groups still apply. Rebuild the route cache after changing prefixes.
+
 Scaffold inserts use `into: 'routes'` for the module's web file or `into: 'routes.web'` / `into: 'routes.api'` for registrar methods when present. Missing files start with the route anchor. Keep bindings and rate limiters in providers. `mod:list --json` reports the `routes` entries with `group`, `entrypoint`, `kind`, `middleware_group`, `order`, and `loaded_by`; listing never calls a registrar.
+
+API entries also report `api_prefix`: the registration value, the selected call's value, or `'api'` before a call selects the group. It excludes surrounding group prefixes. Human `mod:list` shows the same value, with `(none)` for `''`.
 
 ## Scaffolds
 

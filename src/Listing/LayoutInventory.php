@@ -20,7 +20,7 @@ use Tey\Mod\Support\Path;
  * @phpstan-type Problem array{path: string, reason: string}
  * @phpstan-type FrontendRow array{pages: ?string, components: ?string, css: ?string, views: ?string, lang: ?string, page_name: ?string, view_namespace: ?string, import_alias: array{alias: string, root: string}|null, page_entries?: list<string>}
  * @phpstan-type ViewRow array{group: ?string, namespace: ?string, path: string, components: list<array{path: string, tag: string}>}
- * @phpstan-type RouteEntry array{group: string, entrypoint: string, kind: string, middleware_group: string, order: int, loaded_by: ?string}
+ * @phpstan-type RouteEntry array{group: string, entrypoint: string, kind: string, middleware_group: string, order: int, loaded_by: ?string, api_prefix?: string}
  *
  * @phpstan-import-type Capability from RenameSection
  * @phpstan-import-type Owner from \Tey\Mod\Layout\FrontendDeclarations

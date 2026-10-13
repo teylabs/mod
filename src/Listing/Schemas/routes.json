@@ -47,6 +47,9 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "api_prefix": {
+                        "type": "string"
                     }
                 }
             }

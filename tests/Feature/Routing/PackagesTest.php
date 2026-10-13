@@ -36,16 +36,42 @@ it('loads explicitly registered package registrar classes', function () {
     expect(array_column(app(ModRoutes::class)->entries(), 'kind'))->toContain('package');
 });
 
+it('applies registration prefixes before call prefixes without changing web or console routes', function (string $kind, ?string $registration, string $call, string $expected) {
+    Workspace::run(null, function (Workspace $w) use ($kind, $registration, $call, $expected) {
+        config()->set('route_trace', []);
+        if ($kind === 'files') {
+            $w->write('package/routes/web.php', "<?php \\Illuminate\\Support\\Facades\\Route::get('prefix-web', fn () => 'web');");
+            $w->write('package/routes/api.php', "<?php \\Illuminate\\Support\\Facades\\Route::get('prefix-api', fn () => 'api');");
+            $w->write('package/routes/console.php', "<?php config()->push('route_trace', 'console');");
+            Mod::routeFiles('versioned', $w->root->path.'/package/routes', apiPrefix: $registration);
+        } else {
+            Mod::routeRegistrar('versioned', PackageRoutes::class, apiPrefix: $registration);
+        }
+        Mod::routes(only: ['versioned'], apiPrefix: $call);
+        $data = json_decode($w->artisan('route:list', ['--path' => 'prefix-', '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
+        expect(array_column($data, 'uri'))->toContain('prefix-web', ltrim($expected.'/prefix-api', '/'));
+        expect(config('route_trace'))->toBe($kind === 'files' ? ['console'] : ['web', 'api']);
+        expect(fn () => Mod::routes(only: ['versioned'], apiPrefix: 'other'))->toThrow(LogicException::class, 'versioned');
+    });
+})->with(['files', 'registrar'])->with([
+    'call prefix' => [null, 'v1', 'v1'],
+    'registration prefix' => ['v1', 'api', 'v1'],
+    'registration wins' => ['v1', 'v2', 'v1'],
+    'empty call prefix' => [null, '', ''],
+    'empty registration wins' => ['', 'v2', ''],
+    'explicit default wins' => ['api', 'v2', 'api'],
+]);
+
 it('does not inspect package files or call registrars with cached routes', function () {
     Workspace::run(null, function (Workspace $w) {
         $w->write('bootstrap/cache/routes-v7.php', '<?php return [];');
         app()->useBootstrapPath($w->root->path.'/bootstrap');
         app()->forgetInstance('routes.cached');
         expect(app()->routesAreCached())->toBeTrue();
-        Mod::routeFiles('missing', $w->root->path.'/missing');
-        Mod::routeRegistrar('billing', PackageRoutes::class);
+        Mod::routeFiles('missing', $w->root->path.'/missing', apiPrefix: 'v1');
+        Mod::routeRegistrar('billing', PackageRoutes::class, apiPrefix: 'v1');
         config()->set('route_trace', []);
-        Mod::routes();
+        Mod::routes(apiPrefix: 'v2');
         expect(config('route_trace'))->toBe([]);
     });
 });
@@ -65,10 +91,12 @@ class PackageRoutes implements RegistersRoutes
     public static function web(): void
     {
         config()->push('route_trace', 'web');
+        Route::get('prefix-web', fn () => 'web');
     }
 
     public static function api(): void
     {
         config()->push('route_trace', 'api');
+        Route::get('prefix-api', fn () => 'api');
     }
 }

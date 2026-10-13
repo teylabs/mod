@@ -135,9 +135,9 @@ final readonly class ModManager
     }
 
     /** Register a package route directory without loading it. @api */
-    public function routeFiles(string $group, string $directory): self
+    public function routeFiles(string $group, string $directory, ?string $apiPrefix = null): self
     {
-        ($this->container ?? Container::getInstance())->make(ModRoutes::class)->files($group, $directory);
+        ($this->container ?? Container::getInstance())->make(ModRoutes::class)->files($group, $directory, $apiPrefix);
 
         return $this;
     }
@@ -147,9 +147,9 @@ final readonly class ModManager
      *
      * @api
      */
-    public function routeRegistrar(string $group, string $class): self
+    public function routeRegistrar(string $group, string $class, ?string $apiPrefix = null): self
     {
-        ($this->container ?? Container::getInstance())->make(ModRoutes::class)->registrar($group, $class);
+        ($this->container ?? Container::getInstance())->make(ModRoutes::class)->registrar($group, $class, $apiPrefix);
 
         return $this;
     }
@@ -159,7 +159,7 @@ final readonly class ModManager
      *
      * @api
      */
-    public function routes(?array $only = null, array $except = []): void
+    public function routes(?array $only = null, array $except = [], string $apiPrefix = 'api'): void
     {
         $call = 'unknown';
         foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) as $frame) {
@@ -168,7 +168,7 @@ final readonly class ModManager
                 break;
             }
         }
-        ($this->container ?? Container::getInstance())->make(ModRoutes::class)->load($only, $except, $call);
+        ($this->container ?? Container::getInstance())->make(ModRoutes::class)->load($only, $except, $call, $apiPrefix);
     }
 
     /** Declare a package's Inertia page namespace and absolute directory.
