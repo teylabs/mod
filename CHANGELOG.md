@@ -2,7 +2,7 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## Unreleased
+## [0.7.1] - 2026-10-12
 
 ### Added
 - Route files and registrars can choose an API prefix at registration or loading time with `apiPrefix:`, preserving `/api` by default; `mod:list` reports the effective prefix per API entry (#159).
