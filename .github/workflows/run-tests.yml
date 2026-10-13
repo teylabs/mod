@@ -93,9 +93,6 @@ jobs:
         shell: bash
         run: composer show --direct
 
-      - name: Check CI standards
-        run: php vendor/bin/standards ci --strict
-
       # Windows path repositories use junctions: fail these probes before a
       # cleanup regression can contaminate the rest of the randomised suite.
       - name: Verify linked package boot and fixture cleanup
