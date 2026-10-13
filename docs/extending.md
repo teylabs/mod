@@ -303,7 +303,9 @@ Mod::vendor('acme')->scaffold('pages', fn (Scaffold $s) => $s->makes('page'), co
 
 The default command is `mod:acme/pages`; parts use `mod:acme/pages.form`. Dots mean declared parts. `command:` opts into one canonical Artisan name, with the same options, questions and messages; it adds no alias. An existing command is never replaced. Invokable classes declare `$name`, and may declare a string `$command`.
 
-Test members can use Pest or PHPUnit stubs. Collision checks use the file path for the `test` file type and every member under a test root, without loading the test through Composer. Rerunning a scaffold reports existing files as usual: `--skip-existing` keeps them, `--force` overwrites them, and interactive runs offer keep, overwrite or cancel. Other PHP members check their paths and autoload their class identities, so a class declared elsewhere is still a collision even when it has not been loaded yet.
+Test members can use Pest or PHPUnit stubs. Collision checks use the file path for the `test` file type and every member under a test root, without loading the test through Composer. Rerunning a scaffold reports existing files as usual: `--skip-existing` keeps them and writes missing members, while `--force` overwrites them. Members with `existing: 'keep'` are never overwritten. Flat recipes also offer keep, overwrite or cancel interactively. Other PHP members check their paths and autoload their class identities, so a class declared elsewhere is still a collision even when it has not been loaded yet.
+
+Tree roots and part commands honour the same flags. Without either flag, an existing member refuses the entire tree with `Item already exists: <path>. Nothing was written.` Kept members do not cause refusal. Timestamped migrations reuse their written paths on a root rerun, including with `--skip-existing`; no duplicate migration is created. Inserts still refuse if their entry already exists, even with `--force` or `--skip-existing`.
 
 Preview a rerun with the same answers before choosing a collision policy:
 
@@ -315,7 +317,7 @@ Existing whole-file members add optional `state`: `"unchanged"` means the disk b
 
 Human dry runs show `(exists, unchanged)` or `(exists, edited)`. A member with `existing: 'keep'` shows `(kept, exists, unchanged)` or `(kept, exists, edited)`; the comparison does not override its keep policy. Missing files and insert-only targets have no `state`. Generators without read-only whole-file rendering also omit it: native companion views and anonymous component views are written outside `buildClass()`, and custom adapters must provide their own rendering. Native generators with random content may differ on every render.
 
-The comparison writes nothing. `state` is informational and additive to the plan schema; it does not change `would_write`, collision refusal, prompts, `--skip-existing` or `--force`. Tree rerun refusal is unchanged.
+The comparison writes nothing. `state` is informational and additive to the plan schema; it does not change `would_write`, collision refusal, prompts, `--skip-existing` or `--force`. Preview a tree with the same flags as the real run: refusal appears in `warnings` with `would_write: false`; `--skip-existing` marks retained files as `existing: "keep"` and shows `(kept, exists, unchanged|edited)` in human output. The file count excludes those retained files.
 
 A root scaffold can declare a default name so its command runs bare:
 

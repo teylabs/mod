@@ -187,8 +187,20 @@ trait RunsScaffoldTree
                 }
             }
             $existing = $plan->existing($this->existingArtifacts());
-            if ($existing !== [] && $this->dryPlan === null) {
-                throw GenerationRefused::because('Item already exists: '.$existing[0].'. Nothing was written.');
+            $scope->force = (bool) $this->option('force');
+            $scope->keep = $scope->silentKeep = $plan->kept($this->laravel->basePath());
+            if ($existing !== [] && ! $scope->force) {
+                if (! $this->option('skip-existing')) {
+                    throw GenerationRefused::because('Item already exists: '.$existing[0].'. Nothing was written.');
+                }
+                $scope->keep = [...$scope->keep, ...$existing];
+            }
+            if ($this->dryPlan !== null) {
+                foreach ($this->dryPlan->files as $index => $file) {
+                    if (in_array($file['path'], $scope->keep, true)) {
+                        $this->dryPlan->files[$index]['existing'] = 'keep';
+                    }
+                }
             }
             // Validate every insert before displaying or writing the plan.
             $writer = new AnchorWriter;
@@ -235,7 +247,6 @@ trait RunsScaffoldTree
 
                 return self::SUCCESS;
             }
-            $scope->keep = $scope->silentKeep = $plan->kept($this->laravel->basePath());
             $count = count($plan->files()) - count($scope->keep);
             $inserts = count($this->treeInserts);
             $suffix = $inserts === 0 ? '' : " and {$inserts} inserts";
@@ -244,7 +255,9 @@ trait RunsScaffoldTree
                 $this->treeLine($folder['path'], $folder['alias'].' (folder, writes nothing)');
             }
             foreach ($plan->files() as $file) {
-                $this->treeLine($file['artifact']->path(), ScaffoldPlan::label($file, is_file($this->laravel->basePath($file['artifact']->path()))));
+                $artifact = $file['artifact'];
+                $label = $scope->keeps($artifact) ? $file['alias'].' (kept, exists)' : ScaffoldPlan::label($file, is_file($this->laravel->basePath($artifact->path())));
+                $this->treeLine($artifact->path(), $label);
             }
             foreach ($this->skippedPlan() ?? [] as $row) {
                 $this->treeLine($row['alias'], 'skipped: '.$row['reason']);
@@ -274,6 +287,9 @@ trait RunsScaffoldTree
             $scope->planning = false;
             foreach ($this->treeCalls as [$command, $arguments, $ungrouped]) {
                 $scope->ungrouped = $ungrouped;
+                if ($scope->force && $this->getApplication()?->find($command)->getDefinition()->hasOption('force')) {
+                    $arguments['--force'] = true;
+                }
                 if ($this->call($command, $arguments) !== self::SUCCESS) {
                     throw GenerationRefused::because("Generating {$this->getName()} failed. Nothing was written.");
                 }

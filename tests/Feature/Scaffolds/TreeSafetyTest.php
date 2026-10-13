@@ -25,6 +25,100 @@ it('cancels the full tree after displaying every file and insert', function () {
     });
 });
 
+it('predicts and applies existing-file policies when rerunning tree roots and parts', function (array $flags, bool $allowed, bool $overwrite, bool $part) {
+    Workspace::run(null, function (Workspace $w) use ($flags, $allowed, $overwrite, $part) {
+        config()->set('mod.layout', 'modules');
+        $w->write('package.json', '{"dependencies":{"@inertiajs/vue3":"*"}}');
+        Mod::scaffold('rerunnable', fn (Scaffold $s) => $s->makes('model')
+            ->asks('children', type: 'list', default: ['Child'])
+            ->part('child', configure: fn (Part $p) => $p
+                ->makes('job', name: '{name}Edited', as: 'edited')
+                ->makes('page', name: '{name}/Page', as: 'page')
+                ->makes('job', name: '{name}Kept', as: 'kept', existing: 'keep')
+                ->makes('request', name: '{name}Missing', as: 'missing')
+                ->makes('job', name: '{name}Unchanged', as: 'unchanged'))
+            ->each('children', part: 'child'));
+        $w->artisan('mod:rerunnable', ['name' => 'Inventory:Widget'])->assertSuccessful();
+        $paths = [
+            'app/Modules/Inventory/Jobs/WidgetEdited.php',
+            'app/Modules/Inventory/resources/js/pages/Widget/Page.vue',
+            'app/Modules/Inventory/Jobs/WidgetKept.php',
+            'app/Modules/Inventory/Http/Requests/WidgetMissingRequest.php',
+            'app/Modules/Inventory/Jobs/WidgetUnchanged.php',
+        ];
+        $generated = array_map($w->read(...), array_combine($paths, $paths));
+        foreach (array_slice($paths, 0, 3) as $path) {
+            $w->write($path, $w->read($path)."\n// developer edit\n");
+        }
+        $w->remove([$paths[3]]);
+        $snapshot = fn (): array => ['composer.json' => $w->read('composer.json'), ...array_map($w->read(...), array_combine($w->files(), $w->files()))];
+        $before = $snapshot();
+        $command = $part ? 'mod:rerunnable.child' : 'mod:rerunnable';
+        $arguments = ['name' => 'Inventory:Widget', ...($part ? ['value' => 'Child'] : []), ...$flags];
+        $preview = json_decode($w->artisan($command, [...$arguments, '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
+        $planned = $part ? $paths : ['app/Modules/Inventory/Models/Widget.php', ...$paths];
+        $existing = $allowed && ! $overwrite ? 'keep' : true;
+        expect($preview['would_write'])->toBe($allowed)
+            ->and(array_column($preview['files'], 'path'))->toBe($planned)
+            ->and(array_column($preview['files'], 'existing'))->toBe([...($part ? [] : [$existing]), $existing, $existing, 'keep', false, $existing])
+            ->and(array_column($preview['files'], 'state'))->toBe([...($part ? [] : ['unchanged']), 'edited', 'edited', 'edited', 'unchanged'])
+            ->and($preview['files'][$part ? 3 : 4])->not->toHaveKey('state');
+        $human = $w->artisan($command, [...$arguments, '--dry-run' => true])->assertSuccessful();
+        $prefix = $part ? '' : 'child.Child.';
+        $status = $allowed && ! $overwrite ? 'kept, exists' : 'exists';
+        $human->expectsOutputToContain($prefix.'edited ('.$status.', edited)')
+            ->expectsOutputToContain($prefix.'page ('.$status.', edited)')
+            ->expectsOutputToContain($prefix.'kept (kept, exists, edited)');
+        foreach ($planned as $path) {
+            $human->expectsOutputToContain($path);
+        }
+        expect($snapshot())->toBe($before);
+        $real = $w->artisan($command, $arguments);
+        if (! $allowed) {
+            $message = 'Item already exists: '.$planned[0].'. Nothing was written.';
+            $real->assertFailed()->expectsOutputToContain($message);
+            $human->expectsOutputToContain($message);
+            expect(array_column($preview['warnings'], 'message'))->toBe([$message])
+                ->and($snapshot())->toBe($before);
+        } else {
+            $real->assertSuccessful();
+            expect($preview['warnings'])->toBe([])
+                ->and(array_values(array_diff($w->files(), array_keys($before))))->toBe([$paths[3]]);
+            $writes = 0;
+            foreach ($preview['files'] as $file) {
+                $path = $file['path'];
+                $keep = $file['exists'] && $file['existing'] === 'keep';
+                expect($w->read($path))->toBe($keep ? $before[$path] : ($generated[$path] ?? $before[$path]));
+                $writes += $keep ? 0 : 1;
+            }
+            $human->expectsOutputToContain('will write '.$writes.' '.($writes === 1 ? 'file' : 'files'));
+            $real->expectsOutputToContain('will write '.$writes.' '.($writes === 1 ? 'file' : 'files'));
+        }
+    });
+})->with([
+    'default refuses' => [[], false, false],
+    'skip keeps edits and writes missing files' => [['--skip-existing' => true], true, false],
+    'force replaces except kept members' => [['--force' => true], true, true],
+    'force takes precedence over skip' => [['--force' => true, '--skip-existing' => true], true, true],
+])->with(['root' => false, 'part' => true]);
+
+it('keeps insert refusal independent of tree existing-file flags', function (string $flag) {
+    Workspace::run(null, function (Workspace $w) use ($flag) {
+        Tree::setup($w);
+        Tree::create($w);
+        $before = array_map($w->read(...), array_combine($w->files(), $w->files()));
+        $arguments = ['name' => 'Inventory:Widget', $flag => true];
+        $message = 'Insert already exists in '.Tree::base().' at mod:tabs. Nothing was written.';
+        $preview = json_decode($w->artisan('mod:resource-tabs', [...$arguments, '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
+        expect($preview['would_write'])->toBeFalse()
+            ->and(array_column($preview['warnings'], 'message'))->toBe([$message])
+            ->and(array_column($preview['files'], 'state'))->toBe(array_fill(0, 5, 'unchanged'));
+        $w->artisan('mod:resource-tabs', [...$arguments, '--dry-run' => true])->assertSuccessful()->expectsOutputToContain($message);
+        $w->artisan('mod:resource-tabs', $arguments)->assertFailed()->expectsOutputToContain($message);
+        expect(array_map($w->read(...), array_combine($w->files(), $w->files())))->toBe($before);
+    });
+})->with(['--skip-existing', '--force']);
+
 it('refuses a repeated inline insert even when the part generates no file', function () {
     Workspace::run(null, function (Workspace $w) {
         config()->set('mod.layout', 'modules');

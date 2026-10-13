@@ -9,6 +9,7 @@ All notable changes to `mod` will be documented in this file.
 
 ### Fixed
 - Parts and insert placeholders reuse a root migration's resolved identity, including its written timestamp, in flat and tree scaffolds and later part runs (#165).
+- Scaffold tree roots and parts honour `--force` and `--skip-existing`, preserve kept members and timestamped migration paths, and predict the same existing-file outcomes in human and JSON dry runs (#164)
 
 ## [0.7.1] - 2026-10-12
 
