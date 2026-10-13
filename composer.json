@@ -92,6 +92,15 @@
             "aliases": {
                 "Mod": "Tey\\Mod\\Facades\\Mod"
             }
+        },
+        "tey-standards": {
+            "ci": {
+                "default-branches": [
+                    "main",
+                    "*.x"
+                ],
+                "distribution": "package"
+            }
         }
     },
     "minimum-stability": "dev",
