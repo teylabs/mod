@@ -19,7 +19,22 @@ jobs:
     permissions:
       id-token: write
       contents: read
+      pull-requests: read
     steps:
+      # The agent runs tools over the code it reviews with the API key in its
+      # environment, so it only reviews branches of this repository.
+      - name: Refuse pull requests from forks
+        if: github.event.issue.pull_request || github.event.pull_request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.issue.number || github.event.pull_request.number }}
+        run: |
+          head=$(gh api "repos/${{ github.repository }}/pulls/$PR" -q .head.repo.full_name)
+          if [ "$head" != "${{ github.repository }}" ]; then
+            echo "::error::OpenCode doesn't review pull requests from forks."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v7
         with:
