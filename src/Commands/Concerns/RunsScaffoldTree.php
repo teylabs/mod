@@ -8,6 +8,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Tey\Mod\Artifact\ResolvedArtifact;
 use Tey\Mod\Exceptions\GenerationRefused;
 use Tey\Mod\Exceptions\ModException;
+use Tey\Mod\Generation\GenerationPlan;
 use Tey\Mod\Generation\StubRegistry;
 use Tey\Mod\Placement\PlacementContext;
 use Tey\Mod\Placement\TemplateRule;
@@ -413,39 +414,11 @@ trait RunsScaffoldTree
 
                 continue;
             }
-            $command = $this->preset->kind($member->fileType)->command ?? throw GenerationRefused::because("File type [{$member->fileType}] has no command.");
             $stem = $member->name === null ? $name : (new Placeholders($values))->name($member->name);
-            $arguments = ['name' => $folder.$stem, '--no-interaction' => true];
-            $scope->ungrouped = $member->ungrouped;
-            $placement = $this->inOption($this->memberContext($member, $context, $values));
-            if ($placement !== '') {
-                $arguments['--in'] = $placement;
-            }
-            foreach ($this->scaffoldSlots($member->fileType) as $slot) {
-                if (! in_array($slot, $this->preset->dimensionNames(), true) && $this->getDefinition()->hasOption($slot)) {
-                    $arguments['--'.$slot] = $this->option($slot);
-                }
-            }
-            foreach ($member->options as $option => $value) {
-                if (is_int($option) && is_string($value)) {
-                    $parts = explode('=', $value, 2);
-                    $arguments[$parts[0]] = $parts[1] ?? true;
-                } elseif (is_string($option)) {
-                    $arguments[$option] = is_string($value) ? (new Placeholders($values))->render($value) : $value;
-                }
-            }
-            $scope->reset();
-            if ($this->call($command, $arguments) !== self::SUCCESS || $scope->collected() === null) {
-                throw GenerationRefused::because("Planning {$this->getName()} failed. Nothing was written.");
-            }
-            $this->configurePrompts($this->input);
-            $memberPlan = $scope->collected();
+            [$memberPlan, $command, $arguments] = $this->planTreeMember($member, $folder.$stem, $context, $values, $scope);
             $artifact = $memberPlan->primary;
             $own[$alias] = $values[$alias] = $artifact;
             $plan->add($prefix.$alias, $memberPlan, $scope, $member);
-            if ($placement !== '') {
-                $arguments['--in'] = $this->inOption($artifact->context);
-            }
             $this->treeCalls[] = [$command, $arguments, $member->ungrouped];
             if (! $member->ungrouped && $member->group === null) {
                 $context = $artifact->context;
@@ -510,6 +483,44 @@ trait RunsScaffoldTree
         }
 
         return $own;
+    }
+
+    /** @param array<string, mixed> $values
+     * @return array{GenerationPlan, string, array<string, mixed>}
+     */
+    private function planTreeMember(Member $member, string $name, PlacementContext $context, array $values, ScaffoldExecution $scope): array
+    {
+        $command = $this->preset->kind($member->fileType)->command ?? throw GenerationRefused::because("File type [{$member->fileType}] has no command.");
+        $arguments = ['name' => $name, '--no-interaction' => true];
+        $scope->ungrouped = $member->ungrouped;
+        $placement = $this->inOption($this->memberContext($member, $context, $values));
+        if ($placement !== '') {
+            $arguments['--in'] = $placement;
+        }
+        foreach ($this->scaffoldSlots($member->fileType) as $slot) {
+            if (! in_array($slot, $this->preset->dimensionNames(), true) && $this->getDefinition()->hasOption($slot)) {
+                $arguments['--'.$slot] = $this->option($slot);
+            }
+        }
+        foreach ($member->options as $option => $value) {
+            if (is_int($option) && is_string($value)) {
+                $parts = explode('=', $value, 2);
+                $arguments[$parts[0]] = $parts[1] ?? true;
+            } elseif (is_string($option)) {
+                $arguments[$option] = is_string($value) ? (new Placeholders($values))->render($value) : $value;
+            }
+        }
+        $scope->reset();
+        if ($this->call($command, $arguments) !== self::SUCCESS || $scope->collected() === null) {
+            throw GenerationRefused::because("Planning {$this->getName()} failed. Nothing was written.");
+        }
+        $this->configurePrompts($this->input);
+        $memberPlan = $scope->collected();
+        if ($placement !== '') {
+            $arguments['--in'] = $this->inOption($memberPlan->primary->context);
+        }
+
+        return [$memberPlan, $command, $arguments];
     }
 
     private function treePart(Scaffold $recipe, string $nodeKey, string $name): ?Part
@@ -723,7 +734,13 @@ trait RunsScaffoldTree
 
                 continue;
             }
-            $artifact = $this->resolveArtifact($member->fileType, $parentFolder.$stem, $context);
+            if ($this->preset->fileType($member->fileType)->isTimestamped()) {
+                // Let the generator recover the root's written timestamp, just as creation does.
+                [$memberPlan] = $this->planTreeMember($member, $parentFolder.$stem, $context, $values, $scope);
+                $artifact = $memberPlan->primary;
+            } else {
+                $artifact = $this->resolveArtifact($member->fileType, $parentFolder.$stem, $context);
+            }
             if (! is_file($this->laravel->basePath($artifact->path()))) {
                 $short = class_basename($artifact->fqcn() ?? $artifact->name);
                 $where = $this->inOption($context);

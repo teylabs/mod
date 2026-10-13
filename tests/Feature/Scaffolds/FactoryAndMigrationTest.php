@@ -3,6 +3,7 @@
 use Symfony\Component\Process\Process;
 use Tey\Mod\Facades\Mod;
 use Tey\Mod\Generation\ModMigrationCreator;
+use Tey\Mod\Scaffolds\Part;
 use Tey\Mod\Scaffolds\Scaffold;
 use Tey\Mod\Scaffolds\ScaffoldExecution;
 use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
@@ -104,6 +105,52 @@ it('plans a direct migration with an accepted timestamp and renders its house va
             ->and($w->read($path))->toContain('invoices App\\Modules\\Billing\\Models\\Invoice house');
     });
 });
+
+it('reuses a root migration identity in grown part members and inserts', function (bool $tree) {
+    Workspace::run(null, function (Workspace $w) use ($tree) {
+        config()->set('mod.layout', 'modules');
+        $creator = new class(app('files'), $w->root->path('stubs')) extends ModMigrationCreator
+        {
+            public string $timestamp = '2026_10_09_120000';
+
+            public function datePrefixFor(string $directory): string
+            {
+                return app(ScaffoldExecution::class)->planning ? $this->timestamp : '2026_10_09_120100';
+            }
+        };
+        app()->instance(ModMigrationCreator::class, $creator);
+        Mod::scaffold('schema', fn (Scaffold $s) => $s->makes('migration', name: 'create_invoices_table', as: 'schema'));
+        Mod::scaffold('schema-parts', fn (Scaffold $s) => $s->include('schema')
+            ->asks('entries', type: 'list', default: ['Initial'])
+            ->part('entry', configure: fn (Part $p) => $p
+                ->makes('job', name: '{name}{entry}', stub: 'schema')
+                ->makes('migration', name: 'add_{entry.snake}_to_invoices_table', as: 'entrySchema')
+                ->inserts(into: 'routes', at: 'routes', stub: 'schema'))
+            ->each('entries', part: 'entry'));
+        $w->write('stubs/mod.job.schema.stub', "<?php\nnamespace {{ namespace }};\nclass {{ class }} { /* {{ schema.path }} */ }\n");
+        $w->write('stubs/mod.insert.schema.stub', '// {{ entry }}: {{ schema.path }} | {{ schema.fqcn }} | {{ schema.upper }}');
+        $command = $tree ? 'mod:schema-parts' : 'mod:schema';
+        $w->artisan($command, ['name' => 'Billing:Invoice'])->assertSuccessful();
+        $path = 'app/Modules/Billing/Database/Migrations/2026_10_09_120000_create_invoices_table.php';
+        expect($w->migration(dirname($path), 'create_invoices_table'))->toBe($path);
+        if ($tree) {
+            expect($w->read('app/Modules/Billing/routes/web.php'))->toContain('// Initial: '.$path.' | create_invoices_table | CREATE_INVOICES_TABLE');
+        }
+        $original = $w->read($path);
+        $creator->timestamp = '2026_10_10_130000';
+        if (! $tree) {
+            $w->artisan($command, ['name' => 'Billing:Invoice', '--skip-existing' => true])->assertSuccessful();
+        }
+        foreach (['History', 'Details'] as $entry) {
+            $w->artisan('mod:schema-parts.entry', ['name' => 'Billing:Invoice', 'value' => $entry, '--skip-existing' => true])->assertSuccessful();
+            expect($w->read('app/Modules/Billing/Jobs/Invoice'.$entry.'.php'))->toContain($path)
+                ->and($w->read('app/Modules/Billing/routes/web.php'))->toContain('// '.$entry.': '.$path.' | create_invoices_table | CREATE_INVOICES_TABLE')
+                ->and($w->read($w->migration(dirname($path), 'add_'.strtolower($entry).'_to_invoices_table')))->toContain("Schema::table('invoices'");
+        }
+        expect($w->read($path))->toBe($original)
+            ->and($w->migration(dirname($path), 'create_invoices_table'))->toBe($path);
+    });
+})->with([false, true]);
 
 it('refuses missing migration variants and later collisions before any scaffold writes', function (bool $missing) {
     Workspace::run(null, function (Workspace $w) use ($missing) {

@@ -2,6 +2,11 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## Unreleased
+
+### Fixed
+- Parts and insert placeholders reuse a root migration's resolved identity, including its written timestamp, in flat and tree scaffolds and later part runs (#165).
+
 ## [0.7.1] - 2026-10-12
 
 ### Added
