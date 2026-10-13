@@ -2,14 +2,17 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## Unreleased
+## [0.7.2] - 2026-10-13
 
 ### Added
-- Scaffold dry runs report existing whole-file members as `unchanged` or `edited` by comparing their bytes with what the current recipe would write; JSON adds optional `state`, and human labels include the state for kept members too (#162)
+- Scaffold dry runs report existing whole-file members as `unchanged` or `edited` by comparing their bytes with what the current recipe would write; JSON adds optional `state`, and human labels include the state for kept members too (#162).
+
+### Changed
+- Scaffold dry runs no longer repeat placeholder warnings for class members, because each member is now rendered by its own generator (#162).
 
 ### Fixed
 - Parts and insert placeholders reuse a root migration's resolved identity, including its written timestamp, in flat and tree scaffolds and later part runs (#165).
-- Scaffold tree roots and parts honour `--force` and `--skip-existing`, preserve kept members and timestamped migration paths, and predict the same existing-file outcomes in human and JSON dry runs (#164)
+- Scaffold tree roots and parts honour `--force` and `--skip-existing`, preserve kept members and timestamped migration paths, and predict the same existing-file outcomes in human and JSON dry runs (#164).
 
 ## [0.7.1] - 2026-10-12
 

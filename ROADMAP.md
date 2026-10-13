@@ -16,6 +16,7 @@ mod 1.0 lets you decide where every generated file goes (modules, features, slic
 - [x] **[v0.6.1 — Packages from path repositories](https://github.com/teylabs/mod/milestone/11?closed=1).** Packages installed through symlinked Composer path repositories work, unusable frontend declarations are reported instead of breaking boot, and TypeScript wiring maps bare aliases.
 - [x] **[v0.7 — Learn an app's patterns](https://github.com/teylabs/mod/milestone/6?closed=1).** Agents can survey an app, describe its patterns, and propose them as a layout and recipes, reading only the app they're installed in. Scaffolds ask for lists of records, repeat and toggle sections with template blocks, and make optional members. Apps can define their own page shapes from page entries, folder scaffolds and nearest-folder layouts.
 - [x] **[v0.7.1 — API route prefixes](https://github.com/teylabs/mod/milestone/12?closed=1).** A route group can serve its API under a prefix of its choice, such as `/v1`, instead of always `/api`.
+- [x] **[v0.7.2 — Rerunning scaffolds](https://github.com/teylabs/mod/milestone/13?closed=1).** A dry run shows which existing scaffold files are unchanged or edited, scaffold trees honour `--force` and `--skip-existing`, and inserts can reference a root migration.
 
 ## The countdown to 1.0
 
