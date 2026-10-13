@@ -99,7 +99,9 @@
                     "main",
                     "*.x"
                 ],
-                "distribution": "package"
+                "distribution": "package",
+                "drafts": "full",
+                "enforce": true
             }
         }
     },
