@@ -238,3 +238,33 @@ it('requires named lineages to be installed, at the exact version when one is gi
     'other version' => [['example/base' => '2.0.0'], false],
     'missing lineage' => [['example/absent' => '*'], false],
 ]);
+
+it('refuses upgrading a lineage away from the exact version another lineage requires', function (string $constraint, bool $passes) {
+    OwnedAppRoot::using(function ($root) use ($constraint, $passes) {
+        $base = lineageArtifact('example/base', '1.0.0', ['app/Base.php' => 'one']);
+        lineageInstall($root, $base, 'base');
+        $other = new Artifact('example/other', '1', ['app/Other.php' => 'other'], ['core'], ['auth' => 'session'], ['check'], requires: ['example/base' => $constraint]);
+        lineageInstall($root, $other, 'other');
+        $inputs = lineageInputs($root);
+        $next = lineageArtifact('example/base', '2.0.0', ['app/Base.php' => 'two']);
+        if ($passes) {
+            $plan = Checkout::inspect($root->path, 'one', $base, $next, $inputs, ['php' => 'passed']);
+            expect(Maintenance::apply($plan, $inputs, 'upgrade', ['check' => fn () => true], true)['status'])->toBe('completed');
+        } else {
+            expect(fn () => Checkout::inspect($root->path, 'one', $base, $next, $inputs, ['php' => 'passed']))->toThrow(RuntimeException::class, 'required_by:example/other')
+                ->and(file_get_contents($root->path('app/Base.php')))->toBe('one')
+                ->and(Checkout::installed($root->path, 'one')['example/base']['version'])->toBe('1.0.0');
+        }
+    });
+})->with(['exact version blocks' => ['1.0.0', false], 'any version never blocks' => ['*', true]]);
+
+it('allows an upgrade that keeps the exact version another lineage requires', function () {
+    OwnedAppRoot::using(function ($root) {
+        $base = lineageArtifact('example/base', '1.0.0', ['app/Base.php' => 'one']);
+        lineageInstall($root, $base, 'base');
+        lineageInstall($root, new Artifact('example/other', '1', ['app/Other.php' => 'other'], ['core'], ['auth' => 'session'], ['check'], requires: ['example/base' => '1.0.0']), 'other');
+        $inputs = lineageInputs($root);
+        $plan = Checkout::inspect($root->path, 'one', $base, lineageArtifact('example/base', '1.0.0', ['app/Base.php' => 'patched']), $inputs, ['php' => 'passed']);
+        expect(Maintenance::apply($plan, $inputs, 'patch', ['check' => fn () => true], true)['status'])->toBe('completed');
+    });
+});

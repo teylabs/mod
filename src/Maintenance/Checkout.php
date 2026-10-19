@@ -49,6 +49,12 @@ final class Checkout
                 throw new RuntimeException($version === '*' ? "Required lineage {$name} is not installed." : "Required lineage {$name} is not installed at version {$version}.");
             }
         }
+        foreach ($others as $name => $other) {
+            $required = $other->requires[$target->name] ?? '*';
+            if ($required !== '*' && $required !== $target->version) {
+                throw new RuntimeException("Lineage {$target->name} must stay at version {$required} (required_by:{$name}).");
+            }
+        }
         $refusals = [];
         foreach ($target->files as $path => $bytes) {
             $folded = strtolower($path);
