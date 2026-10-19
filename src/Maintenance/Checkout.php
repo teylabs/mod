@@ -38,6 +38,7 @@ final class Checkout
 
     /**
      * Other installed lineages decide which target paths this lineage may never own.
+     * Host-owned paths are only compared, never read.
      *
      * @return array<string, string>
      */
@@ -61,9 +62,19 @@ final class Checkout
             }
         }
         $refusals = [];
+        foreach ($others as $name => $other) {
+            foreach (array_keys($other->files) as $owned) {
+                if (Artifact::hostOwnedBy($target->hostOwned, $owned)) {
+                    throw new RuntimeException("Host-owned prefixes cover a path owned by lineage {$name}.");
+                }
+            }
+        }
         foreach ($target->files as $path => $bytes) {
             $folded = strtolower($path);
             foreach ($others as $name => $other) {
+                if (Artifact::hostOwnedBy($other->hostOwned, $path)) {
+                    $refusals[$path] ??= 'host_owned:'.$name;
+                }
                 foreach (array_keys($other->files) as $owned) {
                     $owned = strtolower($owned);
                     if ($folded === $owned || str_starts_with($folded, $owned.'/') || str_starts_with($owned, $folded.'/')) {

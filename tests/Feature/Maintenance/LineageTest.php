@@ -319,3 +319,37 @@ it('treats an unfinished 0.8 journal as pending for the 0.8 lineage only', funct
             ->and(lineageInstall($root, $other, 'other')['status'])->toBe('completed');
     });
 });
+
+it('refuses writing at or under another lineage host-owned prefix, without reading it', function (string $path) {
+    OwnedAppRoot::using(function ($root) use ($path) {
+        $base = new Artifact('example/base', '1', ['app/Base.php' => 'base'], ['core'], ['auth' => 'session'], ['check'], hostOwned: ['config/branding.php', 'app/Domain']);
+        lineageInstall($root, $base, 'base');
+        $inputs = lineageInputs($root);
+        $other = lineageArtifact('example/other', '1', [$path => 'other']);
+        $empty = new Artifact($other->name, $other->version, [], $other->groups, $other->bindings, $other->checks);
+        $plan = Checkout::inspect($root->path, 'one', $empty, $other, $inputs, ['php' => 'passed']);
+        expect($plan->files[$path])->toMatchArray(['state' => 'conflict', 'reason' => 'host_owned:example/base'])
+            ->and(fn () => Maintenance::apply($plan, $inputs, 'other', ['check' => fn () => true], true))->toThrow(RuntimeException::class)
+            ->and(file_exists($root->path($path)))->toBeFalse();
+    });
+})->with(['exact file' => ['config/branding.php'], 'under a directory' => ['app/Domain/Billing/Invoice.php'], 'case alias' => ['app/domain/Invoice.php']]);
+
+it('lets several lineages declare the same host-owned prefix and write beside it', function () {
+    OwnedAppRoot::using(function ($root) {
+        $base = new Artifact('example/base', '1', ['app/Base.php' => 'base'], ['core'], ['auth' => 'session'], ['check'], hostOwned: ['config/starter-bindings.php']);
+        $other = new Artifact('example/other', '1', ['app/DomainSupport.php' => 'other'], ['core'], ['auth' => 'session'], ['check'], hostOwned: ['config/starter-bindings.php', 'app/Domain']);
+        expect(lineageInstall($root, $base, 'base')['status'])->toBe('completed')
+            ->and(lineageInstall($root, $other, 'other')['status'])->toBe('completed')
+            ->and(array_keys(Checkout::installed($root->path, 'one')))->toBe(['example/base', 'example/other']);
+    });
+});
+
+it('refuses a lineage whose host-owned prefixes cover a path another lineage owns', function () {
+    OwnedAppRoot::using(function ($root) {
+        lineageInstall($root, lineageArtifact('example/base', '1', ['database/seeders/BaseSeeder.php' => 'seed']), 'base');
+        $other = new Artifact('example/other', '1', ['app/Other.php' => 'other'], ['core'], ['auth' => 'session'], ['check'], hostOwned: ['database']);
+        $empty = new Artifact($other->name, $other->version, [], $other->groups, $other->bindings, $other->checks);
+        expect(fn () => Checkout::inspect($root->path, 'one', $empty, $other, lineageInputs($root), ['php' => 'passed']))->toThrow(RuntimeException::class)
+            ->and(file_exists($root->path('app/Other.php')))->toBeFalse();
+    });
+});
