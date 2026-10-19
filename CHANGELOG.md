@@ -2,7 +2,7 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## [Unreleased]
+## [0.10.0] - 2026-10-19
 
 ### Added
 - `Checkout::artifact()` reads back one installed lineage as the verified `Artifact` Mod recorded, to pass as the original when planning an upgrade (#195).
