@@ -138,3 +138,16 @@ it('rejects JSON serialisers before invoking their executable methods and bounds
     $cyclic['self'] = &$cyclic;
     expect(fn () => provenanceArtifact('A', $cyclic))->toThrow(InvalidArgumentException::class);
 });
+
+it('refuses referenced inspection input paths before creating a public delivery claim', function () {
+    OwnedAppRoot::using(function ($root) {
+        $a = provenanceArtifact('A');
+        $empty = new Artifact($a->name, $a->version, [], $a->groups, $a->bindings, $a->checks);
+        $inputs = provenanceInputs($root);
+        $plan = Checkout::inspect($root->path, 'one', $empty, $a, $inputs, ['php' => 'passed']);
+        $alias = &$inputs['verification-code'];
+        expect(fn () => Maintenance::apply($plan, $inputs, 'install', ['check' => fn () => true], true))->toThrow(InvalidArgumentException::class)
+            ->and(file_exists($root->path('app/One.php')))->toBeFalse()
+            ->and(file_exists($root->path('.mod-maintenance')))->toBeFalse();
+    });
+});

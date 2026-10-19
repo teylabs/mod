@@ -4,6 +4,7 @@ namespace Tey\Mod\Maintenance;
 
 use InvalidArgumentException;
 use JsonException;
+use ReflectionReference;
 
 /** Recoverable deterministic whole-file output of a trusted recipe. @api */
 final readonly class Artifact
@@ -73,6 +74,7 @@ final readonly class Artifact
             throw new InvalidArgumentException('Metadata exceeds the supported structural bound.');
         }
         if (is_array($value)) {
+            self::withoutReferences($value);
             $list = array_is_list($value);
             foreach ($value as $key => $item) {
                 if (! $list && ! is_string($key)) {
@@ -85,6 +87,16 @@ final readonly class Artifact
         }
     }
 
+    /** @param array<array-key, mixed> $values */
+    private static function withoutReferences(array $values): void
+    {
+        foreach (array_keys($values) as $key) {
+            if (ReflectionReference::fromArrayElement($values, $key) !== null) {
+                throw new InvalidArgumentException('Artifact and plan arrays cannot retain PHP reference aliases.');
+            }
+        }
+    }
+
     /**
      * @internal
      *
@@ -92,6 +104,7 @@ final readonly class Artifact
      */
     public static function validateSelection(array $values, bool $list): void
     {
+        self::withoutReferences($values);
         foreach ($values as $key => $value) {
             if (! is_string($value) || $value === '' || (! $list && (! is_string($key) || $key === ''))) {
                 throw new InvalidArgumentException('Selection identities must be named nonempty strings.');
@@ -109,6 +122,7 @@ final readonly class Artifact
      */
     public static function validateFiles(array $files): void
     {
+        self::withoutReferences($files);
         $seen = [];
         foreach ($files as $path => $bytes) {
             if (! is_string($path) || ! is_string($bytes) || ! preg_match('~\A[A-Za-z0-9_-][A-Za-z0-9_./-]*\z~D', $path)) {

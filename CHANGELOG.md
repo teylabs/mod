@@ -14,6 +14,9 @@ All notable changes to `mod` will be documented in this file.
 - A read-only POSIX checkout inspector binds explicit generated and host-input observations to a plan, refusing symlink parents, metadata links, directory targets and case aliases (#91).
 - A read-only whole-file maintenance planner compares recoverable original, current and target bytes; plans bind application identity, recipe selection, host inputs and compatibility outcomes. It neither writes files nor records upgrades (#91).
 
+### Fixed
+- Reject PHP reference aliases in immutable artifact and plan arrays, including nested provenance, so later caller mutation cannot bypass inert-data validation or alter a saved identity (#91).
+
 ## [0.7.2] - 2026-10-13
 
 ### Added
