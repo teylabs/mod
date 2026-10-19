@@ -18,9 +18,10 @@ mod 1.0 lets you decide where every generated file goes (modules, features, slic
 - [x] **[v0.7.1 — API route prefixes](https://github.com/teylabs/mod/milestone/12?closed=1).** A route group can serve its API under a prefix of its choice, such as `/v1`, instead of always `/api`.
 - [x] **[v0.7.2 — Rerunning scaffolds](https://github.com/teylabs/mod/milestone/13?closed=1).** A dry run shows which existing scaffold files are unchanged or edited, scaffold trees honour `--force` and `--skip-existing`, and inserts can reference a root migration.
 - [x] **[v0.8 — Keep generated files up to date safely](https://github.com/teylabs/mod/milestone/7?closed=1).** An experimental maintenance API updates generated files that are still untouched, refuses edited files and host-file collisions before any write, runs the host's checks and records the installed version last. Interrupted updates can be resumed. POSIX checkouts only.
+- [x] **[v0.9 — Adopt generated files feature by feature](https://github.com/teylabs/mod/milestone/14?closed=1).** An app can hold several lineages, each with its own installed record. Lineages can't own each other's files, can require one another, can reserve host-owned paths, and can claim existing files whose bytes already match. A 0.8 checkout migrates on its next update.
 
 ## The countdown to 1.0
 
-- [ ] **[v0.9 — Switch modules on and off](https://github.com/teylabs/mod/milestone/14).** Turn a module off without deleting it.
+- [ ] **[v0.10 — Switch modules on and off](https://github.com/teylabs/mod/milestone/15).** Turn a module off without deleting it.
 - [ ] **[1.0 — A stable promise](https://github.com/teylabs/mod/milestone/8).** Laravel-DDD apps moved to mod in field trials, with a guide for moving. A frozen public API, a versioning and support policy, complete docs with an upgrade guide, and a release candidate.
 - [ ] **[1.x — After 1.0](https://github.com/teylabs/mod/milestone/9).** In no particular order.

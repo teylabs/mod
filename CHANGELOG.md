@@ -2,7 +2,7 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## [Unreleased]
+## [0.9.0] - 2026-10-19
 
 ### Added
 - Maintenance holds many installed lineages per checkout, one record each under `.mod-maintenance/installed/`. A 0.8 `installed.json` keeps working and migrates on that lineage's next write. `Checkout::installed()` lists every installed lineage (#183).
