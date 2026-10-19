@@ -2,7 +2,7 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## [Unreleased]
+## [0.9.1] - 2026-10-19
 
 ### Fixed
 - Maintenance paths can start with a dot, so lineages can own, claim or reserve as host-owned files like `.env.example` and `.github/workflows/…`. Git metadata (`.git`) and Mod's own `.mod-maintenance` names are still refused (#194).
