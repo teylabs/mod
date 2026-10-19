@@ -10,6 +10,7 @@ use Tey\Mod\Support\Path;
 const MOD_PUBLIC_API = [
     'Facades/Mod.php',
     'Maintenance/Artifact.php',
+    'Maintenance/Checkout.php',
     'Maintenance/FilePlan.php',
     'Support/Stack.php',
     'Install/Wiring.php',

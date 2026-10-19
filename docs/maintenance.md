@@ -1,6 +1,6 @@
 # Whole-file maintenance planning
 
-The initial API makes read-only decisions about explicitly generated files. It is not an upgrade command. It does not inspect the filesystem, install dependencies, run checks, repair files or advance a version. Applications continue to use public scaffolds to render deterministic recipe output.
+The initial API makes read-only decisions about explicitly generated files. It is not an upgrade command. The pure planner does not inspect the filesystem, install dependencies, run checks, repair files or advance a version. A separate inspector supplies filesystem observations. Applications continue to use public scaffolds to render deterministic recipe output.
 
 Create an `Artifact` from trusted recipe output: a name, version, exact relative paths and bytes, selected modules, host bindings and required verification identities. Its content-derived identity includes recoverable original bytes, not just hashes. A stored hash without a matching immutable resource is insufficient to reconstruct an artifact. Hosts must resolve and verify the artifact against an independently pinned identity before using it. Never construct trusted artifacts from an editable plan alone.
 
@@ -26,3 +26,9 @@ Path validation rejects traversal, absolute paths, separators outside portable r
 Successful planning is not successful verification or a completed upgrade. Migration, provider and domain effects are outside this API. No public release or installed compatibility is implied by an unreleased local API.
 
 The first maintenance API supports POSIX checkout roots only. Drive and UNC roots refuse explicitly, including when Mod itself supports generators on Windows. The lexical guard refuses empty/dot segments, duplicate separators, backslashes and control characters. It cannot prove that a supplied root equals filesystem `realpath`; a future inspector must establish that identity and reject symlink aliases. Windows maintenance remains unsupported until a filesystem implementation and platform-specific evidence establish it.
+
+## Read-only checkout inspection
+
+`Checkout::inspect(root, appId, baseline, target, inputPaths, compatibility)` establishes the supplied root against actual `realpath` and requires an existing POSIX directory with no linked ancestor. It reads only the explicit original/target file union plus named host input paths. Input fingerprints bind both path and content, including absence. Unknown host files remain outside ownership. It creates no directories, metadata, journals or version records.
+
+The inspector refuses symlinks at owned/input paths or any parent, case aliases/collisions and directories where files are expected. Existing `.mod-maintenance` metadata is checked recursively for linked parents, journal files, unsupported entries and case collisions, but no metadata content is trusted or loaded yet. It cannot promise a coherent snapshot while unrelated writers edit the checkout; an executor must hold the declared exclusive-checkout boundary, re-inspect and check every planned fingerprint immediately before writes. No repair or lock implementation exists in this increment.
