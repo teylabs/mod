@@ -5,6 +5,7 @@ All notable changes to `mod` will be documented in this file.
 ## Unreleased
 
 ### Added
+- Experimental public file-maintenance composition validates owned plans and required host checks, supports exact-intent retry, and preserves unresolved temporary paths through bounded no-follow diagnostics and completion refusal (#91).
 - Internal file-only installation refuses existing destinations; ownership-gated upgrade and fresh trusted checks precede an atomic version-last installed record with cold retry reconciliation (#91).
 - Internal verification runs declared trusted host closures under a live claim, rechecks exact target files and host inputs around every check, and reports missing or failing outcomes without recording an installed version (#91).
 - Internal whole-file repair rechecks a held prepared claim before atomic replacement, preserves existing executable mode and reconciles original/target bytes after write-before-receipt interruption. Verification and version recording remain separate (#91).

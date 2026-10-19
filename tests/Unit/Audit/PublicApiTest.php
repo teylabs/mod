@@ -12,6 +12,7 @@ const MOD_PUBLIC_API = [
     'Maintenance/Artifact.php',
     'Maintenance/Checkout.php',
     'Maintenance/FilePlan.php',
+    'Maintenance/Maintenance.php',
     'Support/Stack.php',
     'Install/Wiring.php',
     'Install/WiringPlan.php',

@@ -68,3 +68,31 @@ Version recording requires existing named `verification-policy` and `verificatio
 The installed file-artifact record contains recoverable bytes/content identity, version, explicit paths, modules/bindings, required checks and the exact commit's app/root/intent/plan/input/compatibility/outcome identities. Unsupported, foreign or altered records refuse. This is not yet the complete opinionated blueprint manifest: package constraints, migration identities and conformance exceptions need the host's reviewed recipe/distribution contract. No database, provider, app-key or onboarding effects run here.
 
 Cold reopening before the commit reruns checks against current files/inputs. An exact committed receipt returns a stable receipt/no-write result without rerunning effects; matching a version string alone is insufficient. Tests include separate POSIX children killed immediately before and after the installed-record write, then fresh-process-claim reconciliation. This covers process interruption, not power loss or directory-fsync guarantees. Installation bootstrap staging and temporary-file orphans, public API composition and real two-consumer upgrades remain pending.
+
+## Experimental public composition
+
+The current local experimental surface adds `Maintenance::diagnose`, `apply` and `resume` to the public Artifact/FilePlan/Checkout types. It has not been released. Consumers must use these public entrypoints rather than any internal types described above. The public API returns data only and closes its advisory claim on every completion, refusal or exception. POSIX and exclusively owned checkout restrictions remain; no arbitrary-editor CAS, Windows maintenance, power-loss, database/provider/migration or production update guarantee is added.
+
+Create a trusted immutable original/target Artifact and a read-only Checkout plan. For initial installation, the original artifact has no generated files, with the same lineage/modules/bindings/checks as the target. Every destination must be absent, including when an unowned existing file happens to match the target. For an upgrade, the recorded installed original must match the exact trusted original artifact before any unfinished generated effects. A caller-created pure FilePlan is freshly inspected; it is never sufficient write authority by itself.
+
+```php
+use Tey\Mod\Maintenance\Maintenance;
+
+$result = Maintenance::apply($plan, $inputPaths, $intent, $trustedChecks, exclusiveCheckout: true);
+if ($result['status'] !== 'completed') {
+    // Preserve diagnostics and return an unsuccessful CLI exit.
+    exit(1);
+}
+```
+
+`inputPaths` must include existing `verification-policy` and `verification-code` files plus the relevant dependency/configuration/source inputs. The trusted host maps these to the actual check registry and transitive implementation/policy; arbitrary files with nominal names do not satisfy that contract. Required check IDs are immutable artifact data; all required closures must be present and valid before unfinished generated effects. Undeclared IDs and nonclosure values refuse without callback execution. Only an exact already-committed retry may omit callbacks: supplied callbacks must still have valid types/IDs, and none run on that no-op path.
+
+`apply` on an existing intent validates the original caller plan against the saved immutable envelope; it cannot reinterpret newly observed target bytes as original ownership. `resume` reopens only an existing exact intent from trusted original/target resources and current input/compatibility identities. Both recognise the exact committed target before any file receipt/write. Otherwise they preserve original/target-only recovery, run fresh required checks and write the installed file-artifact version last. Failed verification is returned as `verification_failed`; edited/stale/foreign/unsafe inputs throw refusals. `completed` alone is successful; an opinionated CLI must not hide any noncompletion behind a zero aggregate exit.
+
+### Orphans are unresolved, preserved state
+
+The public bounded inventory scans root staging names, direct maintenance metadata and the exact temporary-file prefixes of explicitly declared generated paths. It reads no candidate payloads, follows no linked candidates, recursively traverses no unknown directory, and emits only relative path/kind diagnostics. It limits directory and entry counts and refuses over-bound inventories. Unknown/unmarked/partial/linked/hardlinked candidates remain untouched. Names or matching hashes never authorise cleanup or adoption. Host files outside these scopes are not inventoried or owned.
+
+`diagnose` performs no writes. Unresolved candidates return `orphaned` before a new generated effect or an already-completed no-op; verifier-created candidates also prevent completion. A prior installed version may remain recorded, but orphan presence is not reported as recovered success. This is conservative refusal, not automatic cleanup or successful noninteractive orphan recovery. A separately reviewed resolution protocol is still required for complete distribution/recovery acceptance; there is no force bypass.
+
+Public-entrypoint tests cover two independently owned roots, absence/ownership/conflicts/staleness, policy/code/registry validation, no-op inode/receipt preservation, failure/retry, malformed/foreign state, root/link/hardlink boundaries and no-follow orphan preservation. Separate previously reviewed internal process-kill tests retain their bounded coverage; public composition is not yet the mandatory two real application consumers or published package compatibility.
