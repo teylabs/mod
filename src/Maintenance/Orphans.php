@@ -31,6 +31,16 @@ final class Orphans
             } else {
                 foreach (self::entries($metadata) as $name) {
                     $kind = self::kind($metadata.'/'.$name);
+                    if ($name === 'installed' && $kind === 'directory') {
+                        foreach (self::entries($metadata.'/installed') as $record) {
+                            $recordKind = self::kind($metadata.'/installed/'.$record);
+                            if (! preg_match('/\A[a-f0-9]{64}\.json\z/', $record) || $recordKind !== 'file') {
+                                $found['.mod-maintenance/installed/'.$record] = $recordKind;
+                            }
+                        }
+
+                        continue;
+                    }
                     $known = in_array($name, ['owner.json', 'lock', 'installed.json'], true) || preg_match('/\Ajournal-[a-f0-9]{64}\.json\z/', $name);
                     if (! $known || $kind !== 'file') {
                         $found['.mod-maintenance/'.$name] = $kind;
