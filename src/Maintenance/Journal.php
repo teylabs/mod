@@ -339,6 +339,56 @@ final class Journal
         $this->recordHash = self::fileHash(SafeFilesystem::path($this->plan->root, $this->relative));
     }
 
+    public function assertVerifierInputs(): void
+    {
+        $this->assertCurrent();
+        foreach (['verification-policy', 'verification-code'] as $id) {
+            if (! isset($this->inputPaths[$id]) || SafeFilesystem::read($this->plan->root, $this->inputPaths[$id]) === null) {
+                throw new RuntimeException('Recording requires existing named verification policy and code inputs.');
+            }
+        }
+    }
+
+    public function intent(): string
+    {
+        $this->assertCurrent();
+        $envelope = $this->record['envelope'] ?? null;
+        if (! is_array($envelope) || ! is_string($envelope['intent'] ?? null)) {
+            throw new RuntimeException('Missing prepared intent.');
+        }
+
+        return $envelope['intent'];
+    }
+
+    /** @return array<string, mixed>|null */
+    public function installed(): ?array
+    {
+        $this->assertCurrent();
+        $path = SafeFilesystem::path($this->plan->root, '.mod-maintenance/installed.json');
+
+        return file_exists($path) ? self::readData($path) : null;
+    }
+
+    /** @param array<string, mixed> $record */
+    public function recordInstalled(array $record, ?string $expectedHash): void
+    {
+        $this->assertVerifierInputs();
+        foreach ($this->plan->target->files as $path => $bytes) {
+            if (SafeFilesystem::read($this->plan->root, $path) !== $bytes) {
+                throw new RuntimeException('Installed recording requires exact target bytes.');
+            }
+        }
+        self::atomicData($this->plan->root, '.mod-maintenance/installed.json', $record, $expectedHash);
+    }
+
+    public function installedHash(): ?string
+    {
+        $this->assertCurrent();
+        $path = SafeFilesystem::path($this->plan->root, '.mod-maintenance/installed.json');
+
+        return file_exists($path) ? self::fileHash($path) : null;
+    }
+
     /** @return array<string, mixed> */
     public function receipt(): array
     {
