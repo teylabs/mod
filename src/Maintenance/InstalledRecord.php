@@ -98,11 +98,12 @@ final class InstalledRecord
         $version = $data['version'] ?? null;
         $groups = self::strings($data['groups'] ?? null);
         $checks = self::strings($data['checks'] ?? null);
-        if (! is_string($name) || ! is_string($version) || ! array_is_list($groups) || ! array_is_list($checks)) {
+        $hostOwned = self::strings($data['host_owned'] ?? []);
+        if (! is_string($name) || ! is_string($version) || ! array_is_list($groups) || ! array_is_list($checks) || ! array_is_list($hostOwned)) {
             throw new RuntimeException('Unknown, foreign or mismatched installed artifact.');
         }
         try {
-            $artifact = new Artifact($name, $version, $files, $groups, self::named($data['bindings'] ?? null), $checks, metadata: self::named($data['metadata'] ?? [], strings: false), requires: self::named($data['requires'] ?? []));
+            $artifact = new Artifact($name, $version, $files, $groups, self::named($data['bindings'] ?? null), $checks, metadata: self::named($data['metadata'] ?? [], strings: false), requires: self::named($data['requires'] ?? []), hostOwned: $hostOwned);
         } catch (InvalidArgumentException $exception) {
             throw new RuntimeException('Unknown, foreign or mismatched installed artifact.', previous: $exception);
         }
@@ -156,6 +157,9 @@ final class InstalledRecord
         }
         if ($artifact->requires !== []) {
             $record['requires'] = $artifact->requires;
+        }
+        if ($artifact->hostOwned !== []) {
+            $record['host_owned'] = $artifact->hostOwned;
         }
 
         return $record;

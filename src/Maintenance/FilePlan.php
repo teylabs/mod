@@ -30,7 +30,7 @@ final readonly class FilePlan
      * @param  array<string, string>  $current
      * @param  array<string, string>  $inputs  Host input identities (lock, bindings, policy).
      * @param  array<string, string>  $compatibility  Trusted checks: passed, failed or unavailable.
-     * @param  array<string, string>  $refusals  Target paths this lineage may never own, mapped to why (owned_by:<name>).
+     * @param  array<string, string>  $refusals  Target paths this lineage may never own, mapped to why (owned_by:<name> or host_owned:<name>).
      *
      * @api
      */

@@ -14886,6 +14886,13 @@
         "static": false,
         "shape": ""
     },
+    "Tey\\Mod\\Maintenance\\Artifact::$hostOwned": {
+        "type": "array",
+        "visibility": "public",
+        "readonly": true,
+        "static": false,
+        "shape": "@var list<string>"
+    },
     "Tey\\Mod\\Maintenance\\Artifact::$metadata": {
         "type": "array",
         "visibility": "public",
@@ -14984,10 +14991,18 @@
                 "variadic": false,
                 "reference": false,
                 "default": []
+            },
+            {
+                "name": "hostOwned",
+                "type": "array",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": []
             }
         ],
         "return": null,
-        "shape": "@param array<string, string> $files @param list<string> $groups @param array<string, string> $bindings @param list<string> $checks @param array<string, mixed> $metadata @param array<string, string> $requires"
+        "shape": "@param array<string, string> $files @param list<string> $groups @param array<string, string> $bindings @param list<string> $checks @param array<string, mixed> $metadata @param array<string, string> $requires @param list<string> $hostOwned"
     },
     "Tey\\Mod\\Maintenance\\Artifact::identity": {
         "visibility": "public",

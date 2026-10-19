@@ -16,6 +16,7 @@ final readonly class Artifact
      * @param  list<string>  $checks  Trusted host check identities, never command strings.
      * @param  array<string, mixed>  $metadata  Inert provenance only; never file or verification authority.
      * @param  array<string, string>  $requires  Lineage names that must be installed first, mapped to an exact version or '*'.
+     * @param  list<string>  $hostOwned  Path prefixes left to the host: no installed lineage may own, write or claim at or under them.
      *
      * @api
      */
@@ -28,6 +29,7 @@ final readonly class Artifact
         /** @api */ public array $checks,
         /** @api @var array<string, mixed> */ public array $metadata = [],
         /** @api @var array<string, string> */ public array $requires = [],
+        /** @api @var list<string> */ public array $hostOwned = [],
     ) {
         if ($name === '' || $version === '' || $checks === []) {
             throw new InvalidArgumentException('Artifact identity and required checks must be explicit.');
@@ -41,6 +43,31 @@ final readonly class Artifact
         if (isset($requires[$name])) {
             throw new InvalidArgumentException('A lineage cannot require itself.');
         }
+        self::validateSelection($hostOwned, true);
+        self::validateFiles(array_fill_keys($hostOwned, ''));
+        foreach (array_keys($files) as $path) {
+            if (self::hostOwnedBy($hostOwned, $path)) {
+                throw new InvalidArgumentException('A lineage cannot own files under its own host-owned prefixes.');
+            }
+        }
+    }
+
+    /**
+     * @internal
+     *
+     * @param  list<string>  $prefixes
+     */
+    public static function hostOwnedBy(array $prefixes, string $path): bool
+    {
+        $path = strtolower($path);
+        foreach ($prefixes as $prefix) {
+            $prefix = strtolower($prefix);
+            if ($path === $prefix || str_starts_with($path, $prefix.'/')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @api */
@@ -52,6 +79,9 @@ final readonly class Artifact
         }
         if ($this->requires !== []) {
             $identity[] = ['requires' => $this->requires];
+        }
+        if ($this->hostOwned !== []) {
+            $identity[] = ['host_owned' => $this->hostOwned];
         }
 
         return Fingerprint::of($identity);
