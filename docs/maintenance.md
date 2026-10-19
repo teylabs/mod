@@ -96,6 +96,8 @@ Checkout::installed($root, $appId);
 
 Lineages never share files. When a target path is owned by another installed lineage, it's a `conflict`, and its plan entry has the reason `owned_by:<name>`. Ownership is never transferred.
 
+While one lineage has an unfinished update (for example, its checks failed and it hasn't been resumed yet), Mod refuses to inspect, apply, resume or claim for any other lineage, with the reason `pending:<name>`. The unfinished lineage can still resume. Finish it with `Maintenance::resume()`, then continue with the others.
+
 Two optional artifact parameters describe how lineages relate:
 
 ```php
