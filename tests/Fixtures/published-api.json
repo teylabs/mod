@@ -15077,10 +15077,18 @@
                 "variadic": false,
                 "reference": false,
                 "default": null
+            },
+            {
+                "name": "claim",
+                "type": "array",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": []
             }
         ],
         "return": "Tey\\Mod\\Maintenance\\FilePlan",
-        "shape": "@param array<string, string> $inputPaths @param array<string, string> $compatibility"
+        "shape": "@param array<string, string> $inputPaths @param array<string, string> $compatibility @param list<string> $claim"
     },
     "Tey\\Mod\\Maintenance\\Checkout::installed": {
         "visibility": "public",
@@ -15131,6 +15139,13 @@
         "readonly": true,
         "static": false,
         "shape": ""
+    },
+    "Tey\\Mod\\Maintenance\\FilePlan::$claim": {
+        "type": "array",
+        "visibility": "public",
+        "readonly": true,
+        "static": false,
+        "shape": "@var list<string>"
     },
     "Tey\\Mod\\Maintenance\\FilePlan::$compatibility": {
         "type": "array",
@@ -15237,10 +15252,18 @@
                 "variadic": false,
                 "reference": false,
                 "default": []
+            },
+            {
+                "name": "claim",
+                "type": "array",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": []
             }
         ],
         "return": "Tey\\Mod\\Maintenance\\FilePlan",
-        "shape": "@param array<string, string> $current @param array<string, string> $inputs @param array<string, string> $compatibility @param array<string, string> $refusals"
+        "shape": "@param array<string, string> $current @param array<string, string> $inputs @param array<string, string> $compatibility @param array<string, string> $refusals @param list<string> $claim"
     },
     "Tey\\Mod\\Maintenance\\FilePlan::executable": {
         "visibility": "public",
@@ -15347,7 +15370,7 @@
             }
         ],
         "return": "array",
-        "shape": "@param array<string, string> $inputPaths @return array{plan: string, current: bool, executable: bool, orphans: list<array{path: string, kind: string}>}"
+        "shape": "@param array<string, string> $inputPaths @return array{plan: string, current: bool, executable: bool, orphans: list<array{path: string, kind: string}>, claimable: list<string>}"
     },
     "Tey\\Mod\\Maintenance\\Maintenance::resume": {
         "visibility": "public",
@@ -15427,10 +15450,18 @@
                 "variadic": false,
                 "reference": false,
                 "default": null
+            },
+            {
+                "name": "claim",
+                "type": "array",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": []
             }
         ],
         "return": "array",
-        "shape": "@param array<string, string> $inputPaths @param array<string, string> $compatibility @param array<string, Closure> $registry @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}"
+        "shape": "@param array<string, string> $inputPaths @param array<string, string> $compatibility @param array<string, Closure> $registry @param list<string> $claim @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}"
     },
     "Tey\\Mod\\ModManager": {
         "type": "class",

@@ -11,6 +11,7 @@ final readonly class FilePlan
      * @param  array<string, array{state: string, original: ?string, current: ?string, target: string, reason?: string}>  $files
      * @param  array<string, string>  $inputs
      * @param  array<string, string>  $compatibility
+     * @param  list<string>  $claim
      */
     private function __construct(
         /** @api */ public string $appId,
@@ -20,6 +21,7 @@ final readonly class FilePlan
         /** @api */ public array $files,
         /** @api @var array<string, string> */ public array $inputs,
         /** @api @var array<string, string> */ public array $compatibility,
+        /** @api @var list<string> */ public array $claim = [],
     ) {}
 
     /**
@@ -31,10 +33,11 @@ final readonly class FilePlan
      * @param  array<string, string>  $inputs  Host input identities (lock, bindings, policy).
      * @param  array<string, string>  $compatibility  Trusted checks: passed, failed or unavailable.
      * @param  array<string, string>  $refusals  Target paths this lineage may never own, mapped to why (owned_by:<name> or host_owned:<name>).
+     * @param  list<string>  $claim  Reviewed new target paths whose existing identical bytes become owned without a write.
      *
      * @api
      */
-    public static function between(string $appId, string $root, Artifact $baseline, Artifact $target, array $current, array $inputs, array $compatibility, array $refusals = []): self
+    public static function between(string $appId, string $root, Artifact $baseline, Artifact $target, array $current, array $inputs, array $compatibility, array $refusals = [], array $claim = []): self
     {
         if ($appId === '' || ! str_starts_with($root, '/') || str_ends_with($root, '/') || array_intersect(explode('/', substr($root, 1)), ['', '.', '..']) !== [] || preg_match('/[\\\\:\x00-\x1F\x7F]/', $root)) {
             throw new InvalidArgumentException('App identity and a canonical POSIX checkout root are required. Drive and network roots are unsupported.');
@@ -56,12 +59,19 @@ final readonly class FilePlan
         if (array_diff_key($refusals, $target->files) !== []) {
             throw new InvalidArgumentException('Refusals must only cover proposed paths.');
         }
+        Artifact::validateSelection($claim, true);
+        foreach ($claim as $path) {
+            if (! isset($target->files[$path]) || isset($baseline->files[$path])) {
+                throw new InvalidArgumentException('Claims must only name new target paths.');
+            }
+        }
         $files = [];
         foreach ($target->files as $path => $bytes) {
             $original = $baseline->files[$path] ?? null;
             $observed = $current[$path] ?? null;
             $state = match (true) {
                 isset($refusals[$path]) => 'conflict',
+                $original === null && $observed !== null && in_array($path, $claim, true) => $observed === $bytes ? 'claim' : 'conflict',
                 $original === null && $observed !== null => 'unowned',
                 $original === null => 'create',
                 $observed === null => 'restore',
@@ -75,7 +85,7 @@ final readonly class FilePlan
             }
         }
 
-        return new self($appId, $root, $baseline, $target, $files, $inputs, $compatibility);
+        return new self($appId, $root, $baseline, $target, $files, $inputs, $compatibility, $claim);
     }
 
     /** @api */
@@ -87,6 +97,11 @@ final readonly class FilePlan
     /** @api */
     public function identity(): string
     {
-        return Fingerprint::of([$this->appId, $this->root, $this->baseline->identity(), $this->target->identity(), $this->files, $this->inputs, $this->compatibility]);
+        $identity = [$this->appId, $this->root, $this->baseline->identity(), $this->target->identity(), $this->files, $this->inputs, $this->compatibility];
+        if ($this->claim !== []) {
+            $identity[] = ['claim' => $this->claim];
+        }
+
+        return Fingerprint::of($identity);
     }
 }

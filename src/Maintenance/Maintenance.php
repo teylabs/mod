@@ -11,18 +11,20 @@ final class Maintenance
 {
     /**
      * Read-only, size-limited diagnostics; no candidate is deleted, adopted or followed.
+     * Claimable paths are unowned paths whose bytes already equal the target: candidates for a reviewed claim list.
      *
      * @param  array<string, string>  $inputPaths
-     * @return array{plan: string, current: bool, executable: bool, orphans: list<array{path: string, kind: string}>}
+     * @return array{plan: string, current: bool, executable: bool, orphans: list<array{path: string, kind: string}>, claimable: list<string>}
      *
      * @api
      */
     public static function diagnose(FilePlan $plan, array $inputPaths): array
     {
         $orphans = Orphans::inspect($plan->root, $plan->target);
-        $fresh = $orphans === [] ? Checkout::inspect($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility) : null;
+        $fresh = $orphans === [] ? Checkout::inspect($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility, $plan->claim) : null;
+        $claimable = array_keys(array_filter($fresh->files ?? [], static fn (array $entry): bool => $entry['state'] === 'unowned' && $entry['current'] === $entry['target']));
 
-        return ['plan' => $plan->identity(), 'current' => $fresh?->identity() === $plan->identity(), 'executable' => $fresh?->executable() ?? false, 'orphans' => $orphans];
+        return ['plan' => $plan->identity(), 'current' => $fresh?->identity() === $plan->identity(), 'executable' => $fresh?->executable() ?? false, 'orphans' => $orphans, 'claimable' => $claimable];
     }
 
     /**
@@ -43,10 +45,10 @@ final class Maintenance
         if ($orphans !== []) {
             return self::blocked($plan->identity(), $orphans);
         }
-        Checkout::inspect($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility);
+        Checkout::inspect($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility, $plan->claim);
         $selected = SafeFilesystem::path($plan->root, '.mod-maintenance/journal-'.hash('sha256', $intent).'.json');
         if (file_exists($selected)) {
-            $claim = Journal::reopen($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility, $intent, $exclusiveCheckout);
+            $claim = Journal::reopen($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility, $intent, $exclusiveCheckout, $plan->claim);
         } else {
             self::registry($registry, $plan->target->checks);
             self::inputs($plan->root, $inputPaths);
@@ -69,24 +71,25 @@ final class Maintenance
      * @param  array<string, string>  $inputPaths
      * @param  array<string, string>  $compatibility
      * @param  array<string, Closure>  $registry
+     * @param  list<string>  $claim  The same reviewed claim list the interrupted plan was made with.
      * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}
      *
      * @api
      */
-    public static function resume(string $root, string $appId, Artifact $baseline, Artifact $target, array $inputPaths, array $compatibility, string $intent, array $registry, bool $exclusiveCheckout): array
+    public static function resume(string $root, string $appId, Artifact $baseline, Artifact $target, array $inputPaths, array $compatibility, string $intent, array $registry, bool $exclusiveCheckout, array $claim = []): array
     {
         self::boundary($intent, $exclusiveCheckout);
-        FilePlan::between($appId, $root, $baseline, $target, [], [], $compatibility);
+        FilePlan::between($appId, $root, $baseline, $target, [], [], $compatibility, claim: $claim);
         self::registry($registry, $target->checks, false);
         $orphans = Orphans::inspect($root, $target);
         if ($orphans !== []) {
             return self::blocked(null, $orphans);
         }
-        $claim = Journal::reopen($root, $appId, $baseline, $target, $inputPaths, $compatibility, $intent, $exclusiveCheckout);
+        $journal = Journal::reopen($root, $appId, $baseline, $target, $inputPaths, $compatibility, $intent, $exclusiveCheckout, $claim);
         try {
-            return self::execute($claim, $registry);
+            return self::execute($journal, $registry);
         } finally {
-            $claim->close();
+            $journal->close();
         }
     }
 

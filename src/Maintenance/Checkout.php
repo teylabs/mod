@@ -11,13 +11,14 @@ final class Checkout
     /**
      * @param  array<string, string>  $inputPaths  Host input identity names mapped to relative files.
      * @param  array<string, string>  $compatibility  Trusted host compatibility results.
+     * @param  list<string>  $claim  Reviewed new target paths to adopt when their existing bytes are identical. Never written.
      *
      * @api
      */
-    public static function inspect(string $root, string $appId, Artifact $baseline, Artifact $target, array $inputPaths, array $compatibility): FilePlan
+    public static function inspect(string $root, string $appId, Artifact $baseline, Artifact $target, array $inputPaths, array $compatibility, array $claim = []): FilePlan
     {
         // Validate the pure ownership contract before reading any declared path.
-        FilePlan::between($appId, $root, $baseline, $target, [], [], $compatibility);
+        FilePlan::between($appId, $root, $baseline, $target, [], [], $compatibility, claim: $claim);
         SafeFilesystem::root($root);
         SafeFilesystem::metadata($root);
         Artifact::validateSelection($inputPaths, false);
@@ -33,7 +34,7 @@ final class Checkout
             $inputs[$name] = Fingerprint::of([$path, SafeFilesystem::read($root, $path)]);
         }
 
-        return FilePlan::between($appId, $root, $baseline, $target, $current, $inputs, $compatibility, refusals: self::refusals($root, $appId, $target));
+        return FilePlan::between($appId, $root, $baseline, $target, $current, $inputs, $compatibility, refusals: self::refusals($root, $appId, $target), claim: $claim);
     }
 
     /**
