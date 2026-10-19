@@ -3,6 +3,7 @@
 namespace Tey\Mod\Maintenance;
 
 use InvalidArgumentException;
+use RuntimeException;
 
 /** Read-only filesystem observations for a POSIX checkout. @api */
 final class Checkout
@@ -32,7 +33,36 @@ final class Checkout
             $inputs[$name] = Fingerprint::of([$path, SafeFilesystem::read($root, $path)]);
         }
 
-        return FilePlan::between($appId, $root, $baseline, $target, $current, $inputs, $compatibility);
+        return FilePlan::between($appId, $root, $baseline, $target, $current, $inputs, $compatibility, refusals: self::refusals($root, $appId, $target));
+    }
+
+    /**
+     * Other installed lineages decide which target paths this lineage may never own.
+     *
+     * @return array<string, string>
+     */
+    private static function refusals(string $root, string $appId, Artifact $target): array
+    {
+        $others = InstalledRecord::lineages($root, $appId, except: $target->name);
+        foreach ($target->requires as $name => $version) {
+            if (! isset($others[$name]) || ($version !== '*' && $others[$name]->version !== $version)) {
+                throw new RuntimeException($version === '*' ? "Required lineage {$name} is not installed." : "Required lineage {$name} is not installed at version {$version}.");
+            }
+        }
+        $refusals = [];
+        foreach ($target->files as $path => $bytes) {
+            $folded = strtolower($path);
+            foreach ($others as $name => $other) {
+                foreach (array_keys($other->files) as $owned) {
+                    $owned = strtolower($owned);
+                    if ($folded === $owned || str_starts_with($folded, $owned.'/') || str_starts_with($owned, $folded.'/')) {
+                        $refusals[$path] ??= 'owned_by:'.$name;
+                    }
+                }
+            }
+        }
+
+        return $refusals;
     }
 
     /**

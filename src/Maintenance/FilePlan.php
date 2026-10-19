@@ -8,7 +8,7 @@ use InvalidArgumentException;
 final readonly class FilePlan
 {
     /**
-     * @param  array<string, array{state: string, original: ?string, current: ?string, target: string}>  $files
+     * @param  array<string, array{state: string, original: ?string, current: ?string, target: string, reason?: string}>  $files
      * @param  array<string, string>  $inputs
      * @param  array<string, string>  $compatibility
      */
@@ -30,10 +30,11 @@ final readonly class FilePlan
      * @param  array<string, string>  $current
      * @param  array<string, string>  $inputs  Host input identities (lock, bindings, policy).
      * @param  array<string, string>  $compatibility  Trusted checks: passed, failed or unavailable.
+     * @param  array<string, string>  $refusals  Target paths this lineage may never own, mapped to why (owned_by:<name>).
      *
      * @api
      */
-    public static function between(string $appId, string $root, Artifact $baseline, Artifact $target, array $current, array $inputs, array $compatibility): self
+    public static function between(string $appId, string $root, Artifact $baseline, Artifact $target, array $current, array $inputs, array $compatibility, array $refusals = []): self
     {
         if ($appId === '' || ! str_starts_with($root, '/') || str_ends_with($root, '/') || array_intersect(explode('/', substr($root, 1)), ['', '.', '..']) !== [] || preg_match('/[\\\\:\x00-\x1F\x7F]/', $root)) {
             throw new InvalidArgumentException('App identity and a canonical POSIX checkout root are required. Drive and network roots are unsupported.');
@@ -51,11 +52,16 @@ final readonly class FilePlan
         if (array_diff($compatibility, ['passed', 'failed', 'unavailable']) !== []) {
             throw new InvalidArgumentException('Invalid compatibility outcome.');
         }
+        Artifact::validateSelection($refusals, false);
+        if (array_diff_key($refusals, $target->files) !== []) {
+            throw new InvalidArgumentException('Refusals must only cover proposed paths.');
+        }
         $files = [];
         foreach ($target->files as $path => $bytes) {
             $original = $baseline->files[$path] ?? null;
             $observed = $current[$path] ?? null;
             $state = match (true) {
+                isset($refusals[$path]) => 'conflict',
                 $original === null && $observed !== null => 'unowned',
                 $original === null => 'create',
                 $observed === null => 'restore',
@@ -64,6 +70,9 @@ final readonly class FilePlan
                 default => 'replace',
             };
             $files[$path] = ['state' => $state, 'original' => $original === null ? null : hash('sha256', $original), 'current' => $observed === null ? null : hash('sha256', $observed), 'target' => hash('sha256', $bytes)];
+            if (isset($refusals[$path])) {
+                $files[$path]['reason'] = $refusals[$path];
+            }
         }
 
         return new self($appId, $root, $baseline, $target, $files, $inputs, $compatibility);

@@ -37,10 +37,11 @@ final class InstalledRecord
 
     /**
      * Every installed lineage, rebuilt and verified from its record. Reads metadata only.
+     * The excepted lineage is skipped unread: its own record is verified against its trusted baseline instead.
      *
      * @return array<string, Artifact>
      */
-    public static function lineages(string $root, string $appId): array
+    public static function lineages(string $root, string $appId, ?string $except = null): array
     {
         SafeFilesystem::root($root);
         SafeFilesystem::metadata($root);
@@ -53,7 +54,7 @@ final class InstalledRecord
             }
             foreach ($entries as $entry) {
                 // Interrupted temporary writes are left to orphan diagnostics.
-                if (! preg_match('/\A[a-f0-9]{64}\.json\z/', $entry)) {
+                if (! preg_match('/\A[a-f0-9]{64}\.json\z/', $entry) || ($except !== null && $entry === hash('sha256', $except).'.json')) {
                     continue;
                 }
                 $artifact = self::stored(Journal::readData($directory.'/'.$entry), $root, $appId);
@@ -65,9 +66,13 @@ final class InstalledRecord
         }
         $legacy = SafeFilesystem::path($root, self::LEGACY);
         if (file_exists($legacy) || is_link($legacy)) {
-            $artifact = self::stored(Journal::readData($legacy), $root, $appId);
-            // An interrupted migration leaves a superseded 0.8 copy behind.
-            $lineages[$artifact->name] ??= $artifact;
+            $record = Journal::readData($legacy);
+            $data = $record['artifact'] ?? null;
+            if ($except === null || ! is_array($data) || ($data['name'] ?? null) !== $except) {
+                $artifact = self::stored($record, $root, $appId);
+                // An interrupted migration leaves a superseded 0.8 copy behind.
+                $lineages[$artifact->name] ??= $artifact;
+            }
         }
         ksort($lineages);
 
@@ -97,7 +102,7 @@ final class InstalledRecord
             throw new RuntimeException('Unknown, foreign or mismatched installed artifact.');
         }
         try {
-            $artifact = new Artifact($name, $version, $files, $groups, self::named($data['bindings'] ?? null), $checks, metadata: self::named($data['metadata'] ?? [], strings: false));
+            $artifact = new Artifact($name, $version, $files, $groups, self::named($data['bindings'] ?? null), $checks, metadata: self::named($data['metadata'] ?? [], strings: false), requires: self::named($data['requires'] ?? []));
         } catch (InvalidArgumentException $exception) {
             throw new RuntimeException('Unknown, foreign or mismatched installed artifact.', previous: $exception);
         }
@@ -148,6 +153,9 @@ final class InstalledRecord
         $record = ['identity' => $artifact->identity(), 'name' => $artifact->name, 'version' => $artifact->version, 'files' => array_map(base64_encode(...), $artifact->files), 'groups' => $artifact->groups, 'bindings' => $artifact->bindings, 'checks' => $artifact->checks];
         if ($artifact->metadata !== []) {
             $record['metadata'] = $artifact->metadata;
+        }
+        if ($artifact->requires !== []) {
+            $record['requires'] = $artifact->requires;
         }
 
         return $record;

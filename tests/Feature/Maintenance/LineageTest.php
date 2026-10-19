@@ -172,3 +172,69 @@ it('reports interrupted lineage record writes as orphans', function () {
             ->and(Checkout::installed($root->path, 'one'))->toHaveKey('example/recipe');
     });
 });
+
+it('refuses a path another lineage owns as a conflict naming that lineage', function () {
+    OwnedAppRoot::using(function ($root) {
+        lineageInstall($root, lineageArtifact('example/base', '1', ['app/Shared.php' => 'base']), 'base');
+        $inputs = lineageInputs($root);
+        $other = lineageArtifact('example/other', '1', ['app/Shared.php' => 'base', 'app/Other.php' => 'other']);
+        $empty = new Artifact($other->name, $other->version, [], $other->groups, $other->bindings, $other->checks);
+        $plan = Checkout::inspect($root->path, 'one', $empty, $other, $inputs, ['php' => 'passed']);
+        expect($plan->files['app/Shared.php'])->toMatchArray(['state' => 'conflict', 'reason' => 'owned_by:example/base'])
+            ->and($plan->files['app/Other.php']['state'])->toBe('create')->and($plan->files['app/Other.php'])->not->toHaveKey('reason')
+            ->and($plan->executable())->toBeFalse()
+            ->and(fn () => Maintenance::apply($plan, $inputs, 'other', ['check' => fn () => true], true))->toThrow(RuntimeException::class)
+            ->and(file_get_contents($root->path('app/Shared.php')))->toBe('base')
+            ->and(file_exists($root->path('app/Other.php')))->toBeFalse()
+            ->and(array_keys(Checkout::installed($root->path, 'one')))->toBe(['example/base']);
+    });
+});
+
+it('refuses ownership by case alias of another lineage path', function () {
+    OwnedAppRoot::using(function ($root) {
+        lineageInstall($root, lineageArtifact('example/base', '1', ['app/Shared.php' => 'base']), 'base');
+        $other = lineageArtifact('example/other', '1', ['app/shared.php' => 'other']);
+        $empty = new Artifact($other->name, $other->version, [], $other->groups, $other->bindings, $other->checks);
+        expect(fn () => Checkout::inspect($root->path, 'one', $empty, $other, lineageInputs($root), ['php' => 'passed']))->toThrow(RuntimeException::class);
+    });
+});
+
+it('refuses an in-flight install once another lineage takes the path', function () {
+    OwnedAppRoot::using(function ($root) {
+        $inputs = lineageInputs($root);
+        $other = lineageArtifact('example/other', '1', ['app/Shared.php' => 'other']);
+        $empty = new Artifact($other->name, $other->version, [], $other->groups, $other->bindings, $other->checks);
+        $plan = Checkout::inspect($root->path, 'one', $empty, $other, $inputs, ['php' => 'passed']);
+        expect(Maintenance::apply($plan, $inputs, 'other', ['check' => fn () => false], true)['status'])->toBe('verification_failed');
+        // Hand-place a competing lineage record that owns the same path.
+        $base = lineageArtifact('example/base', '1', ['app/Shared.php' => 'other']);
+        @mkdir($root->path('.mod-maintenance/installed'), 0700);
+        file_put_contents(installedRecordPath($root, 'example/base'), json_encode(['format' => 1, 'owner' => 'tey/mod:installed', 'app_id' => 'one', 'root' => $root->path, 'artifact' => ['identity' => $base->identity(), 'name' => 'example/base', 'version' => '1', 'files' => ['app/Shared.php' => base64_encode('other')], 'groups' => ['core'], 'bindings' => ['auth' => 'session'], 'checks' => ['check']], 'commit' => ['intent' => 'base', 'plan' => 'sha256:'.str_repeat('a', 64), 'inputs' => [], 'compatibility' => ['php' => 'passed'], 'checks' => ['check' => 'passed']]]));
+        expect(fn () => Maintenance::resume($root->path, 'one', $empty, $other, $inputs, ['php' => 'passed'], 'other', ['check' => fn () => true], true))->toThrow(RuntimeException::class)
+            ->and(file_exists(installedRecordPath($root, 'example/other')))->toBeFalse();
+    });
+});
+
+it('requires named lineages to be installed, at the exact version when one is given', function (array $requires, bool $passes) {
+    OwnedAppRoot::using(function ($root) use ($requires, $passes) {
+        lineageInstall($root, lineageArtifact('example/base', '1.0.0', ['app/Base.php' => 'base']), 'base');
+        $inputs = lineageInputs($root);
+        $other = new Artifact('example/other', '1', ['app/Other.php' => 'other'], ['core'], ['auth' => 'session'], ['check'], requires: $requires);
+        $empty = new Artifact($other->name, $other->version, [], $other->groups, $other->bindings, $other->checks);
+        if ($passes) {
+            $plan = Checkout::inspect($root->path, 'one', $empty, $other, $inputs, ['php' => 'passed']);
+            expect(Maintenance::apply($plan, $inputs, 'other', ['check' => fn () => true], true)['status'])->toBe('completed');
+            $saved = json_decode(file_get_contents(installedRecordPath($root, 'example/other')), true);
+            expect($saved['artifact']['requires'])->toBe($requires)
+                ->and(Checkout::installed($root->path, 'one')['example/other']['identity'])->toBe($other->identity());
+        } else {
+            expect(fn () => Checkout::inspect($root->path, 'one', $empty, $other, $inputs, ['php' => 'passed']))->toThrow(RuntimeException::class)
+                ->and(file_exists($root->path('app/Other.php')))->toBeFalse();
+        }
+    });
+})->with([
+    'any version' => [['example/base' => '*'], true],
+    'exact version' => [['example/base' => '1.0.0'], true],
+    'other version' => [['example/base' => '2.0.0'], false],
+    'missing lineage' => [['example/absent' => '*'], false],
+]);

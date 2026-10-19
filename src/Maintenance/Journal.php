@@ -92,7 +92,9 @@ final class Journal
     private static function fresh(FilePlan $plan, array $inputPaths, bool $recovery = false): void
     {
         $fresh = Checkout::inspect($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility);
-        if (! $plan->executable() || Fingerprint::of($fresh->inputs) !== Fingerprint::of($plan->inputs) || (! $recovery && $fresh->identity() !== $plan->identity())) {
+        // Another lineage may have taken ownership since the original plan was made.
+        $refused = array_filter($fresh->files, static fn (array $entry): bool => isset($entry['reason']));
+        if (! $plan->executable() || $refused !== [] || Fingerprint::of($fresh->inputs) !== Fingerprint::of($plan->inputs) || (! $recovery && $fresh->identity() !== $plan->identity())) {
             throw new RuntimeException('Conflicted, incompatible or stale maintenance plan.');
         }
         if ($recovery) {

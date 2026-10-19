@@ -15,6 +15,7 @@ final readonly class Artifact
      * @param  array<string, string>  $bindings
      * @param  list<string>  $checks  Trusted host check identities, never command strings.
      * @param  array<string, mixed>  $metadata  Inert provenance only; never file or verification authority.
+     * @param  array<string, string>  $requires  Lineage names that must be installed first, mapped to an exact version or '*'.
      *
      * @api
      */
@@ -26,6 +27,7 @@ final readonly class Artifact
         /** @api */ public array $bindings,
         /** @api */ public array $checks,
         /** @api @var array<string, mixed> */ public array $metadata = [],
+        /** @api @var array<string, string> */ public array $requires = [],
     ) {
         if ($name === '' || $version === '' || $checks === []) {
             throw new InvalidArgumentException('Artifact identity and required checks must be explicit.');
@@ -35,6 +37,10 @@ final readonly class Artifact
         self::validateSelection($checks, true);
         self::validateSelection($bindings, false);
         self::validateMetadata($metadata);
+        self::validateSelection($requires, false);
+        if (isset($requires[$name])) {
+            throw new InvalidArgumentException('A lineage cannot require itself.');
+        }
     }
 
     /** @api */
@@ -43,6 +49,9 @@ final readonly class Artifact
         $identity = [$this->name, $this->version, $this->files, $this->groups, $this->bindings, $this->checks];
         if ($this->metadata !== []) {
             $identity[] = ['metadata' => $this->metadata];
+        }
+        if ($this->requires !== []) {
+            $identity[] = ['requires' => $this->requires];
         }
 
         return Fingerprint::of($identity);

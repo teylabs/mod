@@ -14900,6 +14900,13 @@
         "static": false,
         "shape": ""
     },
+    "Tey\\Mod\\Maintenance\\Artifact::$requires": {
+        "type": "array",
+        "visibility": "public",
+        "readonly": true,
+        "static": false,
+        "shape": "@var array<string, string>"
+    },
     "Tey\\Mod\\Maintenance\\Artifact::$version": {
         "type": "string",
         "visibility": "public",
@@ -14969,10 +14976,18 @@
                 "variadic": false,
                 "reference": false,
                 "default": []
+            },
+            {
+                "name": "requires",
+                "type": "array",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": []
             }
         ],
         "return": null,
-        "shape": "@param array<string, string> $files @param list<string> $groups @param array<string, string> $bindings @param list<string> $checks @param array<string, mixed> $metadata"
+        "shape": "@param array<string, string> $files @param list<string> $groups @param array<string, string> $bindings @param list<string> $checks @param array<string, mixed> $metadata @param array<string, string> $requires"
     },
     "Tey\\Mod\\Maintenance\\Artifact::identity": {
         "visibility": "public",
@@ -15199,10 +15214,18 @@
                 "variadic": false,
                 "reference": false,
                 "default": null
+            },
+            {
+                "name": "refusals",
+                "type": "array",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": []
             }
         ],
         "return": "Tey\\Mod\\Maintenance\\FilePlan",
-        "shape": "@param array<string, string> $current @param array<string, string> $inputs @param array<string, string> $compatibility"
+        "shape": "@param array<string, string> $current @param array<string, string> $inputs @param array<string, string> $compatibility @param array<string, string> $refusals"
     },
     "Tey\\Mod\\Maintenance\\FilePlan::executable": {
         "visibility": "public",
