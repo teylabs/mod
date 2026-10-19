@@ -101,3 +101,11 @@ function isolatedBasesPath(): array
 
     return ["app/Support/{$folder}", "App\\Support\\{$folder}"];
 }
+
+/**
+ * The absolute path of one lineage's installed maintenance record.
+ */
+function installedRecordPath(OwnedAppRoot $root, string $name): string
+{
+    return $root->path('.mod-maintenance/installed/'.hash('sha256', $name).'.json');
+}

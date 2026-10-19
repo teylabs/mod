@@ -2,11 +2,146 @@
 
 namespace Tey\Mod\Maintenance;
 
+use InvalidArgumentException;
 use RuntimeException;
 
 /** Local lifecycle data is validated against trusted artifacts, never treated as a permission grant. @internal */
 final class InstalledRecord
 {
+    public const DIRECTORY = '.mod-maintenance/installed';
+
+    /** The single-lineage 0.8 record, read as the record for its own name until that lineage's next write. */
+    public const LEGACY = '.mod-maintenance/installed.json';
+
+    public static function relative(string $name): string
+    {
+        return self::DIRECTORY.'/'.hash('sha256', $name).'.json';
+    }
+
+    /** The live record for one lineage: its own record, else a 0.8 record of the same name. */
+    public static function locate(string $root, string $name): ?string
+    {
+        $own = self::relative($name);
+        $path = SafeFilesystem::path($root, $own);
+        if (file_exists($path) || is_link($path)) {
+            return $own;
+        }
+        $legacy = SafeFilesystem::path($root, self::LEGACY);
+        if (! file_exists($legacy) && ! is_link($legacy)) {
+            return null;
+        }
+        $artifact = Journal::readData($legacy)['artifact'] ?? null;
+
+        return is_array($artifact) && ($artifact['name'] ?? null) === $name ? self::LEGACY : null;
+    }
+
+    /**
+     * Every installed lineage, rebuilt and verified from its record. Reads metadata only.
+     *
+     * @return array<string, Artifact>
+     */
+    public static function lineages(string $root, string $appId): array
+    {
+        SafeFilesystem::root($root);
+        SafeFilesystem::metadata($root);
+        $lineages = [];
+        $directory = SafeFilesystem::path($root, self::DIRECTORY);
+        if (is_dir($directory)) {
+            $entries = scandir($directory);
+            if ($entries === false) {
+                throw new RuntimeException('Unable to inspect installed lineage records.');
+            }
+            foreach ($entries as $entry) {
+                // Interrupted temporary writes are left to orphan diagnostics.
+                if (! preg_match('/\A[a-f0-9]{64}\.json\z/', $entry)) {
+                    continue;
+                }
+                $artifact = self::stored(Journal::readData($directory.'/'.$entry), $root, $appId);
+                if ($entry !== hash('sha256', $artifact->name).'.json') {
+                    throw new RuntimeException('Installed record is filed under a foreign lineage.');
+                }
+                $lineages[$artifact->name] = $artifact;
+            }
+        }
+        $legacy = SafeFilesystem::path($root, self::LEGACY);
+        if (file_exists($legacy) || is_link($legacy)) {
+            $artifact = self::stored(Journal::readData($legacy), $root, $appId);
+            // An interrupted migration leaves a superseded 0.8 copy behind.
+            $lineages[$artifact->name] ??= $artifact;
+        }
+        ksort($lineages);
+
+        return $lineages;
+    }
+
+    /** @param array<string, mixed> $record */
+    private static function stored(array $record, string $root, string $appId): Artifact
+    {
+        $data = $record['artifact'] ?? null;
+        if (($record['format'] ?? null) !== 1 || ($record['owner'] ?? null) !== 'tey/mod:installed' || ($record['app_id'] ?? null) !== $appId || ($record['root'] ?? null) !== $root || ! is_array($data) || ! is_array($data['files'] ?? null)) {
+            throw new RuntimeException('Unknown, foreign or mismatched installed artifact.');
+        }
+        $files = [];
+        foreach ($data['files'] as $path => $encoded) {
+            $bytes = is_string($encoded) ? base64_decode($encoded, true) : false;
+            if (! is_string($path) || $bytes === false) {
+                throw new RuntimeException('Unknown, foreign or mismatched installed artifact.');
+            }
+            $files[$path] = $bytes;
+        }
+        $name = $data['name'] ?? null;
+        $version = $data['version'] ?? null;
+        $groups = self::strings($data['groups'] ?? null);
+        $checks = self::strings($data['checks'] ?? null);
+        if (! is_string($name) || ! is_string($version) || ! array_is_list($groups) || ! array_is_list($checks)) {
+            throw new RuntimeException('Unknown, foreign or mismatched installed artifact.');
+        }
+        try {
+            $artifact = new Artifact($name, $version, $files, $groups, self::named($data['bindings'] ?? null), $checks, metadata: self::named($data['metadata'] ?? [], strings: false));
+        } catch (InvalidArgumentException $exception) {
+            throw new RuntimeException('Unknown, foreign or mismatched installed artifact.', previous: $exception);
+        }
+        if (Fingerprint::of($data) !== Fingerprint::of(self::artifact($artifact))) {
+            throw new RuntimeException('Unknown, foreign or mismatched installed artifact.');
+        }
+
+        return $artifact;
+    }
+
+    /** @return array<array-key, string> */
+    private static function strings(mixed $values): array
+    {
+        if (! is_array($values)) {
+            throw new RuntimeException('Unknown, foreign or mismatched installed artifact.');
+        }
+        foreach ($values as $value) {
+            if (! is_string($value)) {
+                throw new RuntimeException('Unknown, foreign or mismatched installed artifact.');
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * @return ($strings is true ? array<string, string> : array<string, mixed>)
+     */
+    private static function named(mixed $values, bool $strings = true): array
+    {
+        if (! is_array($values)) {
+            throw new RuntimeException('Unknown, foreign or mismatched installed artifact.');
+        }
+        $named = [];
+        foreach ($values as $key => $value) {
+            if (! is_string($key) || ($strings && ! is_string($value))) {
+                throw new RuntimeException('Unknown, foreign or mismatched installed artifact.');
+            }
+            $named[$key] = $value;
+        }
+
+        return $named;
+    }
+
     /** @return array<string, mixed> */
     public static function artifact(Artifact $artifact): array
     {

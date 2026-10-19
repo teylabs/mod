@@ -39,7 +39,7 @@ it('preserves the exact legacy identity and installed record shape when metadata
         $empty = new Artifact($a->name, $a->version, [], $a->groups, $a->bindings, $a->checks);
         $plan = Checkout::inspect($root->path, 'one', $empty, $a, $inputs, ['php' => 'passed']);
         Maintenance::apply($plan, $inputs, 'install', ['check' => fn () => true], true);
-        $saved = json_decode(file_get_contents($root->path('.mod-maintenance/installed.json')), true);
+        $saved = json_decode(file_get_contents(installedRecordPath($root, 'example/recipe')), true);
         expect(array_keys($saved['artifact']))->toBe(['identity', 'name', 'version', 'files', 'groups', 'bindings', 'checks']);
     });
 });
@@ -52,7 +52,7 @@ it('binds inert provenance to the version-last record and rejects changed intent
         $inputs = provenanceInputs($root);
         $plan = Checkout::inspect($root->path, 'one', $empty, $a, $inputs, ['php' => 'passed']);
         expect(Maintenance::apply($plan, $inputs, 'install', ['check' => fn () => true], true)['status'])->toBe('completed');
-        $path = $root->path('.mod-maintenance/installed.json');
+        $path = installedRecordPath($root, 'example/recipe');
         $before = file_get_contents($path);
         expect(json_decode($before, true)['artifact']['metadata'])->toBe($metadata);
         $other = provenanceArtifact('A', array_replace($metadata, ['source_ref' => 'sha256:other']));
@@ -73,7 +73,7 @@ it('does not let provenance widen owned files or waive required checks', functio
         expect(fn () => Maintenance::apply($plan, $inputs, 'install', [], true))->toThrow(InvalidArgumentException::class)
             ->and(file_get_contents($root->path('app/Host.php')))->toBe('host');
         expect(Maintenance::apply($plan, $inputs, 'install', ['check' => fn () => false], true)['status'])->toBe('verification_failed')
-            ->and(file_exists($root->path('.mod-maintenance/installed.json')))->toBeFalse();
+            ->and(file_exists(installedRecordPath($root, 'example/recipe')))->toBeFalse();
         expect(Maintenance::apply($plan, $inputs, 'install', ['check' => fn () => true], true)['status'])->toBe('completed')
             ->and(file_get_contents($root->path('app/Host.php')))->toBe('host');
     });
@@ -86,7 +86,7 @@ it('rejects altered baseline provenance before any upgrade replacement', functio
         $empty = new Artifact($a->name, $a->version, [], $a->groups, $a->bindings, $a->checks);
         $inputs = provenanceInputs($root);
         Maintenance::apply(Checkout::inspect($root->path, 'one', $empty, $a, $inputs, ['php' => 'passed']), $inputs, 'install', ['check' => fn () => true], true);
-        $path = $root->path('.mod-maintenance/installed.json');
+        $path = installedRecordPath($root, 'example/recipe');
         $saved = json_decode(file_get_contents($path), true);
         $saved['artifact']['metadata']['source_ref'] = 'changed';
         file_put_contents($path, json_encode($saved));

@@ -50,7 +50,7 @@ function installedFixture(OwnedAppRoot $root): array
 it('installs only absent destinations and records the recoverable artifact after verification', function () {
     OwnedAppRoot::using(function ($root) {
         [$a, $result] = installedFixture($root);
-        $saved = json_decode(file_get_contents($root->path('.mod-maintenance/installed.json')), true);
+        $saved = json_decode(file_get_contents(installedRecordPath($root, 'example/recipe')), true);
         expect($saved['artifact']['identity'])->toBe($a->identity())
             ->and($saved['artifact']['files'])->toBe(['app/One.php' => base64_encode('A')])
             ->and($saved['artifact']['version'])->toBe('A')
@@ -74,7 +74,7 @@ it('keeps installation unrecorded on failed checks and can retry under the same 
         try {
             FileRepair::apply($journal);
             expect(Finalization::record($journal, ['protocol' => fn () => false])['status'])->toBe('verification_failed')
-                ->and(file_exists($root->path('.mod-maintenance/installed.json')))->toBeFalse();
+                ->and(file_exists(installedRecordPath($root, 'example/recipe')))->toBeFalse();
             expect(Finalization::record($journal, ['protocol' => fn () => true])['status'])->toBe('completed');
         } finally {
             $journal->close();
@@ -85,20 +85,20 @@ it('keeps installation unrecorded on failed checks and can retry under the same 
 it('requires installed A ownership and keeps A when B checks fail', function () {
     OwnedAppRoot::using(function ($root) {
         [$a] = installedFixture($root);
-        $before = file_get_contents($root->path('.mod-maintenance/installed.json'));
+        $before = file_get_contents(installedRecordPath($root, 'example/recipe'));
         $b = installArtifact('B');
         $inputs = finalizationInputs($root);
         $journal = Journal::prepare(Checkout::inspect($root->path, 'one', $a, $b, $inputs, ['framework' => 'passed']), $inputs, 'upgrade', true);
         try {
             FileRepair::apply($journal);
             expect(Finalization::record($journal, [])['status'])->toBe('verification_failed')
-                ->and(file_get_contents($root->path('.mod-maintenance/installed.json')))->toBe($before)
+                ->and(file_get_contents(installedRecordPath($root, 'example/recipe')))->toBe($before)
                 ->and(file_get_contents($root->path('app/One.php')))->toBe('B');
             expect(Finalization::record($journal, ['protocol' => fn () => true])['status'])->toBe('completed');
         } finally {
             $journal->close();
         }
-        expect(json_decode(file_get_contents($root->path('.mod-maintenance/installed.json')), true)['artifact']['version'])->toBe('B');
+        expect(json_decode(file_get_contents(installedRecordPath($root, 'example/recipe')), true)['artifact']['version'])->toBe('B');
     });
 });
 
@@ -112,7 +112,7 @@ it('refuses version recording without a matching original installation record', 
         try {
             FileRepair::apply($journal);
             expect(fn () => Finalization::record($journal, ['protocol' => fn () => true]))->toThrow(RuntimeException::class)
-                ->and(file_exists($root->path('.mod-maintenance/installed.json')))->toBeFalse();
+                ->and(file_exists(installedRecordPath($root, 'example/recipe')))->toBeFalse();
         } finally {
             $journal->close();
         }
@@ -122,7 +122,7 @@ it('refuses version recording without a matching original installation record', 
 it('rechecks target and host bytes after successful checks immediately before recording', function (string $path, string $bytes) {
     OwnedAppRoot::using(function ($root) use ($path, $bytes) {
         [$a] = installedFixture($root);
-        $before = file_get_contents($root->path('.mod-maintenance/installed.json'));
+        $before = file_get_contents(installedRecordPath($root, 'example/recipe'));
         $b = installArtifact('B');
         $inputs = finalizationInputs($root);
         $journal = Journal::prepare(Checkout::inspect($root->path, 'one', $a, $b, $inputs, ['framework' => 'passed']), $inputs, 'upgrade', true);
@@ -131,7 +131,7 @@ it('rechecks target and host bytes after successful checks immediately before re
             expect(fn () => Finalization::record($journal, ['protocol' => fn () => true], beforeRecord: function () use ($root, $path, $bytes) {
                 file_put_contents($root->path($path), $bytes);
             }))->toThrow(RuntimeException::class)
-                ->and(file_get_contents($root->path('.mod-maintenance/installed.json')))->toBe($before)
+                ->and(file_get_contents(installedRecordPath($root, 'example/recipe')))->toBe($before)
                 ->and(file_get_contents($root->path($path)))->toBe($bytes);
         } finally {
             $journal->close();
@@ -157,18 +157,18 @@ it('cold retries before and after the installed record commit with no stale veri
         } finally {
             $journal->close();
         }
-        $before = file_get_contents($root->path('.mod-maintenance/installed.json'));
+        $before = file_get_contents(installedRecordPath($root, 'example/recipe'));
         $cold = Journal::reopen($root->path, 'one', $a, $b, $inputs, ['framework' => 'passed'], 'upgrade', true);
         try {
             $result = Finalization::record($cold, ['protocol' => $check]);
-            $receipt = file_get_contents($root->path('.mod-maintenance/installed.json'));
+            $receipt = file_get_contents(installedRecordPath($root, 'example/recipe'));
             expect($result['no_op'])->toBe($after)->and($calls)->toBe($after ? 1 : 2);
             if ($after) {
                 expect($receipt)->toBe($before);
             }
             $again = Finalization::record($cold, ['protocol' => $check]);
             expect($again['receipt'])->toBe($result['receipt'])->and($again['no_op'])->toBeTrue()
-                ->and(file_get_contents($root->path('.mod-maintenance/installed.json')))->toBe($receipt);
+                ->and(file_get_contents(installedRecordPath($root, 'example/recipe')))->toBe($receipt);
         } finally {
             $cold->close();
         }
@@ -178,7 +178,7 @@ it('cold retries before and after the installed record commit with no stale veri
 it('refuses changed or foreign installed state without replacing it', function (string $field) {
     OwnedAppRoot::using(function ($root) use ($field) {
         [$a] = installedFixture($root);
-        $path = $root->path('.mod-maintenance/installed.json');
+        $path = installedRecordPath($root, 'example/recipe');
         $saved = json_decode(file_get_contents($path), true);
         match ($field) {
             'app' => $saved['app_id'] = 'foreign',
@@ -209,7 +209,7 @@ it('refuses missing verification policy or code before version recording', funct
         try {
             FileRepair::apply($journal);
             expect(fn () => Finalization::record($journal, ['protocol' => fn () => true]))->toThrow(RuntimeException::class, 'verification policy and code')
-                ->and(file_exists($root->path('.mod-maintenance/installed.json')))->toBeFalse();
+                ->and(file_exists(installedRecordPath($root, 'example/recipe')))->toBeFalse();
         } finally {
             $journal->close();
         }
@@ -229,7 +229,7 @@ it('refuses changed installed bytes or unsafe metadata introduced after verifica
         [$a] = installedFixture($root);
         $inputs = finalizationInputs($root);
         $journal = Installation::upgrade($root->path, 'one', $a, installArtifact('B'), $inputs, ['framework' => 'passed'], 'upgrade', true);
-        $path = $root->path('.mod-maintenance/installed.json');
+        $path = installedRecordPath($root, 'example/recipe');
         $foreign = $root->path('host-receipt.json');
         file_put_contents($foreign, 'host');
         try {
@@ -319,7 +319,7 @@ CHILD;
         proc_close($process);
         expect($out)->toBe('')->and($err)->toBe('')
             ->and($status)->toMatchArray(['running' => false, 'signaled' => true, 'termsig' => 9]);
-        $installed = $root->path('.mod-maintenance/installed.json');
+        $installed = installedRecordPath($root, 'example/recipe');
         $before = file_get_contents($installed);
         expect(json_decode($before, true)['artifact']['version'])->toBe($after ? 'B' : 'A');
         $cold = Journal::reopen($root->path, 'one', $a, $b, $inputs, ['framework' => 'passed'], 'upgrade', true);

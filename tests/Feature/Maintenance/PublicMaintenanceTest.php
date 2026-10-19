@@ -67,7 +67,7 @@ it('uses public entrypoints to install upgrade and repeat with no callback or re
         $upgrade = Checkout::inspect($root->path, 'one', $a, $b, $inputs, ['php' => 'passed']);
         $result = Maintenance::apply($upgrade, $inputs, 'upgrade', $checks, true);
         $snapshots = [];
-        foreach (glob($root->path('.mod-maintenance/*')) as $file) {
+        foreach (array_filter([...glob($root->path('.mod-maintenance/*')), ...glob($root->path('.mod-maintenance/installed/*'))], is_file(...)) as $file) {
             $snapshots[$file] = [file_get_contents($file), fileinode($file)];
         }
         expect($result['status'])->toBe('completed')->and($result['written'])->toBe(['app/One.php']);
@@ -95,7 +95,7 @@ it('keeps failed verification pending and resumes through public trusted artifac
     OwnedAppRoot::using(function ($root) {
         [$a, $b, $inputs, $plan] = publicInstallPlan($root);
         expect(Maintenance::apply($plan, $inputs, 'install', ['check' => fn () => false], true)['status'])->toBe('verification_failed')
-            ->and(file_exists($root->path('.mod-maintenance/installed.json')))->toBeFalse();
+            ->and(file_exists(installedRecordPath($root, 'example/recipe')))->toBeFalse();
         expect(Maintenance::resume($root->path, 'one', $plan->baseline, $a, $inputs, ['php' => 'passed'], 'install', ['check' => fn () => true], true)['status'])->toBe('completed');
     });
 });
@@ -128,7 +128,7 @@ it('refuses identical unowned bytes incompatible inputs and stale caller-made pu
             $plan = FilePlan::between('one', $root->path, $a, $b, ['app/One.php' => 'A'], $plan->inputs, ['php' => 'passed']);
         }
         expect(fn () => Maintenance::apply($plan, $inputs, 'install', ['check' => fn () => true], true))->toThrow(RuntimeException::class)
-            ->and(file_exists($root->path('.mod-maintenance/installed.json')))->toBeFalse();
+            ->and(file_exists(installedRecordPath($root, 'example/recipe')))->toBeFalse();
         if ($kind === 'pure') {
             expect(file_get_contents($root->path('app/One.php')))->toBe('custom');
         }
@@ -162,7 +162,7 @@ it('preserves third values changed intent and stale recovery policy', function (
         }
         $target = $kind === 'target' ? $b : $a;
         expect(fn () => Maintenance::resume($root->path, 'one', $plan->baseline, $target, $inputs, ['php' => 'passed'], 'install', ['check' => fn () => true], true))->toThrow(RuntimeException::class)
-            ->and(file_exists($root->path('.mod-maintenance/installed.json')))->toBeFalse();
+            ->and(file_exists(installedRecordPath($root, 'example/recipe')))->toBeFalse();
     });
 })->with(['third', 'policy', 'target']);
 
@@ -199,18 +199,18 @@ it('never calls completed when a metadata orphan remains and refuses verifier-cr
     OwnedAppRoot::using(function ($root) {
         [$a, $b, $inputs, $plan] = publicInstallPlan($root);
         Maintenance::apply($plan, $inputs, 'install', ['check' => fn () => true], true);
-        $before = file_get_contents($root->path('.mod-maintenance/installed.json'));
-        file_put_contents($root->path('.mod-maintenance/installed.json.tmp-unknown'), 'partial');
+        $before = file_get_contents(installedRecordPath($root, 'example/recipe'));
+        file_put_contents(installedRecordPath($root, 'example/recipe').'.tmp-unknown', 'partial');
         expect(Maintenance::apply($plan, $inputs, 'install', [], true)['status'])->toBe('orphaned')
-            ->and(file_get_contents($root->path('.mod-maintenance/installed.json')))->toBe($before);
-        unlink($root->path('.mod-maintenance/installed.json.tmp-unknown'));
+            ->and(file_get_contents(installedRecordPath($root, 'example/recipe')))->toBe($before);
+        unlink(installedRecordPath($root, 'example/recipe').'.tmp-unknown');
         $upgrade = Checkout::inspect($root->path, 'one', $a, $b, $inputs, ['php' => 'passed']);
         $result = Maintenance::apply($upgrade, $inputs, 'upgrade', ['check' => function () use ($root) {
             file_put_contents($root->path('app/One.php.mod-maintenance-tmp-new'), 'partial');
 
             return true;
         }], true);
-        expect($result['status'])->toBe('orphaned')->and(file_get_contents($root->path('.mod-maintenance/installed.json')))->toBe($before);
+        expect($result['status'])->toBe('orphaned')->and(file_get_contents(installedRecordPath($root, 'example/recipe')))->toBe($before);
     });
 });
 
@@ -243,7 +243,7 @@ it('refuses forged installed state before unfinished upgrade writes', function (
     OwnedAppRoot::using(function ($root) {
         [$a, $b, $inputs, $install] = publicInstallPlan($root);
         Maintenance::apply($install, $inputs, 'install', ['check' => fn () => true], true);
-        $path = $root->path('.mod-maintenance/installed.json');
+        $path = installedRecordPath($root, 'example/recipe');
         $record = json_decode(file_get_contents($path), true);
         $record['app_id'] = 'foreign';
         file_put_contents($path, json_encode($record));

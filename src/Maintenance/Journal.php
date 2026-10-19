@@ -150,7 +150,7 @@ final class Journal
     }
 
     /** @return array<string, mixed> */
-    private static function readData(string $path): array
+    public static function readData(string $path): array
     {
         self::regular($path);
         $length = filesize($path);
@@ -364,12 +364,16 @@ final class Journal
     public function installed(): ?array
     {
         $this->assertCurrent();
-        $path = SafeFilesystem::path($this->plan->root, '.mod-maintenance/installed.json');
+        $relative = InstalledRecord::locate($this->plan->root, $this->plan->target->name);
 
-        return file_exists($path) ? self::readData($path) : null;
+        return $relative === null ? null : self::readData(SafeFilesystem::path($this->plan->root, $relative));
     }
 
-    /** @param array<string, mixed> $record */
+    /**
+     * Commit the lineage record last. A 0.8 record of the same name migrates on this write.
+     *
+     * @param  array<string, mixed>  $record
+     */
     public function recordInstalled(array $record, ?string $expectedHash): void
     {
         $this->assertVerifierInputs();
@@ -378,15 +382,56 @@ final class Journal
                 throw new RuntimeException('Installed recording requires exact target bytes.');
             }
         }
-        self::atomicData($this->plan->root, '.mod-maintenance/installed.json', $record, $expectedHash);
+        $root = $this->plan->root;
+        $name = $this->plan->target->name;
+        $located = InstalledRecord::locate($root, $name);
+        self::directory($root, InstalledRecord::DIRECTORY);
+        if ($located === InstalledRecord::LEGACY) {
+            if (self::fileHash(SafeFilesystem::path($root, InstalledRecord::LEGACY)) !== $expectedHash) {
+                throw new RuntimeException('Maintenance destination changed during preparation.');
+            }
+            self::atomicData($root, InstalledRecord::relative($name), $record);
+        } else {
+            self::atomicData($root, InstalledRecord::relative($name), $record, $expectedHash);
+        }
+        self::retireLegacy($root, $name);
+    }
+
+    /** The lineage record is authoritative once written; a 0.8 record of the same name is superseded. */
+    private static function retireLegacy(string $root, string $name): void
+    {
+        $legacy = SafeFilesystem::path($root, InstalledRecord::LEGACY);
+        if (! file_exists($legacy) || is_link($legacy)) {
+            return;
+        }
+        try {
+            $artifact = self::readData($legacy)['artifact'] ?? null;
+        } catch (RuntimeException) {
+            // The commit already stands; unreadable leftovers are refused by the next inspection.
+            return;
+        }
+        if (is_array($artifact) && ($artifact['name'] ?? null) === $name) {
+            unlink($legacy);
+        }
+    }
+
+    private static function directory(string $root, string $relative): void
+    {
+        $path = SafeFilesystem::path($root, $relative);
+        if (! file_exists($path) && ! is_link($path) && ! mkdir($path, 0700)) {
+            throw new RuntimeException('Unable to prepare installed lineage records.');
+        }
+        if (! is_dir($path) || is_link($path)) {
+            throw new RuntimeException('Installed lineage records require an unlinked directory.');
+        }
     }
 
     public function installedHash(): ?string
     {
         $this->assertCurrent();
-        $path = SafeFilesystem::path($this->plan->root, '.mod-maintenance/installed.json');
+        $relative = InstalledRecord::locate($this->plan->root, $this->plan->target->name);
 
-        return file_exists($path) ? self::fileHash($path) : null;
+        return $relative === null ? null : self::fileHash(SafeFilesystem::path($this->plan->root, $relative));
     }
 
     /** @return array<string, mixed> */

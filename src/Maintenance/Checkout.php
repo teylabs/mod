@@ -2,6 +2,8 @@
 
 namespace Tey\Mod\Maintenance;
 
+use InvalidArgumentException;
+
 /** Read-only filesystem observations for a POSIX checkout. @api */
 final class Checkout
 {
@@ -31,5 +33,25 @@ final class Checkout
         }
 
         return FilePlan::between($appId, $root, $baseline, $target, $current, $inputs, $compatibility);
+    }
+
+    /**
+     * Every installed lineage in the checkout: the whole app is all of them. Reads only maintenance records.
+     *
+     * @return array<string, array{identity: string, version: string, files: array<string, string>}> Lineage names mapped to installed versions and owned paths with their installed sha256.
+     *
+     * @api
+     */
+    public static function installed(string $root, string $appId): array
+    {
+        if ($appId === '') {
+            throw new InvalidArgumentException('App identity is required.');
+        }
+
+        return array_map(static fn (Artifact $artifact): array => [
+            'identity' => $artifact->identity(),
+            'version' => $artifact->version,
+            'files' => array_map(static fn (string $bytes): string => hash('sha256', $bytes), $artifact->files),
+        ], InstalledRecord::lineages($root, $appId));
     }
 }

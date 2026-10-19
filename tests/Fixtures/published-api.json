@@ -15052,6 +15052,33 @@
         "return": "Tey\\Mod\\Maintenance\\FilePlan",
         "shape": "@param array<string, string> $inputPaths @param array<string, string> $compatibility"
     },
+    "Tey\\Mod\\Maintenance\\Checkout::installed": {
+        "visibility": "public",
+        "static": true,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "root",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "appId",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "array",
+        "shape": "@return array<string, array{identity: string, version: string, files: array<string, string>}>"
+    },
     "Tey\\Mod\\Maintenance\\FilePlan": {
         "type": "class",
         "final": true,
