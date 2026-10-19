@@ -14849,6 +14849,271 @@
         "return": "Tey\\Mod\\Layout\\Root",
         "shape": "@param string|null $discover @param list<string>|null $discoverExcept @param (Closure(FileType): mixed)|null $using @param list<string>|null $aliases"
     },
+    "Tey\\Mod\\Maintenance\\Artifact": {
+        "type": "class",
+        "final": true,
+        "abstract": false,
+        "readonly": true,
+        "shapes": "",
+        "interfaces": [],
+        "parent": null
+    },
+    "Tey\\Mod\\Maintenance\\Artifact::$bindings": {
+        "type": "array",
+        "visibility": "public",
+        "readonly": true,
+        "static": false,
+        "shape": ""
+    },
+    "Tey\\Mod\\Maintenance\\Artifact::$checks": {
+        "type": "array",
+        "visibility": "public",
+        "readonly": true,
+        "static": false,
+        "shape": ""
+    },
+    "Tey\\Mod\\Maintenance\\Artifact::$files": {
+        "type": "array",
+        "visibility": "public",
+        "readonly": true,
+        "static": false,
+        "shape": ""
+    },
+    "Tey\\Mod\\Maintenance\\Artifact::$groups": {
+        "type": "array",
+        "visibility": "public",
+        "readonly": true,
+        "static": false,
+        "shape": ""
+    },
+    "Tey\\Mod\\Maintenance\\Artifact::$name": {
+        "type": "string",
+        "visibility": "public",
+        "readonly": true,
+        "static": false,
+        "shape": ""
+    },
+    "Tey\\Mod\\Maintenance\\Artifact::$version": {
+        "type": "string",
+        "visibility": "public",
+        "readonly": true,
+        "static": false,
+        "shape": ""
+    },
+    "Tey\\Mod\\Maintenance\\Artifact::__construct": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "name",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "version",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "files",
+                "type": "array",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "groups",
+                "type": "array",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "bindings",
+                "type": "array",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "checks",
+                "type": "array",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": null,
+        "shape": "@param array<string, string> $files @param list<string> $groups @param array<string, string> $bindings @param list<string> $checks"
+    },
+    "Tey\\Mod\\Maintenance\\Artifact::identity": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [],
+        "return": "string",
+        "shape": ""
+    },
+    "Tey\\Mod\\Maintenance\\FilePlan": {
+        "type": "class",
+        "final": true,
+        "abstract": false,
+        "readonly": true,
+        "shapes": "",
+        "interfaces": [],
+        "parent": null
+    },
+    "Tey\\Mod\\Maintenance\\FilePlan::$appId": {
+        "type": "string",
+        "visibility": "public",
+        "readonly": true,
+        "static": false,
+        "shape": ""
+    },
+    "Tey\\Mod\\Maintenance\\FilePlan::$baseline": {
+        "type": "Tey\\Mod\\Maintenance\\Artifact",
+        "visibility": "public",
+        "readonly": true,
+        "static": false,
+        "shape": ""
+    },
+    "Tey\\Mod\\Maintenance\\FilePlan::$compatibility": {
+        "type": "array",
+        "visibility": "public",
+        "readonly": true,
+        "static": false,
+        "shape": "@var array<string, string>"
+    },
+    "Tey\\Mod\\Maintenance\\FilePlan::$files": {
+        "type": "array",
+        "visibility": "public",
+        "readonly": true,
+        "static": false,
+        "shape": ""
+    },
+    "Tey\\Mod\\Maintenance\\FilePlan::$inputs": {
+        "type": "array",
+        "visibility": "public",
+        "readonly": true,
+        "static": false,
+        "shape": "@var array<string, string>"
+    },
+    "Tey\\Mod\\Maintenance\\FilePlan::$root": {
+        "type": "string",
+        "visibility": "public",
+        "readonly": true,
+        "static": false,
+        "shape": ""
+    },
+    "Tey\\Mod\\Maintenance\\FilePlan::$target": {
+        "type": "Tey\\Mod\\Maintenance\\Artifact",
+        "visibility": "public",
+        "readonly": true,
+        "static": false,
+        "shape": ""
+    },
+    "Tey\\Mod\\Maintenance\\FilePlan::between": {
+        "visibility": "public",
+        "static": true,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "appId",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "root",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "baseline",
+                "type": "Tey\\Mod\\Maintenance\\Artifact",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "target",
+                "type": "Tey\\Mod\\Maintenance\\Artifact",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "current",
+                "type": "array",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "inputs",
+                "type": "array",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "compatibility",
+                "type": "array",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "Tey\\Mod\\Maintenance\\FilePlan",
+        "shape": "@param array<string, string> $current @param array<string, string> $inputs @param array<string, string> $compatibility"
+    },
+    "Tey\\Mod\\Maintenance\\FilePlan::executable": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [],
+        "return": "bool",
+        "shape": ""
+    },
+    "Tey\\Mod\\Maintenance\\FilePlan::identity": {
+        "visibility": "public",
+        "static": false,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [],
+        "return": "string",
+        "shape": ""
+    },
     "Tey\\Mod\\ModManager": {
         "type": "class",
         "final": true,
