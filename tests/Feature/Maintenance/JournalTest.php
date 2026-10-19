@@ -12,7 +12,10 @@ beforeEach(function () {
     }
 });
 
-function journalFixture($root): array
+/**
+ * @return array<mixed>
+ */
+function journalFixture(OwnedAppRoot $root): array
 {
     file_put_contents($root->path('app/Owned.php'), 'A');
     file_put_contents($root->path('composer.lock'), 'locked');

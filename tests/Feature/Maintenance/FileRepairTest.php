@@ -14,12 +14,18 @@ beforeEach(function () {
     }
 });
 
+/**
+ * @return array<mixed>
+ */
 function repairArtifacts(): array
 {
     return [new Artifact('example/recipe', 'A', ['app/One.php' => 'A1', 'app/Two.php' => 'A2'], ['core'], ['auth' => 'session'], ['protocol']), new Artifact('example/recipe', 'B', ['app/One.php' => 'B1', 'app/Two.php' => 'B2'], ['core'], ['auth' => 'session'], ['protocol'])];
 }
 
-function repairPrepare($root): array
+/**
+ * @return array<mixed>
+ */
+function repairPrepare(OwnedAppRoot $root): array
 {
     [$a, $b] = repairArtifacts();
     foreach ($a->files as $path => $bytes) {
@@ -160,7 +166,7 @@ it('restores an explicitly owned missing file and creates only absent declared n
 
 it('recovers after the writing child is killed before the journal receipt', function () {
     if (! function_exists('posix_kill')) {
-        $this->markTestSkipped('A POSIX self-signalled child is required.');
+        Assert::markTestSkipped('A POSIX self-signalled child is required.');
     }
     OwnedAppRoot::using(function ($root) {
         [$a, $b, $inputs, $journal] = repairPrepare($root);
