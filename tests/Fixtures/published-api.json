@@ -14969,6 +14969,74 @@
         "return": "string",
         "shape": ""
     },
+    "Tey\\Mod\\Maintenance\\Checkout": {
+        "type": "class",
+        "final": true,
+        "abstract": false,
+        "readonly": false,
+        "shapes": "",
+        "interfaces": [],
+        "parent": null
+    },
+    "Tey\\Mod\\Maintenance\\Checkout::inspect": {
+        "visibility": "public",
+        "static": true,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "root",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "appId",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "baseline",
+                "type": "Tey\\Mod\\Maintenance\\Artifact",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "target",
+                "type": "Tey\\Mod\\Maintenance\\Artifact",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "inputPaths",
+                "type": "array",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "compatibility",
+                "type": "array",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "Tey\\Mod\\Maintenance\\FilePlan",
+        "shape": "@param array<string, string> $inputPaths @param array<string, string> $compatibility"
+    },
     "Tey\\Mod\\Maintenance\\FilePlan": {
         "type": "class",
         "final": true,
