@@ -268,3 +268,54 @@ it('allows an upgrade that keeps the exact version another lineage requires', fu
         expect(Maintenance::apply($plan, $inputs, 'patch', ['check' => fn () => true], true)['status'])->toBe('completed');
     });
 });
+
+it('refuses other lineages while one has an unfinished journal, and lets that one resume', function () {
+    OwnedAppRoot::using(function ($root) {
+        $inputs = lineageInputs($root);
+        $a = lineageArtifact('example/a', '1', ['app/Shared.php' => 'same', 'app/A.php' => 'a']);
+        $emptyA = new Artifact($a->name, $a->version, [], $a->groups, $a->bindings, $a->checks);
+        $plan = Checkout::inspect($root->path, 'one', $emptyA, $a, $inputs, ['php' => 'passed']);
+        expect(Maintenance::apply($plan, $inputs, 'a', ['check' => fn () => false], true)['status'])->toBe('verification_failed');
+        $b = lineageArtifact('example/b', '1', ['app/B.php' => 'b']);
+        $emptyB = new Artifact($b->name, $b->version, [], $b->groups, $b->bindings, $b->checks);
+        expect(fn () => Checkout::inspect($root->path, 'one', $emptyB, $b, $inputs, ['php' => 'passed']))->toThrow(RuntimeException::class, 'pending:example/a')
+            ->and(file_exists($root->path('app/B.php')))->toBeFalse();
+        expect(Maintenance::resume($root->path, 'one', $emptyA, $a, $inputs, ['php' => 'passed'], 'a', ['check' => fn () => true], true)['status'])->toBe('completed');
+        expect(lineageInstall($root, $b, 'b')['status'])->toBe('completed');
+    });
+});
+
+it('refuses a lineage that started while another lineage journal was still unfinished', function () {
+    OwnedAppRoot::using(function ($root) {
+        $inputs = lineageInputs($root);
+        $b = lineageArtifact('example/b', '1', ['app/B.php' => 'b']);
+        $emptyB = new Artifact($b->name, $b->version, [], $b->groups, $b->bindings, $b->checks);
+        $planB = Checkout::inspect($root->path, 'one', $emptyB, $b, $inputs, ['php' => 'passed']);
+        $a = lineageArtifact('example/a', '1', ['app/A.php' => 'a']);
+        $emptyA = new Artifact($a->name, $a->version, [], $a->groups, $a->bindings, $a->checks);
+        Maintenance::apply(Checkout::inspect($root->path, 'one', $emptyA, $a, $inputs, ['php' => 'passed']), $inputs, 'a', ['check' => fn () => false], true);
+        // B's plan was made before A's journal existed; applying it now must still refuse under the claim.
+        expect(fn () => Maintenance::apply($planB, $inputs, 'b', ['check' => fn () => true], true))->toThrow(RuntimeException::class, 'pending:example/a')
+            ->and(file_exists($root->path('app/B.php')))->toBeFalse();
+    });
+});
+
+it('treats an unfinished 0.8 journal as pending for the 0.8 lineage only', function () {
+    OwnedAppRoot::using(function ($root) {
+        $a = lineageArtifact('example/recipe', 'A', ['app/One.php' => 'A']);
+        $b = lineageArtifact('example/recipe', 'B', ['app/One.php' => 'B']);
+        legacyCheckout($root, $a);
+        $inputs = lineageInputs($root);
+        expect(Maintenance::apply(Checkout::inspect($root->path, 'one', $a, $b, $inputs, ['php' => 'passed']), $inputs, 'upgrade', ['check' => fn () => false], true)['status'])->toBe('verification_failed');
+        // Strip the lineage name, as a journal written by 0.8 has none.
+        $path = $root->path('.mod-maintenance/journal-'.hash('sha256', 'upgrade').'.json');
+        $journal = json_decode(file_get_contents($path), true);
+        unset($journal['envelope']['lineage']);
+        file_put_contents($path, json_encode($journal, JSON_UNESCAPED_SLASHES)."\n");
+        $other = lineageArtifact('example/other', '1', ['app/Other.php' => 'other']);
+        $empty = new Artifact($other->name, $other->version, [], $other->groups, $other->bindings, $other->checks);
+        expect(fn () => Checkout::inspect($root->path, 'one', $empty, $other, $inputs, ['php' => 'passed']))->toThrow(RuntimeException::class, 'pending:example/recipe');
+        expect(Maintenance::resume($root->path, 'one', $a, $b, $inputs, ['php' => 'passed'], 'upgrade', ['check' => fn () => true], true)['status'])->toBe('completed')
+            ->and(lineageInstall($root, $other, 'other')['status'])->toBe('completed');
+    });
+});

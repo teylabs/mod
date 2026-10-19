@@ -43,6 +43,11 @@ final class Checkout
      */
     private static function refusals(string $root, string $appId, Artifact $target): array
     {
+        // Conservative: another lineage's unfinished update may own any path until it completes.
+        $pending = Journal::pending($root, $target);
+        if ($pending !== null) {
+            throw new RuntimeException("Another lineage has an unfinished update (pending:{$pending}).");
+        }
         $others = InstalledRecord::lineages($root, $appId, except: $target->name);
         foreach ($target->requires as $name => $version) {
             if (! isset($others[$name]) || ($version !== '*' && $others[$name]->version !== $version)) {
