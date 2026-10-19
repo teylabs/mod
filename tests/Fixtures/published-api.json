@@ -14886,6 +14886,13 @@
         "static": false,
         "shape": ""
     },
+    "Tey\\Mod\\Maintenance\\Artifact::$metadata": {
+        "type": "array",
+        "visibility": "public",
+        "readonly": true,
+        "static": false,
+        "shape": "@var array<string, mixed>"
+    },
     "Tey\\Mod\\Maintenance\\Artifact::$name": {
         "type": "string",
         "visibility": "public",
@@ -14954,10 +14961,18 @@
                 "variadic": false,
                 "reference": false,
                 "default": null
+            },
+            {
+                "name": "metadata",
+                "type": "array",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": []
             }
         ],
         "return": null,
-        "shape": "@param array<string, string> $files @param list<string> $groups @param array<string, string> $bindings @param list<string> $checks"
+        "shape": "@param array<string, string> $files @param list<string> $groups @param array<string, string> $bindings @param list<string> $checks @param array<string, mixed> $metadata"
     },
     "Tey\\Mod\\Maintenance\\Artifact::identity": {
         "visibility": "public",

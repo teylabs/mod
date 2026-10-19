@@ -10,7 +10,12 @@ final class InstalledRecord
     /** @return array<string, mixed> */
     public static function artifact(Artifact $artifact): array
     {
-        return ['identity' => $artifact->identity(), 'name' => $artifact->name, 'version' => $artifact->version, 'files' => array_map(base64_encode(...), $artifact->files), 'groups' => $artifact->groups, 'bindings' => $artifact->bindings, 'checks' => $artifact->checks];
+        $record = ['identity' => $artifact->identity(), 'name' => $artifact->name, 'version' => $artifact->version, 'files' => array_map(base64_encode(...), $artifact->files), 'groups' => $artifact->groups, 'bindings' => $artifact->bindings, 'checks' => $artifact->checks];
+        if ($artifact->metadata !== []) {
+            $record['metadata'] = $artifact->metadata;
+        }
+
+        return $record;
     }
 
     /** @param array<string, mixed>|null $record */
