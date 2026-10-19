@@ -14879,7 +14879,7 @@
         "static": false,
         "shape": ""
     },
-    "Tey\\Mod\\Maintenance\\Artifact::$modules": {
+    "Tey\\Mod\\Maintenance\\Artifact::$groups": {
         "type": "array",
         "visibility": "public",
         "readonly": true,
@@ -14932,7 +14932,7 @@
                 "default": null
             },
             {
-                "name": "modules",
+                "name": "groups",
                 "type": "array",
                 "optional": false,
                 "variadic": false,
@@ -14957,7 +14957,7 @@
             }
         ],
         "return": null,
-        "shape": "@param array<string, string> $files @param list<string> $modules @param array<string, string> $bindings @param list<string> $checks"
+        "shape": "@param array<string, string> $files @param list<string> $groups @param array<string, string> $bindings @param list<string> $checks"
     },
     "Tey\\Mod\\Maintenance\\Artifact::identity": {
         "visibility": "public",
