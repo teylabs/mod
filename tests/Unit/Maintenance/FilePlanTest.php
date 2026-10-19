@@ -3,6 +3,10 @@
 use Tey\Mod\Maintenance\Artifact;
 use Tey\Mod\Maintenance\FilePlan;
 
+/**
+ * @param  array<string, string>  $files
+ * @param  list<string>  $groups
+ */
 function maintenanceArtifact(string $version = 'A', array $files = ['app/Policy.php' => 'original', 'app/Other.php' => 'other'], array $groups = ['core']): Artifact
 {
     return new Artifact('example/blueprint', $version, $files, $groups, ['auth' => 'session'], ['protocol']);
