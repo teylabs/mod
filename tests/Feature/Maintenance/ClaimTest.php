@@ -182,3 +182,32 @@ it('keeps 0.8 plan identities when nothing is claimed', function () {
             ->toBe(Checkout::inspect($root->path, 'one', claimEmpty($target), $target, $inputs, ['php' => 'passed'])->identity());
     });
 });
+
+it('keeps plan identity independent of claim list order', function () {
+    OwnedAppRoot::using(function ($root) {
+        file_put_contents($root->path('app/One.php'), 'one');
+        file_put_contents($root->path('app/Two.php'), 'two');
+        $target = claimArtifact('example/recipe', 'A', ['app/One.php' => 'one', 'app/Two.php' => 'two']);
+        $inputs = claimInputs($root);
+        $forward = Checkout::inspect($root->path, 'one', claimEmpty($target), $target, $inputs, ['php' => 'passed'], claim: ['app/One.php', 'app/Two.php']);
+        $reverse = Checkout::inspect($root->path, 'one', claimEmpty($target), $target, $inputs, ['php' => 'passed'], claim: ['app/Two.php', 'app/One.php']);
+        expect($reverse->identity())->toBe($forward->identity())
+            ->and($reverse->claim)->toBe(['app/One.php', 'app/Two.php']);
+        Maintenance::apply($forward, $inputs, 'install', ['check' => fn () => false], true);
+        expect(Maintenance::resume($root->path, 'one', claimEmpty($target), $target, $inputs, ['php' => 'passed'], 'install', ['check' => fn () => true], true, claim: ['app/Two.php', 'app/One.php'])['status'])->toBe('completed');
+    });
+});
+
+it('never lets another lineage claim a file a pending journal wrote, and lets the pending lineage resume', function () {
+    OwnedAppRoot::using(function ($root) {
+        $inputs = claimInputs($root);
+        $a = claimArtifact('example/a', '1', ['app/Shared.php' => 'same', 'app/A.php' => 'a']);
+        expect(Maintenance::apply(Checkout::inspect($root->path, 'one', claimEmpty($a), $a, $inputs, ['php' => 'passed']), $inputs, 'a', ['check' => fn () => false], true)['status'])->toBe('verification_failed')
+            ->and(file_get_contents($root->path('app/Shared.php')))->toBe('same');
+        $b = claimArtifact('example/b', '1', ['app/Shared.php' => 'same']);
+        expect(fn () => Checkout::inspect($root->path, 'one', claimEmpty($b), $b, $inputs, ['php' => 'passed'], claim: ['app/Shared.php']))->toThrow(RuntimeException::class, 'pending:example/a');
+        expect(Maintenance::resume($root->path, 'one', claimEmpty($a), $a, $inputs, ['php' => 'passed'], 'a', ['check' => fn () => true], true)['status'])->toBe('completed');
+        $plan = Checkout::inspect($root->path, 'one', claimEmpty($b), $b, $inputs, ['php' => 'passed'], claim: ['app/Shared.php']);
+        expect($plan->files['app/Shared.php'])->toMatchArray(['state' => 'conflict', 'reason' => 'owned_by:example/a']);
+    });
+});

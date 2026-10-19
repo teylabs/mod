@@ -65,6 +65,8 @@ final readonly class FilePlan
                 throw new InvalidArgumentException('Claims must only name new target paths.');
             }
         }
+        // A reviewed list is a set: its order must not change plan identity.
+        sort($claim);
         $files = [];
         foreach ($target->files as $path => $bytes) {
             $original = $baseline->files[$path] ?? null;
