@@ -21,7 +21,10 @@ function installArtifact(string $version = 'A'): Artifact
     return new Artifact('example/recipe', $version, ['app/One.php' => $version], ['core'], ['auth' => 'session'], ['protocol']);
 }
 
-function finalizationInputs($root): array
+/**
+ * @return array<mixed>
+ */
+function finalizationInputs(OwnedAppRoot $root): array
 {
     file_put_contents($root->path('verification-policy.json'), '{"checks":["protocol"]}');
     file_put_contents($root->path('verification.php'), '<?php return true;');
@@ -29,7 +32,10 @@ function finalizationInputs($root): array
     return ['lock' => 'composer.lock', 'verification-policy' => 'verification-policy.json', 'verification-code' => 'verification.php'];
 }
 
-function installedFixture($root): array
+/**
+ * @return array<mixed>
+ */
+function installedFixture(OwnedAppRoot $root): array
 {
     file_put_contents($root->path('composer.lock'), 'lock');
     $a = installArtifact();
@@ -180,6 +186,7 @@ it('refuses changed or foreign installed state without replacing it', function (
             'bytes' => $saved['artifact']['files']['app/One.php'] = base64_encode('custom'),
             'bindings' => $saved['artifact']['bindings']['auth'] = 'foreign',
             'extra' => $saved['extra'] = 'unknown',
+            default => throw new InvalidArgumentException("Unknown field {$field}."),
         };
         file_put_contents($path, json_encode($saved));
         $before = file_get_contents($path);
@@ -263,7 +270,7 @@ it('cold reopens an interrupted initial install and never adopts a new initial i
 
 it('recovers version finalisation when a separate verifying process is killed around commit', function (bool $after) {
     if (! function_exists('posix_kill')) {
-        $this->markTestSkipped('A POSIX self-signalled child is required.');
+        Assert::markTestSkipped('A POSIX self-signalled child is required.');
     }
     OwnedAppRoot::using(function ($root) use ($after) {
         [$a] = installedFixture($root);

@@ -14,7 +14,7 @@ beforeEach(function () {
     }
 });
 
-function verificationClaim($root, bool $repair = true): Journal
+function verificationClaim(OwnedAppRoot $root, bool $repair = true): Journal
 {
     $a = new Artifact('example/recipe', 'A', ['app/One.php' => 'A'], [], [], ['protocol', 'isolation']);
     $b = new Artifact('example/recipe', 'B', ['app/One.php' => 'B'], [], [], ['protocol', 'isolation']);
