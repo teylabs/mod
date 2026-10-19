@@ -68,7 +68,21 @@ it('refuses traversal reserved metadata aliases and case or parent collisions', 
     [['../escape' => 'x']], [['/absolute' => 'x']], [['C:/absolute' => 'x']], [['a\\b' => 'x']],
     [['a//b' => 'x']], [['a/./b' => 'x']], [['.mod-maintenance/manifest.json' => 'x']],
     [['app/A.php' => 'x', 'app/a.php' => 'y']], [['app' => 'x', 'app/A.php' => 'y']],
+    [['.' => 'x']], [['..' => 'x']], [['.git/config' => 'x']], [['packages/one/.git/HEAD' => 'x']], [['.GIT/config' => 'x']],
+    [['.MOD-MAINTENANCE/lock' => 'x']], [['.mod-maintenance-stage-1/x' => 'x']], [['.env.' => 'x']],
 ]);
+
+it('accepts dot-prefixed files and directories', function () {
+    $artifact = maintenanceArtifact(files: ['.env.example' => 'APP_NAME=Kit', '.github/workflows/tests.yml' => 'on: push', 'app/.gitignore' => '*']);
+
+    expect(array_keys($artifact->files))->toBe(['.env.example', '.github/workflows/tests.yml', 'app/.gitignore']);
+});
+
+it('accepts dot-prefixed host-owned prefixes', function () {
+    $artifact = new Artifact('example/blueprint', 'A', ['app/Policy.php' => 'original'], ['core'], [], ['protocol'], hostOwned: ['.env', '.env.example']);
+
+    expect($artifact->hostOwned)->toBe(['.env', '.env.example']);
+});
 
 it('refuses removals changed module selection and unrelated artifacts pending explicit policy', function () {
     $a = maintenanceArtifact();

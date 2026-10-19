@@ -164,16 +164,19 @@ final readonly class Artifact
         self::withoutReferences($files);
         $seen = [];
         foreach ($files as $path => $bytes) {
-            if (! is_string($path) || ! is_string($bytes) || ! preg_match('~\A[A-Za-z0-9_-][A-Za-z0-9_./-]*\z~D', $path)) {
+            if (! is_string($path) || ! is_string($bytes) || ! preg_match('~\A[A-Za-z0-9_.-][A-Za-z0-9_./-]*\z~D', $path)) {
                 throw new InvalidArgumentException('Files require portable relative paths and string bytes.');
             }
             foreach (explode('/', $path) as $segment) {
                 if ($segment === '' || $segment === '.' || $segment === '..' || str_ends_with($segment, '.')) {
                     throw new InvalidArgumentException('Unsafe relative file path.');
                 }
+                if (strtolower($segment) === '.git') {
+                    throw new InvalidArgumentException('Git metadata cannot be a generated file.');
+                }
             }
             $folded = strtolower($path);
-            if ($folded === '.mod-maintenance' || str_starts_with($folded, '.mod-maintenance/')) {
+            if (str_starts_with($folded, '.mod-maintenance')) {
                 throw new InvalidArgumentException('Maintenance metadata cannot be a generated file.');
             }
             foreach ($seen as $other) {
