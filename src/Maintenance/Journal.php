@@ -65,6 +65,11 @@ final class Journal
                 'compatibility' => $plan->compatibility,
                 'required_checks' => $plan->target->checks,
             ], 'completed_files' => []];
+            if ($plan->claim !== []) {
+                // Claimed bytes are recorded as the original, so recovery and verification work unchanged.
+                $claimed = array_filter($plan->files, static fn (array $entry): bool => $entry['state'] === 'claim');
+                $record['envelope']['claimed'] = array_map(base64_encode(...), array_intersect_key($plan->target->files, $claimed));
+            }
             $relative = '.mod-maintenance/journal-'.hash('sha256', $intent).'.json';
             $path = SafeFilesystem::path($plan->root, $relative);
             if (file_exists($path)) {
@@ -96,7 +101,7 @@ final class Journal
     /** @param array<string, string> $inputPaths */
     private static function fresh(FilePlan $plan, array $inputPaths, bool $recovery = false): void
     {
-        $fresh = Checkout::inspect($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility);
+        $fresh = Checkout::inspect($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility, $plan->claim);
         // Another lineage may have taken ownership since the original plan was made.
         $refused = array_filter($fresh->files, static fn (array $entry): bool => isset($entry['reason']));
         if (! $plan->executable() || $refused !== [] || Fingerprint::of($fresh->inputs) !== Fingerprint::of($plan->inputs) || (! $recovery && $fresh->identity() !== $plan->identity())) {
@@ -321,13 +326,14 @@ final class Journal
      *
      * @param  array<string, string>  $inputPaths
      * @param  array<string, string>  $compatibility
+     * @param  list<string>  $claim
      */
-    public static function reopen(string $root, string $appId, Artifact $baseline, Artifact $target, array $inputPaths, array $compatibility, string $intent, bool $exclusiveCheckout): self
+    public static function reopen(string $root, string $appId, Artifact $baseline, Artifact $target, array $inputPaths, array $compatibility, string $intent, bool $exclusiveCheckout, array $claim = []): self
     {
         if (! $exclusiveCheckout || $intent === '' || strlen($intent) > 120 || preg_match('/[\x00-\x1F\x7F]/', $intent)) {
             throw new RuntimeException('Exclusive checkout and stable intent are required.');
         }
-        $fresh = Checkout::inspect($root, $appId, $baseline, $target, $inputPaths, $compatibility);
+        $fresh = Checkout::inspect($root, $appId, $baseline, $target, $inputPaths, $compatibility, $claim);
         $path = SafeFilesystem::path($root, '.mod-maintenance/journal-'.hash('sha256', $intent).'.json');
         $saved = self::readData($path);
         $envelope = $saved['envelope'] ?? null;
@@ -341,13 +347,15 @@ final class Journal
                 throw new RuntimeException('Missing prepared file identity.');
             }
             if ($entry['current'] !== null) {
-                if (! isset($baseline->files[$relative]) || $entry['current'] !== hash('sha256', $baseline->files[$relative])) {
+                // A claimed original is the target's own bytes: only a trusted artifact can supply them.
+                $trusted = $baseline->files[$relative] ?? (in_array($relative, $claim, true) ? $bytes : null);
+                if ($trusted === null || $entry['current'] !== hash('sha256', $trusted)) {
                     throw new RuntimeException('Untrusted original recovery bytes.');
                 }
-                $original[$relative] = $baseline->files[$relative];
+                $original[$relative] = $trusted;
             }
         }
-        $plan = FilePlan::between($appId, $root, $baseline, $target, $original, $fresh->inputs, $compatibility);
+        $plan = FilePlan::between($appId, $root, $baseline, $target, $original, $fresh->inputs, $compatibility, claim: $claim);
 
         return self::prepare($plan, $inputPaths, $intent, $exclusiveCheckout, recovery: true);
     }
