@@ -54,6 +54,7 @@ It reads only the files the two artifacts name, plus the host inputs in `$inputP
 | create | A new target file, and nothing is there yet |
 | conflict | Current differs from original, even if it equals the target |
 | unowned | A new target path collides with a host file |
+| claim | A listed new target path already has identical bytes (see [Claiming existing files](#claiming-existing-files)) |
 
 A conflict, an unowned collision or a compatibility result other than `passed` makes the plan non-executable. Files the artifacts don't name are never touched and never become owned.
 
@@ -84,6 +85,50 @@ Mod records the new installed version last, after every check has passed. If a p
 
 Only `completed` means success. Edited, stale, foreign or unsafe state throws a refusal. Leftover temporary files from an interrupted run are reported as `orphaned` and left in place for you to inspect.
 
+## Several lineages in one checkout
+
+Each artifact name is a lineage: one generated feature, such as `acme/blueprint:billing`, installed and upgraded on its own. A checkout can hold many lineages, and Mod keeps one installed record for each. `Checkout::installed()` lists them, read only:
+
+```php
+Checkout::installed($root, $appId);
+// ['acme/blueprint:billing' => ['identity' => 'sha256:…', 'version' => '2.0.0', 'files' => ['app/Billing.php' => '<sha256>']]]
+```
+
+Lineages never share files. When a target path is owned by another installed lineage, it's a `conflict`, and its plan entry has the reason `owned_by:<name>`. Ownership is never transferred.
+
+Two optional artifact parameters describe how lineages relate:
+
+```php
+$target = new Artifact(
+    name: 'acme/blueprint:billing',
+    version: '2.0.0',
+    files: [...],
+    groups: [],
+    bindings: [],
+    checks: ['boot'],
+    requires: ['acme/blueprint:foundation' => '*'],
+    hostOwned: ['config/branding.php', 'app/Domain'],
+);
+```
+
+- `requires` names lineages that must already be installed, each at an exact version or `'*'` for any. Otherwise `Checkout::inspect()` refuses. Check version ranges yourself and pass the result in as an ordinary compatibility outcome.
+- `hostOwned` lists path prefixes this lineage leaves to the host. `app/Domain` covers that path and everything under it. No other lineage may own, write or claim there; such a path is a `conflict` with the reason `host_owned:<name>`. Several lineages may declare the same prefix. Mod compares these paths but never reads them, and refuses to install a lineage whose prefixes cover a file another lineage already owns.
+
+A checkout written by 0.8 keeps working. Its `installed.json` is read as the record for its own lineage and moves to the new layout on that lineage's next update.
+
+## Claiming existing files
+
+An app may already contain files a lineage would generate, for example when it adopts a recipe it once copied by hand. Pass the paths you have reviewed as `claim`:
+
+```php
+$report = Maintenance::diagnose($plan, $inputPaths);
+// $report['claimable']: unowned paths whose bytes already equal the target
+
+$plan = Checkout::inspect($root, $appId, $installed, $target, $inputPaths, $compatibility, claim: ['app/Providers/AcmeServiceProvider.php']);
+```
+
+A claimed path whose bytes are identical to the target has the state `claim`. Mod doesn't write it, and after the update it's owned like any generated file. Differing bytes are a `conflict`, and existing paths you didn't list stay `unowned`. A claim never overwrites anything. To resume an interrupted update, pass the same `claim` list to `Maintenance::resume()`.
+
 ## Limits
 
 - Experimental, and POSIX checkouts only.
@@ -91,3 +136,4 @@ Only `completed` means success. Edited, stale, foreign or unsafe state throws a 
 - One Mod writer per checkout. Other editors aren't excluded.
 - Covers process interruption, not power loss.
 - Mod never cleans up or adopts orphaned files.
+- Removing an installed lineage isn't supported yet.
