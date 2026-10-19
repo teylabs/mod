@@ -72,3 +72,8 @@ it('refuses removals changed module selection and unrelated artifacts pending ex
         expect(fn () => FilePlan::between('one', '/owned/one', $a, $b, $a->files, [], ['framework' => 'passed']))->toThrow(InvalidArgumentException::class);
     }
 });
+
+it('refuses syntactic root aliases and unsupported drive or network roots', function (string $root) {
+    $a = maintenanceArtifact();
+    expect(fn () => FilePlan::between('one', $root, $a, maintenanceArtifact('B'), $a->files, [], ['framework' => 'passed']))->toThrow(InvalidArgumentException::class);
+})->with(['/owned/app/..', '/owned/app/.', '/owned//app', '//server/share/app', 'C:/owned/app', 'c:\\owned\\app', '/owned/app/../other', '/owned/app/./other', '/owned/app/', '/owned\\app', "/owned/app\n"]);

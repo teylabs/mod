@@ -25,7 +25,7 @@ final readonly class FilePlan
     /**
      * Current is a trusted inspector's observed bytes for the union of baseline and target paths.
      * Missing keys represent absent files; unrelated host paths must not be supplied.
-     * Root must be the inspector's canonical checkout path. This pure planner does no IO.
+     * Root must be the inspector's canonical POSIX checkout path. This pure planner does no IO or canonicalisation.
      *
      * @param  array<string, string>  $current
      * @param  array<string, string>  $inputs  Host input identities (lock, bindings, policy).
@@ -35,8 +35,8 @@ final readonly class FilePlan
      */
     public static function between(string $appId, string $root, Artifact $baseline, Artifact $target, array $current, array $inputs, array $compatibility): self
     {
-        if ($appId === '' || ! str_starts_with($root, '/') || str_ends_with($root, '/') || str_contains($root, '/./') || str_contains($root, '/../') || str_contains($root, "\0")) {
-            throw new InvalidArgumentException('App identity and canonical absolute root are required.');
+        if ($appId === '' || ! str_starts_with($root, '/') || str_ends_with($root, '/') || array_intersect(explode('/', substr($root, 1)), ['', '.', '..']) !== [] || preg_match('/[\\\\:\x00-\x1F\x7F]/', $root)) {
+            throw new InvalidArgumentException('App identity and a canonical POSIX checkout root are required. Drive and network roots are unsupported.');
         }
         if ($baseline->name !== $target->name || $baseline->groups !== $target->groups || $baseline->bindings !== $target->bindings || array_diff_key($baseline->files, $target->files) !== []) {
             throw new InvalidArgumentException('Artifact lineage, selection and ownership must be preserved. Removals require explicit policy.');
