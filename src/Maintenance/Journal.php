@@ -14,14 +14,16 @@ final class Journal
     /**
      * @param  resource  $lock
      * @param  array<string, mixed>  $record
+     * @param  array<string, string>  $inputPaths
+     * @param  array<string, string>  $completedFiles
      */
-    private function __construct($lock, private array $record)
+    private function __construct($lock, private array $record, private FilePlan $plan, private array $inputPaths, private string $relative, private string $recordHash, private array $completedFiles)
     {
         $this->lock = $lock;
     }
 
     /** @param array<string, string> $inputPaths */
-    public static function prepare(FilePlan $plan, array $inputPaths, string $intent, bool $exclusiveCheckout): self
+    public static function prepare(FilePlan $plan, array $inputPaths, string $intent, bool $exclusiveCheckout, bool $recovery = false): self
     {
         if (! $exclusiveCheckout) {
             throw new RuntimeException('Repair preparation requires an exclusively owned checkout.');
@@ -29,7 +31,10 @@ final class Journal
         if ($intent === '' || strlen($intent) > 120 || preg_match('/[\x00-\x1F\x7F]/', $intent)) {
             throw new RuntimeException('A stable, size-limited intent identity is required.');
         }
-        self::fresh($plan, $inputPaths);
+        self::fresh($plan, $inputPaths, $recovery);
+        if ($recovery && ! is_file(SafeFilesystem::path($plan->root, '.mod-maintenance/journal-'.hash('sha256', $intent).'.json'))) {
+            throw new RuntimeException('Recovery requires an existing prepared journal.');
+        }
         self::initialize($plan);
         $lockPath = SafeFilesystem::path($plan->root, '.mod-maintenance/lock');
         if (file_exists($lockPath)) {
@@ -43,9 +48,9 @@ final class Journal
             if (! flock($lock, LOCK_EX | LOCK_NB)) {
                 throw new RuntimeException('Maintenance checkout is already claimed.');
             }
-            self::fresh($plan, $inputPaths);
+            self::fresh($plan, $inputPaths, $recovery);
             self::owner($plan);
-            $record = ['format' => 1, 'state' => 'prepared', 'envelope' => [
+            $record = ['format' => 2, 'state' => 'prepared', 'envelope' => [
                 'app_id' => $plan->appId,
                 'root' => $plan->root,
                 'intent' => $intent,
@@ -58,11 +63,16 @@ final class Journal
                 'inputs' => $plan->inputs,
                 'compatibility' => $plan->compatibility,
                 'required_checks' => $plan->target->checks,
-            ]];
+            ], 'completed_files' => []];
             $relative = '.mod-maintenance/journal-'.hash('sha256', $intent).'.json';
             $path = SafeFilesystem::path($plan->root, $relative);
             if (file_exists($path)) {
                 $existing = self::readData($path);
+                if (($existing['format'] ?? null) !== 2) {
+                    throw new RuntimeException('Unsupported prepared journal format.');
+                }
+                $completed = self::completed($existing, $plan);
+                $record['completed_files'] = $completed;
                 if (Fingerprint::of($existing) !== Fingerprint::of($record)) {
                     throw new RuntimeException('Intent collision or invalid prepared journal.');
                 }
@@ -70,7 +80,7 @@ final class Journal
                 self::atomicData($plan->root, $relative, $record);
             }
 
-            return new self($lock, $record);
+            return new self($lock, $record, $plan, $inputPaths, $relative, self::fileHash($path), self::completed($record, $plan));
         } catch (Throwable $exception) {
             flock($lock, LOCK_UN);
             fclose($lock);
@@ -79,11 +89,19 @@ final class Journal
     }
 
     /** @param array<string, string> $inputPaths */
-    private static function fresh(FilePlan $plan, array $inputPaths): void
+    private static function fresh(FilePlan $plan, array $inputPaths, bool $recovery = false): void
     {
         $fresh = Checkout::inspect($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility);
-        if (! $plan->executable() || $fresh->identity() !== $plan->identity()) {
+        if (! $plan->executable() || Fingerprint::of($fresh->inputs) !== Fingerprint::of($plan->inputs) || (! $recovery && $fresh->identity() !== $plan->identity())) {
             throw new RuntimeException('Conflicted, incompatible or stale maintenance plan.');
+        }
+        if ($recovery) {
+            foreach ($plan->files as $path => $entry) {
+                $current = $fresh->files[$path]['current'];
+                if ($current !== $entry['current'] && $current !== $entry['target']) {
+                    throw new RuntimeException('Third file value blocks maintenance recovery.');
+                }
+            }
         }
     }
 
@@ -172,7 +190,7 @@ final class Journal
     }
 
     /** @param array<string, mixed> $value */
-    private static function atomicData(string $root, string $relative, array $value): void
+    private static function atomicData(string $root, string $relative, array $value, ?string $expectedHash = null): void
     {
         $bytes = json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES)."\n";
         if (strlen($bytes) > 16 * 1024 * 1024) {
@@ -198,7 +216,8 @@ final class Journal
             }
             fclose($stream);
             SafeFilesystem::path($root, $relative);
-            if (file_exists($path) || is_link($path) || ! rename($temporary, $path)) {
+            $matches = $expectedHash === null ? ! file_exists($path) && ! is_link($path) : self::fileHash($path) === $expectedHash;
+            if (! $matches || ! rename($temporary, $path)) {
                 throw new RuntimeException('Maintenance destination changed during preparation.');
             }
             if (self::readData($path) !== $value) {
@@ -212,6 +231,112 @@ final class Journal
                 unlink($temporary);
             }
         }
+    }
+
+    /**
+     * Reconstruct the original plan only from trusted artifacts and validated expected hashes.
+     *
+     * @param  array<string, string>  $inputPaths
+     * @param  array<string, string>  $compatibility
+     */
+    public static function reopen(string $root, string $appId, Artifact $baseline, Artifact $target, array $inputPaths, array $compatibility, string $intent, bool $exclusiveCheckout): self
+    {
+        if (! $exclusiveCheckout || $intent === '' || strlen($intent) > 120 || preg_match('/[\x00-\x1F\x7F]/', $intent)) {
+            throw new RuntimeException('Exclusive checkout and stable intent are required.');
+        }
+        $fresh = Checkout::inspect($root, $appId, $baseline, $target, $inputPaths, $compatibility);
+        $path = SafeFilesystem::path($root, '.mod-maintenance/journal-'.hash('sha256', $intent).'.json');
+        $saved = self::readData($path);
+        $envelope = $saved['envelope'] ?? null;
+        if (! is_array($envelope) || ! is_array($envelope['files'] ?? null)) {
+            throw new RuntimeException('Invalid prepared recovery schema.');
+        }
+        $original = [];
+        foreach ($target->files as $relative => $bytes) {
+            $entry = $envelope['files'][$relative] ?? null;
+            if (! is_array($entry) || ! array_key_exists('current', $entry)) {
+                throw new RuntimeException('Missing prepared file identity.');
+            }
+            if ($entry['current'] !== null) {
+                if (! isset($baseline->files[$relative]) || $entry['current'] !== hash('sha256', $baseline->files[$relative])) {
+                    throw new RuntimeException('Untrusted original recovery bytes.');
+                }
+                $original[$relative] = $baseline->files[$relative];
+            }
+        }
+        $plan = FilePlan::between($appId, $root, $baseline, $target, $original, $fresh->inputs, $compatibility);
+
+        return self::prepare($plan, $inputPaths, $intent, $exclusiveCheckout, recovery: true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $record
+     * @return array<string, string>
+     */
+    private static function completed(array $record, FilePlan $plan): array
+    {
+        $steps = $record['completed_files'] ?? null;
+        if (! is_array($steps)) {
+            throw new RuntimeException('Invalid file receipt schema.');
+        }
+        $valid = [];
+        foreach ($steps as $path => $hash) {
+            if (! is_string($path) || ! isset($plan->target->files[$path]) || $hash !== hash('sha256', $plan->target->files[$path])) {
+                throw new RuntimeException('Invalid completed file identity.');
+            }
+            $valid[$path] = $hash;
+        }
+
+        return $valid;
+    }
+
+    private static function fileHash(string $path): string
+    {
+        self::regular($path);
+        $hash = hash_file('sha256', $path);
+        if ($hash === false) {
+            throw new RuntimeException('Unable to fingerprint maintenance data.');
+        }
+
+        return $hash;
+    }
+
+    public function assertCurrent(): void
+    {
+        if (! is_resource($this->lock)) {
+            throw new RuntimeException('Maintenance claim is closed.');
+        }
+        self::fresh($this->plan, $this->inputPaths, recovery: true);
+        self::owner($this->plan);
+        if (self::fileHash(SafeFilesystem::path($this->plan->root, $this->relative)) !== $this->recordHash) {
+            throw new RuntimeException('Prepared journal changed during execution.');
+        }
+    }
+
+    public function plan(): FilePlan
+    {
+        $this->assertCurrent();
+
+        return $this->plan;
+    }
+
+    public function completeFile(string $path): void
+    {
+        $this->assertCurrent();
+        if (! isset($this->plan->target->files[$path]) || SafeFilesystem::read($this->plan->root, $path) !== $this->plan->target->files[$path]) {
+            throw new RuntimeException('Generated file readback does not match target.');
+        }
+        if (isset($this->completedFiles[$path])) {
+            return;
+        }
+        $next = $this->record;
+        $completed = $this->completedFiles;
+        $completed[$path] = hash('sha256', $this->plan->target->files[$path]);
+        $next['completed_files'] = $completed;
+        self::atomicData($this->plan->root, $this->relative, $next, $this->recordHash);
+        $this->record = $next;
+        $this->completedFiles = $completed;
+        $this->recordHash = self::fileHash(SafeFilesystem::path($this->plan->root, $this->relative));
     }
 
     /** @return array<string, mixed> */
