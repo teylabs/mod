@@ -14886,6 +14886,13 @@
         "static": false,
         "shape": ""
     },
+    "Tey\\Mod\\Maintenance\\Artifact::$metadata": {
+        "type": "array",
+        "visibility": "public",
+        "readonly": true,
+        "static": false,
+        "shape": "@var array<string, mixed>"
+    },
     "Tey\\Mod\\Maintenance\\Artifact::$name": {
         "type": "string",
         "visibility": "public",
@@ -14954,10 +14961,18 @@
                 "variadic": false,
                 "reference": false,
                 "default": null
+            },
+            {
+                "name": "metadata",
+                "type": "array",
+                "optional": true,
+                "variadic": false,
+                "reference": false,
+                "default": []
             }
         ],
         "return": null,
-        "shape": "@param array<string, string> $files @param list<string> $groups @param array<string, string> $bindings @param list<string> $checks"
+        "shape": "@param array<string, string> $files @param list<string> $groups @param array<string, string> $bindings @param list<string> $checks @param array<string, mixed> $metadata"
     },
     "Tey\\Mod\\Maintenance\\Artifact::identity": {
         "visibility": "public",
@@ -15181,6 +15196,176 @@
         "parameters": [],
         "return": "string",
         "shape": ""
+    },
+    "Tey\\Mod\\Maintenance\\Maintenance": {
+        "type": "class",
+        "final": true,
+        "abstract": false,
+        "readonly": false,
+        "shapes": "",
+        "interfaces": [],
+        "parent": null
+    },
+    "Tey\\Mod\\Maintenance\\Maintenance::apply": {
+        "visibility": "public",
+        "static": true,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "plan",
+                "type": "Tey\\Mod\\Maintenance\\FilePlan",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "inputPaths",
+                "type": "array",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "intent",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "registry",
+                "type": "array",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "exclusiveCheckout",
+                "type": "bool",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "array",
+        "shape": "@param array<string, string> $inputPaths @param array<string, Closure> $registry @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}"
+    },
+    "Tey\\Mod\\Maintenance\\Maintenance::diagnose": {
+        "visibility": "public",
+        "static": true,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "plan",
+                "type": "Tey\\Mod\\Maintenance\\FilePlan",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "inputPaths",
+                "type": "array",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "array",
+        "shape": "@param array<string, string> $inputPaths @return array{plan: string, current: bool, executable: bool, orphans: list<array{path: string, kind: string}>}"
+    },
+    "Tey\\Mod\\Maintenance\\Maintenance::resume": {
+        "visibility": "public",
+        "static": true,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "root",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "appId",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "baseline",
+                "type": "Tey\\Mod\\Maintenance\\Artifact",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "target",
+                "type": "Tey\\Mod\\Maintenance\\Artifact",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "inputPaths",
+                "type": "array",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "compatibility",
+                "type": "array",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "intent",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "registry",
+                "type": "array",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "exclusiveCheckout",
+                "type": "bool",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "array",
+        "shape": "@param array<string, string> $inputPaths @param array<string, string> $compatibility @param array<string, Closure> $registry @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}"
     },
     "Tey\\Mod\\ModManager": {
         "type": "class",

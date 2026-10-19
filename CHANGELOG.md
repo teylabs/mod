@@ -5,12 +5,7 @@ All notable changes to `mod` will be documented in this file.
 ## Unreleased
 
 ### Added
-- Internal file-only installation refuses existing destinations; ownership-gated upgrade and fresh trusted checks precede an atomic version-last installed record with cold retry reconciliation (#91).
-- Internal verification runs declared trusted host closures under a live claim, rechecks exact target files and host inputs around every check, and reports missing or failing outcomes without recording an installed version (#91).
-- Internal whole-file repair rechecks a held prepared claim before atomic replacement, preserves existing executable mode and reconciles original/target bytes after write-before-receipt interruption. Verification and version recording remain separate (#91).
-- Internal maintenance preparation claims an exclusively owned checkout and stores recoverable original/target bytes in a data-only journal before future repair. It writes no generated file or version record (#91).
-- A read-only POSIX checkout inspector binds explicit generated and host-input observations to a plan, refusing symlink parents, metadata links, directory targets and case aliases (#91).
-- A read-only whole-file maintenance planner compares recoverable original, current and target bytes; plans bind application identity, recipe selection, host inputs and compatibility outcomes. It neither writes files nor records upgrades (#91).
+- Experimental `Tey\Mod\Maintenance` API for keeping generated files up to date: `Artifact`, `Checkout::inspect()` and `Maintenance::diagnose()`, `apply()` and `resume()`. Mod compares each file's original, current and target bytes, replaces only untouched files, runs the host's checks and records the installed version last. Edited files and host-file collisions stop the update before any write. Interrupted updates can be resumed. POSIX checkouts only (#91).
 
 ## [0.7.2] - 2026-10-13
 
