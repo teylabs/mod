@@ -20,6 +20,7 @@ mod 1.0 lets you decide where every generated file goes (modules, features, slic
 
 ## The countdown to 1.0
 
-- [ ] **[v0.8 — Switch modules on and off](https://github.com/teylabs/mod/milestone/7).** Turn a module off without deleting it.
+- [ ] **[v0.8 — Keep generated files up to date safely](https://github.com/teylabs/mod/milestone/7).** Mod tells untouched generated files from edited ones and updates them without overwriting your work, with checks before the new version is recorded.
+- [ ] **[v0.9 — Switch modules on and off](https://github.com/teylabs/mod/milestone/14).** Turn a module off without deleting it.
 - [ ] **[1.0 — A stable promise](https://github.com/teylabs/mod/milestone/8).** Laravel-DDD apps moved to mod in field trials, with a guide for moving. A frozen public API, a versioning and support policy, complete docs with an upgrade guide, and a release candidate.
 - [ ] **[1.x — After 1.0](https://github.com/teylabs/mod/milestone/9).** In no particular order.
