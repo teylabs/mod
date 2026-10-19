@@ -5,6 +5,7 @@ All notable changes to `mod` will be documented in this file.
 ## Unreleased
 
 ### Added
+- Internal verification runs declared trusted host closures under a live claim, rechecks exact target files and host inputs around every check, and reports missing or failing outcomes without recording an installed version (#91).
 - Internal whole-file repair rechecks a held prepared claim before atomic replacement, preserves existing executable mode and reconciles original/target bytes after write-before-receipt interruption. Verification and version recording remain separate (#91).
 - Internal maintenance preparation claims an exclusively owned checkout and stores recoverable original/target bytes in a data-only journal before future repair. It writes no generated file or version record (#91).
 - A read-only POSIX checkout inspector binds explicit generated and host-input observations to a plan, refusing symlink parents, metadata links, directory targets and case aliases (#91).
