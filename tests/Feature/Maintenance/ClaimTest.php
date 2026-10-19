@@ -211,3 +211,24 @@ it('never lets another lineage claim a file a pending journal wrote, and lets th
         expect($plan->files['app/Shared.php'])->toMatchArray(['state' => 'conflict', 'reason' => 'owned_by:example/a']);
     });
 });
+
+it('installs and claims dot-prefixed files and honours dot-prefixed host-owned prefixes', function () {
+    OwnedAppRoot::using(function ($root) {
+        file_put_contents($root->path('.env.example'), 'APP_NAME=Kit');
+        $target = claimArtifact('example/recipe', 'A', ['.env.example' => 'APP_NAME=Kit', '.github/workflows/tests.yml' => 'on: push']);
+        $inputs = claimInputs($root);
+        $plan = Checkout::inspect($root->path, 'one', claimEmpty($target), $target, $inputs, ['php' => 'passed'], claim: ['.env.example']);
+        $result = Maintenance::apply($plan, $inputs, 'install', ['check' => fn () => true], true);
+        expect($result['status'])->toBe('completed')
+            ->and($result['written'])->toBe(['.github/workflows/tests.yml'])
+            ->and(file_get_contents($root->path('.github/workflows/tests.yml')))->toBe('on: push');
+
+        $host = new Artifact('example/host', 'A', ['app/Host.php' => 'host'], ['core'], ['auth' => 'session'], ['check'], hostOwned: ['.env']);
+        $intruder = claimArtifact('example/intruder', 'A', ['.env' => 'SECRET=1']);
+        Maintenance::apply(Checkout::inspect($root->path, 'one', claimEmpty($host), $host, $inputs, ['php' => 'passed']), $inputs, 'host', ['check' => fn () => true], true);
+        $blocked = Checkout::inspect($root->path, 'one', claimEmpty($intruder), $intruder, $inputs, ['php' => 'passed']);
+        expect($blocked->executable())->toBeFalse()
+            ->and($blocked->files['.env']['reason'] ?? null)->toBe('host_owned:example/host')
+            ->and(file_exists($root->path('.env')))->toBeFalse();
+    });
+});
