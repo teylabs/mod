@@ -53,6 +53,7 @@ final class Journal
             $record = ['format' => 2, 'state' => 'prepared', 'envelope' => [
                 'app_id' => $plan->appId,
                 'root' => $plan->root,
+                'lineage' => $plan->target->name,
                 'intent' => $intent,
                 'plan' => $plan->identity(),
                 'baseline' => $plan->baseline->identity(),
@@ -73,6 +74,10 @@ final class Journal
                 }
                 $completed = self::completed($existing, $plan);
                 $record['completed_files'] = $completed;
+                if (is_array($existing['envelope'] ?? null) && ! array_key_exists('lineage', $existing['envelope'])) {
+                    // A journal prepared by 0.8 names no lineage; keep its exact shape.
+                    unset($record['envelope']['lineage']);
+                }
                 if (Fingerprint::of($existing) !== Fingerprint::of($record)) {
                     throw new RuntimeException('Intent collision or invalid prepared journal.');
                 }
@@ -92,7 +97,9 @@ final class Journal
     private static function fresh(FilePlan $plan, array $inputPaths, bool $recovery = false): void
     {
         $fresh = Checkout::inspect($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility);
-        if (! $plan->executable() || Fingerprint::of($fresh->inputs) !== Fingerprint::of($plan->inputs) || (! $recovery && $fresh->identity() !== $plan->identity())) {
+        // Another lineage may have taken ownership since the original plan was made.
+        $refused = array_filter($fresh->files, static fn (array $entry): bool => isset($entry['reason']));
+        if (! $plan->executable() || $refused !== [] || Fingerprint::of($fresh->inputs) !== Fingerprint::of($plan->inputs) || (! $recovery && $fresh->identity() !== $plan->identity())) {
             throw new RuntimeException('Conflicted, incompatible or stale maintenance plan.');
         }
         if ($recovery) {
@@ -103,6 +110,82 @@ final class Journal
                 }
             }
         }
+    }
+
+    /**
+     * The first other lineage with an unfinished journal: its installed state is still that journal's baseline.
+     * Reads maintenance metadata only. A 0.8 journal names no lineage and belongs to the 0.8 record.
+     */
+    public static function pending(string $root, Artifact $target): ?string
+    {
+        $directory = SafeFilesystem::path($root, '.mod-maintenance');
+        if (! is_dir($directory)) {
+            return null;
+        }
+        $entries = scandir($directory);
+        if ($entries === false) {
+            throw new RuntimeException('Unable to inspect maintenance journals.');
+        }
+        foreach ($entries as $entry) {
+            if (! preg_match('/\Ajournal-[a-f0-9]{64}\.json\z/', $entry)) {
+                continue;
+            }
+            $envelope = self::readData($directory.'/'.$entry)['envelope'] ?? null;
+            if (! is_array($envelope) || ! is_string($envelope['plan'] ?? null) || ! is_string($envelope['baseline'] ?? null) || ! is_string($envelope['target'] ?? null) || ! is_array($envelope['originals'] ?? null)) {
+                throw new RuntimeException('Invalid prepared journal schema.');
+            }
+            $lineage = $envelope['lineage'] ?? ($envelope['target'] === $target->identity() ? $target->name : self::legacyLineage($root));
+            if ($lineage === $target->name) {
+                continue;
+            }
+            if (! is_string($lineage)) {
+                if (self::committed($root, $envelope['plan'])) {
+                    continue;
+                }
+
+                return 'unknown';
+            }
+            $relative = InstalledRecord::locate($root, $lineage);
+            $installed = $relative === null ? null : self::readData(SafeFilesystem::path($root, $relative));
+            $artifact = $installed['artifact'] ?? null;
+            $commit = $installed['commit'] ?? null;
+            $finished = is_array($commit) && ($commit['plan'] ?? null) === $envelope['plan'];
+            $unmoved = is_array($artifact) ? ($artifact['identity'] ?? null) === $envelope['baseline'] : $envelope['originals'] === [];
+            if (! $finished && $unmoved) {
+                return $lineage;
+            }
+        }
+
+        return null;
+    }
+
+    /** Whether any installed record committed this plan; a migrated 0.8 record no longer names its journal's lineage. */
+    private static function committed(string $root, string $plan): bool
+    {
+        $records = glob(SafeFilesystem::path($root, InstalledRecord::DIRECTORY).'/*.json') ?: [];
+        foreach ($records as $record) {
+            if (! preg_match('/\A[a-f0-9]{64}\.json\z/', basename($record))) {
+                continue;
+            }
+            $commit = self::readData($record)['commit'] ?? null;
+            if (is_array($commit) && ($commit['plan'] ?? null) === $plan) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function legacyLineage(string $root): ?string
+    {
+        $legacy = SafeFilesystem::path($root, InstalledRecord::LEGACY);
+        if (! file_exists($legacy) && ! is_link($legacy)) {
+            return null;
+        }
+        $artifact = self::readData($legacy)['artifact'] ?? null;
+        $name = is_array($artifact) ? ($artifact['name'] ?? null) : null;
+
+        return is_string($name) ? $name : null;
     }
 
     private static function initialize(FilePlan $plan): void
