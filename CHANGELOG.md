@@ -2,6 +2,12 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- `Checkout::artifact()` reads back one installed lineage as the verified `Artifact` Mod recorded, to pass as the original when planning an upgrade (#195).
+- `Checkout::pending()` lists every unfinished update with its lineage name, saved intent and target artifact identity, so a host can resume it (#198).
+
 ## [0.9.1] - 2026-10-19
 
 ### Fixed

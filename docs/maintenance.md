@@ -118,6 +118,29 @@ $target = new Artifact(
 
 A checkout written by 0.8 keeps working. Its `installed.json` is read as the record for its own lineage and moves to the new layout on that lineage's next update.
 
+## Reading installed lineages and unfinished updates
+
+Two read-only calls tell you where a checkout stands. Neither writes anything.
+
+`Checkout::artifact()` returns the installed artifact for one lineage, exactly as Mod recorded it, or `null` if that lineage isn't installed. A 0.8 `installed.json` counts as its own lineage. Pass it as the original when you plan an upgrade:
+
+```php
+$original = Checkout::artifact($root, $appId, 'acme/blueprint:billing');
+$plan = Checkout::inspect($root, $appId, $original, $target, $inputPaths, $compatibility);
+```
+
+`Checkout::pending()` lists every unfinished update, sorted by lineage name. Each entry has the lineage `name` (`'unknown'` for a 0.8 journal that names no lineage), the saved `intent`, and the `target` artifact identity, so you can find the matching target artifact by comparing it with `$artifact->identity()`. To resume an update after its checks failed:
+
+```php
+foreach (Checkout::pending($root, $appId) as $update) {
+    $target = $targets[$update['target']]; // your artifacts, keyed by identity()
+    $baseline = Checkout::artifact($root, $appId, $update['name']) ?? $emptyArtifact; // empty for a first install
+    Maintenance::resume($root, $appId, $baseline, $target, $inputPaths, $compatibility, intent: $update['intent'], registry: $checks, exclusiveCheckout: true);
+}
+```
+
+A malformed journal throws instead of being skipped.
+
 ## Claiming existing files
 
 An app may already contain files a lineage would generate, for example when it adopts a recipe it once copied by hand. Pass the paths you have reviewed as `claim`:
