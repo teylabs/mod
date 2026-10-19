@@ -12,12 +12,18 @@ beforeEach(function () {
     }
 });
 
+/**
+ * @param  array<string, mixed>  $metadata
+ */
 function provenanceArtifact(string $version, array $metadata = []): Artifact
 {
     return new Artifact('example/recipe', $version, ['app/One.php' => $version], ['core'], ['auth' => 'session'], ['check'], metadata: $metadata);
 }
 
-function provenanceInputs($root): array
+/**
+ * @return array<mixed>
+ */
+function provenanceInputs(OwnedAppRoot $root): array
 {
     file_put_contents($root->path('policy.json'), '{"checks":["check"]}');
     file_put_contents($root->path('verifier.php'), '<?php return true;');

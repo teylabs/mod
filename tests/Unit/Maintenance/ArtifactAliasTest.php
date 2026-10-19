@@ -32,6 +32,7 @@ it('refuses referenced metadata before external mutation can introduce executabl
         'nested scalar' => ['nested' => ['value' => &$value]],
         'top array' => ['array' => &$array],
         'nested array' => ['nested' => ['array' => &$array]],
+        default => throw new InvalidArgumentException("Unknown kind {$kind}."),
     };
     $payload = new AliasPayload;
     try {
@@ -106,7 +107,8 @@ it('rejects aliases in caller-created plan observations inputs and compatibility
     $inputs = ['lock' => 'hash'];
     $compatibility = ['php' => 'passed'];
     $value = match ($field) {
-        'current' => 'A', 'inputs' => 'hash', 'compatibility' => 'passed'
+        'current' => 'A', 'inputs' => 'hash', 'compatibility' => 'passed',
+        default => throw new InvalidArgumentException("Unknown field {$field}."),
     };
     if ($field === 'current') {
         $current['app/One.php'] = &$value;

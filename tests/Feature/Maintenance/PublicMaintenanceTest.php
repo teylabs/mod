@@ -13,12 +13,26 @@ beforeEach(function () {
     }
 });
 
+/**
+ * Pass deliberately invalid registry values past static types.
+ */
+function untypedRegistry(mixed $registry): mixed
+{
+    return $registry;
+}
+
+/**
+ * @return array<mixed>
+ */
 function publicArtifacts(): array
 {
     return [new Artifact('example/recipe', 'A', ['app/One.php' => 'A'], ['core'], ['auth' => 'session'], ['check']), new Artifact('example/recipe', 'B', ['app/One.php' => 'B'], ['core'], ['auth' => 'session'], ['check'])];
 }
 
-function publicInputs($root): array
+/**
+ * @return array<mixed>
+ */
+function publicInputs(OwnedAppRoot $root): array
 {
     file_put_contents($root->path('policy.json'), '{"checks":["check"]}');
     file_put_contents($root->path('verifier.php'), '<?php return true;');
@@ -27,7 +41,10 @@ function publicInputs($root): array
     return ['verification-policy' => 'policy.json', 'verification-code' => 'verifier.php', 'lock' => 'composer.lock'];
 }
 
-function publicInstallPlan($root): array
+/**
+ * @return array<mixed>
+ */
+function publicInstallPlan(OwnedAppRoot $root): array
 {
     [$a, $b] = publicArtifacts();
     $empty = new Artifact($a->name, $a->version, [], $a->groups, $a->bindings, $a->checks);
@@ -201,7 +218,7 @@ it('rejects invalid supplied callbacks even for exact completed retries', functi
     OwnedAppRoot::using(function ($root) {
         [$a, $b, $inputs, $plan] = publicInstallPlan($root);
         Maintenance::apply($plan, $inputs, 'install', ['check' => fn () => true], true);
-        expect(fn () => Maintenance::apply($plan, $inputs, 'install', ['check' => 'command'], true))->toThrow(InvalidArgumentException::class);
+        expect(fn () => Maintenance::apply($plan, $inputs, 'install', untypedRegistry(['check' => 'command']), true))->toThrow(InvalidArgumentException::class);
     });
 });
 
