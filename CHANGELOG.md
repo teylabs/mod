@@ -2,7 +2,7 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## Unreleased
+## [0.8.0] - 2026-10-19
 
 ### Added
 - Experimental `Tey\Mod\Maintenance` API for keeping generated files up to date: `Artifact`, `Checkout::inspect()` and `Maintenance::diagnose()`, `apply()` and `resume()`. Mod compares each file's original, current and target bytes, replaces only untouched files, runs the host's checks and records the installed version last. Edited files and host-file collisions stop the update before any write. Interrupted updates can be resumed. POSIX checkouts only (#91).
