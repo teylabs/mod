@@ -2,6 +2,7 @@
 
 namespace Tey\Mod\Maintenance;
 
+use Generator;
 use RuntimeException;
 use Throwable;
 
@@ -123,9 +124,26 @@ final class Journal
      */
     public static function pending(string $root, Artifact $target): ?string
     {
+        foreach (self::unfinished($root, $target) as $journal) {
+            if ($journal['name'] !== $target->name) {
+                return $journal['name'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Every unfinished journal, lazily in directory order, except the given target's own.
+     * An unattributable 0.8 journal is named 'unknown'.
+     *
+     * @return Generator<int, array{name: string, intent: mixed, target: string}>
+     */
+    public static function unfinished(string $root, ?Artifact $target = null): Generator
+    {
         $directory = SafeFilesystem::path($root, '.mod-maintenance');
         if (! is_dir($directory)) {
-            return null;
+            return;
         }
         $entries = scandir($directory);
         if ($entries === false) {
@@ -139,16 +157,16 @@ final class Journal
             if (! is_array($envelope) || ! is_string($envelope['plan'] ?? null) || ! is_string($envelope['baseline'] ?? null) || ! is_string($envelope['target'] ?? null) || ! is_array($envelope['originals'] ?? null)) {
                 throw new RuntimeException('Invalid prepared journal schema.');
             }
-            $lineage = $envelope['lineage'] ?? ($envelope['target'] === $target->identity() ? $target->name : self::legacyLineage($root));
-            if ($lineage === $target->name) {
+            $lineage = $envelope['lineage'] ?? ($target !== null && $envelope['target'] === $target->identity() ? $target->name : self::legacyLineage($root));
+            if ($target !== null && $lineage === $target->name) {
                 continue;
             }
             if (! is_string($lineage)) {
-                if (self::committed($root, $envelope['plan'])) {
-                    continue;
+                if (! self::committed($root, $envelope['plan'])) {
+                    yield ['name' => 'unknown', 'intent' => $envelope['intent'] ?? null, 'target' => $envelope['target']];
                 }
 
-                return 'unknown';
+                continue;
             }
             $relative = InstalledRecord::locate($root, $lineage);
             $installed = $relative === null ? null : self::readData(SafeFilesystem::path($root, $relative));
@@ -157,11 +175,9 @@ final class Journal
             $finished = is_array($commit) && ($commit['plan'] ?? null) === $envelope['plan'];
             $unmoved = is_array($artifact) ? ($artifact['identity'] ?? null) === $envelope['baseline'] : $envelope['originals'] === [];
             if (! $finished && $unmoved) {
-                return $lineage;
+                yield ['name' => $lineage, 'intent' => $envelope['intent'] ?? null, 'target' => $envelope['target']];
             }
         }
-
-        return null;
     }
 
     /** Whether any installed record committed this plan; a migrated 0.8 record no longer names its journal's lineage. */

@@ -15023,6 +15023,41 @@
         "interfaces": [],
         "parent": null
     },
+    "Tey\\Mod\\Maintenance\\Checkout::artifact": {
+        "visibility": "public",
+        "static": true,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "root",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "appId",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "name",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "?Tey\\Mod\\Maintenance\\Artifact",
+        "shape": ""
+    },
     "Tey\\Mod\\Maintenance\\Checkout::inspect": {
         "visibility": "public",
         "static": true,
@@ -15116,6 +15151,33 @@
         ],
         "return": "array",
         "shape": "@return array<string, array{identity: string, version: string, files: array<string, string>}>"
+    },
+    "Tey\\Mod\\Maintenance\\Checkout::pending": {
+        "visibility": "public",
+        "static": true,
+        "final": false,
+        "abstract": false,
+        "reference": false,
+        "parameters": [
+            {
+                "name": "root",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            },
+            {
+                "name": "appId",
+                "type": "string",
+                "optional": false,
+                "variadic": false,
+                "reference": false,
+                "default": null
+            }
+        ],
+        "return": "array",
+        "shape": "@return list<array{name: string, intent: string, target: string}>"
     },
     "Tey\\Mod\\Maintenance\\FilePlan": {
         "type": "class",

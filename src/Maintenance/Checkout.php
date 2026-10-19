@@ -107,4 +107,46 @@ final class Checkout
             'files' => array_map(static fn (string $bytes): string => hash('sha256', $bytes), $artifact->files),
         ], InstalledRecord::lineages($root, $appId));
     }
+
+    /**
+     * The verified installed artifact for one lineage, exactly as recorded: the original to inspect an upgrade against.
+     * A 0.8 record counts as its own lineage. Reads metadata only.
+     *
+     * @api
+     */
+    public static function artifact(string $root, string $appId, string $name): ?Artifact
+    {
+        if ($appId === '') {
+            throw new InvalidArgumentException('App identity is required.');
+        }
+
+        return InstalledRecord::lineages($root, $appId)[$name] ?? null;
+    }
+
+    /**
+     * Every unfinished update in the checkout, sorted by lineage name. An unattributable 0.8 journal is named 'unknown'.
+     * Reads metadata only; resume each with its saved intent.
+     *
+     * @return list<array{name: string, intent: string, target: string}> Lineage names with saved intents and target artifact identities.
+     *
+     * @api
+     */
+    public static function pending(string $root, string $appId): array
+    {
+        if ($appId === '') {
+            throw new InvalidArgumentException('App identity is required.');
+        }
+        SafeFilesystem::root($root);
+        SafeFilesystem::metadata($root);
+        $pending = [];
+        foreach (Journal::unfinished($root) as $journal) {
+            if (! is_string($journal['intent'])) {
+                throw new RuntimeException('Invalid prepared journal schema.');
+            }
+            $pending[] = ['name' => $journal['name'], 'intent' => $journal['intent'], 'target' => $journal['target']];
+        }
+        usort($pending, static fn (array $a, array $b): int => [$a['name'], $a['intent']] <=> [$b['name'], $b['intent']]);
+
+        return $pending;
+    }
 }
