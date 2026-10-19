@@ -2,6 +2,11 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## Unreleased
+
+### Added
+- A read-only whole-file maintenance planner compares recoverable original, current and target bytes; plans bind application identity, recipe selection, host inputs and compatibility outcomes. It neither writes files nor records upgrades (#91).
+
 ## [0.7.2] - 2026-10-13
 
 ### Added
