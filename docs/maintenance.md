@@ -111,7 +111,7 @@ $target = new Artifact(
 );
 ```
 
-- `requires` names lineages that must already be installed, each at an exact version or `'*'` for any. Otherwise `Checkout::inspect()` refuses. Check version ranges yourself and pass the result in as an ordinary compatibility outcome.
+- `requires` names lineages that must already be installed, each at an exact version or `'*'` for any. Otherwise `Checkout::inspect()` refuses. Check version ranges yourself and pass the result in as an ordinary compatibility outcome. While a lineage requires another at an exact version, updating that lineage to a different version is refused with the reason `required_by:<name>`. `'*'` never blocks an update.
 - `hostOwned` lists path prefixes this lineage leaves to the host. `app/Domain` covers that path and everything under it. No other lineage may own, write or claim there; such a path is a `conflict` with the reason `host_owned:<name>`. Several lineages may declare the same prefix. Mod compares these paths but never reads them, and refuses to install a lineage whose prefixes cover a file another lineage already owns.
 
 A checkout written by 0.8 keeps working. Its `installed.json` is read as the record for its own lineage and moves to the new layout on that lineage's next update.

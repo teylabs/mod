@@ -6,7 +6,7 @@ All notable changes to `mod` will be documented in this file.
 
 ### Added
 - Maintenance holds many installed lineages per checkout, one record each under `.mod-maintenance/installed/`. A 0.8 `installed.json` keeps working and migrates on that lineage's next write. `Checkout::installed()` lists every installed lineage (#183).
-- A path another installed lineage owns is a conflict (`owned_by:<name>`). Artifacts can declare `requires` (lineage names, at an exact version or `*`) and `hostOwned` path prefixes that no other lineage may own, write or claim (`host_owned:<name>`) (#183).
+- A path another installed lineage owns is a conflict (`owned_by:<name>`). Artifacts can declare `requires` (lineage names, at an exact version or `*`; an exact requirement blocks updating that lineage to another version, `required_by:<name>`) and `hostOwned` path prefixes that no other lineage may own, write or claim (`host_owned:<name>`) (#183).
 - `Checkout::inspect()` and `Maintenance::resume()` take a reviewed `claim` list: existing files with identical bytes become owned without a write, and differing bytes are a conflict. `Maintenance::diagnose()` reports `claimable` paths (#183).
 
 ## [0.8.0] - 2026-10-19
