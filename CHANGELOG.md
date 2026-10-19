@@ -5,6 +5,7 @@ All notable changes to `mod` will be documented in this file.
 ## Unreleased
 
 ### Added
+- Internal maintenance preparation claims an exclusively owned checkout and stores recoverable original/target bytes in a data-only journal before future repair. It writes no generated file or version record (#91).
 - A read-only POSIX checkout inspector binds explicit generated and host-input observations to a plan, refusing symlink parents, metadata links, directory targets and case aliases (#91).
 - A read-only whole-file maintenance planner compares recoverable original, current and target bytes; plans bind application identity, recipe selection, host inputs and compatibility outcomes. It neither writes files nor records upgrades (#91).
 
