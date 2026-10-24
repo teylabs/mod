@@ -137,7 +137,6 @@ final class OwnedAppRoot
     {
         // Probe each child before descending: RecursiveDirectoryIterator follows
         // Windows junctions even without FOLLOW_SYMLINKS, deleting their targets.
-        /** @var SplFileInfo $item */
         try {
             $items = new FilesystemIterator($directory, FilesystemIterator::SKIP_DOTS);
         } catch (UnexpectedValueException $e) {
@@ -148,6 +147,7 @@ final class OwnedAppRoot
             return;
         }
 
+        /** @var SplFileInfo $item */
         foreach ($items as $item) {
             $pathname = $item->getPathname();
             if (! str_starts_with($pathname, $this->path.DIRECTORY_SEPARATOR)) {
