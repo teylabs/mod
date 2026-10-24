@@ -123,3 +123,25 @@ it('reports a missing parent when eligibility autoloads a candidate directly', D
 
     expect((new Eligibility)->check(DiscoveryType::Provider, $class, $fx->path($path)))->toContain('MissingDev\\Provider');
 }));
+
+it('rejects unloadable related factories and policies without stopping discovery', DiscoveryFixture::around(function (DiscoveryFixture $fx) {
+    $fx->write('app/Models/FactoryBroken.php', '<?php namespace {{ns}}\\App\\Models; class FactoryBroken extends \\Illuminate\\Database\\Eloquent\\Model {}')
+        ->write('app/Models/PolicyBroken.php', '<?php namespace {{ns}}\\App\\Models; class PolicyBroken extends \\Illuminate\\Database\\Eloquent\\Model {}')
+        ->write('database/factories/FactoryBrokenFactory.php', '<?php namespace {{ns}}\\Database\\Factories; class FactoryBrokenFactory extends \\MissingDev\\Factory {}')
+        ->write('app/Policies/PolicyBrokenPolicy.php', '<?php namespace {{ns}}\\App\\Policies; class PolicyBrokenPolicy extends \\MissingDev\\Policy {}')
+        ->write('app/Providers/WorkingServiceProvider.php', Sources::provider('App\\Providers', 'WorkingServiceProvider', 'fixture.working'));
+    $preset = $fx->layout('ordinary');
+    $this->app->setBasePath($fx->path());
+
+    $inventory = DiscoveryRegistrar::register($this->app, $preset)->inventory();
+
+    foreach (['Factory', 'Policy'] as $type) {
+        $rejection = $inventory->rejection("app/Models/{$type}Broken.php");
+        expect($rejection?->reason)->toBe(RejectionReason::Ineligible)
+            ->and($rejection?->detail)->toContain('MissingDev\\'.$type);
+    }
+
+    expect($inventory->pairs(DiscoveryType::Factory))->toBe([])
+        ->and($inventory->pairs(DiscoveryType::Policy))->toBe([])
+        ->and($this->app->bound('fixture.working'))->toBeTrue();
+}));

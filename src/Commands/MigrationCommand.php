@@ -327,7 +327,7 @@ class MigrationCommand extends MigrateMakeCommand implements GeneratorAdapter
             $create = true;
         }
         if (! $table) {
-            [$table, $create] = TableGuesser::guess(Str::snake($this->getNameInput()));
+            [$table, $create] = TableGuesser::guess(Str::snake($this->getNameInput())) ?? [null, false];
         }
 
         return [$table ?: null, (bool) $create];
