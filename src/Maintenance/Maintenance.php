@@ -12,19 +12,66 @@ final class Maintenance
     /**
      * Read-only, size-limited diagnostics; no candidate is deleted, adopted or followed.
      * Claimable paths are unowned paths whose bytes already equal the target: candidates for a reviewed claim list.
+     * Removals lists every dropped baseline path with its state; a refused edited file carries its diff and the manual step.
      *
      * @param  array<string, string>  $inputPaths
-     * @return array{plan: string, current: bool, executable: bool, orphans: list<array{path: string, kind: string}>, claimable: list<string>}
+     * @return array{plan: string, current: bool, executable: bool, orphans: list<array{path: string, kind: string}>, claimable: list<string>, removals: list<array{path: string, state: string, diff?: string, step?: string}>}
      *
      * @api
      */
     public static function diagnose(FilePlan $plan, array $inputPaths): array
     {
         $orphans = Orphans::inspect($plan->root, $plan->target);
-        $fresh = $orphans === [] ? Checkout::inspect($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility, $plan->claim) : null;
+        $fresh = $orphans === [] ? Checkout::inspect($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility, $plan->claim, $plan->removals) : null;
         $claimable = array_keys(array_filter($fresh->files ?? [], static fn (array $entry): bool => $entry['state'] === 'unowned' && $entry['current'] === $entry['target']));
 
-        return ['plan' => $plan->identity(), 'current' => $fresh?->identity() === $plan->identity(), 'executable' => $fresh?->executable() ?? false, 'orphans' => $orphans, 'claimable' => $claimable];
+        return ['plan' => $plan->identity(), 'current' => $fresh?->identity() === $plan->identity(), 'executable' => $fresh?->executable() ?? false, 'orphans' => $orphans, 'claimable' => $claimable, 'removals' => self::removals($fresh ?? $plan)];
+    }
+
+    /** @return list<array{path: string, state: string, diff?: string, step?: string}> */
+    private static function removals(FilePlan $plan): array
+    {
+        $removals = [];
+        foreach ($plan->removals as $path => $policy) {
+            $entry = ['path' => $path, 'state' => $plan->files[$path]['state']];
+            if ($entry['state'] === 'conflict') {
+                $entry['diff'] = self::diff($plan->baseline->files[$path], SafeFilesystem::read($plan->root, $path) ?? '');
+                $entry['step'] = 'Edit the file back to the baseline, delete it by hand, or switch its policy to release.';
+            }
+            $removals[] = $entry;
+        }
+
+        return $removals;
+    }
+
+    /** A minimal line diff: the shared head and tail are kept as context, the changed middle is shown removed then added. */
+    private static function diff(string $baseline, string $current): string
+    {
+        $old = explode("\n", $baseline);
+        $new = explode("\n", $current);
+        $head = 0;
+        while ($head < count($old) && $head < count($new) && $old[$head] === $new[$head]) {
+            $head++;
+        }
+        $tail = 0;
+        while ($tail < count($old) - $head && $tail < count($new) - $head && $old[count($old) - 1 - $tail] === $new[count($new) - 1 - $tail]) {
+            $tail++;
+        }
+        $lines = ['--- baseline', '+++ current'];
+        for ($i = 0; $i < $head; $i++) {
+            $lines[] = ' '.$old[$i];
+        }
+        for ($i = $head; $i < count($old) - $tail; $i++) {
+            $lines[] = '-'.$old[$i];
+        }
+        for ($i = $head; $i < count($new) - $tail; $i++) {
+            $lines[] = '+'.$new[$i];
+        }
+        for ($i = count($old) - $tail; $i < count($old); $i++) {
+            $lines[] = ' '.$old[$i];
+        }
+
+        return implode("\n", $lines);
     }
 
     /**
@@ -33,7 +80,7 @@ final class Maintenance
      *
      * @param  array<string, string>  $inputPaths
      * @param  array<string, Closure>  $registry
-     * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}
+     * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}
      *
      * @api
      */
@@ -45,10 +92,10 @@ final class Maintenance
         if ($orphans !== []) {
             return self::blocked($plan->identity(), $orphans);
         }
-        Checkout::inspect($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility, $plan->claim);
+        Checkout::inspect($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility, $plan->claim, $plan->removals);
         $selected = SafeFilesystem::path($plan->root, '.mod-maintenance/journal-'.hash('sha256', $intent).'.json');
         if (file_exists($selected)) {
-            $claim = Journal::reopen($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility, $intent, $exclusiveCheckout, $plan->claim);
+            $claim = Journal::reopen($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility, $intent, $exclusiveCheckout, $plan->claim, $plan->removals);
         } else {
             self::registry($registry, $plan->target->checks);
             self::inputs($plan->root, $inputPaths);
@@ -72,20 +119,21 @@ final class Maintenance
      * @param  array<string, string>  $compatibility
      * @param  array<string, Closure>  $registry
      * @param  list<string>  $claim  The same reviewed claim list the interrupted plan was made with.
-     * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}
+     * @param  array<string, string>  $removals  The same removal policy the interrupted plan was made with.
+     * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}
      *
      * @api
      */
-    public static function resume(string $root, string $appId, Artifact $baseline, Artifact $target, array $inputPaths, array $compatibility, string $intent, array $registry, bool $exclusiveCheckout, array $claim = []): array
+    public static function resume(string $root, string $appId, Artifact $baseline, Artifact $target, array $inputPaths, array $compatibility, string $intent, array $registry, bool $exclusiveCheckout, array $claim = [], array $removals = []): array
     {
         self::boundary($intent, $exclusiveCheckout);
-        FilePlan::between($appId, $root, $baseline, $target, [], [], $compatibility, claim: $claim);
+        FilePlan::between($appId, $root, $baseline, $target, [], [], $compatibility, claim: $claim, removals: $removals);
         self::registry($registry, $target->checks, false);
         $orphans = Orphans::inspect($root, $target);
         if ($orphans !== []) {
             return self::blocked(null, $orphans);
         }
-        $journal = Journal::reopen($root, $appId, $baseline, $target, $inputPaths, $compatibility, $intent, $exclusiveCheckout, $claim);
+        $journal = Journal::reopen($root, $appId, $baseline, $target, $inputPaths, $compatibility, $intent, $exclusiveCheckout, $claim, $removals);
         try {
             return self::execute($journal, $registry);
         } finally {
@@ -127,7 +175,7 @@ final class Maintenance
 
     /**
      * @param  array<string, Closure>  $registry
-     * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}
+     * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}
      */
     private static function execute(Journal $claim, array $registry): array
     {
@@ -136,18 +184,19 @@ final class Maintenance
         if ($orphans !== []) {
             return self::blocked($plan->identity(), $orphans);
         }
-        $files = ['written' => [], 'reconciled' => []];
+        $files = ['written' => [], 'reconciled' => [], 'removed' => []];
         if (($complete = Finalization::completed($claim)) !== null) {
             return $complete + $files + ['plan' => $plan->identity(), 'orphans' => []];
         }
         self::registry($registry, $plan->target->checks);
         $claim->assertVerifierInputs();
         InstalledRecord::baseline($claim->installed(), $plan);
-        $files = FileRepair::apply($claim);
+        $files = FileRepair::apply($claim) + ['removed' => FileRepair::remove($claim)];
         $orphans = Orphans::inspect($plan->root, $plan->target);
         if ($orphans !== []) {
             return self::blocked($plan->identity(), $orphans, $files);
         }
+        $committed = false;
         try {
             $result = Finalization::record($claim, $registry, beforeRecord: function () use ($plan, &$orphans): void {
                 $orphans = Orphans::inspect($plan->root, $plan->target);
@@ -155,12 +204,21 @@ final class Maintenance
                     throw new RuntimeException('Unresolved maintenance candidates block completion.');
                 }
             });
+            $committed = $result['status'] === 'completed';
         } catch (RuntimeException $exception) {
             if ($orphans === []) {
                 throw $exception;
             }
+            FileRepair::restore($claim, $files['removed']);
+            $files['removed'] = [];
 
             return self::blocked($plan->identity(), $orphans, $files);
+        } finally {
+            if (! $committed && $files['removed'] !== []) {
+                // Removed files come back until the update is recorded; a retry removes them again.
+                FileRepair::restore($claim, $files['removed']);
+                $files['removed'] = [];
+            }
         }
         $orphans = Orphans::inspect($plan->root, $plan->target);
         if ($orphans !== []) {
@@ -172,10 +230,10 @@ final class Maintenance
 
     /**
      * @param  list<array{path: string, kind: string}>  $orphans
-     * @param  array{written: list<string>, reconciled: list<string>}  $files
-     * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}
+     * @param  array{written: list<string>, reconciled: list<string>, removed: list<string>}  $files
+     * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}
      */
-    private static function blocked(?string $plan, array $orphans, array $files = ['written' => [], 'reconciled' => []]): array
+    private static function blocked(?string $plan, array $orphans, array $files = ['written' => [], 'reconciled' => [], 'removed' => []]): array
     {
         return ['status' => 'orphaned', 'no_op' => false, 'plan' => $plan, 'receipt' => null, 'checks' => [], 'orphans' => $orphans] + $files;
     }

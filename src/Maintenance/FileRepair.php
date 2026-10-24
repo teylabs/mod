@@ -37,6 +37,53 @@ final class FileRepair
         return ['written' => $written, 'reconciled' => $reconciled];
     }
 
+    /**
+     * Delete untouched files the target drops; an already absent file is left alone.
+     *
+     * @return list<string>
+     */
+    public static function remove(Journal $journal): array
+    {
+        $plan = $journal->plan();
+        $removed = [];
+        foreach ($plan->files as $relative => $entry) {
+            if ($entry['state'] !== 'remove') {
+                continue;
+            }
+            $journal->assertCurrent();
+            $observed = SafeFilesystem::read($plan->root, $relative);
+            if ($observed === null) {
+                continue;
+            }
+            if (hash('sha256', $observed) !== $entry['original']) {
+                throw new RuntimeException('Generated file changed before removal.');
+            }
+            $path = SafeFilesystem::path($plan->root, $relative);
+            if (! unlink($path)) {
+                throw new RuntimeException('Unable to remove generated file.');
+            }
+            $removed[] = $relative;
+        }
+        sort($removed);
+
+        return $removed;
+    }
+
+    /**
+     * Put removed files back from the journal's trusted originals after a failed update.
+     *
+     * @param  list<string>  $removed
+     */
+    public static function restore(Journal $journal, array $removed): void
+    {
+        $plan = $journal->plan();
+        foreach ($removed as $relative) {
+            if (SafeFilesystem::read($plan->root, $relative) === null) {
+                self::replace($journal, $relative, $plan->baseline->files[$relative], null);
+            }
+        }
+    }
+
     private static function replace(Journal $journal, string $relative, string $bytes, ?string $observed): void
     {
         $plan = $journal->plan();
