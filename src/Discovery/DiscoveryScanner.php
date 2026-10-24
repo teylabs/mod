@@ -51,6 +51,7 @@ final readonly class DiscoveryScanner
         private string $basePath,
         private Eligibility $eligibility = new Eligibility,
         private ?Closure $candidates = null,
+        private Declarations $declarations = new Declarations,
     ) {
         $this->mapper = new ReverseMapper($preset);
         $this->relations = new ModelRelations($preset);
@@ -203,6 +204,17 @@ final readonly class DiscoveryScanner
             return;
         }
 
+        foreach ($this->relations->candidatesOf($model, $definition->type->value) as $candidate) {
+            $missing = $this->declarations->missingFor($candidate);
+
+            if ($missing !== null) {
+                $rejections[$path] ??= new Rejection($path, RejectionReason::Ineligible, self::needs($candidate, $missing), $definition->kindId, $entry->class);
+
+                return;
+            }
+        }
+
+        // A second line of defence: a missing parent or interface still throws while autoloading.
         try {
             $target = $this->relations->targetOf($model, $definition->type->value);
         } catch (Error $error) {
@@ -221,6 +233,13 @@ final readonly class DiscoveryScanner
         $class = $artifact->fqcn();
         $absolute = $this->absolute($path);
 
+        // Loading a class whose trait is missing is a fatal error no catch stops, so the declaration is checked first.
+        $missing = $class === null || class_exists($class, false) ? null : $this->declarations->missing($absolute);
+
+        if ($missing !== null) {
+            return new Rejection($path, RejectionReason::Ineligible, self::needs($class, $missing), $definition->kindId, $class);
+        }
+
         try {
             if ($class === null || ! class_exists($class)) {
                 return new Rejection($path, RejectionReason::Ineligible, sprintf('the autoloader does not find class [%s]', $class ?? '?'), $definition->kindId, $class);
@@ -236,6 +255,11 @@ final readonly class DiscoveryScanner
         }
 
         return new DiscoveredArtifact($definition->kindId, $definition->type, $class, $path, $artifact->context->toArray(), $result);
+    }
+
+    private static function needs(?string $class, string $missing): string
+    {
+        return sprintf('[%s] needs [%s], which the autoloader does not find', $class ?? '?', $missing);
     }
 
     private function concerns(ReverseMatch $match, DiscoveryDefinition $definition): bool
