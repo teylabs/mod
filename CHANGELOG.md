@@ -2,6 +2,11 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## Unreleased
+
+### Fixed
+- Discovery skips classes whose parent, interface or trait is unavailable, reporting the load error instead of stopping production boots without dev dependencies (#202).
+
 ## [0.10.0] - 2026-10-19
 
 ### Added

@@ -2,6 +2,7 @@
 
 use Tey\Mod\Discovery\DiscoveryRegistrar;
 use Tey\Mod\Discovery\DiscoveryType;
+use Tey\Mod\Discovery\Eligibility;
 use Tey\Mod\Discovery\RejectionReason;
 use Tey\Mod\Tests\Feature\Discovery\Support\DiscoveryFixture;
 use Tey\Mod\Tests\Feature\Discovery\Support\Sources;
@@ -83,4 +84,64 @@ it('rejects a file whose class name does not match where the autoloader finds it
 
     expect($inventory->rejection('app/Providers/BillingServiceProvider.php')?->reason)->toBe(RejectionReason::Ineligible)
         ->and($inventory->rejection('app/Providers/BillingServiceProvider.php')?->detail)->toContain('autoloader does not find');
+}));
+
+it('rejects unloadable candidates and continues registering providers', DiscoveryFixture::around(function (DiscoveryFixture $fx) {
+    $declarations = [
+        'Parent' => 'extends \\MissingDev\\Provider',
+        'Interface' => 'implements \\MissingDev\\Contract',
+        'Trait' => '',
+    ];
+
+    foreach ($declarations as $name => $declaration) {
+        $body = $name === 'Trait' ? 'use \\MissingDev\\Behaviour;' : '';
+        $fx->write("app/Providers/{$name}ServiceProvider.php", "<?php namespace {{ns}}\\App\\Providers; class {$name}ServiceProvider {$declaration} { {$body} }");
+    }
+
+    $fx->write('app/Providers/WorkingServiceProvider.php', Sources::provider('App\\Providers', 'WorkingServiceProvider', 'fixture.working'));
+    $preset = $fx->layout('ordinary');
+    $this->app->setBasePath($fx->path());
+
+    $inventory = DiscoveryRegistrar::register($this->app, $preset)->inventory();
+
+    foreach (['Parent' => 'Provider', 'Interface' => 'Contract', 'Trait' => 'Behaviour'] as $name => $missing) {
+        $path = "app/Providers/{$name}ServiceProvider.php";
+        expect($inventory->rejection($path)?->reason)->toBe(RejectionReason::Ineligible)
+            ->and($inventory->rejection($path)?->detail)->toContain('MissingDev\\'.$missing);
+    }
+
+    expect($inventory->classes(DiscoveryType::Provider))->toBe([$fx->class('App\\Providers\\WorkingServiceProvider')])
+        ->and($this->app->bound('fixture.working'))->toBeTrue();
+}));
+
+it('reports a missing parent when eligibility autoloads a candidate directly', DiscoveryFixture::around(function (DiscoveryFixture $fx) {
+    $path = 'app/Providers/DevServiceProvider.php';
+    $fx->write($path, '<?php namespace {{ns}}\\App\\Providers; class DevServiceProvider extends \\MissingDev\\Provider {}');
+    $fx->layout('ordinary');
+    /** @var class-string $class */
+    $class = $fx->class('App\\Providers\\DevServiceProvider');
+
+    expect((new Eligibility)->check(DiscoveryType::Provider, $class, $fx->path($path)))->toContain('MissingDev\\Provider');
+}));
+
+it('rejects unloadable related factories and policies without stopping discovery', DiscoveryFixture::around(function (DiscoveryFixture $fx) {
+    $fx->write('app/Models/FactoryBroken.php', '<?php namespace {{ns}}\\App\\Models; class FactoryBroken extends \\Illuminate\\Database\\Eloquent\\Model {}')
+        ->write('app/Models/PolicyBroken.php', '<?php namespace {{ns}}\\App\\Models; class PolicyBroken extends \\Illuminate\\Database\\Eloquent\\Model {}')
+        ->write('database/factories/FactoryBrokenFactory.php', '<?php namespace {{ns}}\\Database\\Factories; class FactoryBrokenFactory extends \\MissingDev\\Factory {}')
+        ->write('app/Policies/PolicyBrokenPolicy.php', '<?php namespace {{ns}}\\App\\Policies; class PolicyBrokenPolicy extends \\MissingDev\\Policy {}')
+        ->write('app/Providers/WorkingServiceProvider.php', Sources::provider('App\\Providers', 'WorkingServiceProvider', 'fixture.working'));
+    $preset = $fx->layout('ordinary');
+    $this->app->setBasePath($fx->path());
+
+    $inventory = DiscoveryRegistrar::register($this->app, $preset)->inventory();
+
+    foreach (['Factory', 'Policy'] as $type) {
+        $rejection = $inventory->rejection("app/Models/{$type}Broken.php");
+        expect($rejection?->reason)->toBe(RejectionReason::Ineligible)
+            ->and($rejection?->detail)->toContain('MissingDev\\'.$type);
+    }
+
+    expect($inventory->pairs(DiscoveryType::Factory))->toBe([])
+        ->and($inventory->pairs(DiscoveryType::Policy))->toBe([])
+        ->and($this->app->bound('fixture.working'))->toBeTrue();
 }));

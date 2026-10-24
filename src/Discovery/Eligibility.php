@@ -2,6 +2,7 @@
 
 namespace Tey\Mod\Discovery;
 
+use Error;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
@@ -26,7 +27,13 @@ final readonly class Eligibility
      */
     public function check(DiscoveryType $type, string $class, string $absolutePath): array|string
     {
-        $reflection = new ReflectionClass($class);
+        try {
+            /** @throws Error Autoloading can fail when a parent, interface or trait is unavailable. */
+            $reflection = new ReflectionClass($class);
+        } catch (Error $error) {
+            return $error->getMessage();
+        }
+
         $file = $reflection->getFileName();
 
         if ($file === false || ! Path::same(realpath($file) ?: $file, realpath($absolutePath) ?: $absolutePath)) {

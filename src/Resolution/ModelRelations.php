@@ -51,16 +51,37 @@ final readonly class ModelRelations
             return null;
         }
 
-        foreach ($this->relationIds($targetKind) as $relationId) {
-            $resolution = $this->relations->resolve($model, $relationId);
-            $class = $resolution->target?->fqcn();
-
-            if ($class !== null && class_exists($class)) {
+        foreach ($this->candidatesOf($model, $targetKind) as $class) {
+            if (class_exists($class)) {
                 return $class;
             }
         }
 
         return null;
+    }
+
+    /**
+     * The classes the model's relations to the target kind name, in order, whether or not they exist.
+     *
+     * @return list<string>
+     */
+    public function candidatesOf(ResolvedArtifact $model, string $targetKind): array
+    {
+        if ($model->kind->id !== self::MODEL_KIND) {
+            return [];
+        }
+
+        $classes = [];
+
+        foreach ($this->relationIds($targetKind) as $relationId) {
+            $class = $this->relations->resolve($model, $relationId)->target?->fqcn();
+
+            if ($class !== null) {
+                $classes[] = $class;
+            }
+        }
+
+        return $classes;
     }
 
     /**

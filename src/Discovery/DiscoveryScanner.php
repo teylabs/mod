@@ -3,6 +3,7 @@
 namespace Tey\Mod\Discovery;
 
 use Closure;
+use Error;
 use FilesystemIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -50,6 +51,7 @@ final readonly class DiscoveryScanner
         private string $basePath,
         private Eligibility $eligibility = new Eligibility,
         private ?Closure $candidates = null,
+        private Declarations $declarations = new Declarations,
     ) {
         $this->mapper = new ReverseMapper($preset);
         $this->relations = new ModelRelations($preset);
@@ -105,7 +107,7 @@ final readonly class DiscoveryScanner
                     $match = $matches[$path] ??= $this->mapper->fromPath($path);
 
                     if ($match->outcome === ReverseOutcome::Matched && $match->artifact !== null && $match->artifact->kind->id === $definition->kindId) {
-                        $this->pair($definition, $match->artifact, $path, $entries);
+                        $this->pair($definition, $match->artifact, $path, $entries, $rejections);
                     }
                 }
 
@@ -192,8 +194,9 @@ final readonly class DiscoveryScanner
      * A model and its related class, when the model is an eligible Eloquent model and the class exists.
      *
      * @param  array<string, DiscoveredArtifact>  $entries
+     * @param  array<string, Rejection>  $rejections
      */
-    private function pair(DiscoveryDefinition $definition, ResolvedArtifact $model, string $path, array &$entries): void
+    private function pair(DiscoveryDefinition $definition, ResolvedArtifact $model, string $path, array &$entries, array &$rejections): void
     {
         $entry = $this->entry($definition, $model, $path);
 
@@ -201,7 +204,24 @@ final readonly class DiscoveryScanner
             return;
         }
 
-        $target = $this->relations->targetOf($model, $definition->type->value);
+        foreach ($this->relations->candidatesOf($model, $definition->type->value) as $candidate) {
+            $missing = $this->declarations->missingFor($candidate);
+
+            if ($missing !== null) {
+                $rejections[$path] ??= new Rejection($path, RejectionReason::Ineligible, self::needs($candidate, $missing), $definition->kindId, $entry->class);
+
+                return;
+            }
+        }
+
+        // A second line of defence: a missing parent or interface still throws while autoloading.
+        try {
+            $target = $this->relations->targetOf($model, $definition->type->value);
+        } catch (Error $error) {
+            $rejections[$path] ??= new Rejection($path, RejectionReason::Ineligible, $error->getMessage(), $definition->kindId, $entry->class);
+
+            return;
+        }
 
         if ($target !== null) {
             $entries[$path.'|'.$definition->type->value] = new DiscoveredArtifact($entry->kindId, $entry->type, $entry->class, $entry->path, $entry->context, [], $target);
@@ -213,8 +233,19 @@ final readonly class DiscoveryScanner
         $class = $artifact->fqcn();
         $absolute = $this->absolute($path);
 
-        if ($class === null || ! class_exists($class)) {
-            return new Rejection($path, RejectionReason::Ineligible, sprintf('the autoloader does not find class [%s]', $class ?? '?'), $definition->kindId, $class);
+        // Loading a class whose trait is missing is a fatal error no catch stops, so the declaration is checked first.
+        $missing = $class === null || class_exists($class, false) ? null : $this->declarations->missing($absolute);
+
+        if ($missing !== null) {
+            return new Rejection($path, RejectionReason::Ineligible, self::needs($class, $missing), $definition->kindId, $class);
+        }
+
+        try {
+            if ($class === null || ! class_exists($class)) {
+                return new Rejection($path, RejectionReason::Ineligible, sprintf('the autoloader does not find class [%s]', $class ?? '?'), $definition->kindId, $class);
+            }
+        } catch (Error $error) {
+            return new Rejection($path, RejectionReason::Ineligible, $error->getMessage(), $definition->kindId, $class);
         }
 
         $result = $this->eligibility->check($definition->type, $class, $absolute);
@@ -224,6 +255,11 @@ final readonly class DiscoveryScanner
         }
 
         return new DiscoveredArtifact($definition->kindId, $definition->type, $class, $path, $artifact->context->toArray(), $result);
+    }
+
+    private static function needs(?string $class, string $missing): string
+    {
+        return sprintf('[%s] needs [%s], which the autoloader does not find', $class ?? '?', $missing);
     }
 
     private function concerns(ReverseMatch $match, DiscoveryDefinition $definition): bool
