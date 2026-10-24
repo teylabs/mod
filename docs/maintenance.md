@@ -55,6 +55,9 @@ It reads only the files the two artifacts name, plus the host inputs in `$inputP
 | conflict | Current differs from original, even if it equals the target |
 | unowned | A new target path collides with a host file |
 | claim | A listed new target path already has identical bytes (see [Claiming existing files](#claiming-existing-files)) |
+| remove | A dropped path with the `delete` policy is untouched, so it's deleted (see [Removing and moving files](#removing-and-moving-files)) |
+| release | A dropped path with the `release` policy is kept and becomes host-owned |
+| gone | A dropped path is already absent |
 
 A conflict, an unowned collision or a compatibility result other than `passed` makes the plan non-executable. Files the artifacts don't name are never touched and never become owned.
 
@@ -94,7 +97,7 @@ Checkout::installed($root, $appId);
 // ['acme/blueprint:billing' => ['identity' => 'sha256:…', 'version' => '2.0.0', 'files' => ['app/Billing.php' => '<sha256>']]]
 ```
 
-Lineages never share files. When a target path is owned by another installed lineage, it's a `conflict`, and its plan entry has the reason `owned_by:<name>`. Ownership is never transferred.
+Lineages never share files. When a target path is owned by another installed lineage, it's a `conflict`, and its plan entry has the reason `owned_by:<name>`. To hand a file over, see [Removing and moving files](#removing-and-moving-files).
 
 While one lineage has an unfinished update (for example, its checks failed and it hasn't been resumed yet), Mod refuses to inspect, apply, resume or claim for any other lineage, with the reason `pending:<name>`. The unfinished lineage can still resume. Finish it with `Maintenance::resume()`, then continue with the others.
 
@@ -153,6 +156,29 @@ $plan = Checkout::inspect($root, $appId, $installed, $target, $inputPaths, $comp
 ```
 
 A claimed path whose bytes are identical to the target has the state `claim`. Mod doesn't write it, and after the update it's owned like any generated file. Differing bytes are a `conflict`, and existing paths you didn't list stay `unowned`. A claim never overwrites anything. To resume an interrupted update, pass the same `claim` list to `Maintenance::resume()`.
+
+## Removing and moving files
+
+A target may drop paths its baseline owned, for example when a library splits one feature into two. Mod never infers a removal: pass `removals`, mapping exactly every dropped path to a policy. A dropped path without one, or a policy for a path the target keeps, is refused.
+
+```php
+$plan = Checkout::inspect($root, $appId, $installed, $target, $inputPaths, $compatibility, removals: [
+    'app/Billing/Invoice.php' => 'delete',
+    'app/Billing/Receipt.php' => 'release',
+]);
+```
+
+| Host copy | `delete` | `release` |
+| --- | --- | --- |
+| Matches the baseline | `remove`: deleted, no longer owned | `release`: kept, now host-owned |
+| Edited | `conflict` with the reason `modified`; never deleted | `release` |
+| Already absent | `gone` | `gone` |
+
+Deletions run under the update's journal, before the checks. If a check fails or the update stops before it's recorded, Mod puts the removed files back from the baseline; retrying deletes them again. After the update, the installed record no longer lists removed or released paths, and `Checkout::installed()` stops reporting them.
+
+`Maintenance::diagnose()` lists every dropped path under `removals` with its state. A refused edited file also carries `diff` (the baseline against the current bytes) and `step`: edit it back to the baseline, delete it by hand, or switch its policy to `release`. The result of `apply` and `resume` lists deleted paths under `removed`. Pass the same `removals` to `Maintenance::resume()`.
+
+To move a file to another lineage, run two ordinary updates, giver first. The giving lineage drops the path with `release`; then the receiving lineage takes it with `claim`. Identical bytes become owned without a write; edited bytes are a `conflict`, as with any claim.
 
 ## Limits
 

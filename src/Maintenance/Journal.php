@@ -71,6 +71,10 @@ final class Journal
                 $claimed = array_filter($plan->files, static fn (array $entry): bool => $entry['state'] === 'claim');
                 $record['envelope']['claimed'] = array_map(base64_encode(...), array_intersect_key($plan->target->files, $claimed));
             }
+            if ($plan->removals !== []) {
+                // Removed bytes stay in originals, so a failed update can put them back.
+                $record['envelope']['removals'] = $plan->removals;
+            }
             $relative = '.mod-maintenance/journal-'.hash('sha256', $intent).'.json';
             $path = SafeFilesystem::path($plan->root, $relative);
             if (file_exists($path)) {
@@ -102,7 +106,7 @@ final class Journal
     /** @param array<string, string> $inputPaths */
     private static function fresh(FilePlan $plan, array $inputPaths, bool $recovery = false): void
     {
-        $fresh = Checkout::inspect($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility, $plan->claim);
+        $fresh = Checkout::inspect($plan->root, $plan->appId, $plan->baseline, $plan->target, $inputPaths, $plan->compatibility, $plan->claim, $plan->removals);
         // Another lineage may have taken ownership since the original plan was made.
         $refused = array_filter($fresh->files, static fn (array $entry): bool => isset($entry['reason']));
         if (! $plan->executable() || $refused !== [] || Fingerprint::of($fresh->inputs) !== Fingerprint::of($plan->inputs) || (! $recovery && $fresh->identity() !== $plan->identity())) {
@@ -343,13 +347,14 @@ final class Journal
      * @param  array<string, string>  $inputPaths
      * @param  array<string, string>  $compatibility
      * @param  list<string>  $claim
+     * @param  array<string, string>  $removals
      */
-    public static function reopen(string $root, string $appId, Artifact $baseline, Artifact $target, array $inputPaths, array $compatibility, string $intent, bool $exclusiveCheckout, array $claim = []): self
+    public static function reopen(string $root, string $appId, Artifact $baseline, Artifact $target, array $inputPaths, array $compatibility, string $intent, bool $exclusiveCheckout, array $claim = [], array $removals = []): self
     {
         if (! $exclusiveCheckout || $intent === '' || strlen($intent) > 120 || preg_match('/[\x00-\x1F\x7F]/', $intent)) {
             throw new RuntimeException('Exclusive checkout and stable intent are required.');
         }
-        $fresh = Checkout::inspect($root, $appId, $baseline, $target, $inputPaths, $compatibility, $claim);
+        $fresh = Checkout::inspect($root, $appId, $baseline, $target, $inputPaths, $compatibility, $claim, $removals);
         $path = SafeFilesystem::path($root, '.mod-maintenance/journal-'.hash('sha256', $intent).'.json');
         $saved = self::readData($path);
         $envelope = $saved['envelope'] ?? null;
@@ -357,7 +362,7 @@ final class Journal
             throw new RuntimeException('Invalid prepared recovery schema.');
         }
         $original = [];
-        foreach ($target->files as $relative => $bytes) {
+        foreach ($target->files + array_intersect_key($baseline->files, $removals) as $relative => $bytes) {
             $entry = $envelope['files'][$relative] ?? null;
             if (! is_array($entry) || ! array_key_exists('current', $entry)) {
                 throw new RuntimeException('Missing prepared file identity.');
@@ -371,7 +376,7 @@ final class Journal
                 $original[$relative] = $trusted;
             }
         }
-        $plan = FilePlan::between($appId, $root, $baseline, $target, $original, $fresh->inputs, $compatibility, claim: $claim);
+        $plan = FilePlan::between($appId, $root, $baseline, $target, $original, $fresh->inputs, $compatibility, claim: $claim, removals: $removals);
 
         return self::prepare($plan, $inputPaths, $intent, $exclusiveCheckout, recovery: true);
     }
@@ -487,6 +492,11 @@ final class Journal
         foreach ($this->plan->target->files as $path => $bytes) {
             if (SafeFilesystem::read($this->plan->root, $path) !== $bytes) {
                 throw new RuntimeException('Installed recording requires exact target bytes.');
+            }
+        }
+        foreach ($this->plan->files as $path => $entry) {
+            if ($entry['state'] === 'remove' && SafeFilesystem::read($this->plan->root, $path) !== null) {
+                throw new RuntimeException('Installed recording requires removed files to stay absent.');
             }
         }
         $root = $this->plan->root;

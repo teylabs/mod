@@ -4,6 +4,9 @@ All notable changes to `mod` will be documented in this file.
 
 ## Unreleased
 
+### Added
+- An update can remove or release generated files its target drops. `FilePlan::between()`, `Checkout::inspect()` and `Maintenance::resume()` take `removals`, mapping every dropped path to `delete` or `release`; an edited file is never deleted. Releasing then claiming moves a file between lineages (#201).
+
 ### Fixed
 - Discovery skips classes whose parent, interface or trait is unavailable, reporting the load error instead of stopping production boots without dev dependencies (#202).
 
