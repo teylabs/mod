@@ -103,6 +103,21 @@ jobs:
         run: vendor/bin/pest --ci --no-coverage
 
 
+  production-boot:
+    name: Boot without dev dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, sqlite, pdo_sqlite
+          tools: composer:v2
+          coverage: none
+      - name: Install and boot a production fixture app
+        run: bash tests/discovery/verify-no-dev.sh "$RUNNER_TEMP/mod-no-dev"
+
   boost:
     name: Verify Boost resources
     runs-on: ubuntu-latest
