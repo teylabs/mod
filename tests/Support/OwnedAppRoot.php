@@ -6,6 +6,7 @@ use FilesystemIterator;
 use RuntimeException;
 use SplFileInfo;
 use Tey\Mod\Support\Path;
+use UnexpectedValueException;
 
 /**
  * A throwaway Laravel application root owned by a single test.
@@ -121,7 +122,7 @@ final class OwnedAppRoot
 
         $this->removeContents($this->path);
 
-        rmdir($this->path);
+        self::remove($this->path, rmdir(...));
 
         $this->destroyed = true;
         unset(self::$live[$this->path]);
@@ -137,7 +138,17 @@ final class OwnedAppRoot
         // Probe each child before descending: RecursiveDirectoryIterator follows
         // Windows junctions even without FOLLOW_SYMLINKS, deleting their targets.
         /** @var SplFileInfo $item */
-        foreach (new FilesystemIterator($directory, FilesystemIterator::SKIP_DOTS) as $item) {
+        try {
+            $items = new FilesystemIterator($directory, FilesystemIterator::SKIP_DOTS);
+        } catch (UnexpectedValueException $e) {
+            if (file_exists($directory) || Path::isLink($directory)) {
+                throw $e;
+            }
+
+            return;
+        }
+
+        foreach ($items as $item) {
             $pathname = $item->getPathname();
             if (! str_starts_with($pathname, $this->path.DIRECTORY_SEPARATOR)) {
                 throw new RuntimeException("Refusing to delete [{$pathname}] outside the owned root.");
@@ -147,20 +158,38 @@ final class OwnedAppRoot
                 // Directory links (including dangling ones) need rmdir; file
                 // links need unlink. Neither operation follows the target.
                 if (! @rmdir($pathname)) {
-                    unlink($pathname);
+                    self::remove($pathname, unlink(...));
                 }
             } elseif ($link) {
-                unlink($pathname);
+                self::remove($pathname, unlink(...));
             } elseif ($item->isDir()) {
                 $this->removeContents($pathname);
-                rmdir($pathname);
+                self::remove($pathname, rmdir(...));
             } else {
                 if (PHP_OS_FAMILY === 'Windows') {
                     chmod($pathname, 0666);
                 }
-                unlink($pathname);
+                self::remove($pathname, unlink(...));
             }
         }
+    }
+
+    /**
+     * Run a delete, skipping a path that vanished since it was listed (git's
+     * background writer removes its temp files mid-teardown). Any other
+     * failure still throws.
+     *
+     * @param  callable(string): bool  $delete
+     */
+    private static function remove(string $pathname, callable $delete): void
+    {
+        if (@$delete($pathname) || (! file_exists($pathname) && ! Path::isLink($pathname))) {
+            return;
+        }
+
+        $delete($pathname);
+
+        throw new RuntimeException("Unable to delete [{$pathname}].");
     }
 
     private function guardOwnership(): void
