@@ -361,6 +361,10 @@ final class Journal
         if (! is_array($envelope) || ! is_array($envelope['files'] ?? null)) {
             throw new RuntimeException('Invalid prepared recovery schema.');
         }
+        if (is_string($envelope['baseline'] ?? null) && is_string($envelope['target'] ?? null) && [$envelope['baseline'], $envelope['target']] !== [$baseline->identity(), $target->identity()]) {
+            // A reused intent, not a damaged journal: say what to do before any per-file check.
+            throw new RuntimeException("Intent [{$intent}] already has a journal for a different plan. Finish or resume it, or use a new intent.");
+        }
         $original = [];
         foreach ($target->files + array_intersect_key($baseline->files, $removals) as $relative => $bytes) {
             $entry = $envelope['files'][$relative] ?? null;

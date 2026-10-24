@@ -9,6 +9,7 @@ All notable changes to `mod` will be documented in this file.
 
 ### Fixed
 - Discovery skips classes whose parent, interface or trait is unavailable, reporting the load error instead of stopping production boots without dev dependencies (#202).
+- Reusing an intent for a different plan now fails before touching files with `Intent [x] already has a journal for a different plan. Finish or resume it, or use a new intent.`, instead of `Missing prepared file identity.` (#206).
 
 ## [0.10.0] - 2026-10-19
 
