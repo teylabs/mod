@@ -180,6 +180,37 @@ Deletions run under the update's journal, before the checks. If a check fails or
 
 To move a file to another lineage, run two ordinary updates, giver first. The giving lineage drops the path with `release`; then the receiving lineage takes it with `claim`. Identical bytes become owned without a write; edited bytes are a `conflict`, as with any claim.
 
+### When the giver requires the receiver, or the bytes change
+
+Two cases need more steps:
+
+- The giver's new target `requires` the receiver. Mod refuses that update until the receiver is installed (`Required lineage … is not installed`), so the giver can't release first.
+- The receiver's target bytes differ from the released bytes, because the moved file also changed in the same release. A claim only adopts identical bytes.
+
+Run four updates instead, each with its own intent:
+
+1. Update the giver to an interim target: the new target without the requirement, and without changing the files it keeps. Release the moved paths.
+2. Install the receiver at the released bytes, claiming them.
+3. Update the receiver to its final target.
+4. Update the giver from the interim target to its final target.
+
+```php
+// acme/blueprint:billing gives app/Billing/Receipt.php to acme/blueprint:receipts.
+$step = fn (Artifact $from, Artifact $to, string $intent, array $claim = [], array $removals = []) => Maintenance::apply(
+    Checkout::inspect($root, $appId, $from, $to, $inputPaths, $compatibility, $claim, $removals),
+    $inputPaths, $intent, $checks, exclusiveCheckout: true,
+);
+
+$step($billing, $billingInterim, 'billing-3.0-release', removals: ['app/Billing/Receipt.php' => 'release']);
+$step($receiptsEmpty, $receiptsAtReleased, 'receipts-1.0-claim', claim: ['app/Billing/Receipt.php']);
+$step($receiptsAtReleased, $receipts, 'receipts-1.0');
+$step($billingInterim, $billingFinal, 'billing-3.0');
+```
+
+`$receiptsAtReleased` names the moved paths with exactly the bytes the giver last wrote. `$receiptsEmpty` is the same lineage with no files. When the giver doesn't require the receiver, step 1 can go straight to the final target and step 4 isn't needed. When the bytes don't change, skip step 3.
+
+An edited file stops the move at step 2: the claim is a `conflict`, nothing is written, and the file stays host-owned. Edit it back to the released bytes and run step 2 again. Each step is an ordinary update, so a retry of the same plan, or `Maintenance::resume()` with the same intent, is a no-op once it has completed. A future all-or-nothing update across several lineages may make this one step.
+
 ## Limits
 
 - Experimental, and POSIX checkouts only.
