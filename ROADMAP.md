@@ -21,9 +21,11 @@ mod 1.0 lets you decide where every generated file goes (modules, features, slic
 - [x] **[v0.9 — Adopt generated files feature by feature](https://github.com/teylabs/mod/milestone/14?closed=1).** An app can hold several lineages, each with its own installed record. Lineages can't own each other's files, can require one another, can reserve host-owned paths, and can claim existing files whose bytes already match. A 0.8 checkout migrates on its next update.
 - [x] **[v0.9.1 — Dot-prefixed paths](https://github.com/teylabs/mod/milestone/16?closed=1).** Lineages can own, claim and reserve files like `.env.example` and `.github/workflows/…`.
 - [x] **[v0.10 — Read back lineages](https://github.com/teylabs/mod/milestone/15?closed=1).** Tooling can read an app's installed lineages and unfinished updates through Mod's public API.
+- [x] **[v0.11 — Remove and move generated files](https://github.com/teylabs/mod/milestone/17?closed=1).** An update can delete or release files its target drops, never deleting an edited one, and a file can move between lineages by release then claim. Discovery no longer stops production boots without dev dependencies.
 
 ## The countdown to 1.0
 
-- [ ] **[v0.11 — Switch modules on and off](https://github.com/teylabs/mod/milestone/17).** Turn a module off without deleting it.
+- [ ] **[v0.11.1 — Retry finished moves](https://github.com/teylabs/mod/milestone/19).** A finished release step can be retried after a later step rewrites the moved file.
+- [ ] **[v0.12 — Switch modules on and off](https://github.com/teylabs/mod/milestone/18).** Turn a module off without deleting it.
 - [ ] **[1.0 — A stable promise](https://github.com/teylabs/mod/milestone/8).** Laravel-DDD apps moved to mod in field trials, with a guide for moving. A frozen public API, a versioning and support policy, complete docs with an upgrade guide, and a release candidate.
 - [ ] **[1.x — After 1.0](https://github.com/teylabs/mod/milestone/9).** In no particular order.
