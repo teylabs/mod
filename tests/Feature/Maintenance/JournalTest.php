@@ -4,6 +4,7 @@ use PHPUnit\Framework\Assert;
 use Tey\Mod\Maintenance\Artifact;
 use Tey\Mod\Maintenance\Checkout;
 use Tey\Mod\Maintenance\Journal;
+use Tey\Mod\Maintenance\Maintenance;
 use Tey\Mod\Tests\Support\OwnedAppRoot;
 
 beforeEach(function () {
@@ -98,6 +99,27 @@ it('refuses changed intent payload and edited journal envelope', function (strin
             ->and(file_get_contents($root->path('app/Owned.php')))->toBe('A');
     });
 })->with(['intent', 'journal']);
+
+it('names a reused intent whose journal belongs to a different plan, before touching files', function () {
+    OwnedAppRoot::using(function ($root) {
+        file_put_contents($root->path('policy.json'), '{"checks":["protocol"]}');
+        file_put_contents($root->path('verifier.php'), '<?php return true;');
+        $inputs = ['verification-policy' => 'policy.json', 'verification-code' => 'verifier.php'];
+        $empty = new Artifact('example/recipe', 'A', [], ['core'], ['auth' => 'session'], ['protocol']);
+        $first = new Artifact('example/recipe', 'B', ['app/Owned.php' => 'B'], ['core'], ['auth' => 'session'], ['protocol']);
+        $second = new Artifact('example/recipe', 'C', ['app/Other.php' => 'C'], ['core'], ['auth' => 'session'], ['protocol']);
+        $plan = Checkout::inspect($root->path, 'one', $empty, $first, $inputs, ['framework' => 'passed']);
+        expect(Maintenance::apply($plan, $inputs, 'install', ['protocol' => fn () => false], true)['status'])->toBe('verification_failed');
+        $journal = file_get_contents($root->path('.mod-maintenance/journal-'.hash('sha256', 'install').'.json'));
+
+        $plan = Checkout::inspect($root->path, 'one', $empty, $second, $inputs, ['framework' => 'passed']);
+
+        expect(fn () => Maintenance::apply($plan, $inputs, 'install', ['protocol' => fn () => true], true))
+            ->toThrow(RuntimeException::class, 'Intent [install] already has a journal for a different plan. Finish or resume it, or use a new intent.')
+            ->and(file_exists($root->path('app/Other.php')))->toBeFalse()
+            ->and(file_get_contents($root->path('.mod-maintenance/journal-'.hash('sha256', 'install').'.json')))->toBe($journal);
+    });
+});
 
 it('refuses unknown metadata and foreign app ownership without adoption', function (string $kind) {
     OwnedAppRoot::using(function ($root) use ($kind) {
