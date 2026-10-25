@@ -207,3 +207,79 @@ it('rolls a removal back when checks fail, and removes it again on resume', func
             ->and(file_exists($root->path('app/Gone.php')))->toBeFalse();
     });
 });
+
+/**
+ * Run one update of a lineage, expect it to complete, and expect an immediate retry to be a no-op.
+ *
+ * @param  array<string, string>  $inputs
+ * @param  list<string>  $claim
+ * @param  array<string, string>  $removals
+ * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}
+ */
+function removalUpdate(OwnedAppRoot $root, array $inputs, Artifact $baseline, Artifact $target, string $intent, array $claim = [], array $removals = []): array
+{
+    $plan = Checkout::inspect($root->path, 'one', $baseline, $target, $inputs, ['php' => 'passed'], $claim, $removals);
+    $result = Maintenance::apply($plan, $inputs, $intent, ['check' => fn () => true], true);
+    expect($result['status'])->toBe('completed')
+        ->and(Maintenance::apply($plan, $inputs, $intent, [], true)['no_op'])->toBeTrue();
+
+    return $result;
+}
+
+it('moves a file whose bytes change to a lineage the giver will require, in four updates', function () {
+    OwnedAppRoot::using(function ($root) {
+        $inputs = removalInputs($root);
+        $giver = removalInstall($root, $inputs, files: ['app/Keep.php' => 'keep', 'app/Moved.php' => 'moved']);
+        $interim = removalArtifact('example/recipe', 'B-interim', ['app/Keep.php' => 'keep']);
+        $final = new Artifact('example/recipe', 'B', ['app/Keep.php' => 'keep v2'], ['core'], ['auth' => 'session'], ['check'], requires: ['example/other' => 'B']);
+        $empty = removalArtifact('example/other', 'A', []);
+        $released = removalArtifact('example/other', 'A', ['app/Moved.php' => 'moved']);
+        $receiver = removalArtifact('example/other', 'B', ['app/Moved.php' => 'moved v2']);
+
+        // The final giver requires a receiver that isn't installed yet.
+        expect(fn () => Checkout::inspect($root->path, 'one', $giver, $final, $inputs, ['php' => 'passed'], removals: ['app/Moved.php' => 'release']))
+            ->toThrow(RuntimeException::class, 'Required lineage example/other is not installed at version B.');
+
+        // 1. Release through an interim giver target without the requirement.
+        removalUpdate($root, $inputs, $giver, $interim, 'move-1-release', removals: ['app/Moved.php' => 'release']);
+        // 2. Install the receiver at the released bytes, claiming them.
+        $claimed = removalUpdate($root, $inputs, $empty, $released, 'move-2-claim', claim: ['app/Moved.php']);
+        // 3. Update the receiver to its final bytes.
+        $changed = removalUpdate($root, $inputs, $released, $receiver, 'move-3-receiver');
+        // 4. Update the giver to its final target, which requires the receiver.
+        removalUpdate($root, $inputs, $interim, $final, 'move-4-giver');
+
+        expect($claimed['written'])->toBe([])
+            ->and($changed['written'])->toBe(['app/Moved.php'])
+            ->and(file_get_contents($root->path('app/Moved.php')))->toBe('moved v2')
+            ->and(array_map(fn (array $lineage) => [$lineage['version'], $lineage['files']], Checkout::installed($root->path, 'one')))->toBe([
+                'example/other' => ['B', ['app/Moved.php' => hash('sha256', 'moved v2')]],
+                'example/recipe' => ['B', ['app/Keep.php' => hash('sha256', 'keep v2')]],
+            ]);
+
+        // Resuming the final steps from cold is a no-op.
+        $again = [
+            Maintenance::resume($root->path, 'one', $released, $receiver, $inputs, ['php' => 'passed'], 'move-3-receiver', [], true),
+            Maintenance::resume($root->path, 'one', $interim, $final, $inputs, ['php' => 'passed'], 'move-4-giver', [], true),
+        ];
+        expect(array_column($again, 'no_op'))->toBe([true, true])
+            ->and(file_get_contents($root->path('app/Moved.php')))->toBe('moved v2');
+    });
+});
+
+it('refuses the four-step move at the claim when the released file was edited', function () {
+    OwnedAppRoot::using(function ($root) {
+        $inputs = removalInputs($root);
+        $giver = removalInstall($root, $inputs, files: ['app/Keep.php' => 'keep', 'app/Moved.php' => 'moved']);
+        $interim = removalArtifact('example/recipe', 'B-interim', ['app/Keep.php' => 'keep']);
+        removalUpdate($root, $inputs, $giver, $interim, 'move-1-release', removals: ['app/Moved.php' => 'release']);
+        file_put_contents($root->path('app/Moved.php'), 'edited');
+
+        $plan = Checkout::inspect($root->path, 'one', removalArtifact('example/other', 'A', []), removalArtifact('example/other', 'A', ['app/Moved.php' => 'moved']), $inputs, ['php' => 'passed'], ['app/Moved.php']);
+
+        expect($plan->files['app/Moved.php']['state'])->toBe('conflict')
+            ->and(fn () => Maintenance::apply($plan, $inputs, 'move-2-claim', ['check' => fn () => true], true))->toThrow(RuntimeException::class)
+            ->and(file_get_contents($root->path('app/Moved.php')))->toBe('edited')
+            ->and(array_keys(Checkout::installed($root->path, 'one')))->toBe(['example/recipe']);
+    });
+});
