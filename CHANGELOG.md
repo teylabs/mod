@@ -2,7 +2,7 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## [Unreleased]
+## [0.12.0] - 2026-10-26
 
 ### Added
 - Switch a module off without deleting it: list it in the new `disabled` key of `config/mod.php`. A disabled module's providers, commands, listeners, subscribers, policies, routes (with its scheduled tasks), views, components, page namespace, translations and scaffolds don't load; its migrations still run. `mod:list` marks it `(disabled)`, and `mod:list --json` adds `disabled` and `unknown_disabled`. Changing the list needs no `mod:cache` (#64).
