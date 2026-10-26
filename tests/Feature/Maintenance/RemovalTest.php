@@ -214,7 +214,7 @@ it('rolls a removal back when checks fail, and removes it again on resume', func
  * @param  array<string, string>  $inputs
  * @param  list<string>  $claim
  * @param  array<string, string>  $removals
- * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}
+ * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>, superseded_by: array{intent: string, plan: string}|null}
  */
 function removalUpdate(OwnedAppRoot $root, array $inputs, Artifact $baseline, Artifact $target, string $intent, array $claim = [], array $removals = []): array
 {
@@ -259,12 +259,27 @@ it('moves a file whose bytes change to a lineage the giver will require, in four
                 'example/recipe' => ['B', ['app/Keep.php' => hash('sha256', 'keep v2')]],
             ]);
 
+        // Retrying step 1 after step 4 is a no-op: the giver's record remembers the release as finished.
+        $files = ['app/Keep.php' => file_get_contents($root->path('app/Keep.php')), 'app/Moved.php' => file_get_contents($root->path('app/Moved.php'))];
+        $record = file_get_contents(installedRecordPath($root, 'example/recipe'));
+        $retried = Maintenance::resume($root->path, 'one', $giver, $interim, $inputs, ['php' => 'passed'], 'move-1-release', [], true, removals: ['app/Moved.php' => 'release']);
+        $giverRecord = json_decode($record, true);
+
+        expect($retried['status'])->toBe('completed')
+            ->and($retried['no_op'])->toBeTrue()
+            ->and([$retried['written'], $retried['reconciled'], $retried['removed']])->toBe([[], [], []])
+            ->and($retried['superseded_by'])->toBe(['intent' => 'move-4-giver', 'plan' => $giverRecord['commit']['plan']])
+            ->and($giverRecord['completed'])->toBe([['intent' => 'move-1-release', 'plan' => $retried['plan']], ['intent' => 'install-example/recipe', 'plan' => $giverRecord['completed'][1]['plan']]])
+            ->and(file_get_contents(installedRecordPath($root, 'example/recipe')))->toBe($record)
+            ->and(['app/Keep.php' => file_get_contents($root->path('app/Keep.php')), 'app/Moved.php' => file_get_contents($root->path('app/Moved.php'))])->toBe($files);
+
         // Resuming the final steps from cold is a no-op.
         $again = [
             Maintenance::resume($root->path, 'one', $released, $receiver, $inputs, ['php' => 'passed'], 'move-3-receiver', [], true),
             Maintenance::resume($root->path, 'one', $interim, $final, $inputs, ['php' => 'passed'], 'move-4-giver', [], true),
         ];
         expect(array_column($again, 'no_op'))->toBe([true, true])
+            ->and(array_column($again, 'superseded_by'))->toBe([null, null])
             ->and(file_get_contents($root->path('app/Moved.php')))->toBe('moved v2');
     });
 });
@@ -299,5 +314,57 @@ it('still protects the bytes of a release that never committed', function () {
             ->toThrow(RuntimeException::class, 'Third file value blocks maintenance recovery.')
             ->and(file_get_contents($root->path('app/Moved.php')))->toBe('edited')
             ->and(Checkout::installed($root->path, 'one')['example/recipe']['files'])->toHaveKey('app/Moved.php');
+    });
+});
+
+it('keeps a pre-0.12 record without history working and adds the history on its next commit', function () {
+    OwnedAppRoot::using(function ($root) {
+        $inputs = removalInputs($root);
+        $baseline = removalInstall($root, $inputs);
+        $path = installedRecordPath($root, 'example/recipe');
+        $legacy = json_decode((string) file_get_contents($path), true);
+        unset($legacy['completed']);
+        file_put_contents($path, json_encode($legacy, JSON_UNESCAPED_SLASHES)."\n");
+        $empty = removalArtifact('example/recipe', 'A', []);
+
+        // Without history, the finished install is not recognized once it is no longer the latest commit.
+        $target = removalArtifact('example/recipe', 'B', ['app/Keep.php' => 'keep', 'app/Gone.php' => 'gone v2']);
+        removalUpdate($root, $inputs, $baseline, $target, 'upgrade');
+        $record = json_decode((string) file_get_contents($path), true);
+
+        expect($record['completed'])->toBe([['intent' => 'install-example/recipe', 'plan' => $legacy['commit']['plan']]]);
+    });
+});
+
+it('keeps only the configured number of finished commits, newest first', function () {
+    config()->set('mod.maintenance.completed', 2);
+    OwnedAppRoot::using(function ($root) {
+        $inputs = removalInputs($root);
+        $from = removalInstall($root, $inputs);
+        foreach (['B', 'C', 'D'] as $version) {
+            $to = removalArtifact('example/recipe', $version, ['app/Keep.php' => 'keep '.$version, 'app/Gone.php' => 'gone']);
+            removalUpdate($root, $inputs, $from, $to, 'to-'.$version);
+            $from = $to;
+        }
+        $record = json_decode((string) file_get_contents(installedRecordPath($root, 'example/recipe')), true);
+
+        expect($record['commit']['intent'])->toBe('to-D')
+            ->and(array_column($record['completed'], 'intent'))->toBe(['to-C', 'to-B']);
+    });
+});
+
+it('still refuses an unrelated intent and a reused intent with a different plan', function () {
+    OwnedAppRoot::using(function ($root) {
+        $inputs = removalInputs($root);
+        $baseline = removalInstall($root, $inputs);
+        $b = removalArtifact('example/recipe', 'B', ['app/Keep.php' => 'keep B', 'app/Gone.php' => 'gone']);
+        $c = removalArtifact('example/recipe', 'C', ['app/Keep.php' => 'keep C', 'app/Gone.php' => 'gone']);
+        removalUpdate($root, $inputs, $baseline, $b, 'to-B');
+        removalUpdate($root, $inputs, $b, $c, 'to-C');
+
+        expect(fn () => Maintenance::resume($root->path, 'one', $baseline, $b, $inputs, ['php' => 'passed'], 'never-ran', [], true))
+            ->toThrow(RuntimeException::class)
+            ->and(fn () => Maintenance::resume($root->path, 'one', $b, $c, $inputs, ['php' => 'passed'], 'to-B', [], true))
+            ->toThrow(RuntimeException::class, 'Intent [to-B] already has a journal for a different plan.');
     });
 });

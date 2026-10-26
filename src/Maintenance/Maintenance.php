@@ -80,7 +80,7 @@ final class Maintenance
      *
      * @param  array<string, string>  $inputPaths
      * @param  array<string, Closure>  $registry
-     * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}
+     * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>, superseded_by: array{intent: string, plan: string}|null}
      *
      * @api
      */
@@ -88,6 +88,9 @@ final class Maintenance
     {
         self::boundary($intent, $exclusiveCheckout);
         self::registry($registry, $plan->target->checks, false);
+        if (($superseded = self::superseded($plan->root, $plan->target, $intent, $plan->identity())) !== null) {
+            return $superseded;
+        }
         $orphans = Orphans::inspect($plan->root, $plan->target);
         if ($orphans !== []) {
             return self::blocked($plan->identity(), $orphans);
@@ -120,7 +123,7 @@ final class Maintenance
      * @param  array<string, Closure>  $registry
      * @param  list<string>  $claim  The same reviewed claim list the interrupted plan was made with.
      * @param  array<string, string>  $removals  The same removal policy the interrupted plan was made with.
-     * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}
+     * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>, superseded_by: array{intent: string, plan: string}|null}
      *
      * @api
      */
@@ -129,6 +132,10 @@ final class Maintenance
         self::boundary($intent, $exclusiveCheckout);
         FilePlan::between($appId, $root, $baseline, $target, [], [], $compatibility, claim: $claim, removals: $removals);
         self::registry($registry, $target->checks, false);
+        $saved = self::savedPlan($root, $baseline, $target, $intent);
+        if ($saved !== null && ($superseded = self::superseded($root, $target, $intent, $saved)) !== null) {
+            return $superseded;
+        }
         $orphans = Orphans::inspect($root, $target);
         if ($orphans !== []) {
             return self::blocked(null, $orphans);
@@ -139,6 +146,50 @@ final class Maintenance
         } finally {
             $journal->close();
         }
+    }
+
+    /**
+     * A finished update that a newer one of its lineage replaced: a no-op before any file read, write or check.
+     *
+     * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>, superseded_by: array{intent: string, plan: string}|null}|null
+     */
+    private static function superseded(string $root, Artifact $target, string $intent, string $plan): ?array
+    {
+        if (! self::readableMetadata($root)) {
+            return null;
+        }
+        $found = InstalledRecord::superseded($root, $target->name, $intent, $plan);
+        if ($found === null) {
+            return null;
+        }
+
+        return ['status' => 'completed', 'no_op' => true, 'plan' => $plan, 'receipt' => $found['receipt'], 'written' => [], 'reconciled' => [], 'removed' => [], 'checks' => array_fill_keys($target->checks, 'passed'), 'orphans' => [], 'superseded_by' => $found['by']];
+    }
+
+    /** The plan identity an intent's journal saved for these exact artifacts, read from metadata only. */
+    private static function savedPlan(string $root, Artifact $baseline, Artifact $target, string $intent): ?string
+    {
+        if (! self::readableMetadata($root)) {
+            return null;
+        }
+        $path = SafeFilesystem::path($root, '.mod-maintenance/journal-'.hash('sha256', $intent).'.json');
+        if (! is_file($path) || is_link($path)) {
+            return null;
+        }
+        $envelope = Journal::readData($path)['envelope'] ?? null;
+        if (! is_array($envelope) || ($envelope['baseline'] ?? null) !== $baseline->identity() || ($envelope['target'] ?? null) !== $target->identity() || ! is_string($envelope['plan'] ?? null)) {
+            return null;
+        }
+
+        return $envelope['plan'];
+    }
+
+    /** Linked or odd metadata is left to the orphan report. */
+    private static function readableMetadata(string $root): bool
+    {
+        $path = $root.'/.mod-maintenance';
+
+        return is_dir($path) && ! is_link($path);
     }
 
     private static function boundary(string $intent, bool $exclusiveCheckout): void
@@ -175,7 +226,7 @@ final class Maintenance
 
     /**
      * @param  array<string, Closure>  $registry
-     * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}
+     * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>, superseded_by: array{intent: string, plan: string}|null}
      */
     private static function execute(Journal $claim, array $registry): array
     {
@@ -231,10 +282,10 @@ final class Maintenance
     /**
      * @param  list<array{path: string, kind: string}>  $orphans
      * @param  array{written: list<string>, reconciled: list<string>, removed: list<string>}  $files
-     * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}
+     * @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>, superseded_by: array{intent: string, plan: string}|null}
      */
     private static function blocked(?string $plan, array $orphans, array $files = ['written' => [], 'reconciled' => [], 'removed' => []]): array
     {
-        return ['status' => 'orphaned', 'no_op' => false, 'plan' => $plan, 'receipt' => null, 'checks' => [], 'orphans' => $orphans] + $files;
+        return ['status' => 'orphaned', 'no_op' => false, 'plan' => $plan, 'receipt' => null, 'checks' => [], 'orphans' => $orphans] + $files + ['superseded_by' => null];
     }
 }

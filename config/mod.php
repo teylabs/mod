@@ -76,4 +76,13 @@ return [
         'policies' => true,
     ],
 
+    /*
+     * Maintenance: how many finished updates each installed lineage record
+     * remembers, newest first. Retrying one of them is a no-op that names
+     * the newer update in superseded_by; an older retry is refused.
+     */
+    'maintenance' => [
+        'completed' => 50,
+    ],
+
 ];

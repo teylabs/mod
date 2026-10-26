@@ -411,7 +411,7 @@ final class Journal
         return $valid;
     }
 
-    private static function fileHash(string $path): string
+    public static function fileHash(string $path): string
     {
         self::regular($path);
         $hash = hash_file('sha256', $path);

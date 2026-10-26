@@ -2,6 +2,11 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Retrying a finished update after a newer update of the same lineage is a no-op. The installed record remembers its finished updates, and the result's new `superseded_by` field names the newer update's intent and plan identity (`null` for the latest). The `mod.maintenance.completed` config key caps the history (default 50); a record from before 0.12 starts it on its next update (#213).
+
 ## [0.11.1] - 2026-10-26
 
 ### Fixed
