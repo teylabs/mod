@@ -4,6 +4,8 @@
     "path": "app",
     "token": null,
     "groups": [],
+    "disabled": [],
+    "unknown_disabled": [],
     "types": [
         {
             "id": "cast",

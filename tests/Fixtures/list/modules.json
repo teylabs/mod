@@ -4,6 +4,8 @@
     "path": "app/Modules/{module}",
     "token": "module",
     "groups": [],
+    "disabled": [],
+    "unknown_disabled": [],
     "types": [
         {
             "id": "action",

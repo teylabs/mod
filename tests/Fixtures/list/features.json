@@ -4,6 +4,8 @@
     "path": "app/Features/{feature}",
     "token": "feature",
     "groups": [],
+    "disabled": [],
+    "unknown_disabled": [],
     "types": [
         {
             "id": "cast",

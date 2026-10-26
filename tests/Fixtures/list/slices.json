@@ -4,6 +4,8 @@
     "path": "app/{feature}/{slice}",
     "token": "feature/slice",
     "groups": [],
+    "disabled": [],
+    "unknown_disabled": [],
     "types": [
         {
             "id": "cast",

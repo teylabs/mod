@@ -4,6 +4,8 @@
     "path": "src/Domain/{domain}",
     "token": "domain",
     "groups": [],
+    "disabled": [],
+    "unknown_disabled": [],
     "types": [
         {
             "id": "action",
