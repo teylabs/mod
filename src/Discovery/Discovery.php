@@ -41,6 +41,8 @@ final class Discovery
     /** @var WeakMap<object, true> */
     private WeakMap $dispatchers;
 
+    private DisabledGroups $disabled;
+
     /** @api */
     public function __construct(
         /** @internal */
@@ -53,6 +55,17 @@ final class Discovery
         $this->preset = $layout;
         $this->definitions = $options->definitionsFor($layout);
         $this->dispatchers = new WeakMap;
+        $this->disabled = new DisabledGroups;
+    }
+
+    /**
+     * Switch groups off (`mod.disabled`) before anything registers.
+     *
+     * @internal
+     */
+    public function disable(DisabledGroups $groups): void
+    {
+        $this->disabled = $groups;
     }
 
     /**
@@ -117,6 +130,16 @@ final class Discovery
         }
 
         return $this->inventory = $this->scan();
+    }
+
+    /**
+     * The inventory less the groups `mod.disabled` switches off; what registers.
+     *
+     * @internal
+     */
+    public function active(): Inventory
+    {
+        return $this->disabled->filter($this->inventory(), $this->preset);
     }
 
     /**
@@ -249,7 +272,7 @@ final class Discovery
         $added = 0;
         $raw = $target instanceof \Illuminate\Events\Dispatcher ? $target->getRawListeners() : [];
 
-        foreach ($this->inventory()->ofType(DiscoveryType::Listener) as $listener) {
+        foreach ($this->active()->ofType(DiscoveryType::Listener) as $listener) {
             if ($this->isBelow($listener->path, $skipBelow)) {
                 continue;
             }
@@ -264,7 +287,7 @@ final class Discovery
             }
         }
 
-        foreach ($this->inventory()->ofType(DiscoveryType::Subscriber) as $subscriber) {
+        foreach ($this->active()->ofType(DiscoveryType::Subscriber) as $subscriber) {
             if ($this->isBelow($subscriber->path, $skipBelow) || $this->refersTo($raw, $subscriber->class)) {
                 continue;
             }

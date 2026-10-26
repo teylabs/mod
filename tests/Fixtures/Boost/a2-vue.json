@@ -6,6 +6,8 @@
     "groups": [
         "Inventory"
     ],
+    "disabled": [],
+    "unknown_disabled": [],
     "types": [
         {
             "id": "action",

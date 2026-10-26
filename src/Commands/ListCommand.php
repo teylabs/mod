@@ -75,7 +75,11 @@ final class ListCommand extends Command
         $this->components->twoColumnDetail('Layout', $report['layout'].($report['extends'] === null ? '' : ' (extends '.$report['extends'].')'));
         $this->components->twoColumnDetail('Path', $report['path'] ?? '(no groups)');
         if ($report['token'] !== null) {
-            $this->components->twoColumnDetail(Str::headline(Str::plural($report['token'])), implode(', ', $report['groups']) ?: '(none)');
+            $groups = array_map(static fn (string $group): string => in_array($group, $report['disabled'], true) ? $group.' <fg=yellow>(disabled)</>' : $group, $report['groups']);
+            $this->components->twoColumnDetail(Str::headline(Str::plural($report['token'])), implode(', ', $groups) ?: '(none)');
+        }
+        if ($report['unknown_disabled'] !== []) {
+            $this->components->warn('mod.disabled names no existing group: '.implode(', ', $report['unknown_disabled']).'.');
         }
         $rows = [];
         foreach ($report['types'] as $type) {

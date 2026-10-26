@@ -3,10 +3,12 @@
 namespace Tey\Mod\Discovery\Console;
 
 use Illuminate\Console\Command;
+use Tey\Mod\Discovery\DisabledGroups;
 use Tey\Mod\Discovery\Discovery;
 use Tey\Mod\Discovery\DiscoveryType;
 use Tey\Mod\Discovery\Inventory;
 use Tey\Mod\Discovery\RejectionReason;
+use Tey\Mod\Generation\GroupFolders;
 use Tey\Mod\Scaffolds\ScaffoldRegistry;
 use Tey\Mod\Translations\TranslationDirectories;
 
@@ -35,6 +37,11 @@ final class DiscoveryCacheCommand extends Command
         ));
 
         $this->explainRejections($inventory);
+
+        $unknown = DisabledGroups::of($this->laravel)->unknown((new GroupFolders($this->laravel->basePath()))->groups($discovery->preset));
+        if ($unknown !== []) {
+            $this->components->warn('mod.disabled names no existing group: '.implode(', ', $unknown).'.');
+        }
 
         return self::SUCCESS;
     }

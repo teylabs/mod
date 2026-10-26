@@ -16,6 +16,9 @@ final class PageDirectories
 
     private FrontendPaths $paths;
 
+    /** @var array<string, string> namespace => group, for the layout's own page folders */
+    private array $groups = [];
+
     public function __construct(private readonly CompiledLayout $layout, private readonly string $basePath, private readonly Filesystem $files, private readonly PageRoots $packages = new PageRoots)
     {
         $this->paths = new FrontendPaths($basePath);
@@ -25,6 +28,14 @@ final class PageDirectories
     public function namespaces(): array
     {
         return [...($this->namespaces ??= $this->discover()), ...$this->additional()];
+    }
+
+    /** The group a page namespace belongs to, or null for one that belongs to none. */
+    public function group(string $namespace): ?string
+    {
+        $this->namespaces();
+
+        return $this->groups[$namespace] ?? null;
     }
 
     /** @return array<string, string> */
@@ -110,6 +121,10 @@ final class PageDirectories
             }
             if ($namespace !== '' && ! str_contains($namespace, '{')) {
                 $namespaces[$namespace] = $path;
+                $values = array_filter(array_map(static fn (string $dimension): string => $matches[$dimension] ?? '', $this->layout->dimensionNames()), static fn (string $value): bool => $value !== '');
+                if ($values !== []) {
+                    $this->groups[$namespace] = implode('/', $values);
+                }
             }
         }
 

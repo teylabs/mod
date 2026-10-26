@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\View;
 use Illuminate\View\FileViewFinder;
 use Tey\Mod\Artifact\ArtifactRequest;
+use Tey\Mod\Discovery\DisabledGroups;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Layout\CompiledLayout;
 use Tey\Mod\Layout\LayoutRegistry;
@@ -52,9 +53,10 @@ final class ViewNamespaceRegistrar
             return;
         }
         $hints = $finder->getHints();
+        $disabled = DisabledGroups::of($app);
         foreach ((new ViewDirectories($layout, $app->basePath()))->entries() as $entry) {
             $namespace = $entry['namespace'];
-            if ($namespace === null) {
+            if ($namespace === null || $disabled->contains($entry['group'])) {
                 continue;
             }
             if (in_array($namespace, ['mail', 'notifications', 'pagination'], true) || array_key_exists($namespace, $hints)) {

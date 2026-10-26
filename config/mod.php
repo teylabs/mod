@@ -56,6 +56,17 @@ return [
     'bases_path' => 'app/Support',
 
     /*
+     * Groups switched off, named as mod:list prints them (Billing, or
+     * Shop/Billing for a nested one). A disabled group's providers, routes
+     * (and so its scheduled tasks), views, pages, translations, commands,
+     * listeners, policies and scaffolds don't load; its migrations still run.
+     * A comma-separated string works too, for a deploy that sets it:
+     *
+     *     'disabled' => env('MOD_DISABLED', ''),
+     */
+    'disabled' => [],
+
+    /*
      * Runtime discovery of the providers, Artisan commands and listeners the
      * layout places. Kinds with id provider/command/listener are discovered
      * by default; map other kind ids to a type, or false to skip one.
