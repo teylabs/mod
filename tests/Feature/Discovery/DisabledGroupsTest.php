@@ -186,7 +186,7 @@ it('registers no views, components or translations of a disabled group', functio
 it('registers no page namespace of a disabled group', function () {
     OwnedAppRoot::using(function (OwnedAppRoot $root) {
         foreach (['Billing', 'Shipping'] as $group) {
-            mkdir($root->path("app/Modules/{$group}/resources/js/Pages"), 0700, true);
+            mkdir($root->path("app/Modules/{$group}/resources/js/pages"), 0700, true);
         }
         file_put_contents($root->path('package.json'), '{"dependencies":{"@inertiajs/vue3":"^2"}}');
         disabledGroupsCase()->bootApplicationUsing(function (Application $app) use ($root) {
