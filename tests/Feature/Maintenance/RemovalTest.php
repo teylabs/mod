@@ -246,6 +246,8 @@ it('moves a file whose bytes change to a lineage the giver will require, in four
         $claimed = removalUpdate($root, $inputs, $empty, $released, 'move-2-claim', claim: ['app/Moved.php']);
         // 3. Update the receiver to its final bytes.
         $changed = removalUpdate($root, $inputs, $released, $receiver, 'move-3-receiver');
+        // The finished release stays safe to retry after the receiver rewrote the released file.
+        expect(Maintenance::resume($root->path, 'one', $giver, $interim, $inputs, ['php' => 'passed'], 'move-1-release', [], true, removals: ['app/Moved.php' => 'release'])['no_op'])->toBeTrue();
         // 4. Update the giver to its final target, which requires the receiver.
         removalUpdate($root, $inputs, $interim, $final, 'move-4-giver');
 
@@ -281,5 +283,21 @@ it('refuses the four-step move at the claim when the released file was edited', 
             ->and(fn () => Maintenance::apply($plan, $inputs, 'move-2-claim', ['check' => fn () => true], true))->toThrow(RuntimeException::class)
             ->and(file_get_contents($root->path('app/Moved.php')))->toBe('edited')
             ->and(array_keys(Checkout::installed($root->path, 'one')))->toBe(['example/recipe']);
+    });
+});
+
+it('still protects the bytes of a release that never committed', function () {
+    OwnedAppRoot::using(function ($root) {
+        $inputs = removalInputs($root);
+        $giver = removalInstall($root, $inputs, files: ['app/Keep.php' => 'keep', 'app/Moved.php' => 'moved']);
+        $interim = removalArtifact('example/recipe', 'B-interim', ['app/Keep.php' => 'keep']);
+        $plan = Checkout::inspect($root->path, 'one', $giver, $interim, $inputs, ['php' => 'passed'], removals: ['app/Moved.php' => 'release']);
+        expect(Maintenance::apply($plan, $inputs, 'move-1-release', ['check' => fn () => false], true)['status'])->toBe('verification_failed');
+        file_put_contents($root->path('app/Moved.php'), 'edited');
+
+        expect(fn () => Maintenance::resume($root->path, 'one', $giver, $interim, $inputs, ['php' => 'passed'], 'move-1-release', ['check' => fn () => true], true, removals: ['app/Moved.php' => 'release']))
+            ->toThrow(RuntimeException::class, 'Third file value blocks maintenance recovery.')
+            ->and(file_get_contents($root->path('app/Moved.php')))->toBe('edited')
+            ->and(Checkout::installed($root->path, 'one')['example/recipe']['files'])->toHaveKey('app/Moved.php');
     });
 });

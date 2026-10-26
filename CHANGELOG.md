@@ -2,6 +2,11 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- Retrying a finished release no longer fails with `Third file value blocks maintenance recovery.` after the new owner rewrites the released file. Recovery skips the bytes of a path the giver has released, and still checks them while the release is unfinished (#211).
+
 ## [0.11.0] - 2026-10-25
 
 ### Added
