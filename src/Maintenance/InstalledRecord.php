@@ -194,7 +194,10 @@ final class InstalledRecord
         $commit = $record['commit'] ?? null;
         $previous = is_array($commit) && is_string($commit['intent'] ?? null) && is_string($commit['plan'] ?? null) ? [['intent' => $commit['intent'], 'plan' => $commit['plan']]] : [];
 
-        return array_slice([...$previous, ...self::completed($record)], 0, self::cap());
+        $history = [...$previous, ...self::completed($record)];
+        array_splice($history, self::cap());
+
+        return $history;
     }
 
     /**
