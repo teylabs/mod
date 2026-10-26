@@ -4,6 +4,7 @@ namespace Tey\Mod\Translations;
 
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Translation\Translator;
+use Tey\Mod\Discovery\DisabledGroups;
 use Tey\Mod\Exceptions\InvalidLayout;
 use Tey\Mod\Support\Path;
 
@@ -19,7 +20,11 @@ final class TranslationNamespaceRegistrar
             } catch (InvalidLayout) {
                 return;
             }
+            $disabled = DisabledGroups::of($app);
             foreach ($entries as $entry) {
+                if ($disabled->contains($entry['group'])) {
+                    continue;
+                }
                 if (array_key_exists($entry['namespace'], $loader->namespaces())) {
                     $app->make('log')->warning('mod translations: skipped group ['.$entry['group'].']; translation namespace ['.$entry['namespace'].'] is already registered.');
 

@@ -5,7 +5,9 @@
     "extends",
     "path",
     "token",
-    "groups"
+    "groups",
+    "disabled",
+    "unknown_disabled"
   ],
   "properties": {
     "layout": {
@@ -30,6 +32,18 @@
       ]
     },
     "groups": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "disabled": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unknown_disabled": {
       "type": "array",
       "items": {
         "type": "string"

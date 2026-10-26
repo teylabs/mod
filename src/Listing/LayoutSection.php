@@ -3,6 +3,7 @@
 namespace Tey\Mod\Listing;
 
 use Illuminate\Foundation\Application;
+use Tey\Mod\Discovery\DisabledGroups;
 use Tey\Mod\Discovery\Discovery;
 use Tey\Mod\Discovery\DiscoveryOptions;
 use Tey\Mod\Discovery\Inventory;
@@ -25,7 +26,18 @@ final class LayoutSection implements InventorySection
         $registry = $app->make(LayoutRegistry::class);
         $builder = $registry->has($name) ? $registry->layout($name) : null;
 
-        return ['layout' => $name, 'extends' => $builder?->parentName(), 'path' => $builder?->toArray()['path'], 'token' => implode('/', $layout->dimensionNames()) ?: null, 'groups' => (new GroupFolders($app->basePath()))->groups($layout)];
+        $groups = (new GroupFolders($app->basePath()))->groups($layout);
+        $disabled = DisabledGroups::of($app);
+
+        return [
+            'layout' => $name,
+            'extends' => $builder?->parentName(),
+            'path' => $builder?->toArray()['path'],
+            'token' => implode('/', $layout->dimensionNames()) ?: null,
+            'groups' => $groups,
+            'disabled' => array_values(array_filter($groups, $disabled->contains(...))),
+            'unknown_disabled' => $disabled->unknown($groups),
+        ];
     }
 
     /** @return SchemaFragment */

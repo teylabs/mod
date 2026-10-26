@@ -38,6 +38,7 @@ final class DiscoveryRegistrar
     {
         $options ??= new DiscoveryOptions;
         $discovery = new Discovery($preset, $options, $app->basePath());
+        $discovery->disable(DisabledGroups::of($app));
 
         if ($app->bound(Discovery::class)) {
             return self::existing($app, $discovery);
@@ -45,8 +46,10 @@ final class DiscoveryRegistrar
 
         $app->instance(Discovery::class, $discovery);
 
-        $inventory = $discovery->inventory();
+        // Migrations keep every group's directories, so a disabled group's schema stays.
+        $all = $discovery->inventory();
         self::warnAboutStaleCache($app, $discovery);
+        $inventory = $discovery->active();
 
         foreach ($inventory->classes(DiscoveryType::Provider) as $provider) {
             $app->register($provider);
@@ -77,7 +80,7 @@ final class DiscoveryRegistrar
             });
         }
 
-        self::loadMigrationDirectories($app, $preset, $inventory);
+        self::loadMigrationDirectories($app, $preset, $all);
         self::registerPolicies($app, $inventory->pairs(DiscoveryType::Policy));
 
         // mod's provider installs factory lookup at boot; a host that turned discovery off

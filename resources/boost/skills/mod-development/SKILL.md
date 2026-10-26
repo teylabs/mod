@@ -80,6 +80,7 @@ The layout determines which commands exist. Each line names its command-specific
 ### Inventory and maintenance commands
 
 - `mod:list --json` reads the machine inventory; `mod:list --type=<file-type>` shows one file type in detail.
+- `'disabled' => ['Billing']` in `config/mod.php` switches a group off: nothing of it loads except its migrations. `mod:list --json` reports `disabled` and `unknown_disabled`; changing the list needs no `mod:cache`.
 - `mod:autoload --namespace=<namespace>` answers an inferred root's namespace. `mod:autoload --no-dump` updates Composer mappings without running Composer.
 - `mod:bases --dry-run --json` describes missing bases; existing bases are kept.
 - `mod:template --from=<class-or-file> --into=<path>` extracts a generator template. `mod:template --force` overwrites the chosen destination; `mod:template --dry-run --json` previews creation or extraction.

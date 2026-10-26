@@ -5,6 +5,7 @@ namespace Tey\Mod\Routing;
 use Illuminate\Foundation\Application;
 use Illuminate\Routing\Router;
 use ReflectionClass;
+use Tey\Mod\Discovery\DisabledGroups;
 use Tey\Mod\Generation\GroupFolders;
 use Tey\Mod\Layout\BuiltIn\RouteContent;
 use Tey\Mod\Layout\CompiledLayout;
@@ -67,7 +68,8 @@ final class ModRoutes
         $this->invocations[] = ['only' => $only, 'except' => $except, 'apiPrefix' => $apiPrefix];
         $entries = $this->entries();
         $groups = array_values(array_unique(array_column($entries, 'group')));
-        $groups = array_values(array_filter($groups, static fn (string $group): bool => ($only === null || in_array($group, $only, true)) && ! in_array($group, $except, true)));
+        $disabled = DisabledGroups::of($this->app);
+        $groups = array_values(array_filter($groups, static fn (string $group): bool => ($only === null || in_array($group, $only, true)) && ! in_array($group, $except, true) && ! $disabled->contains($group)));
         foreach ($groups as $group) {
             if (isset($this->calls[$group])) {
                 throw new \LogicException(sprintf(RouteContent::DUPLICATE, $group, $this->calls[$group], $call));

@@ -17,8 +17,9 @@ final class GroupScaffoldRegistrar
     public static function register(Application $app): void
     {
         $registry = $app->make(ScaffoldRegistry::class);
+        $disabled = DisabledGroups::of($app);
         foreach ($registry->groupDirectories() as $group => $directory) {
-            if ($directory['namespace'] === null) {
+            if ($directory['namespace'] === null || $disabled->contains((string) $group)) {
                 continue;
             }
             $folder = Path::join(Path::resolve($app->basePath(), $directory['path']), 'Scaffolds');
