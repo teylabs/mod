@@ -2,6 +2,7 @@
 
 namespace Tey\Mod\Maintenance;
 
+use Illuminate\Container\Container;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -165,6 +166,87 @@ final class InstalledRecord
         return $record;
     }
 
+    /** How many earlier commits a record remembers, newest first. */
+    public static function cap(): int
+    {
+        // Maintenance also runs outside a Laravel application, where the default applies.
+        $container = Container::getInstance();
+
+        $cap = $container->bound('config') ? $container->make('config')->get('mod.maintenance.completed', 50) : 50;
+        if (! is_int($cap) || $cap < 0) {
+            throw new InvalidArgumentException('Config mod.maintenance.completed must be a whole number of zero or more.');
+        }
+
+        return $cap;
+    }
+
+    /**
+     * The earlier commits the next record remembers: the current commit first, capped.
+     *
+     * @param  array<string, mixed>|null  $record
+     * @return list<array{intent: string, plan: string}>
+     */
+    public static function history(?array $record): array
+    {
+        if ($record === null) {
+            return [];
+        }
+        $commit = $record['commit'] ?? null;
+        $previous = is_array($commit) && is_string($commit['intent'] ?? null) && is_string($commit['plan'] ?? null) ? [['intent' => $commit['intent'], 'plan' => $commit['plan']]] : [];
+
+        $history = [...$previous, ...self::completed($record)];
+        array_splice($history, self::cap());
+
+        return $history;
+    }
+
+    /**
+     * A lineage's newer commit, when its record remembers the given update as finished earlier. Reads metadata only.
+     *
+     * @return array{by: array{intent: string, plan: string}, receipt: string}|null
+     */
+    public static function superseded(string $root, string $name, string $intent, string $plan): ?array
+    {
+        $relative = self::locate($root, $name);
+        if ($relative === null) {
+            return null;
+        }
+        $path = SafeFilesystem::path($root, $relative);
+        $record = Journal::readData($path);
+        if (! in_array(['intent' => $intent, 'plan' => $plan], self::completed($record), true)) {
+            return null;
+        }
+        $commit = $record['commit'] ?? null;
+        if (! is_array($commit) || ! is_string($commit['intent'] ?? null) || ! is_string($commit['plan'] ?? null)) {
+            throw new RuntimeException('Missing installed commit identity.');
+        }
+
+        return ['by' => ['intent' => $commit['intent'], 'plan' => $commit['plan']], 'receipt' => Journal::fileHash($path)];
+    }
+
+    /**
+     * A record written before 0.12 has no history and is read as an empty one.
+     *
+     * @param  array<string, mixed>  $record
+     * @return list<array{intent: string, plan: string}>
+     */
+    private static function completed(array $record): array
+    {
+        $completed = $record['completed'] ?? [];
+        if (! is_array($completed) || ! array_is_list($completed)) {
+            throw new RuntimeException('Invalid installed commit history.');
+        }
+        $valid = [];
+        foreach ($completed as $entry) {
+            if (! is_array($entry) || array_keys($entry) !== ['intent', 'plan'] || ! is_string($entry['intent']) || $entry['intent'] === '' || strlen($entry['intent']) > 120 || preg_match('/[\x00-\x1F\x7F]/', $entry['intent']) || ! is_string($entry['plan']) || ! preg_match('/\Asha256:[a-f0-9]{64}\z/', $entry['plan'])) {
+                throw new RuntimeException('Invalid installed commit history.');
+            }
+            $valid[] = ['intent' => $entry['intent'], 'plan' => $entry['plan']];
+        }
+
+        return $valid;
+    }
+
     /** @param array<string, mixed>|null $record */
     public static function baseline(?array $record, FilePlan $plan): void
     {
@@ -175,7 +257,8 @@ final class InstalledRecord
 
             return;
         }
-        $keys = array_keys($record);
+        self::completed($record);
+        $keys = array_keys(array_diff_key($record, ['completed' => true]));
         sort($keys);
         $commit = $record['commit'] ?? null;
         if (! is_array($commit)) {

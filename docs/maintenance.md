@@ -84,6 +84,8 @@ if ($result['status'] !== 'completed') {
 
 `Maintenance::resume()` finishes an interrupted update of the same intent, using the trusted original and target artifacts.
 
+Each lineage's installed record remembers the updates it finished, newest first. Retrying one that a newer update of the same lineage has replaced returns `completed` as a no-op, before Mod reads, writes or checks any file. Its `superseded_by` names the newer update by `intent` and `plan` identity; for the latest update, `superseded_by` is `null`. The same intent with a different plan is still refused. The `mod.maintenance.completed` config key sets how many finished updates a record remembers (default 50); a retry of an older one is refused as before. A record written before 0.12 starts remembering on its next update.
+
 Mod records the new installed version last, after every check has passed. If a process dies part-way, rerunning `apply` or `resume` either finishes the update or reports exactly what is left.
 
 Only `completed` means success. Edited, stale, foreign or unsafe state throws a refusal. Leftover temporary files from an interrupted run are reported as `orphaned` and left in place for you to inspect.
@@ -209,7 +211,7 @@ $step($billingInterim, $billingFinal, 'billing-3.0');
 
 `$receiptsAtReleased` names the moved paths with exactly the bytes the giver last wrote. `$receiptsEmpty` is the same lineage with no files. When the giver doesn't require the receiver, step 1 can go straight to the final target and step 4 isn't needed. When the bytes don't change, skip step 3.
 
-An edited file stops the move at step 2: the claim is a `conflict`, nothing is written, and the file stays host-owned. Edit it back to the released bytes and run step 2 again. Each step is an ordinary update, so a retry of the same plan, or `Maintenance::resume()` with the same intent, is a no-op once it has completed. A future all-or-nothing update across several lineages may make this one step.
+An edited file stops the move at step 2: the claim is a `conflict`, nothing is written, and the file stays host-owned. Edit it back to the released bytes and run step 2 again. Each step is an ordinary update, so a retry of the same plan, or `Maintenance::resume()` with the same intent, is a no-op once it has completed, even after a later step has updated the same lineage. A future all-or-nothing update across several lineages may make this one step.
 
 ## Limits
 

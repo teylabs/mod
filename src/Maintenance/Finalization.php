@@ -8,7 +8,7 @@ use RuntimeException;
 /** Commit the installed file artifact only after fresh checks under the same live claim. @internal */
 final class Finalization
 {
-    /** @return array{status: string, no_op: bool, receipt: ?string, checks: array<string, string>}|null */
+    /** @return array{status: string, no_op: bool, receipt: ?string, checks: array<string, string>, superseded_by: null}|null */
     public static function completed(Journal $journal): ?array
     {
         $journal->assertVerifierInputs();
@@ -19,7 +19,8 @@ final class Finalization
         if ($journal->installedHash() !== $hash) {
             throw new RuntimeException('Installed record changed during inspection.');
         }
-        if ($current === null || Fingerprint::of($current) !== Fingerprint::of($expected)) {
+        // The history of earlier commits doesn't decide whether this one is the latest.
+        if ($current === null || Fingerprint::of(array_diff_key($current, ['completed' => true])) !== Fingerprint::of($expected)) {
             return null;
         }
         foreach ($plan->target->files as $path => $bytes) {
@@ -29,7 +30,7 @@ final class Finalization
         }
         $journal->assertCurrent();
 
-        return ['status' => 'completed', 'no_op' => true, 'receipt' => $hash, 'checks' => array_fill_keys($plan->target->checks, 'passed')];
+        return ['status' => 'completed', 'no_op' => true, 'receipt' => $hash, 'checks' => array_fill_keys($plan->target->checks, 'passed'), 'superseded_by' => null];
     }
 
     /** @return array<string, mixed> */
@@ -44,7 +45,7 @@ final class Finalization
      * Hooks are trusted in-process interruption probes, never journal-supplied callbacks.
      *
      * @param  array<string, Closure>  $registry
-     * @return array{status: string, no_op: bool, receipt: ?string, checks: array<string, string>}
+     * @return array{status: string, no_op: bool, receipt: ?string, checks: array<string, string>, superseded_by: null}
      */
     public static function record(Journal $journal, array $registry, ?Closure $beforeRecord = null, ?Closure $afterRecord = null): array
     {
@@ -60,9 +61,10 @@ final class Finalization
             throw new RuntimeException('Installed record changed during inspection.');
         }
         InstalledRecord::baseline($current, $plan);
+        $record += ['completed' => InstalledRecord::history($current)];
         $verification = Verification::run($journal, $registry);
         if (! $verification['passed']) {
-            return ['status' => 'verification_failed', 'no_op' => false, 'receipt' => $originalHash, 'checks' => $verification['checks']];
+            return ['status' => 'verification_failed', 'no_op' => false, 'receipt' => $originalHash, 'checks' => $verification['checks'], 'superseded_by' => null];
         }
         if ($beforeRecord !== null) {
             $beforeRecord();
@@ -72,6 +74,6 @@ final class Finalization
             $afterRecord();
         }
 
-        return ['status' => 'completed', 'no_op' => false, 'receipt' => $journal->installedHash(), 'checks' => $checks];
+        return ['status' => 'completed', 'no_op' => false, 'receipt' => $journal->installedHash(), 'checks' => $checks, 'superseded_by' => null];
     }
 }

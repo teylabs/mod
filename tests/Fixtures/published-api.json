@@ -15428,7 +15428,7 @@
             }
         ],
         "return": "array",
-        "shape": "@param array<string, string> $inputPaths @param array<string, Closure> $registry @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}"
+        "shape": "@param array<string, string> $inputPaths @param array<string, Closure> $registry @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>, superseded_by: array{intent: string, plan: string}|null}"
     },
     "Tey\\Mod\\Maintenance\\Maintenance::diagnose": {
         "visibility": "public",
@@ -15554,7 +15554,7 @@
             }
         ],
         "return": "array",
-        "shape": "@param array<string, string> $inputPaths @param array<string, string> $compatibility @param array<string, Closure> $registry @param list<string> $claim @param array<string, string> $removals @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>}"
+        "shape": "@param array<string, string> $inputPaths @param array<string, string> $compatibility @param array<string, Closure> $registry @param list<string> $claim @param array<string, string> $removals @return array{status: string, no_op: bool, plan: ?string, receipt: ?string, written: list<string>, reconciled: list<string>, removed: list<string>, checks: array<string, string>, orphans: list<array{path: string, kind: string}>, superseded_by: array{intent: string, plan: string}|null}"
     },
     "Tey\\Mod\\ModManager": {
         "type": "class",
