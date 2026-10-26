@@ -113,7 +113,12 @@ final class Journal
             throw new RuntimeException('Conflicted, incompatible or stale maintenance plan.');
         }
         if ($recovery) {
+            // A committed release leaves the path to its next owner, so its bytes are no longer the giver's to check.
+            $owned = null;
             foreach ($plan->files as $path => $entry) {
+                if ($entry['state'] === 'release' && ! isset(($owned ??= Checkout::artifact($plan->root, $plan->appId, $plan->target->name)->files ?? $plan->baseline->files)[$path])) {
+                    continue;
+                }
                 $current = $fresh->files[$path]['current'];
                 if ($current !== $entry['current'] && $current !== $entry['target']) {
                     throw new RuntimeException('Third file value blocks maintenance recovery.');
