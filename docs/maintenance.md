@@ -8,7 +8,7 @@ When a package or recipe updates the files it generated, `Tey\Mod\Maintenance` u
 - **current**: what is in the checkout now
 - **target**: what the new release generates
 
-Only a file that still matches its original is replaced. Mod never merges or forces anything. An edited file is a conflict, and a conflict stops the whole update before anything is written.
+Only a file that still matches its original is replaced. A file already at the target's bytes is left as it is. Mod never merges or forces anything. A file edited to anything else is a conflict, and a conflict stops the whole update before anything is written.
 
 Mod handles whole generated files only. Migrations, providers and other side effects stay with the host package.
 
@@ -48,11 +48,11 @@ It reads only the files the two artifacts name, plus the host inputs in `$inputP
 
 | State | Meaning |
 | --- | --- |
-| unchanged | Current matches original and target |
+| unchanged | Current matches the target: it matched the original too, or the host already applied the change. Nothing is written, and the record takes the target |
 | replace | Current matches original, and the target changed |
 | restore | An owned file is missing |
 | create | A new target file, and nothing is there yet |
-| conflict | Current differs from original, even if it equals the target |
+| conflict | Current differs from both the original and the target |
 | unowned | A new target path collides with a host file |
 | claim | A listed new target path already has identical bytes (see [Claiming existing files](#claiming-existing-files)) |
 | remove | A dropped path with the `delete` policy is untouched, so it's deleted (see [Removing and moving files](#removing-and-moving-files)) |

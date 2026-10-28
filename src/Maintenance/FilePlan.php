@@ -93,8 +93,10 @@ final readonly class FilePlan
                 $original === null && $observed !== null => 'unowned',
                 $original === null => 'create',
                 $observed === null => 'restore',
-                $observed !== $original => 'conflict',
+                // Already the target's bytes (the host applied the change itself): nothing to write, whatever the original was. The record then
+                // takes the target, so the original advances. Only a file that differs from both its original and the target is a conflict.
                 $observed === $bytes => 'unchanged',
+                $observed !== $original => 'conflict',
                 default => 'replace',
             };
             $files[$path] = ['state' => $state, 'original' => $original === null ? null : hash('sha256', $original), 'current' => $observed === null ? null : hash('sha256', $observed), 'target' => hash('sha256', $bytes)];

@@ -52,7 +52,8 @@ it('boots a Composer symlinked package and keeps installed paths in every plan',
                 ->and(Mod::pageEntry('acme::Index', 'vue'))->toBe('vendor/acme/kit/resources/js/pages/Index.vue');
             foreach (['inertia.view-finder', 'inertia.testing.view-finder'] as $binding) {
                 if (app()->bound($binding)) {
-                    expect(app($binding)->find('acme::Index'))->toEqualPath($w->root->path('vendor/acme/kit/resources/js/pages/Index.vue'));
+                    // Laravel 13.39+ resolves symlinks in view finder paths, so compare real paths.
+                    expect(realpath(app($binding)->find('acme::Index')))->toEqualPath(realpath($w->root->path('vendor/acme/kit/resources/js/pages/Index.vue')));
                 }
             }
             $plan = json_decode($w->artisan('mod:install', ['stack' => 'inertia', '--dry-run' => true, '--json' => true])->assertSuccessful()->output, true, flags: JSON_THROW_ON_ERROR);
