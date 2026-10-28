@@ -2,7 +2,7 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## Unreleased
+## [0.12.2] - 2026-10-28
 
 ### Fixed
 - Committed installed records work in any checkout of the app. A record stores its root as `.` instead of the absolute path of the checkout that wrote it, so a clone, CI or another worktree no longer fails with `Unknown, foreign or mismatched installed artifact.`, and no local path is committed. A record written before 0.12.2 is read anywhere and rewritten on the next update. The app id, lineage and artifact fingerprint still refuse a foreign record (#207).
