@@ -38,7 +38,7 @@ final class Finalization
     {
         $plan = $journal->plan();
 
-        return ['format' => 1, 'owner' => 'tey/mod:installed', 'app_id' => $plan->appId, 'root' => $plan->root, 'artifact' => InstalledRecord::artifact($plan->target), 'commit' => ['intent' => $journal->intent(), 'plan' => $plan->identity(), 'inputs' => $plan->inputs, 'compatibility' => $plan->compatibility, 'checks' => array_fill_keys($plan->target->checks, 'passed')]];
+        return ['format' => 1, 'owner' => 'tey/mod:installed', 'app_id' => $plan->appId, 'root' => InstalledRecord::ROOT, 'artifact' => InstalledRecord::artifact($plan->target), 'commit' => ['intent' => $journal->intent(), 'plan' => $plan->identity(), 'inputs' => $plan->inputs, 'compatibility' => $plan->compatibility, 'checks' => array_fill_keys($plan->target->checks, 'passed')]];
     }
 
     /**

@@ -2,6 +2,12 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## Unreleased
+
+### Fixed
+- Committed installed records work in any checkout of the app. A record stores its root as `.` instead of the absolute path of the checkout that wrote it, so a clone, CI or another worktree no longer fails with `Unknown, foreign or mismatched installed artifact.`, and no local path is committed. A record written before 0.12.2 is read anywhere and rewritten on the next update. The app id, lineage and artifact fingerprint still refuse a foreign record (#207).
+- The first update in a fresh clone no longer fails with `Maintenance data requires an unlinked regular file.` When `.mod-maintenance/` holds only committed installed records, Mod creates the git-ignored `owner.json` and `lock` itself. A linked `owner.json` is still refused, and unknown content is still reported (#207).
+
 ## [0.12.1] - 2026-10-27
 
 ### Fixed

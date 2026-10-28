@@ -123,6 +123,14 @@ $target = new Artifact(
 
 A checkout written by 0.8 keeps working. Its `installed.json` is read as the record for its own lineage and moves to the new layout on that lineage's next update.
 
+## Committing installed records
+
+Commit `.mod-maintenance/installed/` (and a 0.8 `installed.json`), so every checkout of the app knows what is installed. Keep the rest of `.mod-maintenance/` (`owner.json`, `lock` and journals) out of git: it is local to one checkout.
+
+An installed record names no local path: its `root` is `.`, the repository it sits in. A clone, a CI checkout or another worktree reads the committed records as they are, and its first update creates its own `owner.json` and `lock`. Mod only does this when `.mod-maintenance/` holds nothing but installed records, a 0.8 `installed.json`, `.gitignore` or `.gitkeep`. Anything else is reported, and a linked `owner.json` is refused. An unfinished journal never moves between checkouts.
+
+What still refuses a foreign record is its identity, not its path: the app id, the lineage (each record is filed under its own name's hash), and the artifact fingerprint must all match. Records written before 0.12.2 stored the absolute path of the checkout that wrote them. Any checkout reads them, and the next update rewrites them with `.`.
+
 ## Reading installed lineages and unfinished updates
 
 Two read-only calls tell you where a checkout stands. Neither writes anything.

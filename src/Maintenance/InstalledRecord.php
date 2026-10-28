@@ -11,6 +11,11 @@ final class InstalledRecord
 {
     public const DIRECTORY = '.mod-maintenance/installed';
 
+    public const DIRECTORY_NAME = 'installed';
+
+    /** A record names its checkout relatively: committed records travel to clones, CI and worktrees, and never leak a local path. */
+    public const ROOT = '.';
+
     /** The single-lineage 0.8 record, read as the record for its own name until that lineage's next write. */
     public const LEGACY = '.mod-maintenance/installed.json';
 
@@ -84,7 +89,7 @@ final class InstalledRecord
     private static function stored(array $record, string $root, string $appId): Artifact
     {
         $data = $record['artifact'] ?? null;
-        if (($record['format'] ?? null) !== 1 || ($record['owner'] ?? null) !== 'tey/mod:installed' || ($record['app_id'] ?? null) !== $appId || ($record['root'] ?? null) !== $root || ! is_array($data) || ! is_array($data['files'] ?? null)) {
+        if (($record['format'] ?? null) !== 1 || ($record['owner'] ?? null) !== 'tey/mod:installed' || ($record['app_id'] ?? null) !== $appId || ! self::root($record['root'] ?? null) || ! is_array($data) || ! is_array($data['files'] ?? null)) {
             throw new RuntimeException('Unknown, foreign or mismatched installed artifact.');
         }
         $files = [];
@@ -113,6 +118,15 @@ final class InstalledRecord
         }
 
         return $artifact;
+    }
+
+    /**
+     * The root is not identity: the app id, the lineage (filed under its own name's hash), the artifact fingerprint and the commit receipt are.
+     * Records before 0.12.2 stored the absolute path of the checkout that wrote them; they are read anywhere and rewritten as `.` on the next apply.
+     */
+    private static function root(mixed $root): bool
+    {
+        return $root === self::ROOT || (is_string($root) && str_starts_with($root, '/') && ! preg_match('/[\x00-\x1F\x7F]/', $root));
     }
 
     /** @return array<array-key, string> */
@@ -267,7 +281,7 @@ final class InstalledRecord
         $expectedCommitKeys = ['checks', 'compatibility', 'inputs', 'intent', 'plan'];
         $commitKeys = array_keys($commit);
         sort($commitKeys);
-        if ($keys !== ['app_id', 'artifact', 'commit', 'format', 'owner', 'root'] || ($record['format'] ?? null) !== 1 || ($record['owner'] ?? null) !== 'tey/mod:installed' || ($record['app_id'] ?? null) !== $plan->appId || ($record['root'] ?? null) !== $plan->root || Fingerprint::of($record['artifact'] ?? null) !== Fingerprint::of(self::artifact($plan->baseline)) || $commitKeys !== $expectedCommitKeys) {
+        if ($keys !== ['app_id', 'artifact', 'commit', 'format', 'owner', 'root'] || ($record['format'] ?? null) !== 1 || ($record['owner'] ?? null) !== 'tey/mod:installed' || ($record['app_id'] ?? null) !== $plan->appId || ! self::root($record['root'] ?? null) || Fingerprint::of($record['artifact'] ?? null) !== Fingerprint::of(self::artifact($plan->baseline)) || $commitKeys !== $expectedCommitKeys) {
             throw new RuntimeException('Unknown, foreign or mismatched installed artifact.');
         }
         if (! is_string($commit['intent']) || $commit['intent'] === '' || strlen($commit['intent']) > 120 || preg_match('/[\x00-\x1F\x7F]/', $commit['intent']) || ! is_string($commit['plan']) || ! preg_match('/\Asha256:[a-f0-9]{64}\z/', $commit['plan']) || ! is_array($commit['inputs']) || ! is_array($commit['compatibility']) || $commit['compatibility'] === [] || ! is_array($commit['checks']) || Fingerprint::of($commit['checks']) !== Fingerprint::of(array_fill_keys($plan->baseline->checks, 'passed'))) {
