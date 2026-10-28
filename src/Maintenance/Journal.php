@@ -222,6 +222,11 @@ final class Journal
     {
         $destination = SafeFilesystem::path($plan->root, '.mod-maintenance');
         if (file_exists($destination)) {
+            // A fresh clone or CI checkout has the committed installed records but not the git-ignored local ownership: claim it in place.
+            $owner = SafeFilesystem::path($plan->root, '.mod-maintenance/owner.json');
+            if (! file_exists($owner) && ! is_link($owner) && self::committedOnly($plan->root)) {
+                self::atomicData($plan->root, '.mod-maintenance/owner.json', ['format' => 1, 'owner' => 'tey/mod:maintenance', 'app_id' => $plan->appId, 'root' => $plan->root]);
+            }
             self::owner($plan);
 
             return;
@@ -250,6 +255,34 @@ final class Journal
             }
         }
         self::owner($plan);
+    }
+
+    /** Whether the maintenance directory holds committed installed records and nothing but what a repository commits: those, a 0.8 record, and git placeholders. */
+    private static function committedOnly(string $root): bool
+    {
+        SafeFilesystem::metadata($root);
+        $directory = SafeFilesystem::path($root, '.mod-maintenance');
+        $records = 0;
+        foreach (array_diff(scandir($directory) ?: ['?'], ['.', '..']) as $name) {
+            $path = $directory.'/'.$name;
+            if ($name === InstalledRecord::DIRECTORY_NAME && is_dir($path) && ! is_link($path)) {
+                foreach (array_diff(scandir($path) ?: ['?'], ['.', '..']) as $record) {
+                    if (! preg_match('/\A[a-f0-9]{64}\.json\z/', $record) || ! is_file($path.'/'.$record) || is_link($path.'/'.$record)) {
+                        return false;
+                    }
+                    $records++;
+                }
+
+                continue;
+            }
+            if (! in_array($name, ['installed.json', '.gitignore', '.gitkeep'], true) || ! is_file($path) || is_link($path)) {
+                return false;
+            }
+            $records += $name === 'installed.json' ? 1 : 0;
+        }
+
+        // An empty or placeholder-only directory isn't committed lifecycle data; it stays an unmarked directory, never adopted.
+        return $records > 0;
     }
 
     private static function owner(FilePlan $plan): void
