@@ -82,6 +82,23 @@ it('uses public entrypoints to install upgrade and repeat with no callback or re
     });
 });
 
+it('advances the recorded original of a file the host already brought to the target, writing nothing', function () {
+    OwnedAppRoot::using(function ($root) {
+        [$a, $b, $inputs, $install] = publicInstallPlan($root);
+        $checks = ['check' => fn () => true];
+        expect(Maintenance::apply($install, $inputs, 'install', $checks, true)['status'])->toBe('completed');
+        // The host applies the upstream change by hand, so its bytes equal the next target but not the recorded original.
+        file_put_contents($root->path('app/One.php'), 'B');
+        $upgrade = Checkout::inspect($root->path, 'one', $a, $b, $inputs, ['php' => 'passed']);
+        expect($upgrade->executable())->toBeTrue()->and($upgrade->files['app/One.php']['state'])->toBe('unchanged');
+        $inode = fileinode($root->path('app/One.php'));
+        $result = Maintenance::apply($upgrade, $inputs, 'converged', $checks, true);
+        expect($result['status'])->toBe('completed')->and($result['written'])->toBe([])
+            ->and(fileinode($root->path('app/One.php')))->toBe($inode)
+            ->and(Checkout::installed($root->path, 'one')['example/recipe']['files']['app/One.php'])->toBe(hash('sha256', 'B'));
+    });
+});
+
 it('validates every required closure before unfinished generated effects', function (array $registry) {
     OwnedAppRoot::using(function ($root) use ($registry) {
         [$a, $b, $inputs, $plan] = publicInstallPlan($root);

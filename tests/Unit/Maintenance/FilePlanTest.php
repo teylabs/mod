@@ -33,6 +33,20 @@ it('refuses edited and unowned collisions before producing an executable plan', 
         ->and($plan->files['app/New.php']['state'])->toBe('unowned');
 });
 
+it('plans an owned file already at the target bytes as unchanged, not a conflict, whatever its original', function () {
+    $a = maintenanceArtifact();
+    $b = maintenanceArtifact('B', ['app/Policy.php' => 'upstream', 'app/Other.php' => 'other']);
+    $current = $a->files;
+    $current['app/Policy.php'] = 'upstream';
+    $plan = FilePlan::between('one', '/owned/one', $a, $b, $current, [], ['framework' => 'passed']);
+    expect($plan->executable())->toBeTrue()
+        ->and($plan->files['app/Policy.php'])->toBe(['state' => 'unchanged', 'original' => hash('sha256', 'original'), 'current' => hash('sha256', 'upstream'), 'target' => hash('sha256', 'upstream')]);
+
+    // Edited away from both the original and the target, it is still a conflict.
+    $current['app/Policy.php'] = 'custom';
+    expect(FilePlan::between('one', '/owned/one', $a, $b, $current, [], ['framework' => 'passed'])->files['app/Policy.php']['state'])->toBe('conflict');
+});
+
 it('distinguishes an explicitly owned missing file from an added target', function () {
     $a = maintenanceArtifact();
     $b = maintenanceArtifact('B', ['app/Policy.php' => 'upstream', 'app/Other.php' => 'other', 'app/New.php' => 'new']);
