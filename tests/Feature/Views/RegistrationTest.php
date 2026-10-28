@@ -115,7 +115,9 @@ it('registers type-first kebab group folders without exposing other app views', 
         });
         expect(View::file(moduleViewsFinder()->find('inventory::show'))->render())->toContain('<b>Stock</b>')
             ->and(View::exists('inventory::private'))->toBeFalse()
-            ->and(moduleViewsFinder()->getHints()['agent-tools'])->toBe([Path::resolve($root->path, 'resources/views/agent-tools')]);
+            // Laravel 13.39+ resolves hints with realpath(), which uses native separators on Windows.
+            ->and(moduleViewsFinder()->getHints()['agent-tools'])->toHaveCount(1)
+            ->and(moduleViewsFinder()->getHints()['agent-tools'][0])->toEqualPath(Path::resolve($root->path, 'resources/views/agent-tools'));
         $entries = (new ViewDirectories(app(CompiledLayout::class), $root->path))->entries();
         expect(array_column($entries, 'group'))->toBe([null, 'AgentTools', 'Inventory']);
     });
