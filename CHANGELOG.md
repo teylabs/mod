@@ -2,7 +2,7 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## Unreleased
+## [0.11.2] - 2026-10-27
 
 ### Fixed
 - An owned file whose bytes already equal the new target is `unchanged`, not a `conflict`, even when it differs from its recorded original (the host applied the change itself, or took the release's bytes after claiming the file). Nothing is written, the update isn't blocked, and the installed record takes the target, so the original advances. A file that differs from both the original and the target is still a conflict (#216).
