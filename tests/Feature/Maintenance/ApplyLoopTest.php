@@ -178,3 +178,64 @@ it('treats a progress log as known maintenance data, and drops a stray one when 
         }
     });
 });
+
+/**
+ * Every file under the checkout with its bytes, as kit's AdoptCheck compares a checkout before and after a rolled-back apply.
+ *
+ * @return array<string, string|false>
+ */
+function loopTree(OwnedAppRoot $root): array
+{
+    $tree = [];
+    foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root->path, FilesystemIterator::SKIP_DOTS)) as $file) {
+        $tree[substr($file->getPathname(), strlen($root->path) + 1)] = file_get_contents($file->getPathname());
+    }
+    ksort($tree);
+
+    return $tree;
+}
+
+it('leaves only the journal after a failed apply, so a caller that rolls back restores the checkout exactly', function () {
+    OwnedAppRoot::using(function ($root) {
+        [$a, $b, $inputs, $journal] = loopUpgrade($root);
+        $journal->close();
+        // The prepared journal exists now; the caller's own snapshot is taken before the apply writes anything, as kit's fail-closed apply does.
+        $journalPath = $root->path('.mod-maintenance/journal-'.hash('sha256', 'upgrade').'.json');
+        unlink($journalPath);
+        $before = loopTree($root);
+        $originals = ['app/One.php' => 'A1', 'app/Three.php' => 'A3'];
+        $journal = Installation::upgrade($root->path, 'one', $a, $b, $inputs, ['framework' => 'passed'], 'upgrade', true);
+        try {
+            FileRepair::apply($journal);
+            expect(Finalization::record($journal, ['protocol' => fn () => false])['status'])->toBe('verification_failed');
+        } finally {
+            $journal->close();
+        }
+        expect(file_exists(loopProgress($root)))->toBeFalse();
+        // The caller's rollback, as kit's FailsClosed: put the planned files back and remove the journal.
+        foreach ($originals as $path => $bytes) {
+            file_put_contents($root->path($path), $bytes);
+        }
+        unlink($journalPath);
+        expect(loopTree($root))->toBe($before);
+    });
+});
+
+it('treats a progress log without its journal as stale: it is swept on the next prepare and never resumed from', function () {
+    OwnedAppRoot::using(function ($root) {
+        [$a, $b, $inputs, $journal] = loopUpgrade($root);
+        $journal->close();
+        // A real process death leaves the log; a caller then removes the journal (a rollback, or by hand).
+        file_put_contents(loopProgress($root), '{"path":"app/One.php","sha256":"'.hash('sha256', 'B1').'"}'."\n");
+        unlink($root->path('.mod-maintenance/journal-'.hash('sha256', 'upgrade').'.json'));
+        expect(fn () => Journal::reopen($root->path, 'one', $a, $b, $inputs, ['framework' => 'passed'], 'upgrade', exclusiveCheckout: true))->toThrow(RuntimeException::class)
+            ->and(Orphans::inspect($root->path, $b))->toBe([]);
+        $other = Installation::upgrade($root->path, 'one', $a, $b, $inputs, ['framework' => 'passed'], 'another', true);
+        try {
+            expect(file_exists(loopProgress($root)))->toBeFalse()
+                ->and($other->receipt()['completed_files'])->toBe([]);
+        } finally {
+            $other->close();
+        }
+    });
+});
