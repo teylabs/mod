@@ -19,12 +19,17 @@ beforeEach(function () {
     }
 });
 
+/** @param array<string, string> $files */
 function loopArtifact(string $version, array $files): Artifact
 {
     return new Artifact('example/recipe', $version, $files, ['core'], ['auth' => 'session'], ['protocol']);
 }
 
-/** An installed A (three files), and an upgrade journal to B that changes One and Three and leaves Two as it is. */
+/**
+ * An installed A (three files), and an upgrade journal to B that changes One and Three and leaves Two as it is.
+ *
+ * @return array{0: Artifact, 1: Artifact, 2: array<string, string>, 3: Journal}
+ */
 function loopUpgrade(OwnedAppRoot $root, string $intent = 'upgrade'): array
 {
     file_put_contents($root->path('composer.lock'), 'lock');
