@@ -2,7 +2,7 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## Unreleased
+## [0.11.4] - 2026-10-29
 
 ### Fixed
 - The case-collision refusal names both paths: `Case alias or collision at declared path resources/js/pages/Auth: the checkout already has resources/js/pages/auth.`, so the app knows what to rename (#225).
