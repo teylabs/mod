@@ -41,7 +41,7 @@ final class Orphans
 
                         continue;
                     }
-                    $known = in_array($name, ['owner.json', 'lock', 'installed.json'], true) || preg_match('/\Ajournal-[a-f0-9]{64}\.json\z/', $name);
+                    $known = in_array($name, ['owner.json', 'lock', 'installed.json'], true) || preg_match('/\Ajournal-[a-f0-9]{64}\.(?:json|progress)\z/', $name);
                     if (! $known || $kind !== 'file') {
                         $found['.mod-maintenance/'.$name] = $kind;
                     }
