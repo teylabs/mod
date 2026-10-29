@@ -2,7 +2,7 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## Unreleased
+## [0.12.4] - 2026-10-29
 
 ### Fixed
 - **Applying a maintenance plan is about 5× faster.** Each file used to run the full checkout inspection twice: the claim check, then again when its completion was recorded. So an apply re-read every declared file about twice per file, and rewrote the whole journal, with fsync, once per file. A 154-file lineage spent about 1–3 minutes in that loop.
