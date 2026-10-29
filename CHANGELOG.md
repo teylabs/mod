@@ -2,7 +2,7 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## Unreleased
+## [0.11.6] - 2026-10-29
 
 ### Fixed
 - **A rolled-back apply leaves no maintenance file behind** (a regression in 0.11.5). The append-only progress log (`journal-<hash>.progress`) outlived a failed or interrupted apply, so a caller that rolls back by restoring the files and removing the journal, as tey/kit does, left the log behind and the checkout differed from before.
