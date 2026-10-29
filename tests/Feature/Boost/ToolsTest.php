@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Artisan;
 use Laravel\Boost\Mcp\Boost;
 use Laravel\Boost\Mcp\ToolRegistry;
-use Laravel\Boost\Mcp\Tools\ApplicationInfo;
+use Laravel\Boost\Mcp\Tools\DatabaseQuery;
 use Laravel\Mcp\Request;
 use Tey\Mod\Boost\FitTool;
 use Tey\Mod\Boost\InventoryTool;
@@ -17,7 +17,8 @@ use Tey\Mod\Tests\Feature\Generation\Support\Workspace;
 use Tey\Mod\Tests\Support\JsonSchema;
 
 it('registers exactly four read-only tools alongside existing Boost includes', function () {
-    $existing = ApplicationInfo::class;
+    // Any tool Boost itself ships (ApplicationInfo was removed in laravel/boost 2.10.4).
+    $existing = DatabaseQuery::class;
     config()->set('boost.mcp.tools.include', [$existing]);
     ToolRegistrar::register(app());
     ToolRegistrar::register(app());
