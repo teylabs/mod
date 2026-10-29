@@ -2,7 +2,7 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## Unreleased
+## [0.11.5] - 2026-10-29
 
 ### Fixed
 - **Applying a maintenance plan is about 5× faster.** Each file used to run the full checkout inspection twice: the claim check, then again when its completion was recorded. So an apply re-read every declared file about twice per file, and rewrote the whole journal, with fsync, once per file. A 154-file lineage spent about 1–3 minutes in that loop.
@@ -12,7 +12,7 @@ All notable changes to `mod` will be documented in this file.
   - Files already at the target bytes are reconciled without being recorded.
   - Measured on two real apps' core lineage (154 files): about 56–99s down to 12–16s wall-clock, and about 37s down to 8s user CPU.
 
- - 2026-10-29
+## [0.11.4] - 2026-10-29
 
 ### Fixed
 - The case-collision refusal names both paths: `Case alias or collision at declared path resources/js/pages/Auth: the checkout already has resources/js/pages/auth.`, so the app knows what to rename (#225).
