@@ -2,6 +2,13 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## Unreleased
+
+### Fixed
+- **A rolled-back apply leaves no maintenance file behind** (a regression in 0.11.5). The append-only progress log (`journal-<hash>.progress`) outlived a failed or interrupted apply, so a caller that rolls back by restoring the files and removing the journal, as tey/kit does, left the log behind and the checkout differed from before.
+  - Closing the claim now removes the log, so it survives only a real process death, the crash it exists for. A resume is still exact without it: files already at their target bytes reconcile.
+  - A log whose journal is gone is stale. It's swept on the next prepare and never resumed from.
+
 ## [0.11.5] - 2026-10-29
 
 ### Fixed

@@ -37,6 +37,7 @@ final class Journal
             throw new RuntimeException('Recovery requires an existing prepared journal.');
         }
         self::initialize($plan);
+        self::sweepProgress($plan->root);
         $lockPath = SafeFilesystem::path($plan->root, '.mod-maintenance/lock');
         if (file_exists($lockPath)) {
             self::regular($lockPath);
@@ -536,6 +537,20 @@ final class Journal
         return self::completed(['completed_files' => $steps], $plan);
     }
 
+    /**
+     * Progress logs whose journal is gone (a caller rolled back or cleared the journal after a crash) are stale: they're removed, never resumed from. Only a
+     * log beside its own journal describes a prepared plan.
+     */
+    private static function sweepProgress(string $root): void
+    {
+        $directory = SafeFilesystem::path($root, '.mod-maintenance');
+        foreach (array_diff(scandir($directory) ?: [], ['.', '..']) as $name) {
+            if (preg_match('/\A(journal-[a-f0-9]{64})\.progress\z/', $name, $match) === 1 && ! file_exists($directory.'/'.$match[1].'.json')) {
+                self::discardProgress($root, '.mod-maintenance/'.$match[1].'.json');
+            }
+        }
+    }
+
     private static function discardProgress(string $root, string $relative): void
     {
         $path = SafeFilesystem::path($root, self::progressRelative($relative));
@@ -689,6 +704,9 @@ final class Journal
     public function close(): void
     {
         if (is_resource($this->lock)) {
+            // The progress log only bridges a crash: a claim that closes (completed, failed or interrupted in-process) leaves the journal as the checkout's only
+            // maintenance state, as a caller that rolls back expects. A resume needs no log: files already at their target bytes reconcile.
+            self::discardProgress($this->plan->root, $this->relative);
             flock($this->lock, LOCK_UN);
             fclose($this->lock);
             $this->lock = null;
