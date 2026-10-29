@@ -52,7 +52,10 @@ final class SafeFilesystem
                 }
                 $aliases = array_values(array_filter($entries, static fn (string $entry): bool => strtolower($entry) === strtolower($segment)));
                 if ($aliases !== [] && $aliases !== [$segment]) {
-                    throw new RuntimeException('Case alias or collision at declared path.');
+                    $declared = implode('/', array_slice($segments, 0, $index + 1));
+                    $existing = implode(', ', array_map(static fn (string $alias): string => ltrim(implode('/', [...array_slice($segments, 0, $index), $alias]), '/'), array_values(array_diff($aliases, [$segment]))));
+
+                    throw new RuntimeException(sprintf('Case alias or collision at declared path %s: the checkout already has %s.', $declared, $existing));
                 }
             }
             $cursor .= '/'.$segment;
