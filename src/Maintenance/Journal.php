@@ -92,10 +92,12 @@ final class Journal
                     throw new RuntimeException('Intent collision or invalid prepared journal.');
                 }
             } else {
+                // A progress log without its journal belongs to a journal already cleared: it can describe nothing that is prepared now.
+                self::discardProgress($plan->root, $relative);
                 self::atomicData($plan->root, $relative, $record);
             }
 
-            return new self($lock, $record, $plan, $inputPaths, $relative, self::fileHash($path), self::completed($record, $plan));
+            return new self($lock, $record, $plan, $inputPaths, $relative, self::fileHash($path), self::completed($record, $plan) + self::progress($plan, $relative));
         } catch (Throwable $exception) {
             flock($lock, LOCK_UN);
             fclose($lock);
@@ -474,23 +476,105 @@ final class Journal
         return $this->plan;
     }
 
+    /**
+     * The claim's cheap per-step proof, for the steps between full freshness checks: the exclusive lock is still held, the checkout's owner is unchanged and
+     * the prepared journal is byte-identical. The full checkout inspection (fresh) runs before the file loop and again before finalization; each file is also
+     * checked against its planned bytes right before it is written.
+     */
+    public function assertClaim(): void
+    {
+        if (! is_resource($this->lock)) {
+            throw new RuntimeException('Maintenance claim is closed.');
+        }
+        self::owner($this->plan);
+        if (self::fileHash(SafeFilesystem::path($this->plan->root, $this->relative)) !== $this->recordHash) {
+            throw new RuntimeException('Prepared journal changed during execution.');
+        }
+    }
+
+    /** The plan under the cheap claim check, for use inside the file loop. */
+    public function claimedPlan(): FilePlan
+    {
+        $this->assertClaim();
+
+        return $this->plan;
+    }
+
+    private static function progressRelative(string $relative): string
+    {
+        return substr($relative, 0, -strlen('.json')).'.progress';
+    }
+
+    /**
+     * Completed files recorded in the append-only progress log beside the journal: one JSON line per file, each validated as a journal receipt is. A torn final
+     * line (a crash while appending) is ignored: that file was not recorded as complete, so it is checked and completed again on resume.
+     *
+     * @return array<string, string>
+     */
+    private static function progress(FilePlan $plan, string $relative): array
+    {
+        $path = SafeFilesystem::path($plan->root, self::progressRelative($relative));
+        if (! file_exists($path)) {
+            return [];
+        }
+        self::regular($path);
+        $contents = file_get_contents($path);
+        if ($contents === false) {
+            throw new RuntimeException('Unable to read maintenance progress.');
+        }
+        $lines = explode("\n", $contents);
+        array_pop($lines);
+        $steps = [];
+        foreach ($lines as $line) {
+            $step = json_decode($line, true, 4);
+            if (! is_array($step) || ! is_string($step['path'] ?? null) || ! is_string($step['sha256'] ?? null)) {
+                throw new RuntimeException('Invalid maintenance progress.');
+            }
+            $steps[$step['path']] = $step['sha256'];
+        }
+
+        return self::completed(['completed_files' => $steps], $plan);
+    }
+
+    private static function discardProgress(string $root, string $relative): void
+    {
+        $path = SafeFilesystem::path($root, self::progressRelative($relative));
+        if (file_exists($path)) {
+            self::regular($path);
+            if (! unlink($path)) {
+                throw new RuntimeException('Unable to clear maintenance progress.');
+            }
+        }
+    }
+
     public function completeFile(string $path): void
     {
-        $this->assertCurrent();
+        $this->assertClaim();
         if (! isset($this->plan->target->files[$path]) || SafeFilesystem::read($this->plan->root, $path) !== $this->plan->target->files[$path]) {
             throw new RuntimeException('Generated file readback does not match target.');
         }
         if (isset($this->completedFiles[$path])) {
             return;
         }
-        $next = $this->record;
-        $completed = $this->completedFiles;
-        $completed[$path] = hash('sha256', $this->plan->target->files[$path]);
-        $next['completed_files'] = $completed;
-        self::atomicData($this->plan->root, $this->relative, $next, $this->recordHash);
-        $this->record = $next;
-        $this->completedFiles = $completed;
-        $this->recordHash = self::fileHash(SafeFilesystem::path($this->plan->root, $this->relative));
+        // Appended and fsynced before the next file is written, so a crash resumes exactly: the journal itself is never rewritten per file.
+        $hash = hash('sha256', $this->plan->target->files[$path]);
+        $progress = SafeFilesystem::path($this->plan->root, self::progressRelative($this->relative));
+        if (file_exists($progress)) {
+            self::regular($progress);
+        }
+        $stream = fopen($progress, 'ab');
+        if ($stream === false) {
+            throw new RuntimeException('Unable to open maintenance progress.');
+        }
+        try {
+            $line = json_encode(['path' => $path, 'sha256' => $hash], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES)."\n";
+            if (fwrite($stream, $line) !== strlen($line) || ! fflush($stream) || ! fsync($stream)) {
+                throw new RuntimeException('Unable to record maintenance progress.');
+            }
+        } finally {
+            fclose($stream);
+        }
+        $this->completedFiles[$path] = $hash;
     }
 
     public function assertVerifierInputs(): void
@@ -554,6 +638,8 @@ final class Journal
             self::atomicData($root, InstalledRecord::relative($name), $record, $expectedHash);
         }
         self::retireLegacy($root, $name);
+        // Recorded: the prepared journal stays (cleared later with stale journals), and its progress log has nothing left to resume.
+        self::discardProgress($root, $this->relative);
     }
 
     /** The lineage record is authoritative once written; a 0.8 record of the same name is superseded. */
@@ -596,7 +682,8 @@ final class Journal
     /** @return array<string, mixed> */
     public function receipt(): array
     {
-        return $this->record;
+        // Progress lives in the append-only log until the lineage is recorded; the receipt reports it as the journal's own completed files.
+        return ['completed_files' => $this->completedFiles] + $this->record;
     }
 
     public function close(): void

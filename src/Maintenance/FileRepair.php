@@ -11,15 +11,19 @@ final class FileRepair
     /** @return array{written: list<string>, reconciled: list<string>} */
     public static function apply(Journal $journal, ?Closure $afterReplace = null): array
     {
+        // The full freshness check (fresh) once, before any file is written; each file then needs only the claim and its own planned bytes.
         $plan = $journal->plan();
         $files = $plan->target->files;
         ksort($files);
         $written = $reconciled = [];
         foreach ($files as $relative => $bytes) {
-            $journal->assertCurrent();
+            $journal->assertClaim();
             $observed = SafeFilesystem::read($plan->root, $relative);
             if ($observed === $bytes) {
+                // Already the target: nothing is written, so nothing needs recording; a resume reconciles it again.
                 $reconciled[] = $relative;
+
+                continue;
             } else {
                 $expected = $plan->files[$relative]['current'];
                 if (($observed === null ? null : hash('sha256', $observed)) !== $expected) {
@@ -50,7 +54,7 @@ final class FileRepair
             if ($entry['state'] !== 'remove') {
                 continue;
             }
-            $journal->assertCurrent();
+            $journal->assertClaim();
             $observed = SafeFilesystem::read($plan->root, $relative);
             if ($observed === null) {
                 continue;
@@ -86,7 +90,7 @@ final class FileRepair
 
     private static function replace(Journal $journal, string $relative, string $bytes, ?string $observed): void
     {
-        $plan = $journal->plan();
+        $plan = $journal->claimedPlan();
         $path = SafeFilesystem::path($plan->root, $relative);
         $permissions = is_file($path) ? fileperms($path) : null;
         $parent = dirname($path);
@@ -115,7 +119,7 @@ final class FileRepair
             if ($permissions !== null && ($permissions === false || ! chmod($temporary, $permissions & 0777))) {
                 throw new RuntimeException('Unable to preserve generated file permissions.');
             }
-            $journal->assertCurrent();
+            $journal->assertClaim();
             SafeFilesystem::path($plan->root, $relative);
             if (SafeFilesystem::read($plan->root, $relative) !== $observed || ! rename($temporary, $path)) {
                 throw new RuntimeException('Generated file changed immediately before replacement.');

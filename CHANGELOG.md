@@ -2,7 +2,17 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## [0.11.4] - 2026-10-29
+## Unreleased
+
+### Fixed
+- **Applying a maintenance plan is about 5× faster.** Each file used to run the full checkout inspection twice: the claim check, then again when its completion was recorded. So an apply re-read every declared file about twice per file, and rewrote the whole journal, with fsync, once per file. A 154-file lineage spent about 1–3 minutes in that loop.
+  - The full freshness check now runs once before the file loop and again before finalization.
+  - Per file, only cheap checks run: the exclusive claim is held, the owner and the journal are unchanged, and the file still matches its planned bytes right before it's written. A drifted file aborts with the journal resumable.
+  - Completed files go to an append-only progress log beside the journal (`journal-<hash>.progress`). Each line is fsynced before the next file is written, so a crash resumes exactly, and a torn last line is ignored. The log is removed once the lineage is recorded.
+  - Files already at the target bytes are reconciled without being recorded.
+  - Measured on two real apps' core lineage (154 files): about 56–99s down to 12–16s wall-clock, and about 37s down to 8s user CPU.
+
+ - 2026-10-29
 
 ### Fixed
 - The case-collision refusal names both paths: `Case alias or collision at declared path resources/js/pages/Auth: the checkout already has resources/js/pages/auth.`, so the app knows what to rename (#225).
