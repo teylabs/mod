@@ -458,6 +458,34 @@ final class Journal
         return $hash;
     }
 
+    /** @var array{0: list<int>, 1: int}|null The journal's stat signature when it last hashed to recordHash, and the second that hash was taken. */
+    private ?array $verifiedJournal = null;
+
+    /**
+     * Whether the journal still hashes to the prepared record. The hash is reused only while the journal's stat signature (device, inode,
+     * size, mtime, ctime) is unchanged and both times are strictly before the second the hash was taken: git's racy-clean rule, so an edit
+     * made in the same second as the hash, even one that keeps the size, is hashed again rather than trusted.
+     */
+    private function journalUnchanged(): bool
+    {
+        $path = SafeFilesystem::path($this->plan->root, $this->relative);
+        self::regular($path);
+        $stat = lstat($path);
+        $signature = $stat === false ? null : [$stat['dev'], $stat['ino'], $stat['size'], $stat['mtime'], $stat['ctime']];
+        if ($signature !== null && $this->verifiedJournal !== null && $this->verifiedJournal[0] === $signature && max($stat['mtime'], $stat['ctime']) < $this->verifiedJournal[1]) {
+            return true;
+        }
+        $hashedAt = time();
+        if (self::fileHash($path) !== $this->recordHash) {
+            $this->verifiedJournal = null;
+
+            return false;
+        }
+        $this->verifiedJournal = $signature === null ? null : [$signature, $hashedAt];
+
+        return true;
+    }
+
     public function assertCurrent(): void
     {
         if (! is_resource($this->lock)) {
@@ -465,7 +493,7 @@ final class Journal
         }
         self::fresh($this->plan, $this->inputPaths, recovery: true);
         self::owner($this->plan);
-        if (self::fileHash(SafeFilesystem::path($this->plan->root, $this->relative)) !== $this->recordHash) {
+        if (! $this->journalUnchanged()) {
             throw new RuntimeException('Prepared journal changed during execution.');
         }
     }
@@ -488,7 +516,7 @@ final class Journal
             throw new RuntimeException('Maintenance claim is closed.');
         }
         self::owner($this->plan);
-        if (self::fileHash(SafeFilesystem::path($this->plan->root, $this->relative)) !== $this->recordHash) {
+        if (! $this->journalUnchanged()) {
             throw new RuntimeException('Prepared journal changed during execution.');
         }
     }
