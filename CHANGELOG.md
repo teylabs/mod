@@ -7,7 +7,7 @@ All notable changes to `mod` will be documented in this file.
 ### Fixed
 - **Applying a maintenance plan is about 2–5× faster again, most on large lineages.** Two costs grew with the size of the plan:
   - Every per-file check re-hashed the whole prepared journal, which holds every original and target file. So an apply hashed the journal once per file, and time grew with the square of the file count. The hash is now reused while the journal's stat signature (device, inode, size, mtime, ctime) is unchanged and both its times are before the second the hash was taken, git's racy-clean rule. So an edit in the same second as the hash, one that keeps the size, one that puts the old mtime back, or a file swapped in by rename is hashed again and refused, as before.
-  - Inspecting a checkout listed a file's parent directory once per file for the case-alias check. A read-only inspection pass now lists each directory once. Every write path still lists afresh, so an alias that appears after inspection is still refused before anything is written.
+  - Inspecting a checkout listed a file's parent directory once per file for the case-alias check. Each inspection now lists each directory once, through its own `DirectoryListings` that ends with it. Every write path, and the freshness check before applying (a new inspection), lists afresh, so an alias that appears after inspection is still refused before anything is written.
   - Measured on a synthetic lineage (400-byte files, 50 per directory): 200 files, install apply 2.9s → 1.2s and upgrade 4.4s → 2.0s; 1,000 files, install 39s → 11s and upgrade 66s → 13s.
 
 ## [0.12.5] - 2026-10-29

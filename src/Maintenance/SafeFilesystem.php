@@ -22,37 +22,11 @@ final class SafeFilesystem
         }
     }
 
-    /** @var array<string, list<string>|false>|null Directory listings reused inside one snapshot(); null outside it. */
-    private static ?array $listings = null;
-
-    /**
-     * Run a read-only pass over many declared paths with each parent directory listed once, not once per path under it.
-     * The case-alias check sees the same listing it would have seen at the start of the pass; every link, type and existence
-     * check still runs per path. Nothing that writes may run inside: a listing would not show the write.
-     *
-     * @template T
-     *
-     * @param  \Closure(): T  $pass
-     * @return T
-     */
-    public static function snapshot(\Closure $pass): mixed
-    {
-        // A nested pass is part of the outer one and shares its listings; only the outermost pass clears them.
-        $outermost = self::$listings === null;
-        self::$listings ??= [];
-        try {
-            return $pass();
-        } finally {
-            if ($outermost) {
-                self::$listings = null;
-            }
-        }
-    }
-
-    public static function read(string $root, string $relative): ?string
+    /** @param  DirectoryListings|null  $listings  listings shared by one read-only pass (see DirectoryListings); null lists afresh. */
+    public static function read(string $root, string $relative, ?DirectoryListings $listings = null): ?string
     {
         Artifact::validateFiles([$relative => '']);
-        $path = self::path($root, $relative);
+        $path = self::path($root, $relative, $listings);
         if (! file_exists($path)) {
             return null;
         }
@@ -67,13 +41,14 @@ final class SafeFilesystem
         return $bytes;
     }
 
-    public static function path(string $root, string $relative): string
+    /** @param  DirectoryListings|null  $listings  listings shared by one read-only pass (see DirectoryListings); null lists afresh. */
+    public static function path(string $root, string $relative, ?DirectoryListings $listings = null): string
     {
         $cursor = $root;
         $segments = explode('/', $relative);
         foreach ($segments as $index => $segment) {
             if (is_dir($cursor)) {
-                $entries = self::$listings !== null ? (self::$listings[$cursor] ??= scandir($cursor)) : scandir($cursor);
+                $entries = $listings !== null ? $listings->of($cursor) : scandir($cursor);
                 if ($entries === false) {
                     throw new RuntimeException('Unable to inspect declared parent.');
                 }

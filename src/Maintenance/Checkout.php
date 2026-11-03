@@ -24,21 +24,18 @@ final class Checkout
         SafeFilesystem::metadata($root);
         Artifact::validateSelection($inputPaths, false);
         // One read-only pass: each parent directory is listed once for the case-alias check, not once per file under it.
-        [$current, $inputs] = SafeFilesystem::snapshot(static function () use ($root, $target, $baseline, $inputPaths): array {
-            $current = [];
-            foreach ($target->files + $baseline->files as $path => $bytes) {
-                $observed = SafeFilesystem::read($root, $path);
-                if ($observed !== null) {
-                    $current[$path] = $observed;
-                }
+        $listings = new DirectoryListings;
+        $current = [];
+        foreach ($target->files + $baseline->files as $path => $bytes) {
+            $observed = SafeFilesystem::read($root, $path, $listings);
+            if ($observed !== null) {
+                $current[$path] = $observed;
             }
-            $inputs = [];
-            foreach ($inputPaths as $name => $path) {
-                $inputs[$name] = Fingerprint::of([$path, SafeFilesystem::read($root, $path)]);
-            }
-
-            return [$current, $inputs];
-        });
+        }
+        $inputs = [];
+        foreach ($inputPaths as $name => $path) {
+            $inputs[$name] = Fingerprint::of([$path, SafeFilesystem::read($root, $path, $listings)]);
+        }
 
         return FilePlan::between($appId, $root, $baseline, $target, $current, $inputs, $compatibility, refusals: self::refusals($root, $appId, $target), claim: $claim, removals: $removals);
     }
