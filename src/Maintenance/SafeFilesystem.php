@@ -22,10 +22,11 @@ final class SafeFilesystem
         }
     }
 
-    public static function read(string $root, string $relative): ?string
+    /** @param  DirectoryListings|null  $listings  listings shared by one read-only pass (see DirectoryListings); null lists afresh. */
+    public static function read(string $root, string $relative, ?DirectoryListings $listings = null): ?string
     {
         Artifact::validateFiles([$relative => '']);
-        $path = self::path($root, $relative);
+        $path = self::path($root, $relative, $listings);
         if (! file_exists($path)) {
             return null;
         }
@@ -40,13 +41,14 @@ final class SafeFilesystem
         return $bytes;
     }
 
-    public static function path(string $root, string $relative): string
+    /** @param  DirectoryListings|null  $listings  listings shared by one read-only pass (see DirectoryListings); null lists afresh. */
+    public static function path(string $root, string $relative, ?DirectoryListings $listings = null): string
     {
         $cursor = $root;
         $segments = explode('/', $relative);
         foreach ($segments as $index => $segment) {
             if (is_dir($cursor)) {
-                $entries = scandir($cursor);
+                $entries = $listings !== null ? $listings->of($cursor) : scandir($cursor);
                 if ($entries === false) {
                     throw new RuntimeException('Unable to inspect declared parent.');
                 }
