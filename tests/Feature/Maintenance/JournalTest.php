@@ -153,3 +153,56 @@ it('refuses unmarked metadata and linked or hardlinked journal files without tou
             ->and(file_get_contents($root->path('app/Owned.php')))->toBe('A');
     });
 })->with(['unmarked', 'symlink', 'hardlink']);
+
+it('refuses a journal edited after a verified check, even when the edit keeps its size and puts back its mtime', function (string $kind) {
+    OwnedAppRoot::using(function ($root) use ($kind) {
+        [$plan, $inputs] = journalFixture($root);
+        $second = null;
+        if ($kind === 'same second') {
+            // Start at a fresh second, so the journal is written, hashed and edited inside one second: git's racy-clean case. Its stat
+            // signature cannot tell the edit apart, so only the rule that a hash taken in the journal's own second is never reused catches it.
+            $second = time();
+            while (time() === $second) {
+                usleep(5_000);
+            }
+            $second = time();
+        }
+        $journal = Journal::prepare($plan, $inputs, 'upgrade-one', exclusiveCheckout: true);
+        try {
+            $path = $root->path('.mod-maintenance/journal-'.hash('sha256', 'upgrade-one').'.json');
+            if ($kind !== 'same second') {
+                // Let the journal's times fall before the next second, so the check that follows trusts its hash and the edit below hits the reused one.
+                sleep(1);
+            }
+            clearstatcache(true, $path);
+            $journal->assertCurrent();
+            $journal->assertCurrent();
+
+            $bytes = file_get_contents($path);
+            $mtime = filemtime($path);
+            $at = strpos($bytes, '"state"');
+            $forged = substr_replace($bytes, $bytes[$at + 1] === 's' ? 'S' : 's', $at + 1, 1);
+            expect(strlen($forged))->toBe(strlen($bytes));
+            if ($kind === 'renamed') {
+                file_put_contents($path.'.new', $forged);
+                touch($path.'.new', $mtime);
+                rename($path.'.new', $path);
+            } else {
+                file_put_contents($path, $forged);
+                if ($kind === 'mtime restored') {
+                    touch($path, $mtime);
+                }
+            }
+            clearstatcache(true, $path);
+            if ($kind === 'same second' && time() !== $second) {
+                Assert::markTestSkipped('This run crossed a second boundary before the edit, so it was not the racy case.');
+            }
+
+            expect(fn () => $journal->assertCurrent())->toThrow(RuntimeException::class, 'Prepared journal changed during execution.')
+                ->and(fn () => $journal->assertClaim())->toThrow(RuntimeException::class, 'Prepared journal changed during execution.')
+                ->and(file_get_contents($root->path('app/Owned.php')))->toBe('A');
+        } finally {
+            $journal->close();
+        }
+    });
+})->with(['same second', 'in place', 'mtime restored', 'renamed']);
