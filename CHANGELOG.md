@@ -5,7 +5,7 @@ All notable changes to `mod` will be documented in this file.
 ## Unreleased
 
 ### Upgrading
-- **The experimental maintenance API is removed.** Nothing uses it since tey/kit 0.18 dropped its install lifecycle. Scaffolds, generators, templates, layouts and discovery are unchanged (#240). These public classes are gone:
+- **The experimental maintenance API is removed.** Nothing uses it since tey/kit 0.18 dropped its install lifecycle. Scaffolds, generators, templates, layouts and discovery are unchanged (#241). These public classes are gone:
   - `Tey\Mod\Maintenance\Maintenance`: if you call `Maintenance::apply()`, `resume()` or `diagnose()`, copy generated files yourself or regenerate them with the scaffold or recipe that made them.
   - `Tey\Mod\Maintenance\Checkout`: if you call `Checkout::inspect()`, `installed()`, `artifact()` or `pending()`, there is no replacement. Mod no longer records what a recipe installed.
   - `Tey\Mod\Maintenance\FilePlan`: if you call `FilePlan::between()` or read a plan's entries, there is no replacement.
