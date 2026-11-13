@@ -2,7 +2,7 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## Unreleased
+## [0.13.0] - 2026-11-13
 
 ### Upgrading
 - **The experimental maintenance API is removed.** Nothing uses it since tey/kit 0.18 dropped its install lifecycle. Scaffolds, generators, templates, layouts and discovery are unchanged (#241). These public classes are gone:
