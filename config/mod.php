@@ -76,6 +76,9 @@ return [
         'enabled' => true,
         // Reuse unchanged inventories across application boots in one PHP process, without a cache file.
         'reuse_in_process' => true,
+        // Without a cache file, write the first scan to bootstrap/cache/mod-discovery.auto.php and reuse it
+        // while a few stat() calls show nothing it depends on changed. Null: on outside production.
+        'auto_cache' => env('MOD_DISCOVERY_AUTO_CACHE'),
         'file_types' => [],
         'cache' => 'bootstrap/cache/mod-discovery.php',
         // 'scan' ignores a stale or foreign cache file, scans instead (never rewriting the file) and

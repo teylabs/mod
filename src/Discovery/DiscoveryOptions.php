@@ -15,6 +15,7 @@ use Tey\Mod\Resolution\ModelRelations;
  *     'discovery' => [
  *         'enabled' => true,                                   // false: discover nothing
  *         'reuse_in_process' => true,                          // false: scan on every uncached boot
+ *         'auto_cache' => null,                                // null: on outside production; writes *.auto.php beside 'cache'
  *         'file_types' => ['provider' => false, 'subscriber' => 'listener'],  // merged over the defaults
  *         'cache' => 'bootstrap/cache/mod-discovery.php',      // relative to the base path, or absolute
  *         'on_stale_cache' => 'scan',                          // or 'fail'
@@ -58,6 +59,7 @@ final readonly class DiscoveryOptions
         public bool $factories = true,
         public bool $policies = true,
         public bool $reuseInProcess = true,
+        public bool $autoCache = false,
     ) {}
 
     /**
@@ -130,7 +132,13 @@ final readonly class DiscoveryOptions
             }
         }
 
-        return new self($enabled, $kinds, $cache, $policy, null, $switches['factories'], $switches['policies'], $switches['reuse_in_process']);
+        $autoCache = $config['auto_cache'] ?? false;
+
+        if (! is_bool($autoCache)) {
+            throw InvalidDiscoveryConfig::because('auto_cache', 'expected a boolean, or null for on outside production');
+        }
+
+        return new self($enabled, $kinds, $cache, $policy, null, $switches['factories'], $switches['policies'], $switches['reuse_in_process'], $autoCache);
     }
 
     /**
@@ -142,7 +150,7 @@ final readonly class DiscoveryOptions
      */
     public function withCandidates(Closure $candidates): self
     {
-        return new self($this->enabled, $this->kinds, $this->cachePath, $this->onStaleCache, $candidates, $this->factories, $this->policies, $this->reuseInProcess);
+        return new self($this->enabled, $this->kinds, $this->cachePath, $this->onStaleCache, $candidates, $this->factories, $this->policies, $this->reuseInProcess, $this->autoCache);
     }
 
     /**

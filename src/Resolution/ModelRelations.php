@@ -44,6 +44,8 @@ final readonly class ModelRelations
 
     /**
      * The existing class the model's relation to the target kind resolves to.
+     *
+     * @return class-string|null
      */
     public function targetOf(ResolvedArtifact $model, string $targetKind): ?string
     {

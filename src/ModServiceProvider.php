@@ -141,7 +141,9 @@ class ModServiceProvider extends ServiceProvider
                 return;
             }
 
-            $options = DiscoveryOptions::fromConfig((array) $app->make('config')->get('mod.discovery', []));
+            $config = (array) $app->make('config')->get('mod.discovery', []);
+            $config['auto_cache'] ??= ! $app->environment('production');
+            $options = DiscoveryOptions::fromConfig($config);
             $candidates = $app->make(DiscoveryCandidates::class)->using;
 
             DiscoveryRegistrar::register(

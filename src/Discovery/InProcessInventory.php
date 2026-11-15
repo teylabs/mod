@@ -3,7 +3,6 @@
 namespace Tey\Mod\Discovery;
 
 use Closure;
-use DirectoryIterator;
 
 /** @internal Reuses immutable inventories, never application registration state. */
 final class InProcessInventory
@@ -36,24 +35,8 @@ final class InProcessInventory
 
         // Record every directory, not just roots: a file added deep in a tree
         // changes only its parent's mtime. Missing roots are tracked too.
-        $directories = [];
-        while (($root = array_pop($roots)) !== null) {
-            if (isset($directories[$root])) {
-                continue;
-            }
-            $directories[$root] = true;
-            clearstatcache(true, $root);
-            if (! is_dir($root) || is_link($root)) {
-                continue;
-            }
-            foreach (new DirectoryIterator($root) as $item) {
-                if (! $item->isDot() && ! $item->isLink() && $item->isDir()) {
-                    $roots[] = $item->getPathname();
-                }
-            }
-        }
-        ksort($directories);
-        $mtimes = self::mtimes(array_keys($directories));
+        $directories = WatchedPaths::tree($roots);
+        $mtimes = self::mtimes($directories);
         $inventory = $scan();
         $this->inventories[$basePath] = ['fingerprint' => $fingerprint, 'directories' => $mtimes, 'inventory' => $inventory];
 

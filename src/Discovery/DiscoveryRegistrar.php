@@ -49,6 +49,7 @@ final class DiscoveryRegistrar
         // Migrations keep every group's directories, so a disabled group's schema stays.
         $all = $discovery->inventory();
         self::warnAboutStaleCache($app, $discovery);
+        self::warnAboutUnwritableAutoCache($app, $discovery);
         $inventory = $discovery->active();
 
         foreach ($inventory->classes(DiscoveryType::Provider) as $provider) {
@@ -153,6 +154,29 @@ final class DiscoveryRegistrar
 
         if ($app->runningInConsole() && ! $app->runningUnitTests()) {
             fwrite(STDERR, $message.PHP_EOL);
+        }
+    }
+
+    /**
+     * An automatic cache that cannot be written leaves every boot scanning.
+     * Logged once per file in this process, not on every boot.
+     */
+    private static function warnAboutUnwritableAutoCache(Application $app, Discovery $discovery): void
+    {
+        static $warned = [];
+        $path = $discovery->unwritableAutoCache();
+
+        if ($path === null || isset($warned[$path])) {
+            return;
+        }
+
+        $warned[$path] = true;
+
+        if ($app->bound('log')) {
+            $app->make('log')->warning(sprintf(
+                'mod: cannot write the automatic discovery cache at [%s]; scanning on every boot instead. Make its directory writable, or set discovery.auto_cache to false.',
+                $path,
+            ));
         }
     }
 

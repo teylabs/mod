@@ -34,6 +34,7 @@ use Tey\Mod\Support\Path;
  * Symlinks are not followed. Files are visited in sorted order, so the
  * inventory is deterministic. The host may replace the file walker with its
  * own candidate-file source; what it yields is still sorted and owned here.
+ * Given WatchedPaths, the scan records every file whose contents it read.
  *
  * @internal used by Discovery::scan(); hosts replace the candidate-file source through DiscoveryOptions::withCandidates().
  */
@@ -52,6 +53,7 @@ final readonly class DiscoveryScanner
         private Eligibility $eligibility = new Eligibility,
         private ?Closure $candidates = null,
         private Declarations $declarations = new Declarations,
+        private ?WatchedPaths $watched = null,
     ) {
         $this->mapper = new ReverseMapper($preset);
         $this->relations = new ModelRelations($preset);
@@ -208,6 +210,7 @@ final readonly class DiscoveryScanner
             $missing = $this->declarations->missingFor($candidate);
 
             if ($missing !== null) {
+                $this->watched?->unresolved();
                 $rejections[$path] ??= new Rejection($path, RejectionReason::Ineligible, self::needs($candidate, $missing), $definition->kindId, $entry->class);
 
                 return;
@@ -218,12 +221,14 @@ final readonly class DiscoveryScanner
         try {
             $target = $this->relations->targetOf($model, $definition->type->value);
         } catch (Error $error) {
+            $this->watched?->unresolved();
             $rejections[$path] ??= new Rejection($path, RejectionReason::Ineligible, $error->getMessage(), $definition->kindId, $entry->class);
 
             return;
         }
 
         if ($target !== null) {
+            $this->watched?->class($target);
             $entries[$path.'|'.$definition->type->value] = new DiscoveredArtifact($entry->kindId, $entry->type, $entry->class, $entry->path, $entry->context, [], $target);
         }
     }
@@ -232,11 +237,14 @@ final readonly class DiscoveryScanner
     {
         $class = $artifact->fqcn();
         $absolute = $this->absolute($path);
+        $this->watched?->file($absolute);
 
         // Loading a class whose trait is missing is a fatal error no catch stops, so the declaration is checked first.
         $missing = $class === null || class_exists($class, false) ? null : $this->declarations->missing($absolute);
 
         if ($missing !== null) {
+            $this->watched?->unresolved();
+
             return new Rejection($path, RejectionReason::Ineligible, self::needs($class, $missing), $definition->kindId, $class);
         }
 
@@ -245,9 +253,13 @@ final readonly class DiscoveryScanner
                 return new Rejection($path, RejectionReason::Ineligible, sprintf('the autoloader does not find class [%s]', $class ?? '?'), $definition->kindId, $class);
             }
         } catch (Error $error) {
+            $this->watched?->unresolved();
+
             return new Rejection($path, RejectionReason::Ineligible, $error->getMessage(), $definition->kindId, $class);
         }
 
+        // Eligibility reads the class and everything it extends, wherever those files are.
+        $this->watched?->class($class);
         $result = $this->eligibility->check($definition->type, $class, $absolute);
 
         if (is_string($result)) {

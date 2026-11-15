@@ -32,8 +32,9 @@ final readonly class DiscoveryCache
     /** @param array<string, array{file: string, path: string, source: string, slots: list<string>, groups: list<string>, digest: string, relative: string, uses_base: bool, body_aliases?: array<string, string>}> $templates
      * @param  list<array{group: ?string, namespace: string, path: string}>  $translations
      * @param  array<string, Node>  $scaffolds
+     * @param  array{base: string, paths: array<string, array{int, int}|false>}|null  $watched  the automatic cache's fingerprint; the explicit cache has none
      */
-    public function write(Inventory $inventory, string $preset, string $definitions, array $templates = [], array $scaffolds = [], array $translations = []): void
+    public function write(Inventory $inventory, string $preset, string $definitions, array $templates = [], array $scaffolds = [], array $translations = [], ?array $watched = null): void
     {
         $directory = dirname($this->path);
 
@@ -50,6 +51,10 @@ final readonly class DiscoveryCache
             'scaffolds' => $scaffolds,
             'translations' => $translations,
         ];
+
+        if ($watched !== null) {
+            $payload['watched'] = $watched;
+        }
 
         $temporary = $this->path.'.'.bin2hex(random_bytes(6)).'.tmp';
 
@@ -68,6 +73,36 @@ final readonly class DiscoveryCache
      * @throws InvalidDiscoveryCache
      */
     public function read(string $preset, string $definitions): Inventory
+    {
+        return $this->inventory($this->payload($preset, $definitions));
+    }
+
+    /**
+     * The inventory of a cache written with its fingerprint, when it matches
+     * this base path and no watched path changed; null otherwise, never an error.
+     */
+    public function readUnchanged(string $preset, string $definitions, string $base): ?Inventory
+    {
+        try {
+            $payload = $this->payload($preset, $definitions);
+            $watched = $payload['watched'] ?? null;
+
+            return is_array($watched) && ($watched['base'] ?? null) === $base && is_array($watched['paths'] ?? null) && WatchedPaths::unchanged($watched['paths'])
+                ? $this->inventory($payload)
+                : null;
+        } catch (InvalidDiscoveryCache) {
+            return null;
+        }
+    }
+
+    /**
+     * The file's payload, when it is this schema for this preset and these definitions.
+     *
+     * @return array<array-key, mixed>
+     *
+     * @throws InvalidDiscoveryCache
+     */
+    private function payload(string $preset, string $definitions): array
     {
         if (! $this->exists()) {
             throw InvalidDiscoveryCache::because($this->path, 'the file does not exist');
@@ -99,6 +134,16 @@ final readonly class DiscoveryCache
             throw InvalidDiscoveryCache::because($this->path, 'it was built with different discovery settings');
         }
 
+        return $payload;
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $payload
+     *
+     * @throws InvalidDiscoveryCache
+     */
+    private function inventory(array $payload): Inventory
+    {
         try {
             return Inventory::fromArray($payload['inventory'] ?? null);
         } catch (UnexpectedValueException $exception) {

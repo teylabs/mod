@@ -165,7 +165,11 @@ final class ListCommand extends Command
             return;
         }
         $counts = $report['discovery']['counts'];
-        $this->line(sprintf('  Discovery (%s): %d providers, %d commands, %d listeners, %d subscribers, %d factories, %d policies, %d directories, %d rejected.', $report['discovery']['source'] === 'cache' ? 'cache' : 'scanned, no cache', $counts['provider'], $counts['command'], $counts['listener'], $counts['subscriber'], $counts['factory'], $counts['policy'], $counts['directory'], $counts['rejected']));
+        $this->line(sprintf('  Discovery (%s): %d providers, %d commands, %d listeners, %d subscribers, %d factories, %d policies, %d directories, %d rejected.', match ($report['discovery']['source']) {
+            'cache' => 'cache',
+            'auto-cache' => 'automatic cache',
+            default => 'scanned, no cache',
+        }, $counts['provider'], $counts['command'], $counts['listener'], $counts['subscriber'], $counts['factory'], $counts['policy'], $counts['directory'], $counts['rejected']));
     }
 
     /**

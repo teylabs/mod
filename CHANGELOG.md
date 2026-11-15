@@ -2,6 +2,14 @@
 
 All notable changes to `mod` will be documented in this file.
 
+## Unreleased
+
+### Upgrading
+- **Outside production, discovery now writes `bootstrap/cache/mod-discovery.auto.php`.** It is on by default wherever the app environment isn't `production`, including `testing`. Laravel's default `bootstrap/cache/.gitignore` already ignores it. To keep scanning on every request, set `'discovery.auto_cache' => false` in `config/mod.php` or `MOD_DISCOVERY_AUTO_CACHE=false`. Production and any app with a `mod:cache` file behave as before (#243).
+
+### Added
+- **Development requests no longer scan for discovery on every boot.** Without a cache file, the first scan is written to `bootstrap/cache/mod-discovery.auto.php`, and later requests reuse it while a fingerprint checked with `stat()` calls alone still matches: the folders below each discovered root, every class discovery loaded with the files of its parents, interfaces and traits, `composer.lock` and Composer's autoload files, and the layout and discovery settings. Adding, removing or editing a provider, command, listener, subscriber, model or module, or running `composer install` or `dump-autoload`, rescans on the next request. A scan that saw a change in the same second, or that couldn't load a class it needed, isn't written. Writes are atomic; a cache that can't be written falls back to scanning and logs one warning. `mod:clear` removes it. On the benchmark tree (200 classes), a warm request's discovery takes about 5 ms instead of about 70 ms. `mod:list` reports `Discovery (automatic cache)` (#243).
+
 ## [0.13.0] - 2026-11-13
 
 ### Upgrading
