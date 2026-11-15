@@ -300,7 +300,7 @@ it('keeps an explicit mod:cache file ahead of the automatic cache, exactly as be
         ->and(fn () => autoRequest($fx, $fx->preset($other), ['on_stale_cache' => 'fail']))->toThrow(InvalidDiscoveryCache::class);
 }));
 
-it('removes the automatic cache with mod:clear', DiscoveryFixture::around(function (DiscoveryFixture $fx) {
+it('removes the automatic cache and the cache file with mod:clear', DiscoveryFixture::around(function (DiscoveryFixture $fx) {
     $layout = autoTree($fx);
     autoSettle($fx);
     autoRequest($fx, $layout);
@@ -308,12 +308,16 @@ it('removes the automatic cache with mod:clear', DiscoveryFixture::around(functi
     DiscoveryRegistrar::register($this->app, $layout, DiscoveryOptions::fromConfig(['auto_cache' => true]));
     $this->app->make(Kernel::class)->registerCommand($this->app->make(DiscoveryClearCommand::class));
 
-    expect(is_file($fx->path('bootstrap/cache/mod-discovery.auto.php')))->toBeTrue();
+    $this->app->make(Discovery::class)->cacheInventory();
+
+    expect(is_file($fx->path('bootstrap/cache/mod-discovery.auto.php')))->toBeTrue()
+        ->and(is_file($fx->path('bootstrap/cache/mod-discovery.php')))->toBeTrue();
 
     $this->artisan('mod:clear')->expectsOutputToContain('Discovery cache cleared.')->assertSuccessful();
     $this->artisan('mod:clear')->expectsOutputToContain('No discovery cache to clear.')->assertSuccessful();
 
-    expect(is_file($fx->path('bootstrap/cache/mod-discovery.auto.php')))->toBeFalse();
+    expect(is_file($fx->path('bootstrap/cache/mod-discovery.auto.php')))->toBeFalse()
+        ->and(is_file($fx->path('bootstrap/cache/mod-discovery.php')))->toBeFalse();
 }));
 
 it('turns the automatic cache on outside production unless configured', function (string $environment, ?bool $configured, bool $writes) {
