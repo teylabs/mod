@@ -61,5 +61,8 @@ abstract class TestCase extends Orchestra
         if ($this->bootUsing !== null) {
             ($this->bootUsing)($app);
         }
+
+        // Fixtures are written within the second they boot in; tests that exercise the automatic cache turn it on.
+        $app->make('config')->set('mod.discovery.auto_cache', $app->make('config')->get('mod.discovery.auto_cache') ?? false);
     }
 }

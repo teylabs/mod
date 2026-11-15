@@ -146,9 +146,36 @@ With a cache present, mod registers from the cache without scanning. When the la
 
 Like Laravel's own caches, the discovery cache doesn't pick up new classes. After adding a provider, command or listener while the cache exists, run `php artisan optimize:clear`.
 
+### The automatic cache
+
+Outside production, without a cache file, the first request's scan is written to `bootstrap/cache/mod-discovery.auto.php` (beside the `discovery.cache` path). Later requests reuse it while nothing it depends on has changed, and check that with `stat()` calls only, never a scan. It records:
+
+- the modification time of each discovered root and every folder below it, so adding, removing or renaming a file or a module rescans;
+- the modification time and size of each class discovery loaded (every provider, command, listener, subscriber, model and related factory or policy it checked) and of the files of their parent classes, interfaces and traits, wherever those live. Whether a class is discovered depends on what it extends and on its methods, so an edit to one of them rescans;
+- `composer.lock`, `vendor/composer/installed.json` and `vendor/composer/autoload_static.php`, so installing a package or running `composer dump-autoload` rescans;
+- the layout and discovery settings, as for the cache file.
+
+Some scans aren't written, and the next request scans again:
+
+- a scan that saw a file change within a second of starting, because modification times have one-second resolution and a second change in that second would look the same;
+- a scan with a class that couldn't load because a class it needs is missing: creating that class anywhere would change the result;
+- a layout whose factory or policy file type is placed by a callback.
+
+The file is written to a temporary file and renamed, so concurrent requests never see a partial file. If it can't be written, for example on a read-only filesystem, mod scans and logs one warning per PHP process. `php artisan mod:clear` removes it with the cache file. A `discovery.cache` file always wins: with one present, the automatic cache is neither read nor written, and a stale cache file still follows `discovery.on_stale_cache`.
+
+The automatic cache is on outside production and off in production, where `php artisan optimize` writes the cache file. Set it either way in `config/mod.php` or with `MOD_DISCOVERY_AUTO_CACHE`:
+
+```php
+'discovery' => [
+    'auto_cache' => env('MOD_DISCOVERY_AUTO_CACHE'), // null: on outside production
+],
+```
+
+A custom `Mod::discoverUsing()` candidate source turns it off: no fingerprint covers what a callback returns.
+
 ### Reuse across application boots
 
-Without a cache file, mod reuses an unchanged discovery inventory across application boots in the same PHP process. This helps test suites that rebuild the application for each test. Providers, commands, listeners, migrations and model conventions still register on every application; no registration state is shared and nothing is written to disk.
+Without a cache file, and with the [automatic cache](#the-automatic-cache) off, mod reuses an unchanged discovery inventory across application boots in the same PHP process. This helps test suites that rebuild the application for each test. Providers, commands, listeners, migrations and model conventions still register on every application; no registration state is shared and nothing is written to disk.
 
 Reuse is keyed by the application base path, the cache file's existing layout and discovery-settings fingerprints (including templates), and a tree signature of directory modification times under the discovered roots. Later boots stat those directories without walking or reading files. Adding, removing or renaming a file changes its parent directory's modification time and triggers a new scan. New roots and nested directories are picked up too. A custom `Mod::discoverUsing()` candidate source keeps scanning on every boot because its output may change independently of the tree.
 

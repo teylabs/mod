@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Discovery: cold scan vs cache replay on a fixed tree.
+ * Discovery: cold scan vs cache replay vs the automatic cache on a fixed tree.
  *
  *     php tests/Benchmark/discovery.php [runs=15]
  *
@@ -9,8 +9,9 @@
  * (10 modules x 10 providers + 10 listeners, plus one event per module),
  * writes the discovery cache once, then times Discovery::inventory() in a
  * fresh PHP process per run: cold (no cache file: walk, reverse-map,
- * autoload, reflect) and replay (read the cache file). Bootstrap is not
- * timed. Prints the median, min and max in milliseconds. Numbers only;
+ * autoload, reflect), replay (read the cache file) and auto (read the
+ * automatic cache and stat what it watches, as a dev request does once the
+ * first request has written it). Bootstrap is not timed. Prints the median, min and max in milliseconds. Numbers only;
  * nothing here is a claim beyond this tree on this machine.
  */
 
@@ -35,7 +36,7 @@ function benchmarkPreset(): array
     return $definition;
 }
 
-function benchmarkDiscovery(string $root, string $cache): Discovery
+function benchmarkDiscovery(string $root, string $cache, bool $auto = false): Discovery
 {
     spl_autoload_register(static function (string $class) use ($root): void {
         if (str_starts_with($class, 'App\\') && is_file($file = $root.'/app/'.str_replace('\\', '/', substr($class, 4)).'.php')) {
@@ -43,13 +44,13 @@ function benchmarkDiscovery(string $root, string $cache): Discovery
         }
     });
 
-    return new Discovery(CompiledLayout::fromArray(benchmarkPreset()), new DiscoveryOptions(cachePath: $cache), $root);
+    return new Discovery(CompiledLayout::fromArray(benchmarkPreset()), new DiscoveryOptions(cachePath: $cache, autoCache: $auto), $root);
 }
 
 // Child process: time one inventory() call and print milliseconds.
 if (($argv[1] ?? null) === '--child') {
-    [, , $root, $cache] = $argv;
-    $discovery = benchmarkDiscovery($root, $cache);
+    [, , $root, $cache, $mode] = $argv;
+    $discovery = benchmarkDiscovery($root, $cache, $mode === 'auto');
 
     $start = hrtime(true);
     $inventory = $discovery->inventory();
@@ -101,17 +102,29 @@ try {
         throw new RuntimeException('Unexpected inventory size: '.count($written->entries));
     }
 
-    $results = ['cold' => [], 'replay' => []];
+    // A change within the last second is never cached automatically: date the tree in the past.
+    $past = time() - 60;
+    foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root.'/app', FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST) as $item) {
+        /** @var SplFileInfo $item */
+        touch($item->getPathname(), $past);
+    }
+    touch($root.'/app', $past);
+
+    $results = ['cold' => [], 'replay' => [], 'auto' => []];
+    $sources = ['cold' => 'scan', 'replay' => 'cache', 'auto' => 'auto-cache'];
     $php = escapeshellarg(PHP_BINARY);
     $self = escapeshellarg(__FILE__);
+    $child = static fn (string $path, string $mode): string => (string) shell_exec("{$php} {$self} --child ".escapeshellarg($root).' '.escapeshellarg($path).' '.$mode);
+
+    // The first request scans and writes the automatic cache; the runs below read it.
+    $child($root.'/auto/mod-discovery.php', 'auto');
 
     for ($run = 0; $run < $runs; $run++) {
-        foreach (['cold' => $root.'/no-cache.php', 'replay' => $cache] as $mode => $path) {
-            $output = shell_exec("{$php} {$self} --child ".escapeshellarg($root).' '.escapeshellarg($path));
+        foreach (['cold' => $root.'/no-cache.php', 'replay' => $cache, 'auto' => $root.'/auto/mod-discovery.php'] as $mode => $path) {
             /** @var array{ms: float, source: string, entries: int} $result */
-            $result = json_decode((string) $output, true, flags: JSON_THROW_ON_ERROR);
+            $result = json_decode($child($path, $mode), true, flags: JSON_THROW_ON_ERROR);
 
-            if ($result['source'] !== ($mode === 'cold' ? 'scan' : 'cache') || $result['entries'] !== MODULES * PER_MODULE * 2) {
+            if ($result['source'] !== $sources[$mode] || $result['entries'] !== MODULES * PER_MODULE * 2) {
                 throw new RuntimeException("Run {$run} {$mode}: unexpected result ".json_encode($result));
             }
 
@@ -126,6 +139,7 @@ try {
         'runs' => $runs,
         'cold_ms' => summary($results['cold']),
         'replay_ms' => summary($results['replay']),
+        'auto_ms' => summary($results['auto']),
     ], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR).PHP_EOL;
 } finally {
     // Only ever remove the tree this script created.

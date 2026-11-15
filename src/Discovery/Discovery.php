@@ -2,11 +2,14 @@
 
 namespace Tey\Mod\Discovery;
 
+use Composer\Autoload\ClassLoader;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Testing\Fakes\EventFake;
 use Tey\Mod\Exceptions\InvalidDiscoveryCache;
 use Tey\Mod\Layout\CompiledLayout;
+use Tey\Mod\Placement\TemplateRule;
 use Tey\Mod\Support\Path;
+use Throwable;
 use WeakMap;
 
 /**
@@ -14,10 +17,10 @@ use WeakMap;
  * dispatchers its listeners were registered on.
  *
  * Bound as an instance in that application's container by DiscoveryRegistrar.
- * Registration records stay application-local. Without a cache file, an
- * unchanged inventory can be reused by later applications in this process.
- *
- *
+ * Registration records stay application-local. Without a cache file, the
+ * automatic cache (`discovery.auto_cache`) keeps the scan with a fingerprint
+ * of what it depends on; otherwise an unchanged inventory can be reused by
+ * later applications in this process.
  *
  * @phpstan-import-type Node from \Tey\Mod\Scaffolds\ScaffoldRegistry
  *
@@ -37,6 +40,9 @@ final class Discovery
 
     /** Why an existing cache file was ignored under the scan policy, once known. */
     private ?string $staleCache = null;
+
+    /** The automatic cache file that could not be written, once known. */
+    private ?string $unwritable = null;
 
     /** @var WeakMap<object, true> */
     private WeakMap $dispatchers;
@@ -79,7 +85,7 @@ final class Discovery
     }
 
     /**
-     * The inventory: replayed from a cache file, reused in this process, or scanned cold.
+     * The inventory: replayed from a cache file, from an unchanged automatic cache, reused in this process, or scanned cold.
      *
      * @throws InvalidDiscoveryCache when the cache cannot be trusted and the policy is Fail
      *
@@ -107,24 +113,17 @@ final class Discovery
             }
         }
 
+        if ($this->staleCache === null && $this->autoCaches()) {
+            return $this->inventory = $this->autoInventory();
+        }
+
         $this->source = 'scan';
 
         if ($this->staleCache === null && $this->options->reuseInProcess && $this->options->candidates === null) {
-            $roots = [];
-            foreach ($this->definitions as $definition) {
-                if (! $definition->enabled) {
-                    continue;
-                }
-                $roots[] = Path::resolve($this->basePath, $this->preset->rule($definition->kindId)->root()->path);
-                if ($definition->type->isRelationType()) {
-                    $roots[] = Path::resolve($this->basePath, $this->preset->rule($definition->type->value)->root()->path);
-                }
-            }
-
             return $this->inventory = InProcessInventory::instance()->remember(
                 $this->basePath,
                 $this->presetFingerprint().':'.$this->definitionsFingerprint(),
-                array_values(array_unique($roots)),
+                $this->roots(),
                 fn (): Inventory => $this->scan(),
             );
         }
@@ -143,7 +142,7 @@ final class Discovery
     }
 
     /**
-     * Where the current inventory came from: 'cache', 'scan', or null before it is built.
+     * Where the current inventory came from: 'cache', 'auto-cache', 'scan', or null before it is built.
      *
      * @internal
      */
@@ -164,18 +163,33 @@ final class Discovery
     }
 
     /**
+     * The automatic cache file that could not be written, or null; the inventory was scanned instead.
+     *
+     * @internal
+     */
+    public function unwritableAutoCache(): ?string
+    {
+        return $this->unwritable;
+    }
+
+    /**
      * A fresh cold scan, ignoring any cache and leaving the current inventory alone.
      *
      * @api
      */
     public function scan(): Inventory
     {
+        return $this->scanWatching(null);
+    }
+
+    private function scanWatching(?WatchedPaths $watched): Inventory
+    {
         $observer = InProcessInventory::instance()->onScan;
         if ($observer !== null) {
             $observer();
         }
 
-        return (new DiscoveryScanner($this->preset, $this->basePath, new Eligibility, $this->options->candidates))->scan($this->definitions);
+        return (new DiscoveryScanner($this->preset, $this->basePath, new Eligibility, $this->options->candidates, watched: $watched))->scan($this->definitions);
     }
 
     /** Read a validated cache only; never scan or mutate memoised inventory. @api */
@@ -201,6 +215,14 @@ final class Discovery
         return new DiscoveryCache($absolute);
     }
 
+    /** The automatic cache: beside the cache file, named *.auto.php. Never read while the cache file exists. */
+    private function autoCache(): DiscoveryCache
+    {
+        $path = $this->cache()->path;
+
+        return new DiscoveryCache((str_ends_with($path, '.php') ? substr($path, 0, -4) : $path).'.auto.php');
+    }
+
     /**
      * Scan cold and write the result to the cache file.
      *
@@ -217,10 +239,16 @@ final class Discovery
         return $inventory;
     }
 
-    /** @internal */
+    /**
+     * Remove the cache file and the automatic cache; whether either existed.
+     *
+     * @internal
+     */
     public function clearCache(): bool
     {
-        return $this->cache()->clear();
+        $cleared = $this->cache()->clear();
+
+        return $this->autoCache()->clear() || $cleared;
     }
 
     /** @internal */
@@ -239,6 +267,103 @@ final class Discovery
     public function definitionsFingerprint(): string
     {
         return PresetFingerprint::ofDefinitions($this->definitions).($this->options->candidates !== null ? ':custom-candidates' : '');
+    }
+
+    /**
+     * Without a custom candidate source, which no fingerprint can cover, and with something to discover.
+     */
+    private function autoCaches(): bool
+    {
+        if (! $this->options->autoCache || $this->options->candidates !== null) {
+            return false;
+        }
+
+        foreach ($this->definitions as $definition) {
+            if ($definition->enabled) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The automatic cache's inventory when nothing it watched changed; else a
+     * scan, written with what it depends on when that can be trusted. A cache
+     * that cannot be written is left alone and the scan is used.
+     */
+    private function autoInventory(): Inventory
+    {
+        $cache = $this->autoCache();
+        $preset = $this->presetFingerprint();
+        $definitions = $this->definitionsFingerprint();
+        $inventory = $cache->readUnchanged($preset, $definitions, $this->basePath);
+
+        if ($inventory !== null) {
+            $this->source = 'auto-cache';
+
+            return $inventory;
+        }
+
+        $this->source = 'scan';
+        $started = time();
+        $watched = new WatchedPaths;
+
+        // A callback placement can name a related class from code no path covers.
+        foreach ($this->definitions as $definition) {
+            if ($definition->enabled && $definition->type->isRelationType() && ! $this->preset->rule($definition->type->value) instanceof TemplateRule) {
+                $watched->unresolved();
+            }
+        }
+
+        $inventory = $this->scanWatching($watched);
+        $watched->directories($this->roots());
+
+        // Installing, removing or re-dumping packages changes what autoloads.
+        $watched->file(Path::resolve($this->basePath, 'composer.lock'));
+        foreach (array_keys(ClassLoader::getRegisteredLoaders()) as $vendor) {
+            $watched->file($vendor.'/composer/installed.json');
+            $watched->file($vendor.'/composer/autoload_static.php');
+        }
+
+        $signatures = $watched->signatures($started);
+
+        if ($signatures === null) {
+            return $inventory;
+        }
+
+        // A read-only or missing directory reports a warning; the write fails and the scan stands.
+        set_error_handler(static fn (): bool => true);
+        try {
+            $cache->write($inventory, $preset, $definitions, watched: ['base' => $this->basePath, 'paths' => $signatures]);
+        } catch (Throwable) {
+            $this->unwritable = $cache->path;
+        } finally {
+            restore_error_handler();
+        }
+
+        return $inventory;
+    }
+
+    /**
+     * The absolute root of every enabled definition, with the related roots of factory and policy pairs.
+     *
+     * @return list<string>
+     */
+    private function roots(): array
+    {
+        $roots = [];
+        foreach ($this->definitions as $definition) {
+            if (! $definition->enabled) {
+                continue;
+            }
+            $roots[] = Path::resolve($this->basePath, $this->preset->rule($definition->kindId)->root()->path);
+            if ($definition->type->isRelationType()) {
+                $roots[] = Path::resolve($this->basePath, $this->preset->rule($definition->type->value)->root()->path);
+            }
+        }
+
+        return array_values(array_unique($roots));
     }
 
     /**
