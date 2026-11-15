@@ -2,7 +2,7 @@
 
 All notable changes to `mod` will be documented in this file.
 
-## Unreleased
+## [0.14.0] - 2026-11-15
 
 ### Upgrading
 - **Outside production, discovery now writes `bootstrap/cache/mod-discovery.auto.php`.** It is on by default wherever the app environment isn't `production`, including `testing`. Laravel's default `bootstrap/cache/.gitignore` already ignores it. To keep scanning on every request, set `'discovery.auto_cache' => false` in `config/mod.php` or `MOD_DISCOVERY_AUTO_CACHE=false`. Production and any app with a `mod:cache` file behave as before (#243).
