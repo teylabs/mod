@@ -42,7 +42,7 @@ jobs:
           persist-credentials: false
 
       - name: Run OpenCode
-        uses: anomalyco/opencode/github@733b2c627e5aec39cb33cc22373bdce33053ef2c # v1.19.0
+        uses: anomalyco/opencode/github@c0ad18b402eb2827fc1ee71c171b1177b3fc02d1 # v2.3.2
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
